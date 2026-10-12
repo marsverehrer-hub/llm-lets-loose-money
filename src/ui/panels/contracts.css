@@ -1,0 +1,226 @@
+/* ==========================================================================
+   Contracts panel (CON). Every class is prefixed ct-. Colours, type and spacing
+   come from theme.css tokens only: no hex, gradients, shadows, blur, radius
+   above 2px, or entrance animation. Offers reflow into columns from the
+   panel's own width, so the layout works at 800px and 1440px alike.
+   ========================================================================== */
+
+.ct {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  container: ct / inline-size;
+}
+
+.ct-card {
+  min-width: 0;
+}
+
+.ct-pad {
+  padding: 12px 14px;
+}
+
+/* ---------- header readouts ----------------------------------------------- */
+.ct-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+/* ---------- offers grid ---------------------------------------------------- */
+.ct-offers {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 12px;
+  padding: 12px;
+  min-width: 0;
+}
+
+.ct-offer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px 14px;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+}
+.ct-offer-pending {
+  border-color: var(--line-2);
+}
+
+.ct-offer-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+.ct-offer-id {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.ct-client {
+  color: var(--fg);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ct-title {
+  color: var(--fg-2);
+  font-size: var(--fs-sm);
+  line-height: 1.4;
+}
+.ct-expiry {
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+}
+
+.ct-blurb {
+  margin: 0;
+  color: var(--fg-2);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+.ct-hint {
+  font-size: var(--fs-xs);
+}
+
+/* requirement chips */
+.ct-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ct-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border: 1px solid var(--line-2);
+  color: var(--fg-2);
+  font-size: var(--fs-xs);
+  line-height: 1.4;
+}
+.ct-chip-mark {
+  font-size: var(--fs-xs);
+}
+.ct-chip-ok {
+  color: var(--up);
+  border-color: var(--up);
+  background: var(--up-3);
+}
+.ct-chip-no {
+  color: var(--down);
+  border-color: var(--down);
+  background: var(--down-3);
+}
+
+/* value line */
+.ct-value {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+  gap: 6px 12px;
+  margin: 0;
+}
+.ct-value > div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.ct-value dt {
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+}
+.ct-value dd {
+  margin: 0;
+  color: var(--fg);
+  font-size: var(--fs);
+  white-space: nowrap;
+}
+
+.ct-rival {
+  padding-left: 8px;
+  border-left: 2px solid var(--line-2);
+  color: var(--fg-2);
+  font-size: var(--fs-sm);
+  line-height: 1.4;
+}
+
+/* bid controls */
+.ct-bid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ct-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.ct-label {
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+}
+.ct-select {
+  width: 100%;
+  min-width: 0;
+  font-size: var(--fs-sm);
+}
+.ct-select-sm {
+  width: auto;
+  min-width: 170px;
+  max-width: 240px;
+}
+.ct-fit {
+  font-size: var(--fs-sm);
+  color: var(--fg);
+}
+.ct-bad {
+  color: var(--down);
+}
+.ct-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ct-pending {
+  padding: 8px 10px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  color: var(--fg-2);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+.ct-pending strong {
+  color: var(--fg);
+  font-weight: 600;
+}
+
+/* ---------- tables --------------------------------------------------------- */
+.ct-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Narrow panel (the 800px window): one column of offers. Keyed to the panel's own width, not the window's. */
+@container ct (max-width: 719px) {
+  .ct-offers {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Phone: one column of offers that uses the full card width. The 340px minimum track would overflow a 375px screen. */
+@media (max-width: 760px) {
+  .ct-offers {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 0;
+  }
+}

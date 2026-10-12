@@ -1,0 +1,22 @@
+/* Contracts (CON) v10: deadline bars for offers, bids and active deals. Tokens only. */
+
+.ct-dl { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.ct-dl-track { display: block; height: 6px; background: var(--bg-3); }
+.ct-dl-fill { display: block; height: 100%; background: var(--amber); }
+.ct-dl-fill.warn { background: var(--amber-2); }
+.ct-dl-fill.bad { background: var(--down); }
+.ct-dl-text { color: var(--fg-2); font-size: var(--fs-xs); }
+.ct-dl-cell { min-width: 140px; }
+.ct-dl-cell .ct-dl { min-width: 120px; }
+
+.ct-breach { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 120px; }
+.ct-breach .ct-dl { width: 100%; }
+
+.ct-hist-sub { font-size: var(--fs-xs); }
+
+.ct-active td.mb-head .ct-title { font-size: var(--fs-sm); }
+
+@media (max-width: 760px) {
+  .ct-dl-cell { min-width: 0; }
+  .ct-dl-text { font-size: var(--fs-sm); }
+}

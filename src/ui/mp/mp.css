@@ -1,0 +1,955 @@
+/* ==========================================================================
+   Multiplayer UI: lobby, VS panel, overlays, top-bar room chip.
+   OWNER: MP-UI. Every class here is prefixed mp-. Tokens only (theme.css).
+   Colours that come from data (rival colour, swatches) arrive through --c.
+   ========================================================================== */
+
+/* ---------- shared -------------------------------------------------------- */
+.mp-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.mp-dim {
+  color: var(--fg-3);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+.mp-pad {
+  padding: 12px 14px;
+}
+.mp-you {
+  color: var(--blue);
+}
+.mp-rv {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--c, var(--fg-2));
+}
+.mp-note {
+  color: var(--fg-3);
+  font-size: var(--fs-sm);
+  padding: 8px 12px;
+  border: 1px solid var(--line-2);
+}
+
+/* ---------- lobby --------------------------------------------------------- */
+.mp-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.mp-swatch {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--line-2);
+  background: var(--c);
+  cursor: pointer;
+}
+.mp-swatch:hover {
+  border-color: var(--fg-2);
+}
+.mp-swatch[aria-pressed='true'] {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+}
+.mp-code-input {
+  height: 34px;
+  font-family: var(--mono);
+  font-size: 16px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.mp-advanced {
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+.mp-advanced > summary {
+  cursor: pointer;
+  color: var(--fg-2);
+  font-size: var(--fs-sm);
+  user-select: none;
+}
+.mp-advanced > summary:hover {
+  color: var(--amber);
+}
+.mp-advanced[open] > summary {
+  margin-bottom: 10px;
+}
+.mp-advanced .field {
+  margin-top: 0;
+}
+.mp-error {
+  color: var(--down);
+  font-size: var(--fs-sm);
+  border: 1px solid var(--down);
+  padding: 6px 10px;
+}
+.mp-room-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid var(--line-2);
+  background: var(--bg);
+}
+.mp-code {
+  font-family: var(--mono);
+  font-size: 34px;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  color: var(--fg);
+  line-height: 1.2;
+  user-select: all;
+}
+.mp-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs);
+}
+.mp-status-good {
+  color: var(--up);
+}
+.mp-status-warn {
+  color: var(--amber);
+}
+.mp-status-bad {
+  color: var(--down);
+}
+.mp-status-muted {
+  color: var(--fg-2);
+}
+
+/* ---------- top-bar room chip -------------------------------------------- */
+.mp-room {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 8px;
+  background: transparent;
+  border: 1px solid var(--line-2);
+  color: var(--fg-2);
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.mp-room:hover {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+@media (max-width: 1180px) {
+  .mp-room-code { display: none; }
+}
+
+/* ---------- waiting bar and overlays ------------------------------------- */
+.mp-waiting {
+  position: fixed;
+  top: 40px;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--amber-2);
+  color: var(--fg-2);
+  font-size: var(--fs-xs);
+  pointer-events: none;
+}
+.mp-result-head {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--fg);
+  line-height: 1.2;
+}
+.mp-result-reason {
+  color: var(--fg-2);
+  margin: 8px 0 14px;
+}
+.mp-result-table td.num,
+.mp-result-table th.num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- VS panel ------------------------------------------------------ */
+.mp-vs-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+.mp-win {
+  min-width: 0;
+}
+@media (max-width: 960px) {
+  .mp-vs-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Crowns: the leading side gets a coloured edge on the benchmark name. */
+.mp-crown.mp-lead-me > td:first-child {
+  border-left: 2px solid var(--blue);
+}
+.mp-crown.mp-lead-rival > td:first-child {
+  border-left: 2px solid var(--c, var(--fg-3));
+}
+.mp-crown.mp-lead-tie > td:first-child,
+.mp-crown.mp-lead-none > td:first-child {
+  border-left: 2px solid transparent;
+}
+.mp-crowns td.num,
+.mp-crowns th.num {
+  white-space: nowrap;
+}
+.mp-h2h td.mp-r {
+  text-align: right;
+}
+
+/* Segment shares */
+.mp-shares {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.mp-share {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.mp-share-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: var(--fs-sm);
+  color: var(--fg-2);
+}
+.mp-share-bar {
+  height: 10px;
+}
+
+/* Attacks: each attack is one button with its cost and cooldown. */
+.mp-attacks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.mp-attack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+  padding: 10px 12px;
+  background: transparent;
+  border: 1px solid var(--line-2);
+  color: var(--fg);
+  text-align: left;
+  cursor: pointer;
+}
+.mp-attack:hover:not(:disabled) {
+  border-color: var(--amber);
+}
+.mp-attack:active:not(:disabled) {
+  background: var(--bg-3);
+}
+.mp-attack:disabled {
+  color: var(--fg-3);
+  border-color: var(--line);
+  cursor: not-allowed;
+}
+.mp-attack-name {
+  font-weight: 600;
+  font-size: var(--fs);
+}
+.mp-attack-desc {
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+  line-height: 1.4;
+}
+.mp-attack-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: var(--fs-sm);
+  color: var(--fg-2);
+  margin-top: auto;
+}
+.mp-attack:disabled .mp-attack-meta {
+  color: var(--fg-3);
+}
+.mp-attack-reason {
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+}
+@media (max-width: 520px) {
+  .mp-attacks {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Feed and chat */
+.mp-feed {
+  height: 260px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  padding: 6px 0;
+}
+.mp-feed-empty {
+  margin: auto;
+  padding: 12px;
+  color: var(--fg-3);
+  font-size: var(--fs-sm);
+  text-align: center;
+}
+.mp-feed-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 4px 10px 4px 12px;
+  border-left: 2px solid var(--c, var(--line-2));
+  font-size: var(--fs-sm);
+  line-height: 1.4;
+}
+.mp-feed-day {
+  flex-shrink: 0;
+  min-width: 78px;
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+}
+.mp-feed-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.mp-kind-info .mp-feed-text {
+  color: var(--fg-3);
+}
+.mp-chat {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+.mp-chat .input {
+  flex: 1;
+}
+
+/* ---------- small screens ------------------------------------------------- */
+@media (max-width: 800px) {
+  .mp-feed {
+    height: 220px;
+  }
+}
+
+/* ---------- phones (MOBILE-B): every control at least 40px, forms full width ---- */
+@media (max-width: 760px) {
+  /* Under the 56px top bar (and the notch), not the 40px desktop bar. */
+  .mp-waiting {
+    top: calc(56px + env(safe-area-inset-top, 0px));
+    height: 28px;
+  }
+  .mp-swatches {
+    gap: 8px;
+  }
+  .mp-swatch {
+    width: 40px;
+    height: 40px;
+  }
+  .mp-swatch[aria-pressed='true'] {
+    outline-offset: 3px;
+  }
+  .mp-code-input {
+    height: 40px;
+  }
+  .mp-advanced > summary {
+    display: flex;
+    align-items: center;
+    min-height: 40px;
+  }
+  /* Match length: a 2 by 2 grid of 40px choices instead of four cramped segments. */
+  .mp-length.segmented {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+  .mp-length .seg {
+    height: 40px;
+    min-width: 0;
+    border-right: 0;
+    border-bottom: 1px solid var(--line-2);
+  }
+  .mp-length .seg:nth-child(odd) {
+    border-right: 1px solid var(--line-2);
+  }
+  .mp-length .seg:nth-child(n + 3) {
+    border-bottom: 0;
+  }
+  .mp-chat .btn {
+    min-width: 72px;
+  }
+  .mp-attack {
+    min-height: 64px;
+  }
+}
+
+/* ---------- v12 multiplayer screen (Lobby.tsx) --------------------------------
+   A full page over the game. Modals (z 50) still sit above it, so a dropped connection shows on top. */
+.mps {
+  position: fixed;
+  inset: 0;
+  z-index: 48;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--fg);
+}
+.mps-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-1);
+}
+.mps-code {
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  padding: 2px 6px;
+  background: var(--amber);
+  color: var(--on-accent);
+}
+.mps-title {
+  margin: 0;
+  font-size: 20px;
+}
+.mps-sub {
+  color: var(--fg-3);
+  font-size: var(--fs-sm);
+}
+.mps-close {
+  margin-left: auto;
+}
+.mps-body {
+  flex: 1;
+  overflow: auto;
+  padding: 18px 20px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 1180px;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+.mps-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.mps-card,
+.mps-live {
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.mps-live {
+  border-color: var(--amber-3);
+}
+.mps-h {
+  margin: 0;
+  font-size: 15px;
+}
+.mps-kicker {
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--amber);
+}
+.mps-live-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.mps-savename {
+  color: var(--fg-2);
+  font-size: var(--fs-sm);
+}
+.mps-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* Company plates: a colour block with initials, then the name. */
+.mps-vs,
+.mps-preview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+.mps-preview {
+  padding: 12px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+}
+.mps-plate {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.mps-vs > .mps-plate:last-child,
+.mps-preview > .mps-plate:last-child {
+  flex-direction: row-reverse;
+  text-align: right;
+}
+.mps-plate-badge {
+  flex: none;
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  background: var(--c);
+  color: var(--bg);
+  font-family: var(--mono);
+  font-size: 18px;
+  font-weight: 700;
+}
+.mps-plate.is-empty .mps-plate-badge {
+  background: transparent;
+  border: 2px dashed var(--line-2);
+  color: var(--fg-3);
+}
+.mps-plate-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.mps-plate-name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mps-plate.is-empty .mps-plate-name {
+  color: var(--fg-3);
+}
+.mps-plate-role {
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+}
+.mps-vs-mark {
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 22px;
+  color: var(--amber);
+}
+
+/* Valuation tug of war. */
+.mps-duel {
+  display: flex;
+  height: 8px;
+  background: var(--bg-3);
+}
+.mps-duel > span {
+  background: var(--c);
+}
+.mps-duel > span + span {
+  border-left: 2px solid var(--bg-1);
+}
+.mps-duel.is-empty {
+  background: var(--bg-3);
+}
+
+/* Room code as letter tiles. */
+.mps-room {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.mps-tiles {
+  display: flex;
+  gap: 6px;
+}
+.mps-tile {
+  width: 40px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  background: var(--bg-2);
+  border: 1px solid var(--line-2);
+  font-family: var(--mono);
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--fg);
+}
+.mps-tile.is-blank {
+  border-style: dashed;
+  color: var(--fg-4);
+}
+.mps-code-entry {
+  position: relative;
+  width: max-content;
+}
+/* The real input sits over the tiles, invisible, so typing and pasting work as usual. */
+.mps-code-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  opacity: 0;
+  font-size: 16px;
+  cursor: text;
+}
+.mps-code-entry:focus-within .mps-tile {
+  border-color: var(--amber);
+}
+
+/* Numbered steps. */
+.mps-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.mps-step {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  gap: 10px;
+}
+.mps-step-n {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--amber-3);
+  color: var(--amber);
+  font-family: var(--mono);
+  font-size: var(--fs-sm);
+}
+.mps-step-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.mps-two {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+}
+
+/* Saved matches. */
+.mps-saves {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mps-save {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto;
+  gap: 12px;
+  padding: 10px 12px 10px 0;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+}
+.mps-save.is-live {
+  border-color: var(--up-3);
+}
+.mps-save-colors {
+  display: flex;
+  flex-direction: column;
+}
+.mps-save-colors > span {
+  flex: 1;
+  background: var(--c);
+}
+.mps-save-main {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.mps-save-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mps-save-name {
+  all: unset;
+  font-weight: 600;
+  cursor: text;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mps-save-name:hover {
+  text-decoration: underline dotted;
+}
+.mps-save-name:focus-visible {
+  outline: 2px solid var(--amber);
+}
+.mps-rename {
+  height: 28px;
+  max-width: 260px;
+}
+.mps-save-vs {
+  font-size: var(--fs-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mps-save-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+}
+.mps-save-result {
+  color: var(--fg-2);
+  font-size: var(--fs-xs);
+}
+.mps-save-acts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: stretch;
+}
+.mps-empty {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px;
+  border: 1px dashed var(--line-2);
+  color: var(--fg-3);
+  font-size: var(--fs-sm);
+}
+.mps-empty-seats {
+  display: flex;
+  gap: 6px;
+  flex: none;
+}
+.mps-empty-seats > span {
+  width: 28px;
+  height: 28px;
+  border: 2px dashed var(--line-2);
+}
+
+@media (max-width: 760px) {
+  /* The screen is fixed over the whole phone, so the notch and home indicator need their own room. */
+  .mps-head {
+    padding: calc(10px + env(safe-area-inset-top, 0px)) 16px 10px;
+  }
+  /* Close sits beside the title; the subtitle takes the second row. */
+  .mps-close {
+    order: 1;
+  }
+  .mps-sub {
+    order: 2;
+    flex: 1 1 100%;
+  }
+  /* Host / join switch: two equal segments across the row. */
+  .mp-mode.segmented {
+    display: flex;
+    width: 100%;
+  }
+  .mp-mode .seg {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .mps-body {
+    padding: 12px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+  }
+  .mps-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .mps-plate-badge {
+    width: 40px;
+    height: 40px;
+    font-size: 15px;
+  }
+  .mps-tile {
+    width: 34px;
+    height: 42px;
+    font-size: 20px;
+  }
+  .mps-two {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .mps-save {
+    grid-template-columns: 8px minmax(0, 1fr);
+  }
+  .mps-save-acts {
+    grid-column: 2;
+    flex-direction: row;
+  }
+  /* Saved match names are plain text buttons: give them the 40px row too. */
+  .mps-save-name {
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+  }
+  .mps-rename {
+    height: 40px;
+    max-width: none;
+    width: 100%;
+  }
+}
+
+/* Narrow phones: the two company plates stack, with the VS mark between them, so the names get the full width. */
+@media (max-width: 420px) {
+  .mps-vs,
+  .mps-preview {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+  .mps-vs > .mps-plate:last-child,
+  .mps-preview > .mps-plate:last-child {
+    flex-direction: row;
+    text-align: left;
+  }
+  .mps-vs-mark {
+    justify-self: center;
+    font-size: 18px;
+  }
+}
+
+/* ---------- v12 shared speed: request / countdown bar --------------------------------------------------------- */
+.mp-vote {
+  position: fixed;
+  top: 52px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 46;
+  width: min(560px, calc(100vw - 32px));
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px 0;
+  background: var(--bg-1);
+  border: 1px solid var(--line-2);
+  font-size: var(--fs-sm);
+}
+.mp-vote.is-ask,
+.mp-vote.is-count {
+  border-color: var(--amber-2);
+}
+.mp-vote-note {
+  padding: 8px 12px;
+  color: var(--fg-2);
+}
+.mp-vote-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.mp-vote-speed {
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--amber);
+  min-width: 40px;
+}
+.mp-vote-clock {
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 26px;
+  line-height: 1;
+  color: var(--amber);
+  min-width: 40px;
+  text-align: center;
+}
+.mp-vote-text {
+  flex: 1;
+  min-width: 160px;
+}
+.mp-vote-acts {
+  display: flex;
+  gap: 6px;
+}
+.mp-vote-ready {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: var(--fs-xs);
+}
+.mp-ready-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border: 1px solid var(--line-2);
+  color: var(--fg-3);
+}
+.mp-ready-chip::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border: 1px solid var(--c);
+}
+.mp-ready-chip.is-on {
+  color: var(--fg);
+  border-color: var(--c);
+}
+.mp-ready-chip.is-on::before {
+  background: var(--c);
+}
+/* Time left drains from the right. */
+.mp-vote-drain {
+  height: 3px;
+  margin: 0 -12px;
+  background: var(--bg-3);
+  position: relative;
+}
+.mp-vote-drain::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: calc(var(--f) * 100%);
+  background: var(--amber);
+  transition: width 250ms linear;
+}
+@media (max-width: 760px) {
+  /* Directly under the waiting bar (56px top bar + 28px bar + 6px gap, all under the notch). */
+  .mp-vote {
+    top: calc(56px + 28px + 6px + env(safe-area-inset-top, 0px));
+  }
+}
+.mps-grid.is-solo {
+  grid-template-columns: minmax(0, 1fr);
+}

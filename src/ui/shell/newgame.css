@@ -1,0 +1,346 @@
+/* OWNER: SCENARIO. New-game screen and the HQ Goals card (GAME_DESIGN §20.1). Phone first: one column at 375px,
+   sticky Start at the bottom, every control at least 40px tall. Tokens only, sentence case, no motion. */
+
+.ng-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: var(--bg);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  color: var(--fg);
+}
+
+.ng-head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--line);
+}
+.ng-head-text {
+  min-width: 0;
+}
+.ng-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--fg);
+}
+.ng-sub {
+  margin: 4px 0 0;
+  line-height: 1.5;
+}
+.ng-close {
+  flex: 0 0 auto;
+  min-width: 40px;
+  min-height: 40px;
+  background: transparent;
+  border: 1px solid var(--line-2);
+  color: var(--fg);
+  font: inherit;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+.ng-close:hover {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+
+.ng-wrap {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 16px 16px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.ng-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+.ng-h {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg-2);
+}
+.ng-h2 {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg-2);
+}
+
+.ng-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+}
+@media (min-width: 640px) {
+  .ng-grid-scenarios,
+  .ng-grid-diff {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1000px) {
+  .ng-grid-scenarios {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .ng-grid-diff {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.ng-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  min-height: 40px;
+  padding: 14px;
+  text-align: left;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  color: var(--fg);
+  font: inherit;
+  cursor: pointer;
+}
+.ng-tile:hover {
+  border-color: var(--line-2);
+  background: var(--bg-2);
+}
+.ng-tile.is-on {
+  border-color: var(--amber);
+  background: var(--bg-2);
+}
+.ng-tile:focus-visible,
+.ng-check input:focus-visible,
+.ng-screen .input:focus-visible,
+.ng-close:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+}
+.ng-tile-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+}
+.ng-tile-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--fg);
+  min-width: 0;
+}
+.ng-year {
+  flex: 0 0 auto;
+  font-size: 13px;
+  color: var(--fg-2);
+}
+.ng-tile-pitch {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--fg-2);
+}
+.ng-tile-start {
+  color: var(--fg-3);
+}
+.ng-tile-goals {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ng-tile-goal {
+  color: var(--fg-2);
+  line-height: 1.4;
+}
+.ng-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ng-chip {
+  font-size: 12px;
+}
+
+.ng-kv {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  margin-top: 2px;
+}
+.ng-kv-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+}
+.ng-kv-k {
+  color: var(--fg-3);
+}
+.ng-kv-v {
+  color: var(--fg);
+}
+
+.ng-briefing {
+  padding: 14px;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--fg);
+}
+.ng-briefing p {
+  margin: 0;
+}
+
+.ng-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-height: 40px;
+  padding: 6px 0;
+  cursor: pointer;
+}
+.ng-check input {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  margin: 2px 0 0;
+  accent-color: var(--amber);
+}
+.ng-check-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* Form controls inside the screen: 40px tall, 16px text so iOS does not zoom. */
+.ng-screen .btn {
+  min-height: 40px;
+}
+.ng-screen .input {
+  min-height: 40px;
+  font-size: 16px;
+}
+.ng-screen .field-hint {
+  display: block;
+  margin-top: 4px;
+}
+
+.ng-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+  background: var(--bg-1);
+  border-top: 1px solid var(--line);
+}
+.ng-summary {
+  min-width: 0;
+  flex: 1 1 200px;
+  color: var(--fg-2);
+}
+.ng-summary-text {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ng-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+@media (max-width: 480px) {
+  .ng-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .ng-summary {
+    flex: 0 0 auto;
+  }
+  .ng-actions {
+    margin-left: 0;
+  }
+  .ng-actions .btn {
+    flex: 1 1 0;
+  }
+}
+
+/* HQ Goals card */
+.ng-goal-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.ng-goal {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+}
+.ng-goal:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+.ng-goal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.ng-goal-text {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--fg);
+}
+.ng-goal-meta {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--fg-3);
+}
+.ng-goal-failed .ng-goal-text {
+  color: var(--fg-3);
+  text-decoration: line-through;
+}
+.ng-brief {
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+.ng-brief summary {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  color: var(--fg-2);
+}
+.ng-brief p {
+  margin: 4px 0 0;
+  line-height: 1.6;
+  color: var(--fg-2);
+}

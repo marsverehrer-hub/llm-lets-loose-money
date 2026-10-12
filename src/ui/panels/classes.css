@@ -1,0 +1,90 @@
+/* v8 weight classes (GAME_DESIGN 19.2): class switcher, class arena, bench tuning. Prefix wc-.
+   Theme tokens only: no raw colours, shadows, gradients or entrance animations. Radius stays at 0. */
+
+.wc-switch {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 8px 0 12px;
+}
+
+.wc-threshold {
+  color: var(--fg-3);
+  font-size: var(--fs-sm);
+  line-height: 1.4;
+  min-width: 0;
+}
+
+.wc-threshold .num {
+  color: var(--fg-2);
+}
+
+.wc-crown-other {
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+}
+
+.bmk-row.sel .wc-crown-other {
+  color: inherit;
+}
+
+.wc-more {
+  padding: 6px 10px;
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+}
+
+.wc-arena-table td {
+  white-space: nowrap;
+}
+
+/* Inline confirm for a bench tune, shown in a full-width row under the benchmark. */
+.wc-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--line-2);
+  border-left: 2px solid var(--amber);
+  background: var(--bg-2);
+}
+
+.wc-confirm-line {
+  color: var(--fg-2);
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+}
+
+.wc-confirm-line .num {
+  color: var(--fg);
+}
+
+.wc-confirm-note {
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+  line-height: 1.4;
+}
+
+.wc-confirm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.wc-eta {
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+}
+
+.wc-tune-col {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.wc-tune-row td {
+  padding: 8px 0;
+  white-space: normal;
+}

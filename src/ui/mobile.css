@@ -1,0 +1,827 @@
+/* ==========================================================================
+   Phone layer (<= 760px). OWNER: mobile shell agent. Read components/MOBILE.md first.
+   Imported last in App.tsx so these rules win over the shell and panel CSS. Every rule
+   sits inside the 760px query except a few unique helper classes (.speed-cycle,
+   .slider-step, .table-stack, .stack-card) that only exist on phones or are inert on desktop.
+   Tokens only: no raw colours, no gradients, shadows, blur or radius over 2px.
+   ========================================================================== */
+
+/* Helpers that only exist for phones (their markup is rendered conditionally, or hidden here). */
+.speed-cycle { display: none; }
+.slider-step { display: none; }
+
+/* Stacked cards for a list of records (components/DataTable.tsx, or any table with data-label cells). */
+.stack-cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.stack-card {
+  min-width: 0;
+  padding: 10px 12px;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+}
+.stack-card.sel,
+.stack-card.is-selected {
+  border-color: var(--amber);
+}
+.stack-card.me {
+  border-left: 3px solid var(--amber);
+}
+.stack-card-head {
+  min-width: 0;
+  margin-bottom: 6px;
+  color: var(--fg);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.stack-card-body {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.stack-kv {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+.stack-kv dt {
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+  flex-shrink: 0;
+}
+.stack-kv dd {
+  margin: 0;
+  min-width: 0;
+  text-align: right;
+  color: var(--fg);
+  overflow-wrap: anywhere;
+}
+.stack-kv dd.num {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 760px) {
+  /* ---------- app frame ---------------------------------------------------- */
+  html,
+  body {
+    overscroll-behavior: none;
+  }
+  button,
+  a,
+  input,
+  select,
+  textarea,
+  summary,
+  [role='button'] {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Rows: top bar (includes the notch inset), body, news ticker, bottom tab bar (includes the home-indicator inset). */
+  .app {
+    --top-h: 56px;
+    --tab-h: 60px;
+    --nav-w: 0px;
+    --top-total: calc(var(--top-h) + env(safe-area-inset-top, 0px));
+    --tab-total: calc(var(--tab-h) + env(safe-area-inset-bottom, 0px));
+    --bottom-total: calc(var(--ticker-h) + var(--tab-total));
+    height: calc(100vh / var(--ui-zoom, 1));
+    height: calc(100dvh / var(--ui-zoom, 1));
+    grid-template-rows: var(--top-total) minmax(0, 1fr) var(--ticker-h) var(--tab-total);
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+  .app > .app-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .app-main {
+    padding: 12px 12px 16px;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  .app-main .panel-title {
+    font-size: 18px;
+  }
+  .newsticker {
+    font-size: var(--fs-xs);
+  }
+
+  /* ---------- top bar: company and date, cash, speed, menu --------------- */
+  .topbar {
+    height: var(--top-total);
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .topbar .brand-mark,
+  .pause-tag {
+    display: none;
+  }
+  .brand-text {
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 0;
+    padding: 0 8px 0 10px;
+    height: 100%;
+  }
+  .brand-company {
+    display: flex;
+    align-items: center;
+    height: 40px;
+    min-height: 40px;
+    max-width: 112px;
+    font-size: var(--fs-sm);
+  }
+  .brand-company-input {
+    width: 112px;
+    height: 40px;
+  }
+  .brand-date {
+    font-size: var(--fs-xs);
+    line-height: 16px;
+  }
+  .topbar-stats {
+    flex: 1 1 0;
+    justify-content: flex-start;
+    padding-left: 10px;
+    overflow: hidden;
+  }
+  /* Cash only. Revenue, burn, valuation and hype are on the HQ panel. */
+  .topbar-stats > *:not(.ts-cash) {
+    display: none;
+  }
+  .topbar-stat.ts-cash {
+    padding-right: 0;
+    margin-right: 0;
+    border-right: 0;
+    gap: 5px;
+  }
+  .topbar-stat.ts-cash .topbar-delta {
+    display: none;
+  }
+  .topbar-stat.ts-cash .topbar-value {
+    font-size: 14px;
+  }
+  .topbar-end {
+    gap: 4px;
+    padding: 0 6px;
+  }
+  .tb-desk {
+    display: none;
+  }
+  .speed-group {
+    gap: 4px;
+  }
+  .speed-group > .btn:not(:first-child):not(.speed-cycle) {
+    display: none;
+  }
+  .speed-cycle {
+    display: inline-flex;
+    min-width: 52px;
+    font-family: var(--mono);
+  }
+  .topbar .btn {
+    min-width: 40px;
+  }
+  .mp-room {
+    min-width: 40px;
+    min-height: 40px;
+  }
+
+  /* MENU: a full-width sheet under the top bar instead of a small dropdown. */
+  .menu {
+    position: fixed;
+    top: calc(var(--top-total) + 1px);
+    left: 0;
+    right: 0;
+    width: auto;
+    max-height: calc(100dvh / var(--ui-zoom, 1) - var(--top-total) - 1px);
+    border-left: 0;
+    border-right: 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .menu-item {
+    height: 44px;
+    font-size: 15px;
+  }
+  .menu-check {
+    min-height: 40px;
+    font-size: var(--fs);
+  }
+  .menu-head {
+    padding-top: 8px;
+  }
+
+  /* ---------- bottom tab bar (shell/MobileNav.tsx) ----------------------- */
+  .mtabs {
+    display: grid;
+    grid-template-columns: repeat(var(--tab-count, 5), minmax(0, 1fr));
+    height: var(--tab-total);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    box-sizing: border-box;
+    background: var(--bg);
+    border-top: 1px solid var(--line-2);
+    min-width: 0;
+  }
+  .mtab {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    min-width: 0;
+    min-height: 40px;
+    padding: 4px 2px;
+    background: transparent;
+    border: 0;
+    color: var(--fg-2);
+    cursor: pointer;
+  }
+  .mtab:hover {
+    color: var(--fg);
+  }
+  .mtab-code {
+    font-family: var(--mono);
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    line-height: 1.2;
+    color: var(--fg-3);
+  }
+  .mtab-label {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--fs-xs);
+    line-height: 1.2;
+  }
+  .mtab.active {
+    background: var(--amber);
+    color: var(--on-accent);
+  }
+  .mtab.active .mtab-code {
+    color: var(--on-accent);
+  }
+  .mtab-badge {
+    position: absolute;
+    top: 3px;
+    right: 8px;
+    color: var(--amber);
+    font-weight: 700;
+    font-size: var(--fs-xs);
+    line-height: 1;
+  }
+  .mtab-badge.warn {
+    color: var(--down);
+  }
+  .mtab.active .mtab-badge {
+    color: var(--on-accent);
+  }
+  .mtab.tut-pulse::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--amber);
+    animation: blink 1s steps(1) infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .mtab.tut-pulse::before {
+      animation: none;
+    }
+  }
+
+  /* More sheet rows (shell/MobileNav.tsx). */
+  .sheet-note {
+    margin-bottom: 14px;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    background: var(--bg-2);
+    font-size: var(--fs-sm);
+  }
+  .sheet-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .sheet-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .sheet-group-title {
+    margin: 0;
+    color: var(--fg-3);
+    font-size: var(--fs-xs);
+    font-weight: 600;
+  }
+  .sheet-row {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 44px;
+    padding: 0 12px;
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    color: var(--fg);
+    font-size: 15px;
+    text-align: left;
+    cursor: pointer;
+  }
+  .sheet-row:hover {
+    border-color: var(--amber);
+  }
+  .sheet-row-code {
+    width: 40px;
+    flex-shrink: 0;
+    color: var(--fg-3);
+    font-family: var(--mono);
+    font-size: var(--fs-xs);
+    font-weight: 600;
+  }
+  .sheet-row-label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .sheet-row .mtab-badge {
+    position: static;
+    margin-left: auto;
+  }
+  .sheet-row.active {
+    background: var(--amber);
+    border-color: var(--amber);
+    color: var(--on-accent);
+  }
+  .sheet-row.active .sheet-row-code,
+  .sheet-row.active .mtab-badge {
+    color: var(--on-accent);
+  }
+
+  /* ---------- sheets and modals: full screen, pinned header and footer ---- */
+  .modal-backdrop {
+    padding: 0;
+    align-items: stretch;
+    justify-content: stretch;
+  }
+  .modal {
+    width: 100%;
+    max-width: 100%;
+    height: 100%;
+    max-height: none;
+    border: 0;
+  }
+  .modal > .modal-header {
+    flex-shrink: 0;
+    min-height: calc(44px + env(safe-area-inset-top, 0px));
+    padding: env(safe-area-inset-top, 0px) 6px 0 14px;
+  }
+  .modal > .modal-header .modal-title {
+    font-size: 16px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .modal > .modal-header .btn-icon {
+    width: 40px;
+    height: 40px;
+  }
+  .modal > .modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 14px 16px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  /* The action bar stays pinned at the bottom; buttons share the row. */
+  .modal > .modal-footer {
+    flex-shrink: 0;
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+    background: var(--bg-1);
+    border-top: 1px solid var(--line);
+  }
+  .modal > .modal-footer > .btn {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  /* Overlays that are not .modal: moment takeover, notification log, tutorial coach card. */
+  .mo-root {
+    padding: calc(20px + env(safe-area-inset-top, 0px)) 16px calc(20px + env(safe-area-inset-bottom, 0px));
+  }
+  .nl-drawer {
+    top: var(--top-total);
+    bottom: var(--bottom-total);
+    left: 0;
+    right: 0;
+    width: calc(100vw / var(--ui-zoom, 1));
+    border-left: 0;
+  }
+  .nl-head {
+    min-height: 44px;
+  }
+  .tut-card {
+    /* Under the toasts (45), the multiplayer screen (48) and every sheet (50): the coach never sits on top of them. */
+    z-index: 40;
+    left: 8px;
+    right: 8px;
+    width: auto;
+    bottom: calc(var(--bottom-total) + 8px);
+    max-height: calc(100dvh / var(--ui-zoom, 1) - var(--top-total) - var(--bottom-total) - 24px);
+    overflow-y: auto;
+  }
+  .tut-strip {
+    height: 40px;
+  }
+  .tut-title {
+    font-size: 16px;
+  }
+  .tut-actions .btn {
+    min-height: 40px;
+  }
+
+  /* Eval and doctrine dialogs: two-up tiles instead of three. */
+  .dp-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* Alerts: just above the news ticker and tab bar, full width, two at most (Toasts.tsx). The top of the screen is
+     left for the multiplayer bars. --tut-h lifts them above the tutorial card when it is up (Tutorial.tsx). */
+  .toasts {
+    top: auto;
+    right: 8px;
+    bottom: calc(var(--bottom-total) + 8px + var(--tut-h, 0px));
+    left: 8px;
+    width: auto;
+    max-width: none;
+  }
+  .toast {
+    padding: 8px 46px 9px 12px;
+  }
+  .toast-close {
+    top: 0;
+    right: 0;
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+  }
+
+  /* Tooltips (components/Tooltip.tsx): tap opens them, so they must stay readable and on screen. */
+  .tip {
+    max-width: min(280px, calc(100vw / var(--ui-zoom, 1) - 24px));
+    font-size: var(--fs);
+  }
+
+  /* ---------- touch and input sizing: everything interactive is >= 40px tall ---- */
+  .btn {
+    height: 40px;
+  }
+  .btn-sm {
+    height: 40px;
+    padding: 0 10px;
+    font-size: var(--fs-sm);
+  }
+  .btn-lg {
+    height: 44px;
+  }
+  .btn-icon,
+  .btn-sm.btn-icon {
+    width: 40px;
+  }
+  .btn-block {
+    width: 100%;
+  }
+  input,
+  select,
+  textarea,
+  .input,
+  .select {
+    font-size: 16px;
+  }
+  .input,
+  .select {
+    height: 40px;
+  }
+  .seg,
+  .tab {
+    min-height: 40px;
+    height: 40px;
+  }
+  .tab {
+    display: inline-flex;
+    align-items: center;
+  }
+  .segmented .seg {
+    height: 40px;
+  }
+  .nl-chip {
+    height: 40px;
+  }
+  .choice {
+    min-height: 48px;
+  }
+  .slider {
+    height: 40px;
+  }
+  .check,
+  input[type='checkbox'],
+  input[type='radio'] {
+    width: 20px;
+    height: 20px;
+  }
+  .card-header .btn-sm,
+  .card-actions .btn {
+    min-height: 40px;
+  }
+
+  /* Slider with − and + step buttons (components/Slider.tsx). */
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    min-width: 0;
+  }
+  .slider-row > .slider {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .slider-step {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    background: transparent;
+    border: 1px solid var(--line-2);
+    color: var(--fg);
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .slider-step:disabled {
+    color: var(--fg-4);
+    border-color: var(--line);
+    cursor: not-allowed;
+  }
+
+  /* ---------- tables: stacked cards, or a sideways scroll with a pinned first column ---- */
+  .table-scroll .table {
+    min-width: 520px;
+  }
+  .table-scroll .table th:first-child,
+  .table-scroll .table td:first-child {
+    position: sticky;
+    left: 0;
+    background: var(--bg-1);
+  }
+  .table-scroll .table th:first-child {
+    top: 0;
+    z-index: 3;
+  }
+  .table-scroll .table td:first-child {
+    z-index: 1;
+  }
+  .table-scroll .table tbody tr:hover td:first-child {
+    background: var(--bg-2);
+  }
+  .table-scroll .table tr.sel td:first-child {
+    background: var(--amber);
+  }
+  /* Existing tables can stack too: add class table-stack, and data-label on each td. */
+  .table-stack thead {
+    display: none;
+  }
+  .table-stack table,
+  .table-stack tbody,
+  .table-stack tr,
+  .table-stack td {
+    display: block;
+    width: 100%;
+  }
+  .table-stack table {
+    min-width: 0;
+  }
+  .table-stack tr {
+    margin-bottom: 8px;
+    padding: 8px 12px;
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+  }
+  .table-stack tr:last-child {
+    margin-bottom: 0;
+  }
+  .table-stack td {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 4px 0;
+    border: 0;
+    text-align: right;
+    white-space: normal;
+  }
+  .table-stack td::before {
+    content: attr(data-label);
+    color: var(--fg-3);
+    font-size: var(--fs-xs);
+    text-align: left;
+    flex-shrink: 0;
+  }
+  .table-stack td:empty {
+    display: none;
+  }
+
+  /* Grids that were 3 or 4 columns on tablets. */
+  .grid-kpi {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* ---------- training wizard frame (step contents are the panel agents' job) ---- */
+  .tw-stepper {
+    margin: 10px 10px 0;
+  }
+  .tw-step {
+    height: auto;
+    min-height: 52px;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    padding: 4px;
+    text-align: center;
+  }
+  .tw-body {
+    padding: 8px 12px 12px;
+  }
+
+  /* ---------- office camera feed ---------------------------------------- */
+  .office-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 40px;
+    margin-bottom: 8px;
+    background: transparent;
+    border: 1px solid var(--line-2);
+    color: var(--fg-2);
+    font-size: var(--fs-sm);
+    cursor: pointer;
+  }
+  .office-toggle:hover {
+    color: var(--amber);
+    border-color: var(--amber);
+  }
+}
+
+/* ==========================================================================
+   MOBILE-B: phone rules for the panels (Products, Compute, Staff, Market, Finance, Benchmarks,
+   Contracts, Trophies) and the VS panel. Everything here sits inside the 760px query. Desktop
+   markup only gains data-label, mb-head, mb-block, table-stack and table-scroll hooks, which
+   do nothing above 760px.
+   ========================================================================== */
+@media (max-width: 760px) {
+  /* Touch targets: panel-kit buttons, inputs and checkbox rows are at least 40px tall. */
+  .pn-btn,
+  .pn-btn--sm,
+  .pn-btn--big {
+    height: 40px;
+  }
+  .pn-btn--sm {
+    padding: 0 10px;
+    font-size: var(--fs-sm);
+  }
+  .pn-input,
+  .pn-select {
+    height: 40px;
+    font-size: 16px;
+  }
+  .q-check,
+  .pn-check {
+    min-height: 40px;
+    font-size: var(--fs);
+  }
+
+  /* Sliders: a bigger thumb to grab. The track stays centred in the 40px row. */
+  .slider::-webkit-slider-thumb {
+    width: 22px;
+    height: 22px;
+    margin-top: -10px;
+  }
+  .slider::-moz-range-thumb {
+    width: 22px;
+    height: 22px;
+  }
+
+  /* Price slider with step buttons (panelKit Range, phone markup). */
+  .pn-range-wrap--phone {
+    width: 100%;
+    min-width: 0;
+  }
+  .pn-range-track {
+    position: relative;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .pn-range-track.has-marker {
+    padding-top: 14px;
+  }
+  .pn-range-track > .slider {
+    display: block;
+    width: 100%;
+    margin: 0;
+  }
+
+  .pn-build-name {
+    width: 100%;
+  }
+
+  /* Stacked tables: each row is a card. mb-head is the card heading, mb-block is a full-width cell. */
+  .table-stack tr {
+    display: flex;
+    flex-direction: column;
+  }
+  .table-stack td.mb-head {
+    display: block;
+    order: -1;
+    padding: 0 0 4px;
+    text-align: left;
+    color: var(--fg);
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+  .table-stack td.mb-head::before {
+    content: none;
+  }
+  .table-stack td.mb-block {
+    display: block;
+    text-align: left;
+  }
+  .table-stack td.mb-block::before {
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  /* Hire / fire buttons sit in one wrapping row, not a column. */
+  .pa-actions-split {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    align-items: center;
+  }
+
+  /* Contracts: the reassign select takes the card's width. */
+  .ct-select-sm {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+  }
+
+  /* Dense tables that scroll inside their card: pinned first column, rows at least 40px. */
+  .table-scroll .table th,
+  .table-scroll .table td {
+    padding-top: 9px;
+    padding-bottom: 9px;
+  }
+
+  /* Readout strips in a panel header: two per row (the 3 and 4 readouts wrap). */
+  .panel-header > .row-wrap:has(> .stat, > .pn-stat) {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 8px 12px;
+    width: 100%;
+  }
+
+  /* Benchmarks weight-class switcher: four equal segments across the row. */
+  .wc-switch .segmented {
+    display: flex;
+    width: 100%;
+  }
+  .wc-switch .seg {
+    flex: 1 1 0;
+    min-width: 0;
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+}

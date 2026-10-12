@@ -1,0 +1,568 @@
+/* OWNER: Agent UI-FLOWS. Release, distill and merge wizards. Prefix tf-. Tokens only: no raw colours, no shadows, radius 0. */
+
+.tf-root {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+}
+
+/* ---- header ------------------------------------------------------------- */
+.tf-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+.tf-kicker {
+  color: var(--fg-3);
+  font-size: var(--fs-sm);
+}
+.tf-parent {
+  color: var(--fg);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+/* ---- step rail ---------------------------------------------------------- */
+.tf-steps {
+  display: flex;
+  flex-wrap: wrap;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-bottom: 1px solid var(--line);
+}
+.tf-steps li {
+  display: flex;
+}
+.tf-step {
+  height: 32px;
+  padding: 0 14px;
+  margin-bottom: -1px;
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  color: var(--fg-3);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+.tf-step:hover:not(:disabled) {
+  color: var(--fg);
+}
+.tf-step:disabled {
+  cursor: default;
+  color: var(--fg-3);
+  opacity: 1;
+}
+.tf-step-done {
+  color: var(--fg-2);
+}
+.tf-step-on {
+  color: var(--fg);
+  font-weight: 600;
+  border-bottom-color: var(--amber);
+}
+.tf-step-n {
+  margin-right: 6px;
+  color: var(--fg-3);
+}
+.tf-step-on .tf-step-n {
+  color: var(--amber);
+}
+
+/* ---- body --------------------------------------------------------------- */
+.tf-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+.tf-q {
+  margin: 0;
+  color: var(--fg);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.tf-label {
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+}
+.tf-muted {
+  color: var(--fg-2);
+  font-size: var(--fs-sm);
+  overflow-wrap: anywhere;
+}
+.tf-faint {
+  color: var(--fg-3);
+  font-size: var(--fs-sm);
+  overflow-wrap: anywhere;
+}
+.tf-empty {
+  padding: 14px;
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+  color: var(--fg-2);
+  font-size: var(--fs-sm);
+}
+.tf-row-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.tf-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.tf-unit {
+  color: var(--fg-3);
+  font-size: var(--fs-sm);
+}
+
+/* ---- tile grids ----------------------------------------------------------- */
+.tf-grid3 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+  align-items: stretch;
+  min-width: 0;
+}
+.tf-grid4 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+  gap: 10px;
+  align-items: stretch;
+  min-width: 0;
+}
+
+.tf-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  padding: 10px 12px 10px 13px;
+  background: var(--bg-1);
+  border: 1px solid var(--line-2);
+  border-radius: 0;
+  color: var(--fg);
+  text-align: left;
+  cursor: pointer;
+}
+.tf-tile:hover:not(:disabled) {
+  border-color: var(--fg-3);
+}
+.tf-tile-on,
+.tf-tile-on:hover:not(:disabled) {
+  background: var(--bg-2);
+  border-color: var(--line-2);
+  border-left: 3px solid var(--amber);
+}
+.tf-tile:disabled {
+  color: var(--fg-3);
+  border-color: var(--line);
+  cursor: not-allowed;
+}
+.tf-tile:focus-visible,
+.tf-step:focus-visible,
+.tf-chip:focus-visible,
+.tf-check:focus-visible {
+  outline: 1px solid var(--amber);
+  outline-offset: 2px;
+}
+.tf-tile-name {
+  font-weight: 600;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.tf-tile-line {
+  color: var(--fg-2);
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.tf-tile-size {
+  font-size: 16px;
+  color: var(--fg);
+}
+.tf-tile-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  width: 100%;
+}
+.tf-example {
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+  overflow-wrap: anywhere;
+}
+.tf-caps {
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.tf-notes {
+  margin: 0;
+  padding-left: 16px;
+  color: var(--fg-2);
+  font-size: var(--fs-xs);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+/* ---- stats and deltas ----------------------------------------------------- */
+.tf-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  min-width: 0;
+  color: var(--fg-2);
+  font-size: var(--fs-xs);
+}
+.tf-stat {
+  white-space: nowrap;
+}
+.tf-d {
+  font-size: var(--fs-xs);
+}
+.tf-pos {
+  color: var(--up);
+}
+.tf-neg {
+  color: var(--down);
+}
+.tf-zero {
+  color: var(--fg-3);
+}
+
+/* ---- two-way chips -------------------------------------------------------- */
+.tf-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.tf-chip {
+  height: 26px;
+  padding: 0 10px;
+  background: transparent;
+  border: 1px solid var(--line-2);
+  border-radius: 0;
+  color: var(--fg-2);
+  font-size: var(--fs-xs);
+  cursor: pointer;
+}
+.tf-chip:hover {
+  color: var(--fg);
+  border-color: var(--fg-3);
+}
+.tf-chip-on,
+.tf-chip-on:hover {
+  background: var(--bg-3);
+  color: var(--fg);
+  border-color: var(--fg-3);
+}
+
+/* ---- name -------------------------------------------------------------- */
+.tf-name-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  min-width: 0;
+}
+.tf-name {
+  flex: 1 1 260px;
+  max-width: 420px;
+  height: 32px;
+  min-width: 0;
+}
+.tf-count {
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+}
+.tf-rename {
+  color: var(--fg);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/* ---- slider row (distill size) ---------------------------------------- */
+.tf-readout {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+.tf-big-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  min-width: 0;
+}
+.tf-big {
+  color: var(--fg);
+  font-size: 22px;
+  line-height: 1.2;
+}
+.tf-slider-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 120px 16px;
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+}
+.tf-slider-row .md-slider {
+  min-width: 0;
+}
+
+/* ---- review -------------------------------------------------------------- */
+.tf-review {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 12px;
+  align-items: start;
+  min-width: 0;
+}
+.tf-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  min-width: 0;
+}
+.tf-reasons {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--fg-2);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+.tf-list {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--fg-2);
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+}
+.tf-warn-item {
+  color: var(--down);
+}
+.tf-kv {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+.tf-kv-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: var(--fs-sm);
+  min-width: 0;
+}
+.tf-kv-row dt {
+  color: var(--fg-3);
+  overflow-wrap: anywhere;
+}
+.tf-kv-row dd {
+  margin: 0;
+  color: var(--fg);
+  text-align: right;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.tf-warn {
+  padding-left: 8px;
+  border-left: 2px solid var(--down);
+  color: var(--down);
+  font-size: var(--fs-sm);
+  overflow-wrap: anywhere;
+}
+.tf-note {
+  padding-left: 8px;
+  border-left: 2px solid var(--line-2);
+  color: var(--fg-2);
+  font-size: var(--fs-sm);
+  overflow-wrap: anywhere;
+}
+.tf-ok {
+  padding-left: 8px;
+  border-left: 2px solid var(--up);
+  color: var(--up);
+  font-size: var(--fs-sm);
+  overflow-wrap: anywhere;
+}
+
+/* acknowledgement for an irreversible choice */
+.tf-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 8px 10px;
+  background: transparent;
+  border: 1px solid var(--line-2);
+  border-radius: 0;
+  color: var(--fg);
+  text-align: left;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+.tf-check:hover {
+  border-color: var(--fg-3);
+}
+.tf-check-on,
+.tf-check-on:hover {
+  border-color: var(--amber);
+}
+.tf-check-box {
+  flex: 0 0 12px;
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--fg-3);
+  border-radius: 0;
+}
+.tf-check-on .tf-check-box {
+  background: var(--amber);
+  border-color: var(--amber);
+}
+
+/* ---- sticky footer -------------------------------------------------------- */
+.tf-foot {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-top: auto;
+  padding: 10px 12px;
+  background: var(--bg-1);
+  border-top: 1px solid var(--line-2);
+}
+.tf-foot-info {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  flex: 1 1 320px;
+  min-width: 0;
+  font-size: var(--fs-sm);
+}
+.tf-foot-btns {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.tf-blocker {
+  color: var(--down);
+  font-size: var(--fs-sm);
+  overflow-wrap: anywhere;
+}
+
+/* ---- narrow screens keep the layout intact -------------------------------- */
+@media (max-width: 760px) {
+  .tf-slider-row {
+    grid-template-columns: minmax(0, 1fr) 96px 12px;
+  }
+  .tf-grid3 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .tf-grid4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ---------- MOBILE-A: phone layout (<= 760px). Desktop rules above are unchanged. ---------- */
+@media (max-width: 760px) {
+  .tf-root { gap: 10px; }
+  .tf-kicker { font-size: var(--fs-xs); }
+  .tf-parent { font-size: 15px; }
+
+  /* Steps: one row of 40px tabs that scrolls sideways when it does not fit. */
+  .tf-steps {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .tf-steps::-webkit-scrollbar { display: none; }
+  .tf-steps li { flex: 0 0 auto; min-width: 0; }
+  .tf-step {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 40px;
+    padding: 0 12px;
+    white-space: nowrap;
+  }
+  .tf-q { font-size: 18px; }
+  .tf-body { gap: 10px; }
+
+  /* Touch: 40px chips, tiles and checks. */
+  .tf-chip {
+    height: 40px;
+    padding: 0 12px;
+    font-size: var(--fs-sm);
+  }
+  .tf-name { height: 40px; max-width: none; }
+  .tf-check { min-height: 40px; }
+  .tf-tile { padding: 11px 12px; }
+  .tf-grid4 { grid-template-columns: minmax(0, 1fr); }
+  .tf-stats { gap: 4px 10px; }
+
+  /* Footer: the forecast and blockers flow above; the buttons stick to the bottom of the wizard. */
+  .tf-foot { display: contents; }
+  .tf-foot-info {
+    flex: 0 0 auto;
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    margin-top: 6px;
+  }
+  .tf-foot-btns {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 4px -12px 0;
+    padding: 8px 12px;
+    background: var(--bg-1);
+    border-top: 1px solid var(--line-2);
+  }
+  .tf-foot-btns .btn {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 40px;
+    padding: 0 8px;
+  }
+  .tf-foot-btns .btn-ghost { flex: 0 0 auto; }
+}

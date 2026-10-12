@@ -1,0 +1,62 @@
+/* Benchmarks (BMK) v10: score bars against the frontier and the class arena. Tokens only. */
+
+.bmk-name { color: var(--fg); font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+.bmk-cat { color: var(--fg-3); font-size: var(--fs-xs); }
+.bmk-tags { display: inline-flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+
+/* One bar: a short label, the track, and the number. */
+.bmk-bars { display: flex; flex-direction: column; gap: 5px; min-width: 150px; }
+.bmk-bar {
+  display: grid; grid-template-columns: 56px minmax(0, 1fr) 44px; align-items: center; gap: 8px;
+}
+.bmk-bar-k { color: var(--fg-3); font-size: var(--fs-xs); white-space: nowrap; }
+.bmk-track { display: block; height: 7px; background: var(--bg-3); min-width: 40px; }
+.bmk-fill { display: block; height: 100%; background: var(--fg-3); }
+.bmk-bar.is-you .bmk-fill { background: var(--amber); }
+.bmk-bar.is-rival .bmk-fill { background: var(--fg-3); }
+.bmk-bar-v { color: var(--fg); font-size: var(--fs-sm); text-align: right; }
+.bmk-bar.is-lab { grid-template-columns: minmax(0, 1fr) 52px; }
+.bmk-bar.is-lab .bmk-bar-k { display: none; }
+
+/* A selected row is amber, so its bars switch to the dark accent ink to stay visible. */
+.bmk-row.sel .bmk-track { background: color-mix(in srgb, var(--on-accent) 25%, transparent); }
+.bmk-row.sel .bmk-fill { background: var(--on-accent); }
+
+/* The selected benchmark: both bars in full width. */
+.bmk-big { display: flex; flex-direction: column; gap: 8px; }
+.bmk-big .bmk-bar { grid-template-columns: 72px minmax(0, 1fr) 56px; }
+.bmk-big .bmk-track { height: 10px; }
+
+.bmk-board td .bmk-name { font-size: var(--fs-sm); }
+
+/* "Show all" under the benchmark list: a phone-only button. */
+.btn.bmk-more { display: none; }
+
+@media (max-width: 760px) {
+  .bmk-bars { min-width: 0; }
+  .bmk-bar { grid-template-columns: 62px minmax(0, 1fr) 42px; gap: 6px; }
+  .bmk-bar.is-lab { grid-template-columns: minmax(0, 1fr) 46px; }
+  .bmk-big .bmk-bar { grid-template-columns: 68px minmax(0, 1fr) 48px; }
+
+  /* Phone order, top to bottom: title and rank, the weight-class switch, the benchmark list (three, then "Show all")
+     with the selected benchmark's bars and leaderboard, the class arena, then the intro. */
+  .pn-bmk > .panel-header { order: 0; }
+  .pn-bmk > .wc-switch { order: 1; }
+  .pn-bmk > .bmk-grid { order: 2; }
+  .pn-bmk > .card:last-child { order: 3; }
+  .pn-bmk > .panel-intro { order: 4; }
+  .bmk-active:not(.is-open) .table-stack tbody tr:nth-child(n + 4) { display: none; }
+  .btn.bmk-more { display: flex; width: calc(100% - 24px); margin: 8px 12px 12px; }
+  .bmk-lb:not(.is-open) tbody tr:nth-child(n + 6):not(.bmk-best) { display: none; }
+  .btn.bmk-lb-more { width: 100%; margin: 8px 0 0; }
+
+  /* A selected row on a stacked card: an amber edge, not an amber card, so the grey labels and the bars stay readable. */
+  .table-stack tr.bmk-row.sel { background: var(--bg-2); border-left: 3px solid var(--amber); }
+  .table-stack tr.bmk-row.sel td { background: none; color: var(--fg); }
+  .table-stack tr.bmk-row.sel td .pill { color: var(--fg); }
+  .table-stack tr.bmk-row.sel .bmk-track { background: var(--bg-3); }
+  .table-stack tr.bmk-row.sel .bmk-bar.is-you .bmk-fill { background: var(--amber); }
+  .table-stack tr.bmk-row.sel .bmk-bar.is-rival .bmk-fill { background: var(--fg-3); }
+  .table-stack tr.bmk-row.sel .bmk-cat,
+  .table-stack tr.bmk-row.sel .bmk-bar-k { color: var(--fg-3); }
+}

@@ -1,0 +1,310 @@
+/* ==========================================================================
+   Eval-day reveal (ev-). Built on the shared .modal, .modal-footer and .btn
+   classes from theme.css. Colours and type come from tokens only. The only
+   motion is the 100ms row flash when a benchmark row appears (DESIGN.md).
+   ========================================================================== */
+
+/* Two classes so it beats the base .modal width in theme.css whatever the load order. */
+.modal.ev-modal {
+  width: min(640px, 100%);
+}
+
+/* Restrained header: a dim strip instead of the amber event bar. */
+.ev-modal .modal-header {
+  min-height: var(--strip);
+  padding: 0 12px;
+  background: var(--bg-2);
+  color: var(--fg);
+  border-bottom: 1px solid var(--line-2);
+}
+.ev-modal .modal-title {
+  color: var(--fg);
+  font-size: var(--fs);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ev-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px 16px;
+  line-height: 1.5;
+}
+
+.ev-label {
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+}
+.ev-none {
+  color: var(--fg-3);
+  font-size: var(--fs-sm);
+  padding: 4px 0;
+}
+
+/* ---------- forecast band -------------------------------------------------- */
+.ev-forecast {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.ev-forecast-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px;
+}
+.ev-range {
+  color: var(--fg);
+  font-size: 18px;
+  font-weight: 500;
+}
+.ev-mid {
+  color: var(--fg-2);
+  font-size: var(--fs-sm);
+}
+.ev-band {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 0 0;
+}
+.ev-track {
+  position: relative;
+  height: 10px;
+  background: var(--bg-3);
+}
+.ev-range-bar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--blue);
+  opacity: 0.4;
+  border-left: 1px solid var(--blue);
+  border-right: 1px solid var(--blue);
+}
+.ev-mid-tick {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 1px;
+  background: var(--fg-2);
+}
+/* The overall marker: the one amber mark on the reveal, the key result. */
+.ev-marker {
+  position: absolute;
+  top: -5px;
+  bottom: -5px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--amber);
+}
+.ev-scale {
+  display: flex;
+  justify-content: space-between;
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+}
+.ev-reasons {
+  margin: 0;
+  padding: 0 0 0 16px;
+  color: var(--fg-3);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+
+/* ---------- benchmark rows ------------------------------------------------- */
+.ev-bench {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.ev-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+.ev-bench-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+  min-width: 0;
+}
+.ev-bench-row:last-child {
+  border-bottom: 0;
+}
+.ev-bench-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ev-bench-cat {
+  margin-left: 6px;
+  color: var(--fg-3);
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+}
+.ev-bench-bar {
+  flex: 0 0 120px;
+  min-width: 0;
+}
+.ev-bench-score {
+  flex: 0 0 64px;
+  text-align: right;
+  color: var(--fg);
+  white-space: nowrap;
+}
+/* 100ms flash on the row as it appears. Content steps; nothing fades or slides. */
+.ev-row-new {
+  animation: ev-flash 100ms steps(1);
+}
+@keyframes ev-flash {
+  0% {
+    background: var(--bg-2);
+  }
+}
+
+/* ---------- overall and verdict ------------------------------------------- */
+.ev-overall {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line-2);
+  border-bottom: 1px solid var(--line);
+}
+.ev-overall-value {
+  color: var(--fg);
+  font-size: 30px;
+  font-weight: 500;
+  line-height: 1.1;
+}
+.ev-delta {
+  font-size: var(--fs-sm);
+}
+.ev-delta .num {
+  font-size: var(--fs);
+  font-weight: 600;
+}
+.ev-verdict {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.ev-verdict-label {
+  color: var(--fg);
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.ev-verdict-line {
+  color: var(--fg-2);
+}
+.ev-seed {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  color: var(--fg-3);
+  font-size: var(--fs-sm);
+}
+
+/* ---------- then: discoveries, quirks, data ------------------------------- */
+.ev-then {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+.ev-group {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.ev-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+  min-width: 0;
+}
+.ev-item:last-child {
+  border-bottom: 0;
+}
+.ev-item-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.ev-item-name {
+  color: var(--fg);
+  font-weight: 600;
+  min-width: 0;
+}
+.ev-item-text {
+  color: var(--fg-2);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+/* A discovery gets a yellow rule so it reads as news, not a plain entry. */
+.ev-discovery {
+  padding-left: 10px;
+  border-left: 2px solid var(--yellow);
+}
+.ev-data-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+  min-width: 0;
+}
+.ev-data-row:last-child {
+  border-bottom: 0;
+}
+.ev-data-name {
+  color: var(--fg);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ev-data-values {
+  white-space: nowrap;
+  font-size: var(--fs-sm);
+}
+
+/* Tone classes come last so they beat the base colours above (verdict, delta, values). */
+.ev-up { color: var(--up); }
+.ev-down { color: var(--down); }
+.ev-flat { color: var(--fg-2); }
+.ev-arrow { color: var(--fg-3); }
+
+@media (max-width: 520px) {
+  .ev-bench-bar {
+    display: none;
+  }
+  .ev-verdict-label {
+    font-size: 22px;
+  }
+  .ev-overall-value {
+    font-size: 26px;
+  }
+}

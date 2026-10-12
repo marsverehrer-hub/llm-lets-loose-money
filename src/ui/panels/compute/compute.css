@@ -1,0 +1,479 @@
+/* Compute screen (v10, GAME_DESIGN 21.5). Tokens only. No shadows, gradients or radius. */
+
+.cc-summary {
+  margin: 0 0 12px;
+  font-size: var(--fs-sm);
+  color: var(--fg-2);
+  line-height: 1.5;
+}
+.cc-sep {
+  color: var(--fg-3);
+}
+
+/* The server room */
+.cc-room {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 10px;
+}
+.cc-room > .cc-tip {
+  display: flex;
+  max-width: 100%;
+}
+.cc-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 160px;
+  max-width: 100%;
+  padding: 10px;
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+  color: var(--fg);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.cc-block:hover,
+.cc-block:focus-visible {
+  border-color: var(--amber);
+  outline: none;
+}
+.cc-block-burst {
+  border-style: dashed;
+  border-color: var(--blue);
+}
+.cc-block-burst:hover,
+.cc-block-burst:focus-visible {
+  border-color: var(--amber);
+}
+.cc-block-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.cc-block-name {
+  font-weight: 600;
+  color: var(--fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cc-block-sub {
+  font-size: var(--fs-xs);
+  color: var(--fg-3);
+}
+.cc-block-foot {
+  font-size: var(--fs-xs);
+  color: var(--fg-2);
+  font-variant-numeric: tabular-nums;
+}
+.cc-block-none {
+  display: flex;
+  align-items: center;
+  min-height: 36px;
+  font-size: var(--fs-xs);
+  color: var(--fg-3);
+}
+.cc-grid {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+.cc-cell.cc-training {
+  fill: var(--amber);
+}
+.cc-cell.cc-serving {
+  fill: var(--blue);
+}
+.cc-cell.cc-idle {
+  fill: none;
+  stroke: var(--fg-3);
+  stroke-width: 1;
+}
+.cc-cell.cc-empty {
+  fill: var(--bg-2);
+  stroke: var(--line);
+  stroke-width: 1;
+}
+.cc-cell.cc-burst {
+  fill: none;
+  stroke: var(--blue);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 2;
+}
+.cc-build {
+  display: block;
+  height: 4px;
+  background: var(--bg-3);
+}
+.cc-build i {
+  display: block;
+  height: 100%;
+  background: var(--amber);
+}
+
+.cc-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin-top: 12px;
+  font-size: var(--fs-xs);
+  color: var(--fg-3);
+}
+.cc-legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.cc-swatch {
+  display: inline-block;
+  flex: none;
+  width: 10px;
+  height: 10px;
+  box-sizing: border-box;
+  background: var(--c, var(--fg-3));
+}
+.cc-swatch.cc-training {
+  background: var(--amber);
+}
+.cc-swatch.cc-serving {
+  background: var(--blue);
+}
+.cc-swatch.cc-idle {
+  background: none;
+  border: 1px solid var(--fg-3);
+}
+.cc-swatch.cc-empty {
+  background: var(--bg-2);
+  border: 1px solid var(--line-2);
+}
+.cc-swatch.cc-burst {
+  background: none;
+  border: 1px dashed var(--blue);
+}
+
+.cc-tip-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 180px;
+  font-size: var(--fs-xs);
+  line-height: 1.45;
+}
+.cc-tip-body b {
+  font-size: var(--fs-sm);
+}
+
+.cc-h {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 8px;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--fg-2);
+}
+
+/* Get more GPUs */
+.cc-get {
+  margin: 14px 0 12px;
+}
+.cc-get-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.cc-get-btn {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 56px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+  color: var(--fg);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.cc-get-btn:hover,
+.cc-get-btn:focus-visible {
+  border-color: var(--amber);
+  outline: none;
+}
+.cc-get-btn span {
+  font-size: var(--fs-xs);
+  line-height: 1.4;
+  color: var(--fg-3);
+}
+
+/* Two columns: fleet priority and daily cost */
+.cc-two {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+.cc-opts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.cc-opt {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 44px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+  color: var(--fg);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.cc-opt:hover,
+.cc-opt:focus-visible,
+.cc-opt.is-focus {
+  border-color: var(--amber);
+  outline: none;
+}
+.cc-opt.is-current {
+  border-left: 3px solid var(--up);
+}
+.cc-opt-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.cc-opt-line {
+  font-size: var(--fs-xs);
+  line-height: 1.4;
+  color: var(--fg-3);
+}
+.cc-preview {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 44px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.cc-preview-line {
+  margin: 0;
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  color: var(--fg-2);
+}
+.cc-preview-line b {
+  color: var(--fg);
+  font-weight: 600;
+}
+
+/* Daily cost */
+.cc-cost-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+.cc-cost-list li {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: var(--fs-sm);
+}
+.cc-cost-list li.is-zero {
+  color: var(--fg-3);
+}
+.cc-cost-name {
+  min-width: 0;
+}
+.cc-cost-pct {
+  font-size: var(--fs-xs);
+  color: var(--fg-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Sheets */
+.cc-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.cc-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.cc-fact {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+}
+.cc-fact-k {
+  font-size: var(--fs-xs);
+  color: var(--fg-3);
+}
+.cc-fact-v {
+  font-weight: 500;
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+}
+.cc-fact-v.warn {
+  color: var(--amber);
+}
+.cc-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cc-note {
+  margin: 0;
+  font-size: var(--fs-xs);
+  line-height: 1.5;
+  color: var(--fg-3);
+}
+.cc-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--line);
+}
+.cc-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+.cc-row-main {
+  display: flex;
+  flex: 1 1 200px;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.cc-row-meta {
+  font-size: var(--fs-xs);
+  color: var(--fg-3);
+  font-variant-numeric: tabular-nums;
+}
+.cc-row-flavor {
+  font-size: var(--fs-xs);
+  font-style: italic;
+  color: var(--fg-3);
+}
+.cc-row-lock {
+  font-size: var(--fs-xs);
+  color: var(--fg-3);
+}
+.cc-row-tier.is-locked {
+  opacity: 0.6;
+}
+.cc-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.cc-steps {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.cc-steps .btn {
+  white-space: nowrap;
+}
+.cc-step-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.cc-step-label {
+  min-width: 48px;
+  font-size: var(--fs-xs);
+  color: var(--fg-3);
+  text-align: right;
+}
+.cc-more {
+  font-size: var(--fs-xs);
+  color: var(--fg-3);
+}
+.cc-more summary {
+  cursor: pointer;
+  width: max-content;
+}
+.cc-buy {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.cc-buy .select {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+.cc-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+@media (max-width: 760px) {
+  .cc-two {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .cc-opts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .cc-get-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .cc-block {
+    width: 100%;
+    min-width: 0;
+  }
+  .cc-facts {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .cc-row-actions,
+  .cc-step-line {
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  /* Phone order, top to bottom: title, server-room camera, the GPU summary, the rent or build card (the main action),
+     the fleet and cost cards, then the intro. */
+  .pn-compute > .panel-header { order: 0; }
+  /* The rent or build switch takes its own line under the card title, so the title is never cut off. */
+  .pn-compute > .card > .card-header { flex-wrap: wrap; height: auto; padding-top: 8px; padding-bottom: 8px; }
+  .pn-compute > .card > .card-header > .card-actions { width: 100%; }
+  .pn-compute > .card > .card-header > .card-actions .segmented { display: flex; width: 100%; }
+  .pn-compute > .card > .card-header > .card-actions .seg { flex: 1 1 0; min-width: 0; }
+  .pn-compute > .scene-view,
+  .pn-compute > .office-toggle { order: 1; }
+  .pn-compute > .cc-summary-under { order: 2; margin: 0 0 4px; }
+  .pn-compute > .card { order: 3; }
+  .pn-compute > .cc-two { order: 4; }
+  .pn-compute > .panel-intro { order: 5; }
+}
+.cc-summary-under { margin: 8px 0 12px; }
+.cc-legend-inline { color: var(--fg-3); }
+.cc-legend-inline .cc-swatch { display: inline-block; vertical-align: middle; margin: 0 3px 0 6px; }

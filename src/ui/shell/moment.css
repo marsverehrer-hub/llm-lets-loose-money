@@ -1,0 +1,172 @@
+/* ==========================================================================
+   Aha moment takeover (mo-). A full-window beat over the whole app. Colours
+   and type come from tokens only, so dark and light both work. Drama comes
+   from size, contrast and whitespace. The one motion is a 100ms flash on
+   appear, and it is skipped for reduced motion.
+   ========================================================================== */
+
+.mo-root {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  box-sizing: border-box;
+  padding: 32px 16px;
+  overflow-y: auto;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .mo-root {
+    animation: mo-flash 100ms linear;
+  }
+}
+@keyframes mo-flash {
+  from {
+    background: var(--bg-3);
+  }
+  to {
+    background: var(--bg);
+  }
+}
+
+.mo-card {
+  width: min(920px, 100%);
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(20px, calc(4vh / var(--ui-zoom, 1)), 36px);
+  min-width: 0;
+}
+
+/* ---------- kicker: in-game date and the beat's tone ------------------------ */
+.mo-kicker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line-2);
+  font-size: var(--fs-sm);
+  color: var(--fg-3);
+}
+.mo-kicker .mo-num {
+  font-family: var(--mono);
+  font-size: var(--fs-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--fg-2);
+}
+.mo-tone {
+  padding: 2px 8px;
+  border: 1px solid currentColor;
+  font-size: var(--fs-xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.mo-tone-triumph {
+  color: var(--amber);
+}
+.mo-tone-milestone {
+  color: var(--up);
+}
+.mo-tone-loss {
+  color: var(--down);
+}
+
+/* ---------- title and subtitle ------------------------------------------------ */
+.mo-title {
+  margin: 0;
+  font-family: var(--font);
+  font-size: clamp(30px, calc(5.4vw / var(--ui-zoom, 1)), 60px);
+  font-weight: 600;
+  line-height: 1.08;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+.mo-title-triumph {
+  color: var(--amber);
+}
+.mo-title-milestone {
+  color: var(--up);
+}
+.mo-title-loss {
+  color: var(--down);
+}
+
+.mo-subtitle {
+  margin: 0;
+  max-width: 62ch;
+  font-size: clamp(16px, calc(1.9vw / var(--ui-zoom, 1)), 20px);
+  line-height: 1.5;
+  color: var(--fg-2);
+}
+
+/* ---------- stats: large numbers, mono only for numbers --------------------- */
+.mo-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  margin: 0;
+  border-top: 1px solid var(--line);
+}
+.mo-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  padding: 16px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.mo-stat-label {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--fg-3);
+}
+.mo-stat-value {
+  margin: 0;
+  font-size: clamp(18px, calc(2.2vw / var(--ui-zoom, 1)), 24px);
+  line-height: 1.25;
+  color: var(--fg);
+  overflow-wrap: anywhere;
+}
+.mo-stat-value.mo-num {
+  font-family: var(--mono);
+  font-size: clamp(26px, calc(3.6vw / var(--ui-zoom, 1)), 40px);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+/* ---------- continue --------------------------------------------------------- */
+.mo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+.mo-continue {
+  min-height: 40px;
+  padding: 0 22px;
+  font: inherit;
+  font-size: var(--fs);
+  font-weight: 600;
+  color: var(--on-accent);
+  background: var(--amber);
+  border: 1px solid var(--amber);
+  border-radius: 0;
+  cursor: pointer;
+}
+.mo-continue:hover {
+  background: var(--amber-2);
+  border-color: var(--amber-2);
+}
+.mo-continue:focus-visible {
+  outline: 2px solid var(--fg);
+  outline-offset: 3px;
+}
+.mo-hint {
+  font-size: var(--fs-xs);
+  color: var(--fg-3);
+}

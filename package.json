@@ -1,0 +1,30 @@
+{
+  "name": "llm-lets-loose-money",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 5320",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "simulate": "tsx scripts/simulate.ts",
+    "relay": "node server/relay.mjs",
+    "serve:dist": "node scripts/serve-dist.mjs 5381 dist",
+    "package": "vite build && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package.ps1"
+  },
+  "dependencies": {
+    "peerjs": "^1.5.5",
+    "preact": "^11.0.1",
+    "ws": "^8.22.0"
+  },
+  "devDependencies": {
+    "@preact/preset-vite": "^2.10.6",
+    "@types/node": "^26.6.5",
+    "@types/ws": "^8.18.2",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.3"
+  }
+}

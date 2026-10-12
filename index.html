@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- viewport-fit=cover lets the layout use the notch and home-indicator areas (env(safe-area-inset-*)). -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>LLM: Lets Loose Money</title>
+    <meta name="description" content="A satirical browser tycoon about running an LLM lab." />
+    <meta name="theme-color" content="#121417" />
+    <meta name="color-scheme" content="dark light" />
+    <!-- Installable as a home-screen app (iOS and Android). The status bar is translucent, so the top bar pads itself. -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Loose Money" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <script>
+      // Apply the saved theme before first paint (see shell/theme.ts for the key).
+      try {
+        if (localStorage.getItem('llm-lets-loose-money/theme') === 'light') document.documentElement.dataset.theme = 'light';
+      } catch (e) {}
+    </script>
+    <script>
+      // Interface size before first paint. Same rules as ui/uiScale.ts (phones 1, auto from width, manual steps).
+      try {
+        var uiSaved = localStorage.getItem('llm-lets-loose-money/ui-scale'), uiW = innerWidth, uiZ = 1;
+        if (uiW > 760) {
+          if (uiSaved && uiSaved !== 'auto' && +uiSaved) uiZ = Math.min(2.25, Math.max(0.875, +uiSaved));
+          else if (uiW >= 2000) uiZ = Math.min(2.25, Math.max(1, Math.floor(uiW / 1700 * 8 + 1e-9) / 8));
+        }
+        if (uiZ !== 1) document.documentElement.style.setProperty('zoom', String(uiZ));
+        document.documentElement.style.setProperty('--ui-zoom', String(uiZ));
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

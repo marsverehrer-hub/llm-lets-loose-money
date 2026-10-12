@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Office scene demo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+    <style>
+      :root { color-scheme: dark; --bg: #0a0c14; --card: #11131f; --text: #e2e8f0; --dim: #94a3b8; --violet: #8b5cf6; --cyan: #22d3ee; }
+      @media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) { color-scheme: dark; } }
+      body { margin: 0; background: var(--bg); color: var(--text); font-family: Inter, system-ui, sans-serif; }
+      .wrap { max-width: 980px; margin: 0 auto; padding: 16px; }
+      h1 { font-size: 16px; font-weight: 700; margin: 4px 0 12px; }
+      .card { background: var(--card); border-radius: 14px; padding: 10px; border: 1px solid #1f2340; }
+      .controls { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+      button { background: #1a1d33; color: var(--text); border: 1px solid #2c3160; border-radius: 10px; padding: 7px 12px; font: 600 12px Inter, sans-serif; cursor: pointer; }
+      button:hover { border-color: var(--violet); box-shadow: 0 0 12px rgba(139, 92, 246, 0.35); }
+      #status { font: 12px JetBrains Mono, monospace; color: var(--dim); margin-top: 8px; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Office scene · dev harness</h1>
+      <div class="card" id="office"></div>
+      <div class="controls">
+        <button id="btn-tier">Cycle office tier</button>
+        <button id="btn-hire">+5 staff (random role)</button>
+        <button id="btn-fire">-5 staff</button>
+        <button id="btn-train">Toggle training run</button>
+        <button id="btn-gpus">+500 rented GPUs</button>
+        <button id="btn-model">New unreleased model</button>
+        <button id="btn-cash">Toggle negative cash</button>
+      </div>
+      <div id="status"></div>
+    </div>
+    <script type="module" src="./demo.ts"></script>
+  </body>
+</html>

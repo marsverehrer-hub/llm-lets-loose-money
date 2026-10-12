@@ -1,0 +1,154 @@
+/* ==========================================================================
+   Notification log drawer (GAME_DESIGN §18.4). Prefix nl-. Tokens from theme.css only.
+   Flat: no shadow, no radius, no entrance animation. Sits under the top bar and over the ticker.
+   ========================================================================== */
+
+.nl-drawer {
+  position: fixed;
+  top: var(--top-h, 40px);
+  right: 0;
+  bottom: var(--ticker-h, 28px);
+  z-index: 20;
+  width: min(400px, calc(100vw / var(--ui-zoom, 1)));
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--bg-1);
+  border-left: 1px solid var(--line-2);
+}
+
+.nl-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--strip);
+  padding: 0 8px 0 12px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--line);
+}
+.nl-title {
+  flex: 1;
+  min-width: 0;
+  color: var(--fg);
+  font-size: var(--fs);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nl-total {
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+}
+
+.nl-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+}
+.nl-search {
+  width: 100%;
+}
+.nl-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.nl-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 8px;
+  background: transparent;
+  border: 1px solid var(--line-2);
+  border-radius: 0;
+  color: var(--fg-2);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.nl-chip:hover {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+.nl-chip.on {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+.nl-chip-n {
+  font-size: var(--fs-xs);
+  opacity: 0.8;
+}
+
+.nl-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+.nl-body .empty {
+  padding: 24px 12px;
+}
+
+.nl-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.nl-row {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 10px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+}
+.nl-row:hover {
+  background: var(--bg-2);
+}
+.nl-date {
+  padding-top: 2px;
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+}
+.nl-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.nl-kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+}
+.nl-good .nl-kind { color: var(--up); }
+.nl-bad .nl-kind { color: var(--down); }
+.nl-info .nl-kind { color: var(--blue); }
+.nl-milestone .nl-kind { color: var(--yellow); }
+.nl-text {
+  color: var(--fg);
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+/* Unread count on the top bar Log button. */
+.nl-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 4px;
+  background: var(--amber);
+  color: var(--on-accent);
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  line-height: 16px;
+}

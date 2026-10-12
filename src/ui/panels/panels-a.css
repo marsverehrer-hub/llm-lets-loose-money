@@ -1,0 +1,220 @@
+/* ==========================================================================
+   Panels A: HQ (dashboard), FIN, MKT, STF, TRO.
+   Every class here is pa-. Colours, type and borders come from theme.css
+   tokens only. No raw colours, shadows, gradients or radii (see DESIGN.md).
+   ========================================================================== */
+
+/* ---------- readout strip --------------------------------------------------
+   One flush window. Cells sit on a 1px --line grid, so the hairlines between
+   cells come from the gap, not from borders. Column counts are exact divisors
+   of the cell count at every breakpoint, so no empty tracks show up. */
+.pa-strip {
+  display: grid;
+  gap: 1px;
+  background: var(--line);
+  min-width: 0;
+}
+.pa-strip--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.pa-strip--6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.pa-strip--8 { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+.pa-cell {
+  background: var(--bg-1);
+  padding: 10px 12px;
+  min-width: 0;
+}
+.pa-cell .stat-value { font-size: 17px; }
+@media (max-width: 1100px) {
+  .pa-strip--8 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .pa-strip--6 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  .pa-strip--4,
+  .pa-strip--6,
+  .pa-strip--8 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* ---------- next-goal line ------------------------------------------------- */
+.pa-next {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 6px 10px;
+  border: 1px solid var(--amber-2);
+  color: var(--fg);
+}
+.pa-next-tag {
+  color: var(--amber);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.pa-next-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- terse status lines -------------------------------------------- */
+.pa-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  min-width: 0;
+  font-size: var(--fs-sm);
+}
+.pa-lbl {
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+}
+.pa-name {
+  color: var(--fg);
+  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pa-banner {
+  padding: 6px 10px;
+  border: 1px solid var(--amber-2);
+  color: var(--fg);
+  font-size: var(--fs-sm);
+}
+.pa-banner-bad {
+  border-color: var(--down);
+  color: var(--down);
+}
+.pa-note {
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+}
+
+/* ---------- layout helpers ------------------------------------------------- */
+.pa-ell {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pa-two {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+@media (max-width: 700px) {
+  .pa-two { grid-template-columns: minmax(0, 1fr); }
+}
+/* A third card in a 3-up row takes the full row when the grid drops to two columns. */
+@media (max-width: 1100px) {
+  .pa-wide-when-narrow { grid-column: 1 / -1; }
+}
+.pa-pad { padding: 12px 14px; min-width: 0; }
+.pa-stack-tight {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+/* ---------- tables ---------------------------------------------------------- */
+.pa-lab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.pa-lab .pa-ell { flex: 1; }
+.pa-sub {
+  display: block;
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+  line-height: 1.3;
+  min-width: 0;
+  max-width: 34ch;
+}
+/* Secondary table columns that drop out below 1100px so the table fits the pane. */
+@media (max-width: 1100px) {
+  .pa-opt { display: none; }
+}
+.pa-rank {
+  width: 1%;
+  color: var(--fg-3);
+  text-align: right;
+}
+.pa-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+/* Hire row above fire row, both right-aligned. */
+.pa-actions-split {
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+.pa-mini {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 90px;
+}
+.pa-mini .progress { height: 4px; }
+.pa-bonus {
+  display: inline-block;
+  font-size: var(--fs-sm);
+  margin-right: 8px;
+}
+.pa-bonus:last-child { margin-right: 0; }
+
+/* Salary slider cell: slider plus a right-aligned readout. */
+.pa-slider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 120px;
+}
+.pa-slider .slider { flex: 1; min-width: 80px; }
+/* Salary cell uses the Slider primitive: its wrapper takes the slider's old place in the row. */
+.pa-slider .slider-row { flex: 1 1 auto; min-width: 80px; }
+.pa-slider-val {
+  min-width: 4ch;
+  text-align: right;
+}
+
+/* ---------- key/value blocks ----------------------------------------------- */
+.pa-kv .kv-row { padding: 5px 0; }
+.pa-kv .kv-v.good { color: var(--up); }
+.pa-kv .kv-v.bad { color: var(--down); }
+.pa-kv .kv-v.warn { color: var(--amber); }
+
+/* ---------- stock ---------------------------------------------------------- */
+.pa-stock-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.pa-stock-px {
+  font-size: 26px;
+  line-height: 1.1;
+  font-weight: 500;
+  color: var(--fg);
+}
+.pa-stock-chg { font-size: var(--fs-sm); }
+
+/* Trophies: "Show all" under the first six rows, a phone-only button. */
+.btn.tro-more { display: none; }
+@media (max-width: 760px) {
+  .tro-list:not(.is-open) tbody tr:nth-child(n + 7) { display: none; }
+  .btn.tro-more { display: flex; width: calc(100% - 24px); margin: 8px 12px 12px; }
+  .tro-list tr { padding: 6px 12px; }
+  .tro-list .table-stack td { padding: 2px 0; }
+}
+

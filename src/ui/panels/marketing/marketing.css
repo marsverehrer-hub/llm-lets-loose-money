@@ -1,0 +1,201 @@
+/* v10 Marketing screen (GAME_DESIGN §21.5). Tokens only, flat, no radius over 2px. Phones switch at 760px (MOBILE.md). */
+
+/* Hero: brand and hype numbers beside the trend. */
+.mk-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr);
+  gap: 16px;
+  align-items: stretch;
+  min-width: 0;
+}
+.mk-hero-nums {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-content: start;
+  min-width: 0;
+}
+.mk-big { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.mk-meter { height: 6px; background: var(--bg-3); overflow: hidden; }
+.mk-meter > span { display: block; height: 100%; background: var(--c); }
+.mk-hero-chart { min-width: 0; }
+.mk-nohist {
+  height: 100%;
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 12px;
+  text-align: center;
+  color: var(--fg-2);
+  border: 1px dashed var(--line-2);
+}
+.mk-nohist-sub { color: var(--fg-3); font-size: var(--fs-xs); }
+
+/* Campaign timeline. Columns: name, then the track. */
+.mk-tl { display: flex; flex-direction: column; min-width: 0; }
+.mk-tl-row {
+  display: grid;
+  grid-template-columns: minmax(150px, 220px) minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+  min-width: 0;
+}
+.mk-tl-row:last-child { border-bottom: 0; }
+.mk-tl-head { padding-top: 0; border-bottom: 0; }
+.mk-tl-name { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.mk-tl-name b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mk-tl-name span { color: var(--fg-3); font-size: var(--fs-xs); }
+.mk-tl-track {
+  position: relative;
+  height: 26px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  min-width: 0;
+}
+.mk-tl-track-head {
+  height: 22px;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--line-2);
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+}
+.mk-tl-edge { position: absolute; top: 4px; white-space: nowrap; }
+.mk-tl-edge-l { left: 0; }
+.mk-tl-edge-r { right: 0; }
+.mk-tl-today-tag {
+  position: absolute;
+  bottom: 2px;
+  transform: translateX(-50%);
+  color: var(--fg);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+}
+.mk-tl-seg { position: absolute; top: 3px; bottom: 3px; min-width: 6px; }
+.mk-tl .mk-tl-tip { display: block; width: 100%; height: 100%; }
+.mk-tl-bar {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: color-mix(in srgb, var(--amber) 22%, transparent);
+  border: 1px solid var(--amber);
+  overflow: hidden;
+}
+.mk-tl-done { position: absolute; top: 0; bottom: 0; left: 0; background: var(--amber); }
+.mk-tl-now {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--fg);
+  pointer-events: none;
+}
+.mk-tl-tipbody { display: flex; flex-direction: column; gap: 2px; }
+.mk-tl-tipbody span { color: var(--fg-2); }
+
+/* Campaign shop (in the Sheet). */
+.mk-camp-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  min-width: 0;
+}
+.mk-camp {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  min-width: 0;
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+}
+.mk-camp.is-running { border-color: var(--amber); }
+.mk-camp-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; min-width: 0; }
+.mk-camp-title { min-width: 0; }
+.mk-camp-name { font-weight: 600; overflow-wrap: anywhere; }
+.mk-camp-meta { color: var(--fg-3); font-size: var(--fs-xs); }
+.mk-camp-cost { color: var(--fg); font-size: 15px; white-space: nowrap; }
+.mk-camp-fx { margin: 0; padding-left: 16px; color: var(--fg-2); line-height: 1.5; }
+.mk-camp-flavor { color: var(--fg-3); font-size: var(--fs-xs); line-height: 1.5; }
+.mk-camp-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: auto; }
+.mk-camp-status { color: var(--fg-3); font-size: var(--fs-xs); min-width: 0; }
+.mk-camp-status.is-blocked { color: var(--fg-2); }
+
+/* Funnel and team side by side on desktop, stacked on phones. */
+.mk-lower {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  min-width: 0;
+}
+
+/* Funnel. One step column per segment. */
+.mk-funnel {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+.mk-fcard { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.mk-fcard-title { margin: 0; font-size: var(--fs); font-weight: 600; }
+.mk-fstep { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.mk-fstep-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  color: var(--fg-2);
+  font-size: var(--fs-sm);
+  min-width: 0;
+}
+.mk-fstep-head > span:first-child { min-width: 0; }
+.mk-fstep-head .num { white-space: nowrap; }
+.mk-fstep-track { height: 12px; background: var(--bg-3); overflow: hidden; }
+.mk-fstep-fill { height: 100%; min-width: 2px; background: var(--c); }
+.mk-fnote { color: var(--fg-3); font-size: var(--fs-xs); }
+
+/* Team. */
+.mk-people { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 4px; min-height: 16px; }
+.mk-people svg { width: 12px; height: 16px; fill: var(--amber); }
+.mk-more, .mk-empty { color: var(--fg-3); font-family: var(--mono); font-size: var(--fs-sm); align-self: center; }
+.mk-team-what { margin: 0; color: var(--fg-2); line-height: 1.5; }
+.mk-team-what b { color: var(--fg); font-weight: 600; }
+.mk-stars { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.mk-stars li { display: flex; flex-direction: column; gap: 2px; padding: 6px 0; border-top: 1px solid var(--line); }
+.mk-star-title { color: var(--fg-3); font-size: var(--fs-xs); }
+
+/* "Show all" for the campaign shop: a phone-only button. */
+.btn.mk-shop-more { display: none; }
+
+/* Phones: one column everywhere, timeline labels stack above the bars. */
+@media (max-width: 760px) {
+  .mk-hero { grid-template-columns: minmax(0, 1fr); }
+  .mk-tl-row { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .mk-tl-head .mk-tl-name { display: none; }
+  /* The "Today" tag sits on the left edge; the start date would print on top of it, so only the end date stays. */
+  .mk-tl-edge-l { display: none; }
+  .mk-camp-list { grid-template-columns: minmax(0, 1fr); }
+  .mk-lower { grid-template-columns: minmax(0, 1fr); }
+  .mk-funnel { grid-template-columns: minmax(0, 1fr); }
+  .mk-nohist { min-height: 120px; }
+
+  /* Phone order, top to bottom: title, camera feed, brand and hype (the numbers), the campaign timeline,
+     the campaign shop (the main action, three cards then "Show all"), the funnel and team, the intro. */
+  .mk > .panel-header { order: 0; }
+  .mk > .scene-view { order: 1; }
+  .mk > .office-toggle { order: 2; }
+  .mk > .mk-hero-card { order: 3; }
+  .mk > .mk-timeline-card { order: 4; }
+  .mk > .mk-shop-card { order: 5; }
+  .mk > .mk-lower { order: 6; }
+  .mk > .panel-intro { order: 7; }
+  .mk-shop:not(.is-open) > .mk-camp:nth-child(n + 4) { display: none; }
+  .btn.mk-shop-more { display: flex; width: 100%; margin-top: 10px; }
+  .mk-camp-flavor { display: none; }
+}

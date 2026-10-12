@@ -1,0 +1,523 @@
+/* Models panel (MDL). Every class is md-*. Colours and type come from theme.css tokens. No gradients, shadows or
+   entrance motion. Radius 0. Two columns from 1100px; one column below. Amber is an accent (selected, on, primary). */
+
+/* ---------- frame --------------------------------------------------------- */
+.md-panel { gap: 14px; }
+.md-kpis {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  flex-wrap: wrap;
+}
+
+.md-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.md-section-title {
+  color: var(--fg-2);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  margin-top: 4px;
+  padding-bottom: 4px;
+  border-bottom: 1px dotted var(--line);
+}
+.md-section-title + * { margin-top: 2px; }
+.md-pad { padding: 12px 14px; }
+.md-foot-note {
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+  border-top: 1px solid var(--line);
+}
+
+/* ---------- text ----------------------------------------------------------- */
+.md-label {
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+}
+.md-desc {
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+  line-height: 1.45;
+}
+
+.md-text,
+.kv .kv-v.md-text { font-family: var(--font); font-variant-numeric: normal; }
+.md-empty-line {
+  color: var(--fg-3);
+  font-size: var(--fs-sm);
+  padding: 8px 0;
+}
+.md-lineage {
+  color: var(--fg-2);
+  font-size: var(--fs-sm);
+  overflow-wrap: anywhere;
+}
+.md-lin {
+  color: var(--fg-3);
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  line-height: 1;
+  white-space: pre;
+}
+.md-quirk-count { font-size: var(--fs-xs); }
+
+/* ---------- groups and rows ------------------------------------------------ */
+
+.md-row-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+.md-wrap { flex-wrap: wrap; }
+.md-stack { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+
+.md-slider { flex: 1; min-width: 60px; }
+.md-num-input {
+  width: 96px;
+  flex-shrink: 0;
+  font-family: var(--mono);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* forecast and checkpoint band: a range bar with a mid tick, numbers in mono */
+.md-band {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.md-band-track {
+  position: relative;
+  height: 12px;
+  border: 1px solid var(--line-2);
+  background: var(--bg-3);
+}
+.md-band-range {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  min-width: 2px;
+  background: var(--blue-3);
+  border-left: 1px solid var(--blue);
+  border-right: 1px solid var(--blue);
+}
+.md-band-mid {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--amber);
+}
+.md-band-nums {
+  position: relative;
+  height: 16px;
+  font-size: var(--fs-xs);
+  color: var(--fg-2);
+}
+.md-band-lo { position: absolute; left: 0; top: 0; }
+.md-band-hi { position: absolute; right: 0; top: 0; }
+.md-band-midnum {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  color: var(--amber);
+  white-space: nowrap;
+}
+.md-band-inline { font-size: var(--fs-xs); }
+.md-status {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.md-forecast-check {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: var(--fs-sm);
+}
+.md-forecast-nums { color: var(--fg); }
+
+/* charts: inline SVG, colours from classes so both themes follow the tokens */
+.md-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  width: 100%;
+}
+.md-chart svg { display: block; }
+.md-grid { stroke: var(--line); stroke-dasharray: 2 3; }
+.md-ax {
+  fill: var(--fg-3);
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+}
+.md-ax-amber { fill: var(--amber); }
+.md-ax-fc { fill: var(--fg-2); }
+.md-line-real { stroke: var(--blue); stroke-width: 1.5; }
+.md-line-fc { stroke: var(--fg-2); stroke-width: 1.5; stroke-dasharray: 5 4; }
+.md-dot-now { fill: var(--blue); }
+.md-marker { stroke: var(--amber); stroke-width: 1; stroke-dasharray: 3 3; }
+.md-pt-near { fill: var(--blue); }
+.md-pt-far { fill: none; stroke: var(--fg-3); stroke-width: 1.25; }
+.md-key-row {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+}
+.md-key {
+  position: relative;
+  padding-left: 22px;
+}
+.md-key::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 16px;
+  border-top: 2px solid var(--blue);
+}
+.md-key-fc::before {
+  border-top-style: dashed;
+  border-color: var(--fg-2);
+}
+
+/* live band and checkpoints */
+.md-live-band {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.md-cps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.md-cp {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+}
+.md-cp.is-done { border-color: var(--line-2); }
+.md-cp-val { color: var(--fg); font-size: var(--fs-sm); }
+
+/* emergence log lines: highlighted, not buried */
+.md-emerge-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.md-emerge {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 6px 10px;
+  border-left: 2px solid var(--amber);
+  background: var(--bg-2);
+  color: var(--fg);
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+}
+.md-emerge-at {
+  color: var(--amber);
+  white-space: nowrap;
+}
+.md-emerge-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.md-emerge-text strong { font-weight: 600; }
+
+/* ---------- segmented, chips, checks ----------------------------------------- */
+
+/* ---------- mix ---------------------------------------------------------- */
+
+.md-mix { display: flex; flex-direction: column; gap: 6px; }
+.md-mix-row {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr) 96px;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--fs-sm);
+}
+.md-mix-row.dim { color: var(--fg-4); }
+.md-mix-row.dim .md-mix-k { color: var(--fg-4); }
+.md-mix-k { color: var(--fg-2); }
+.md-mix-v { text-align: right; font-size: var(--fs-sm); color: var(--fg); }
+
+/* ---------- data table ---------------------------------------------------- */
+
+/* ---------- estimate ------------------------------------------------------- */
+
+.md-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.md-action > div { min-width: 0; flex: 1 1 220px; display: flex; flex-direction: column; gap: 2px; }
+.md-warn {
+  border: 1px solid var(--down);
+  color: var(--down);
+  padding: 6px 8px;
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+}
+
+.md-armed {
+  background: var(--down);
+  border-color: var(--down);
+  color: var(--on-accent);
+}
+
+/* ---------- live run ------------------------------------------------------- */
+.md-readouts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: 12px 16px;
+}
+.md-journal { font-size: var(--fs-sm); }
+.md-journal th,
+.md-journal td {
+  padding: 6px 8px;
+  vertical-align: top;
+}
+.md-journal td:last-child { white-space: nowrap; }
+.md-journal-desc {
+  min-width: 180px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.md-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 4px;
+  border-top: 1px solid var(--line);
+}
+.md-log { font-size: var(--fs-sm); }
+.md-log td { padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.md-log td:first-child { white-space: nowrap; width: 1%; }
+
+/* ---------- model table ---------------------------------------------------- */
+.md-models { font-size: var(--fs-sm); }
+.md-models th,
+.md-models td { padding: 6px 8px; }
+.md-models td:first-child { white-space: nowrap; }
+.md-models tr { cursor: pointer; }
+.md-models td.actions { padding-right: 12px; }
+
+/* ---------- detail --------------------------------------------------------- */
+.md-detail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+  min-width: 0;
+}
+@media (min-width: 1100px) {
+  .md-detail { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+}
+.md-detail .md-section-title { margin-top: 10px; }
+.md-detail .md-section-title:first-child { margin-top: 0; }
+.md-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.md-bench { font-size: var(--fs-sm); }
+.md-bench th,
+.md-bench td { padding: 5px 8px; }
+.md-caps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.md-cap {
+  display: grid;
+  grid-template-columns: 116px minmax(0, 1fr) 28px;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--fs-sm);
+}
+.md-cap-k { color: var(--fg-2); }
+.md-cap-bar { height: 6px; }
+.md-cap-v { text-align: right; color: var(--fg); }
+.md-bi {
+  display: grid;
+  grid-template-columns: 100px minmax(0, 1fr) 42px;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--fs-sm);
+}
+.md-bi-k { color: var(--fg-2); }
+.md-bi-track {
+  position: relative;
+  height: 6px;
+  background: var(--bg-3);
+}
+.md-bi-track::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -3px;
+  bottom: -3px;
+  width: 1px;
+  background: var(--line-2);
+}
+.md-bi-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--amber);
+}
+.md-bi-v { text-align: right; color: var(--fg); }
+.md-release {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border: 1px solid var(--line-2);
+  padding: 10px 12px;
+  margin-top: 4px;
+}
+
+/* ---------- modal helpers (incident modal uses shell classes) ------------- */
+
+@media (max-width: 1099px) {
+  .md-kpis { gap: 14px; }
+  
+  
+  
+}
+@media (max-width: 560px) {
+  .md-mix-row { grid-template-columns: 74px minmax(0, 1fr) 84px; }
+  .md-num-input { width: 78px; }
+  .md-cap { grid-template-columns: 96px minmax(0, 1fr) 28px; }
+  .md-bi { grid-template-columns: 84px minmax(0, 1fr) 40px; }
+}
+
+/* Selected table rows are amber: keep their dim text readable on the accent fill. */
+.md-models tr.sel .md-lin, .md-models tr.sel .faint { color: var(--on-accent); }
+
+/* band size variants: the wizard footer uses mini, the review uses lg */
+.md-band-mini .md-band-track { height: 8px; }
+.md-band-mini .md-band-nums { height: 14px; font-size: var(--fs-xs); }
+.md-band-lg .md-band-track { height: 18px; }
+.md-band-lg .md-band-nums { height: 20px; font-size: var(--fs-sm); }
+
+/* ---------- MOBILE-A: phone layout (<= 760px). Desktop rules above are unchanged. ---------- */
+@media (max-width: 760px) {
+  .md-panel { gap: 12px; }
+  .md-readouts { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 12px; }
+  .md-kpis { gap: 12px 18px; }
+  .md-action { gap: 10px; }
+  .md-action > .btn { min-width: 96px; }
+  .md-cps { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .md-cp { padding: 6px 8px; }
+  .md-emerge { flex-direction: column; gap: 2px; }
+  .md-log td, .md-journal td, .md-journal th { font-size: var(--fs-sm); }
+  .md-journal-desc { min-width: 220px; }
+  .md-pad { padding: 10px 12px; }
+
+  /* Model cards replace the 13-column table. */
+  .md-cards {
+    list-style: none;
+    margin: 0;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+  }
+  .md-card {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+  }
+  .md-card.sel {
+    border-color: var(--amber);
+    border-left-width: 3px;
+  }
+  .md-card.dim .md-card-name { color: var(--fg-3); }
+  .md-card-main {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+    min-width: 0;
+    min-height: 40px;
+    padding: 10px 12px 8px;
+    background: transparent;
+    border: 0;
+    color: var(--fg);
+    font-size: var(--fs-sm);
+    text-align: left;
+    cursor: pointer;
+  }
+  .md-card-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 8px;
+    min-width: 0;
+  }
+  .md-card-name {
+    font-size: 15px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+    min-width: 0;
+  }
+  .md-card-kv {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 14px;
+    color: var(--fg-2);
+    min-width: 0;
+  }
+  .md-card-k { white-space: nowrap; }
+  .md-card-k .num { color: var(--fg); }
+  .md-card-foot {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 0 10px 10px;
+  }
+  .md-card-foot .btn { min-width: 112px; }
+  .md-card .md-status { gap: 4px; }
+  .md-card .md-status .pill { font-size: var(--fs-xs); }
+}
+
+/* MOBILE-A: the data-mix row stacks: label and share on one line, the slider with its ± buttons full width below. */
+@media (max-width: 760px) {
+  .md-mix-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: 4px;
+  }
+  .md-mix-row .md-mix-k { grid-column: 1; grid-row: 1; }
+  .md-mix-row .md-mix-v { grid-column: 2; grid-row: 1; }
+  .md-mix-row .slider-row { grid-column: 1 / -1; grid-row: 2; }
+}

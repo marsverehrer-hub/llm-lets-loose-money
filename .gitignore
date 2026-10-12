@@ -1,0 +1,8 @@
+node_modules
+dist
+release/
+.claude/
+*.log
+scratch*
+# Internal agent briefs (local paths)
+*_AGENTS.md

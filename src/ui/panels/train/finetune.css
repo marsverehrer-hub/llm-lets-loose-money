@@ -1,0 +1,720 @@
+/* OWNER: Agent W-FT. Fine-tune wizard. Prefix ft-. Tokens only: no raw colours, no shadows, radius 0. */
+
+.ft-root {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+}
+
+/* ---- header and lineage ------------------------------------------------- */
+.ft-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.ft-head-top {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+.ft-kicker {
+  color: var(--fg-3);
+  font-size: var(--fs-sm);
+}
+.ft-parent {
+  color: var(--fg);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ft-lineage {
+  color: var(--fg-2);
+  font-size: var(--fs-sm);
+  overflow-wrap: anywhere;
+}
+.ft-arrow {
+  color: var(--fg-3);
+}
+.ft-crumb-next {
+  color: var(--fg-3);
+}
+
+/* ---- stepper ------------------------------------------------------------ */
+.ft-steps {
+  display: flex;
+  flex-wrap: wrap;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-bottom: 1px solid var(--line);
+}
+.ft-steps li {
+  display: flex;
+}
+.ft-step {
+  height: 32px;
+  padding: 0 14px;
+  margin-bottom: -1px;
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  color: var(--fg-3);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+.ft-step:hover {
+  color: var(--fg);
+}
+.ft-step-done {
+  color: var(--fg-2);
+}
+.ft-step-on {
+  color: var(--fg);
+  font-weight: 600;
+  border-bottom-color: var(--amber);
+}
+.ft-step-n {
+  margin-right: 6px;
+  color: var(--fg-3);
+}
+.ft-step-on .ft-step-n {
+  color: var(--amber);
+}
+
+/* ---- step body --------------------------------------------------------- */
+.ft-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+.ft-q {
+  margin: 0;
+  color: var(--fg);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.ft-label {
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+}
+.ft-muted {
+  color: var(--fg-3);
+  font-size: var(--fs-sm);
+}
+.ft-faint {
+  color: var(--fg-3);
+}
+.ft-empty {
+  padding: 14px;
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+  color: var(--fg-2);
+}
+.ft-wrap {
+  flex-wrap: wrap;
+}
+.ft-row-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+/* ---- direction: tiles ---------------------------------------------------- */
+.ft-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(236px, 1fr));
+  gap: 14px 12px;
+  align-items: start;
+}
+.ft-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.ft-group-title {
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+}
+.ft-tiles {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.ft-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  min-width: 0;
+  padding: 9px 10px 9px 11px;
+  background: var(--bg-1);
+  border: 1px solid var(--line-2);
+  border-radius: 0;
+  color: var(--fg);
+  text-align: left;
+  cursor: pointer;
+}
+.ft-tile:hover {
+  border-color: var(--fg-3);
+}
+.ft-tile-on,
+.ft-tile-on:hover {
+  background: var(--bg-2);
+  border-color: var(--line-2);
+  border-left: 3px solid var(--amber);
+}
+.ft-tile-name {
+  font-weight: 600;
+  line-height: 1.3;
+}
+.ft-tile-fit {
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+}
+.ft-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  min-width: 0;
+  color: var(--fg-2);
+  font-size: var(--fs-xs);
+}
+.ft-stat {
+  white-space: nowrap;
+}
+.ft-num {
+  font-size: var(--fs-xs);
+}
+.ft-pos {
+  color: var(--up);
+}
+.ft-neg {
+  color: var(--down);
+}
+.ft-zero {
+  color: var(--fg-3);
+}
+
+/* locked specs */
+.ft-locked {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ft-locked-btn {
+  align-self: flex-start;
+  height: 24px;
+  padding: 0 2px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  color: var(--fg-3);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+.ft-locked-btn:hover {
+  color: var(--fg-2);
+}
+.ft-locked-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+.ft-locked-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: var(--fs-sm);
+  color: var(--fg-2);
+}
+
+/* detail for the selected spec */
+.ft-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  min-width: 0;
+}
+.ft-detail-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.ft-detail-name {
+  font-weight: 600;
+  font-size: 16px;
+}
+.ft-flavour {
+  margin: 0;
+  color: var(--fg-2);
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+}
+
+/* key/value rows, shared by the detail, review and choices */
+.ft-kv {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 0 18px;
+  margin: 0;
+}
+.ft-kv-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: var(--fs-sm);
+  min-width: 0;
+}
+.ft-kv-row dt {
+  color: var(--fg-3);
+  overflow-wrap: anywhere;
+}
+.ft-kv-row dd {
+  margin: 0;
+  color: var(--fg);
+  text-align: right;
+}
+
+/* ---- personality --------------------------------------------------------- */
+.ft-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ft-chip {
+  height: 26px;
+  padding: 0 10px;
+  background: transparent;
+  border: 1px solid var(--line-2);
+  border-radius: 0;
+  color: var(--fg-2);
+  font-size: var(--fs-xs);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.ft-chip:hover:not(:disabled) {
+  color: var(--fg);
+  border-color: var(--fg-3);
+}
+.ft-chip:disabled {
+  color: var(--fg-3);
+  cursor: not-allowed;
+}
+.ft-chip-on,
+.ft-chip-on:hover:not(:disabled) {
+  background: var(--bg-3);
+  color: var(--fg);
+  border-color: var(--fg-3);
+}
+.ft-chip-tag {
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+}
+.ft-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ft-knobs {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+}
+.ft-knob {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr) 60px;
+  gap: 4px 14px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+.ft-knob:last-child {
+  border-bottom: 0;
+}
+.ft-knob-label {
+  font-weight: 600;
+}
+.ft-knob-val {
+  text-align: right;
+  color: var(--fg);
+  font-size: 15px;
+}
+.ft-knob-cons {
+  grid-column: 2 / -1;
+  color: var(--fg-2);
+  font-size: var(--fs-sm);
+  overflow-wrap: anywhere;
+}
+.ft-slider {
+  min-width: 0;
+}
+
+/* ---- options ------------------------------------------------------------ */
+.ft-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.ft-name-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.ft-name {
+  flex: 1 1 auto;
+  max-width: 420px;
+  height: 32px;
+}
+.ft-count {
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+}
+.ft-toggle {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 12px;
+  width: fit-content;
+  max-width: 100%;
+}
+.ft-warn {
+  padding-left: 8px;
+  border-left: 2px solid var(--down);
+  color: var(--down);
+  font-size: var(--fs-sm);
+  overflow-wrap: anywhere;
+}
+
+/* ---- review ------------------------------------------------------------- */
+.ft-review {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+.ft-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  min-width: 0;
+}
+.ft-reasons {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--fg-2);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+
+/* forecast band */
+.ft-band {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 2px 0;
+}
+.ft-band-track {
+  position: relative;
+  height: 6px;
+  background: var(--bg-3);
+}
+.ft-band-range {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--fg-3);
+}
+.ft-band-mid {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--amber);
+}
+.ft-band-nums {
+  position: relative;
+  height: 16px;
+  color: var(--fg-2);
+  font-size: var(--fs-xs);
+}
+.ft-band-nums > span {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+.ft-band-midnum {
+  color: var(--fg);
+  font-weight: 600;
+}
+.ft-band-big .ft-band-track {
+  height: 10px;
+}
+.ft-band-big .ft-band-mid {
+  top: -5px;
+  bottom: -5px;
+}
+.ft-band-big .ft-band-nums {
+  height: 20px;
+  font-size: var(--fs-sm);
+}
+.ft-band-big .ft-band-midnum {
+  font-size: 15px;
+}
+
+/* capability shape */
+.ft-caps {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.ft-cap-row {
+  display: grid;
+  grid-template-columns: minmax(84px, 110px) minmax(60px, 1fr) 38px 42px 46px;
+  gap: 8px;
+  align-items: center;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: var(--fs-sm);
+}
+.ft-cap-head {
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+  border-bottom-color: var(--line-2);
+}
+.ft-cap-num {
+  text-align: right;
+  color: var(--fg-2);
+}
+.ft-cap-bar {
+  position: relative;
+  height: 6px;
+  background: var(--bg-3);
+}
+.ft-cap-now {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: var(--fg-3);
+}
+.ft-cap-after {
+  position: absolute;
+  left: 0;
+  top: 2px;
+  bottom: 2px;
+  background: var(--fg-2);
+}
+
+/* choices summary */
+.ft-choice {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  padding: 7px 0;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  color: var(--fg);
+  text-align: left;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+.ft-choice:hover .ft-choice-go {
+  color: var(--fg);
+}
+.ft-choice > span:nth-child(2) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.ft-choice-go {
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+}
+.ft-choice-sub {
+  margin-left: 6px;
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+}
+
+/* ---- sticky footer ------------------------------------------------------ */
+.ft-foot {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-top: auto;
+  padding: 10px 12px;
+  background: var(--bg-1);
+  border-top: 1px solid var(--line-2);
+}
+.ft-foot-info {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  flex: 1 1 320px;
+  min-width: 0;
+}
+.ft-foot-info > .ft-band {
+  width: 220px;
+  max-width: 100%;
+}
+.ft-foot-info .ft-band-nums {
+  font-size: var(--fs-xs);
+}
+.ft-foot-kv {
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+}
+.ft-foot-btns {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.ft-blocker {
+  color: var(--down);
+  font-size: var(--fs-sm);
+  overflow-wrap: anywhere;
+}
+
+/* ---- narrow screens still keep the layout intact ------------------------ */
+@media (max-width: 760px) {
+  .ft-knob {
+    grid-template-columns: 96px minmax(0, 1fr) 52px;
+  }
+  .ft-cap-row {
+    grid-template-columns: 84px minmax(40px, 1fr) 32px 36px 40px;
+  }
+}
+
+/* ---------- MOBILE-A: phone layout (<= 760px). Desktop rules above are unchanged. ---------- */
+@media (max-width: 760px) {
+  .ft-root { gap: 10px; }
+  .ft-kicker { font-size: var(--fs-xs); }
+  .ft-parent { font-size: 15px; }
+
+  /* Steps: one row of 40px tabs that share the width. */
+  .ft-steps {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    border-bottom: 1px solid var(--line);
+  }
+  .ft-steps::-webkit-scrollbar { display: none; }
+  .ft-steps li { flex: 0 0 auto; min-width: 0; }
+  .ft-step {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 40px;
+    padding: 0 12px;
+    margin-bottom: -1px;
+    font-size: var(--fs-sm);
+    white-space: nowrap;
+  }
+  .ft-step-n { flex-shrink: 0; }
+
+  .ft-q { font-size: 18px; }
+  .ft-body { gap: 10px; }
+
+  /* Touch: 40px chips, locked lists and choice rows. */
+  .ft-chip {
+    height: 40px;
+    padding: 0 12px;
+    font-size: var(--fs-sm);
+  }
+  .ft-name { height: 40px; max-width: none; }
+  .ft-locked-btn { height: 40px; min-height: 40px; }
+  .ft-choice { min-height: 48px; padding: 10px 0; grid-template-columns: 84px minmax(0, 1fr) auto; }
+  .ft-tile { padding: 11px 12px; }
+
+  /* Tiles, reviews and grids stack in one column. */
+  .ft-tiles,
+  .ft-review,
+  .ft-groups,
+  .ft-caps,
+  .ft-band-big {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ft-stats { gap: 4px 10px; }
+  .ft-knob { grid-template-columns: 96px minmax(0, 1fr) 52px; }
+  .ft-knob .slider-row { grid-column: 1 / -1; }
+
+  /* Footer: the forecast and changes flow above; the buttons stick to the bottom of the wizard. */
+  .ft-foot { display: contents; }
+  .ft-foot-info {
+    flex: 0 0 auto;
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    margin-top: 6px;
+  }
+  .ft-foot-info > .ft-band { width: 100%; }
+  .ft-foot-kv { white-space: normal; }
+  .ft-foot-btns {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 4px -12px 0;
+    padding: 8px 12px;
+    background: var(--bg-1);
+    border-top: 1px solid var(--line-2);
+  }
+  .ft-foot-btns .btn {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 40px;
+    padding: 0 8px;
+  }
+  .ft-foot-btns .btn-ghost { flex: 0 0 auto; }
+}

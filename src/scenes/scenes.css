@@ -1,0 +1,8 @@
+.scene-view canvas.scene-clickable { cursor: pointer; }
+.scene-view .office-tip { white-space: pre-line; }
+
+/* Camera hidden on a phone: only the header strip (camera id and name) stays, so the screen is recognisable. */
+.scene-view.scene-collapsed canvas,
+.scene-view.scene-collapsed .cam-tr,
+.scene-view.scene-collapsed .cam-bl { display: none; }
+.scene-view.scene-collapsed .cam-tl { position: static; }

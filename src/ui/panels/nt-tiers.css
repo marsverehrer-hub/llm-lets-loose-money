@@ -1,0 +1,206 @@
+/* v8 buyer tiers and product lines (GAME_DESIGN section 19.3). Flat bars and hairlines, tokens only. */
+
+/* A kind with two live lines stacks its cards in its column. */
+.nt-line-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.nt-second-note {
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+  line-height: 1.4;
+}
+
+/* Tier colours: premium blue, mainstream neutral, budget amber. */
+.nt-key {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 5px;
+  border-radius: 0;
+  vertical-align: middle;
+  background: var(--fg-3);
+}
+.nt-key-premium { background: var(--blue); }
+.nt-key-mainstream { background: var(--fg-3); }
+.nt-key-budget { background: var(--amber); }
+
+.nt-tierbar-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.nt-tierbar-head {
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+}
+.nt-tierbar {
+  display: flex;
+  width: 100%;
+  height: 6px;
+  overflow: hidden;
+  background: var(--bg-3);
+  border-radius: 0;
+}
+.nt-tierbar-seg {
+  display: block;
+  height: 100%;
+  min-width: 0;
+}
+.nt-tierbar-premium { background: var(--blue); }
+.nt-tierbar-mainstream { background: var(--fg-3); }
+.nt-tierbar-budget { background: var(--amber); }
+.nt-tierbar-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+}
+.nt-tierbar-item b {
+  color: var(--fg-2);
+  font-family: var(--mono);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Launch and reprice preview: each tier's share of its own buyers. */
+.nt-tier-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px 10px;
+  padding: 6px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  min-width: 0;
+}
+.nt-tier-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.nt-tier-name {
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+}
+.nt-tier-cell b {
+  color: var(--fg);
+  font-family: var(--mono);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.nt-tier-hint {
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Market panel (v10, GAME_DESIGN 21.5). Tokens only, flat, no radius over 2px. ---------- */
+
+/* Position strip: four readouts in a row, two a row on phones. */
+.nt-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); min-width: 0; }
+.nt-cell { min-width: 0; padding: 12px 14px; border-right: 1px solid var(--line); }
+.nt-cell:last-child { border-right: 0; }
+
+/* Segment share bars: one bar per segment in lab colours. */
+.mk-share { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.mk-share-bar { display: flex; width: 100%; height: 18px; background: var(--bg-3); overflow: hidden; }
+.mk-share-seg { position: relative; height: 100%; min-width: 0; background: var(--c); border-right: 1px solid var(--bg-1); }
+.mk-share-seg.dim { opacity: 0.3; }
+.mk-share-seg .mk-share-tip { display: block; width: 100%; height: 100%; }
+.mk-share-btn {
+  display: block; width: 100%; height: 100%; margin: 0; padding: 0;
+  background: none; border: 0; cursor: pointer;
+}
+.mk-share-btn[aria-pressed='true'] { outline: 2px solid var(--amber); outline-offset: -2px; }
+.mk-share-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; min-width: 0; }
+.mk-key {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 28px; max-width: 100%;
+  padding: 2px 6px; background: none; border: 1px solid transparent; color: var(--fg-2);
+  font: inherit; font-size: var(--fs-sm); cursor: pointer;
+}
+.mk-key:hover { background: var(--bg-2); }
+.mk-key.on { border-color: var(--amber); color: var(--fg); }
+.mk-key .num { color: var(--fg); }
+.mk-key-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px; }
+.mk-key-more { color: var(--fg-3); font-size: var(--fs-xs); }
+.mk-share-btn:focus-visible, .mk-key:focus-visible, .nt-heat-cell:focus-visible { outline: 1px solid var(--amber); outline-offset: 1px; }
+
+/* The selected lab, across every bar and the arena. */
+.nt-sel-note {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 12px 0;
+  padding: 8px 10px; border: 1px solid var(--amber); color: var(--fg-2); font-size: var(--fs-sm);
+}
+.nt-sel-note .swatch { flex: 0 0 auto; }
+
+/* Buyer-tier heat matrix: segments down, tiers across. Shade is your share. */
+.nt-heat { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.nt-heat th, .nt-heat td { padding: 6px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.nt-heat thead th { border-bottom: 1px solid var(--line-2); text-align: center; font-weight: 500; }
+.nt-heat-head { display: block; color: var(--fg); font-size: var(--fs-sm); font-weight: 600; }
+.nt-heat-sub { display: block; color: var(--fg-3); font-size: var(--fs-xs); font-weight: 400; line-height: 1.4; }
+.nt-heat-seg { width: 24%; text-align: left; color: var(--fg); font-size: var(--fs-sm); font-weight: 600; white-space: nowrap; }
+.nt-heat-tip { display: flex; width: 100%; }
+.nt-heat-cell {
+  display: flex; align-items: center; justify-content: center; width: 100%; min-height: 48px;
+  /* Capped at 50% amber so the cell text keeps about 4.3:1 contrast on the dark theme. */
+  background: color-mix(in srgb, var(--amber) calc(var(--s) * 50%), var(--bg-1));
+  border: 1px solid var(--line);
+  color: var(--fg); font-family: var(--mono); font-size: 16px; font-variant-numeric: tabular-nums;
+}
+.nt-heat-tiptext { display: block; max-width: 260px; white-space: normal; }
+
+/* LLM Arena bars: label and sub on the left, bar, Elo, then the gap to you. */
+/* .barlist.nt-arena (not .nt-arena alone) so these beat the shared BarList rules in components/viz.css. */
+.barlist.nt-arena .barlist-row { grid-template-columns: minmax(130px, 2fr) minmax(90px, 3fr) auto auto; }
+.barlist.nt-arena .barlist-track { height: 10px; }
+.barlist.nt-arena .barlist-extra { min-width: 36px; text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.barlist.nt-arena .barlist-extra .good { color: var(--up); }
+.barlist.nt-arena .barlist-extra .bad { color: var(--down); }
+.barlist.nt-arena .barlist-extra .muted { color: var(--fg-3); }
+.nt-note { margin-top: 8px; color: var(--fg-3); font-size: var(--fs-xs); line-height: 1.5; }
+
+@media (max-width: 760px) {
+  .nt-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .nt-cell:nth-child(2) { border-right: 0; }
+  .nt-cell:nth-child(-n + 2) { border-bottom: 1px solid var(--line); }
+  .nt-heat-seg { width: auto; }
+  .nt-heat-cell { min-height: 44px; font-size: 15px; }
+  .barlist.nt-arena .barlist-row {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas: 'label val extra' 'track track track';
+    row-gap: 6px;
+  }
+  .barlist.nt-arena .barlist-label { grid-area: label; min-width: 0; }
+  .barlist.nt-arena .barlist-val { grid-area: val; }
+  .barlist.nt-arena .barlist-extra { grid-area: extra; }
+  .barlist.nt-arena .barlist-track { grid-area: track; }
+
+  /* Phone order, top to bottom: title, camera feed, your position and the AI hype (the numbers), the three segment
+     cards, the selection note, the buyer-tier heat table, the arena board, then the intro. */
+  .mkt > .panel-header { order: 0; }
+  .mkt > .scene-view { order: 1; }
+  .mkt > .office-toggle { order: 2; }
+  .mkt > .grid-split-rev { order: 3; }
+  .mkt > .grid-3 { order: 4; }
+  .mkt > .nt-sel-note { order: 5; }
+  .mkt > .mkt-tiers { order: 6; }
+  .mkt > .mkt-arena { order: 7; }
+  .mkt > .panel-intro { order: 8; }
+
+  /* Touch: the legend keys are 40px tall, and each share segment has a 40px hit area centred on its 18px bar. */
+  .mk-key { min-height: 40px; }
+  .mk-share-bar { overflow: visible; }
+  .mk-share-btn { position: absolute; top: -11px; left: 0; right: 0; height: 40px; }
+}
+
+/* Phone: the three-up tier grid becomes two a row. (Not used by any panel today; kept in step with the desktop grid.) */
+@media (max-width: 760px) {
+  .nt-tier-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

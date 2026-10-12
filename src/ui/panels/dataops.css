@@ -1,0 +1,503 @@
+/* ==========================================================================
+   Get data area (DAT panel, GAME_DESIGN §20.2 and §20.3). Every class is
+   prefixed do-. Colours, type and spacing come from theme.css tokens only:
+   no hex, gradients, shadows, blur, radius above 2px, or entrance animation.
+   Touch targets are 40px or taller. The layout reacts to the area's own width
+   through the container named "doarea", so it works at 375, 800 and 1440.
+   ========================================================================== */
+
+.do-area {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  container: doarea / inline-size;
+}
+
+.do-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  min-height: var(--strip);
+  padding: 8px 12px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--line);
+}
+.do-head-title {
+  color: var(--fg);
+  font-size: var(--fs);
+  font-weight: 600;
+}
+.do-head-sub {
+  color: var(--fg-3);
+  font-size: var(--fs-sm);
+  min-width: 0;
+}
+
+/* Tabs scroll sideways on narrow screens instead of wrapping or pushing the page wide. */
+.do-area .do-tabs {
+  overflow-x: auto;
+  overflow-y: hidden;
+  flex-wrap: nowrap;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+.do-area .do-tabs .tab {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 14px;
+  font-size: var(--fs-sm);
+}
+.do-area .do-tabs .tab-count {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.do-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  min-width: 0;
+}
+.do-body > .card { min-width: 0; }
+.do-body .card-body { padding: 12px; }
+
+/* ---------- controls ------------------------------------------------------- */
+.do-area .btn {
+  height: 40px;
+  padding: 0 14px;
+  font-size: var(--fs-sm);
+}
+.do-area .select,
+.do-area .input {
+  height: 40px;
+  font-size: var(--fs-sm);
+  width: 100%;
+}
+.do-area .seg {
+  height: 40px;
+  padding: 0 14px;
+  font-size: var(--fs-sm);
+}
+/* Range inputs keep their small track but get a 40px hit area. */
+.do-area .slider {
+  min-height: 40px;
+  height: 40px;
+}
+.do-area .segmented { display: flex; width: 100%; }
+.do-area .segmented .seg { flex: 1 1 0; }
+
+@media (max-width: 760px) {
+  /* 16px on phones stops iOS zooming into the field. */
+  .do-area .select,
+  .do-area .input { font-size: 16px; }
+}
+
+.do-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.do-chip {
+  min-height: 40px;
+  min-width: 40px;
+  padding: 0 12px;
+  background: transparent;
+  border: 1px solid var(--line-2);
+  border-radius: 0;
+  color: var(--fg-2);
+  font-family: var(--font);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.do-chip:hover { border-color: var(--amber); color: var(--amber); }
+.do-chip[aria-pressed='true'] {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+
+.do-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.do-label {
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+}
+.do-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  color: var(--fg-2);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+.do-check input {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  accent-color: var(--amber);
+}
+
+.do-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  min-width: 0;
+}
+
+/* ---------- text ----------------------------------------------------------- */
+.do-note {
+  margin: 0;
+  color: var(--fg-3);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.do-blocker {
+  margin: 0;
+  color: var(--down);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- key-value readouts -------------------------------------------- */
+.do-kvs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+  min-width: 0;
+}
+.do-kv {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 8px 10px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.do-k {
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+  overflow-wrap: anywhere;
+}
+.do-v {
+  color: var(--fg);
+  font-size: var(--fs-sm);
+  overflow-wrap: anywhere;
+}
+.do-v.good { color: var(--up); }
+.do-v.bad { color: var(--down); }
+
+/* ---------- lists and rows ------------------------------------------------- */
+.do-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  border-top: 1px solid var(--line);
+}
+.do-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  min-width: 0;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+.do-row:last-child { border-bottom: 0; }
+.do-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 200px;
+  min-width: 0;
+}
+.do-row-name {
+  color: var(--fg);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.do-row-meta {
+  color: var(--fg-3);
+  font-size: var(--fs-sm);
+  overflow-wrap: anywhere;
+}
+.do-row-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex: 0 0 auto;
+  text-align: right;
+  font-size: var(--fs-sm);
+}
+
+/* A thin progress bar for running jobs. Flat, no gradient. */
+.do-bar {
+  height: 6px;
+  background: var(--bg-3);
+}
+.do-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--amber);
+}
+
+/* ---------- cards in a grid ----------------------------------------------- */
+.do-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  min-width: 0;
+}
+.do-item {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+}
+.do-item-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 10px;
+  min-width: 0;
+}
+
+/* Wide areas get two columns for tiers and archives, and four readouts across. */
+@container doarea (min-width: 640px) {
+  .do-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .do-kvs { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@container doarea (min-width: 1000px) {
+  .do-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+/* Readouts inside a card stay two-up: a card is narrow even when the area is wide. */
+.do-item .do-kvs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+@media (max-width: 380px) {
+  .do-body { padding: 10px; }
+}
+
+/* ---------- v10: one-line intros, state pictures, folded details ----------- */
+.do-intro {
+  margin: 0;
+  color: var(--fg-2);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  max-width: 80ch;
+  overflow-wrap: anywhere;
+}
+/* A closed tab says why, in the same line as its intro. */
+.do-intro.do-lock {
+  color: var(--yellow);
+}
+
+/* Flat bars: taller than the job bar, with the colour chosen by state. */
+.do-bar-tall {
+  height: 8px;
+  width: 100%;
+}
+.do-bar > span.good {
+  background: var(--up);
+}
+.do-bar > span.bad {
+  background: var(--down);
+}
+
+/* Crawler gauge: yield per day against the ceiling. */
+.do-gauge {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.do-gauge-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+.do-gauge-value {
+  color: var(--fg);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+/* Slot boards: one row per production line, busy or free. */
+.do-slots {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.do-slots-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 4px 12px;
+  color: var(--fg-2);
+  font-size: var(--fs-sm);
+}
+.do-slot-list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.do-slot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 12px;
+  min-width: 0;
+  padding: 10px 12px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+}
+.do-slot.free {
+  border-style: dashed;
+  border-color: var(--line-2);
+}
+.do-slot-main {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1 1 220px;
+  min-width: 0;
+}
+.do-slot-name {
+  color: var(--fg);
+  font-size: var(--fs-sm);
+  overflow-wrap: anywhere;
+}
+.do-slot-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  font-size: var(--fs-sm);
+  text-align: right;
+}
+
+/* Bounty split: usable against thrown-out spam. */
+.do-split {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.do-split-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  color: var(--fg-2);
+  font-size: var(--fs-sm);
+}
+
+/* Rival APIs: three boxes per cycle, the last one is the court. */
+.do-strikes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+.do-strike {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 4px;
+  border: 1px solid var(--line-2);
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+  text-align: center;
+}
+.do-strike.on {
+  background: var(--down-3);
+  border-color: var(--down);
+  color: var(--fg);
+}
+.do-strike.court {
+  border-style: dashed;
+}
+.do-strike.court.on {
+  background: var(--down);
+  border-color: var(--down);
+  color: var(--on-accent);
+}
+
+/* A crawler tier you cannot run yet is dashed, not faded. */
+.do-item-locked {
+  border-style: dashed;
+  border-color: var(--line-2);
+}
+
+/* Recent activity: closed by default, opened on demand. */
+.do-details {
+  border-top: 1px solid var(--line);
+  padding-top: 4px;
+}
+.do-details > summary {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  color: var(--fg-2);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+.do-details > summary:hover {
+  color: var(--amber);
+}
+.do-details > .do-list,
+.do-details > .do-note {
+  margin-top: 4px;
+}
+
+/* On phones the tab names scroll sideways; the body stacks in one column. */
+@media (max-width: 760px) {
+  .do-kvs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .do-body {
+    padding: 10px;
+  }
+}
+/* v10.1: settings sit in the card body, above the action (no popovers). */
+.do-opts { display: flex; flex-wrap: wrap; gap: 10px 16px; padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px solid var(--line); }
+.do-opts > * { min-width: 200px; flex: 1; }
+
+/* Phone: the rival-API strikes sit two a row, and the court box takes the full row below them. */
+@media (max-width: 760px) {
+  .do-strikes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .do-strike.court { grid-column: 1 / -1; }
+}

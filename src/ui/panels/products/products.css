@@ -1,0 +1,366 @@
+/* Products screen (v10, GAME_DESIGN 21.5). Tokens only. No shadows, gradients or radius. */
+
+.pr-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+.pr-card .card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Users */
+.pr-top {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+.pr-users {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+}
+.pr-big {
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.1;
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+}
+.pr-users-k {
+  font-size: var(--fs-sm);
+  color: var(--fg-3);
+}
+.pr-spark {
+  width: min(40%, 160px);
+  min-width: 0;
+}
+
+/* Buyer tiers */
+.pr-tierbar {
+  display: flex;
+  height: 6px;
+  background: var(--bg-3);
+}
+.pr-tierbar i {
+  display: block;
+  height: 100%;
+}
+.pr-tier-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 6px;
+  font-size: var(--fs-xs);
+  color: var(--fg-3);
+}
+.pr-swatch {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 5px;
+}
+
+/* Economics: revenue and serving cost, then the margin bar */
+.pr-econ {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pr-econ-rows {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+.pr-econ-rows > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.pr-econ-rows dt {
+  font-size: var(--fs-xs);
+  color: var(--fg-3);
+}
+.pr-econ-rows dd {
+  margin: 0;
+  font-weight: 500;
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+}
+.pr-margin {
+  position: relative;
+  height: 8px;
+  margin: 6px 0 2px;
+  background: var(--bg-3);
+}
+.pr-margin-mid {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  left: 50%;
+  width: 1px;
+  background: var(--fg-3);
+}
+.pr-margin-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+.pr-margin-fill.pos {
+  background: var(--up);
+}
+.pr-margin-fill.neg {
+  background: var(--down);
+}
+.pr-margin-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: var(--fs-xs);
+  color: var(--fg-3);
+}
+.pr-margin-label b {
+  font-size: var(--fs-sm);
+  font-variant-numeric: tabular-nums;
+}
+.pr-row-margin {
+  font-size: var(--fs-sm);
+}
+
+.pr-outage {
+  padding: 6px 8px;
+  border: 1px solid var(--down);
+  font-size: var(--fs-sm);
+  color: var(--down);
+}
+
+/* Model and price */
+.pr-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.pr-row {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+}
+.pr-k {
+  font-size: var(--fs-xs);
+  color: var(--fg-3);
+}
+.pr-price {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.pr-price-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.pr-price-line > :first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.pr-readout {
+  min-width: 84px;
+  text-align: right;
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+}
+.pr-note {
+  margin: 0;
+  font-size: var(--fs-xs);
+  line-height: 1.5;
+  color: var(--fg-3);
+}
+
+/* Details (behind a Popover) */
+.pr-foot {
+  display: flex;
+  justify-content: flex-end;
+}
+.pr-details {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.pr-kv {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 4px 12px;
+  margin: 0;
+  font-size: var(--fs-sm);
+}
+.pr-kv dt {
+  color: var(--fg-3);
+}
+.pr-kv dd {
+  margin: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.pr-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-sm);
+}
+.pr-retire {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+/* Launch tiles */
+.pr-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.pr-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-height: 96px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+  color: var(--fg);
+  font: inherit;
+  text-align: left;
+}
+button.pr-tile {
+  cursor: pointer;
+}
+button.pr-tile:hover,
+button.pr-tile:focus-visible {
+  border-color: var(--amber);
+  outline: none;
+}
+.pr-tile.is-locked,
+.pr-tile.is-full {
+  color: var(--fg-3);
+}
+.pr-fee {
+  margin-top: auto;
+  font-size: var(--fs-xs);
+  color: var(--fg-2);
+}
+
+/* Launch sheet */
+.pr-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.pr-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.pr-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.pr-fact {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+}
+.pr-fact b {
+  font-variant-numeric: tabular-nums;
+}
+.pr-tier-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.pr-tier-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+}
+.pr-tier-cell > span:first-child {
+  font-size: var(--fs-xs);
+  color: var(--fg-3);
+}
+.pr-tier-cell b {
+  font-variant-numeric: tabular-nums;
+}
+.pr-blocker {
+  font-size: var(--fs-sm);
+  color: var(--down);
+}
+.pr-sheet-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+@media (max-width: 760px) {
+  .pr-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .pr-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .pr-tiles {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .pr-facts,
+  .pr-tier-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .pr-price-line {
+    flex-wrap: wrap;
+  }
+  .pr-readout {
+    text-align: left;
+  }
+
+  /* Phone order, top to bottom: title, camera feed, the revenue numbers, the launch card (the main action),
+     the live product cards, then the intro. The header is opened up so its readouts can move below the camera. */
+  .pn-products > .panel-header { display: contents; }
+  .pn-products > .panel-header > .panel-header-main { order: 0; }
+  .pn-products > .scene-view,
+  .pn-products > .office-toggle { order: 1; }
+  .pn-products > .panel-header > .row-wrap {
+    order: 2;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line-2);
+  }
+  .pn-products > .card { order: 3; }
+  .pn-products > .pr-grid { order: 4; }
+  .pn-products > .panel-intro { order: 5; }
+}
+.pr-foot-inline { display: flex; flex-direction: column; gap: 8px; }
+.pr-foot-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }

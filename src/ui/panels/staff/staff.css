@@ -1,0 +1,539 @@
+/* v10 Staff screen. Tokens only (theme.css), so both themes work. Flat, hairline, no shadows or gradients. */
+
+.sf {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ---- team colours: one --c per team, read by swatches, chips, cards and SVG fills ---- */
+.sf-team--researcher,
+.sf-team-card--researcher {
+  --c: var(--blue);
+}
+.sf-team--engineer,
+.sf-team-card--engineer {
+  --c: var(--amber);
+}
+.sf-team--safety,
+.sf-team-card--safety {
+  --c: var(--up);
+}
+.sf-team--sales,
+.sf-team-card--sales {
+  --c: var(--yellow);
+}
+.sf-team--marketing,
+.sf-team-card--marketing {
+  --c: var(--fg-3);
+}
+
+.sf-swatch {
+  display: inline-block;
+  flex: none;
+  width: 10px;
+  height: 10px;
+  background: var(--c, var(--fg-3));
+}
+.sf-swatch--empty {
+  background: transparent;
+  border: 1px solid var(--line-2);
+}
+
+.sf-faint {
+  color: var(--fg-3);
+  font-size: var(--fs-sm);
+}
+
+.sf-lbl {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+}
+
+/* ---- the office floor (hero) ---- */
+.sf-floor-card .card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sf-office-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  margin-bottom: 8px;
+}
+.sf-office-text {
+  color: var(--fg-2);
+  font-size: var(--fs-sm);
+}
+.sf-office-text b {
+  color: var(--fg);
+  font-weight: 600;
+}
+
+.sf-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.sf-empty {
+  fill: none;
+  stroke: var(--line-2);
+  stroke-width: 1;
+}
+.sf-hit {
+  fill: transparent;
+}
+.sf-person {
+  fill: var(--c, var(--fg-3));
+}
+.sf-team {
+  cursor: pointer;
+  transition: opacity 150ms linear;
+}
+.sf-team:focus {
+  outline: none;
+}
+.sf-team:focus-visible .sf-hit {
+  stroke: var(--amber);
+  stroke-width: 1.5;
+}
+.sf-team.is-dim {
+  opacity: 0.35;
+}
+.sf-team.is-sel .sf-hit {
+  stroke: var(--c);
+  stroke-width: 1;
+}
+
+.sf-readout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  min-height: 24px;
+  margin-top: 8px;
+  color: var(--fg-2);
+  font-size: var(--fs-sm);
+}
+.sf-readout b {
+  color: var(--fg);
+  font-weight: 600;
+}
+
+.sf-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.sf-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 4px 10px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+.sf-chip:hover {
+  border-color: var(--line-2);
+}
+.sf-chip[aria-pressed='true'] {
+  border-color: var(--amber);
+}
+.sf-chip.is-static {
+  cursor: default;
+  color: var(--fg-2);
+}
+.sf-chip-n {
+  color: var(--fg-2);
+}
+
+.sf-morale {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+}
+.sf-morale-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: var(--fs-sm);
+  color: var(--fg-2);
+}
+
+.sf-banner {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--line-2);
+  color: var(--fg-2);
+  font-size: var(--fs-sm);
+}
+.sf-banner.bad {
+  border-color: var(--down);
+  background: var(--down-3);
+  color: var(--fg);
+}
+
+/* ---- team roster ---- */
+.sf-teams {
+  display: grid;
+  gap: 8px;
+}
+.sf-team-card {
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--c, var(--line-2));
+  background: var(--bg-1);
+}
+.sf-team-card.is-open {
+  border-color: var(--line-2);
+}
+.sf-team-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 0;
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.sf-team-head:hover {
+  background: var(--bg-2);
+}
+.sf-team-name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sf-team-heads,
+.sf-team-pay {
+  color: var(--fg-2);
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+}
+.sf-caret {
+  color: var(--fg-3);
+}
+.sf-team-body {
+  display: grid;
+  gap: 10px;
+  padding: 0 12px 12px;
+}
+.sf-skill {
+  display: grid;
+  gap: 4px;
+}
+.sf-effect {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  font-size: var(--fs-sm);
+}
+.sf-effect-main {
+  color: var(--fg);
+  font-weight: 500;
+}
+.sf-effect-extra {
+  color: var(--fg-2);
+}
+.sf-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.sf-stars {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 8px;
+}
+.sf-candidates {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  color: var(--fg-2);
+  font-size: var(--fs-sm);
+}
+
+/* detail (selected team): pay and fire */
+.sf-detail {
+  display: grid;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.sf-kv {
+  display: grid;
+  gap: 6px;
+}
+.sf-kv-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-sm);
+}
+.sf-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.sf-note {
+  margin: 0;
+  color: var(--fg-3);
+  font-size: var(--fs-sm);
+}
+
+/* star cards */
+.sf-star {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+}
+.sf-star-name {
+  font-weight: 600;
+}
+.sf-star-title {
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+}
+.sf-star-bonus {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.sf-bonus {
+  padding: 2px 6px;
+  border: 1px solid var(--line-2);
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  color: var(--fg-2);
+}
+.sf-bonus.good {
+  color: var(--up);
+}
+.sf-bonus.bad {
+  color: var(--down);
+}
+.sf-star-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: var(--fs-sm);
+}
+.sf-star-pay {
+  color: var(--fg-2);
+}
+.sf-star-state {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: var(--fg-2);
+  font-size: var(--fs-sm);
+}
+
+/* ---- sheets: hire ---- */
+.sf-sheet {
+  display: grid;
+  gap: 14px;
+}
+.sf-block {
+  display: grid;
+  gap: 8px;
+}
+.sf-h {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--fg-2);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+.sf-role-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px;
+}
+.sf-role-card {
+  display: grid;
+  gap: 4px;
+  min-height: 44px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.sf-role-card:hover {
+  border-color: var(--line-2);
+}
+.sf-role-card.is-sel {
+  border-color: var(--amber);
+}
+.sf-role-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+.sf-role-meta {
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+}
+.sf-role-desc {
+  color: var(--fg-2);
+  font-size: var(--fs-sm);
+}
+.sf-role-eff {
+  color: var(--fg);
+  font-size: var(--fs-sm);
+}
+
+.sf-stepper {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.sf-stepper-val {
+  min-width: 40px;
+  font-size: 18px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.sf-pay-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: var(--fs-sm);
+}
+
+.sf-preview {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 16px;
+  margin: 0;
+}
+.sf-preview > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+}
+.sf-preview dt {
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+}
+.sf-preview dd {
+  margin: 0;
+  font-size: var(--fs-sm);
+}
+
+/* ---- sheet: office list ---- */
+.sf-office-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sf-office-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.sf-office-row.is-cur {
+  border-left: 3px solid var(--amber);
+  padding-left: 10px;
+}
+.sf-office-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+.sf-office-flavor {
+  color: var(--fg-3);
+  font-size: var(--fs-sm);
+}
+.sf-office-nums {
+  margin-top: 4px;
+  color: var(--fg-2);
+  font-size: var(--fs-xs);
+}
+
+/* "Show all" for the team list: a phone-only button. */
+.btn.sf-teams-more { display: none; }
+
+/* ---- phones ---- */
+@media (max-width: 760px) {
+  .sf-team-head {
+    min-height: 48px;
+  }
+  .sf-chip {
+    min-height: 40px;
+  }
+  .sf-role-grid,
+  .sf-preview,
+  .sf-stars {
+    grid-template-columns: 1fr;
+  }
+  .sf-office-row {
+    grid-template-columns: 1fr;
+  }
+
+  /* Phone order inside the floor card: camera feed first, then the office line (seats), the team counts, morale,
+     and any warning banner last. */
+  .sf-floor-card .card-body > * { order: 8; }
+  .sf-floor-card .card-body > .scene-view { order: 1; }
+  .sf-floor-card .card-body > .office-toggle { order: 2; }
+  .sf-floor-card .card-body > .sf-office-line { order: 3; }
+  .sf-floor-card .card-body > .sf-readout { order: 4; }
+  .sf-floor-card .card-body > .sf-chips { order: 5; }
+  .sf-floor-card .card-body > .sf-morale { order: 6; }
+  .sf-floor-card .card-body > .sf-banner { order: 7; }
+
+  /* Teams: two cards, then "Show all" (the team picked on the floor opens its card, see StaffPanel). */
+  .sf-teams:not(.is-open) > :nth-child(n + 3) { display: none; }
+  .btn.sf-teams-more { display: flex; width: 100%; margin-top: 8px; }
+
+  /* Screen order: the intro text goes last, the title stays first. */
+  .sf > .panel-intro { order: 5; }
+  .sf > .panel-header { order: 0; }
+  /* The Hire button is the main action: it takes the full width under the title. */
+  .sf > .panel-header > .row-wrap { width: 100%; }
+  .sf > .panel-header > .row-wrap > .btn { width: 100%; }
+}

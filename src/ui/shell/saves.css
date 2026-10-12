@@ -1,0 +1,111 @@
+/* OWNER: SAVES. The saves sheet (SavesSheet.tsx). Tokens only, sentence case, no motion, radius 2px at most.
+   Rows stack as cards on every width; the actions wrap, and the phone layer (mobile.css) makes them 40px tall. */
+
+.sv-file {
+  display: none;
+}
+
+.sv-usage {
+  margin: 0 0 10px;
+}
+
+.sv-notice {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--line-2);
+  border-radius: 2px;
+  background: var(--bg-2);
+  color: var(--fg-2);
+}
+.sv-notice.bad {
+  border-color: var(--down);
+  color: var(--down);
+}
+.sv-notice.good {
+  border-color: var(--up);
+  color: var(--up);
+}
+
+.sv-empty {
+  margin: 12px 0;
+}
+
+.sv-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sv-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: var(--bg-1);
+}
+.sv-row.is-active {
+  border-color: var(--amber);
+}
+
+.sv-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.sv-name {
+  min-width: 0;
+  font-weight: 600;
+  color: var(--fg);
+  overflow-wrap: anywhere;
+}
+
+.sv-tags {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sv-meta,
+.sv-stats {
+  overflow-wrap: anywhere;
+}
+
+.sv-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  color: var(--fg-2);
+}
+
+.sv-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+.sv-confirm p {
+  margin: 0;
+  color: var(--fg-2);
+}
+
+.sv-rename {
+  width: 100%;
+}
+
+.sv-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 4px;
+}

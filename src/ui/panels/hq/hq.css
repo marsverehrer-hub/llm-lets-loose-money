@@ -1,0 +1,158 @@
+/* OWNER: ONBOARD (v10 agent 7). Headquarters. Tokens only (DESIGN.md). Phone stacking is in the 760px block. */
+
+/* Top row: the next-step card, and goals when the scenario has them. A lone card spans the row. */
+.hq-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+}
+.hq-top > :only-child { grid-column: 1 / -1; }
+
+.hq-next {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px 18px;
+}
+.hq-next-text {
+  flex: 1 1 260px;
+  min-width: 0;
+  margin: 0;
+  color: var(--fg);
+  font-size: 16px;
+  line-height: 1.5;
+}
+.hq-next .btn { flex-shrink: 0; }
+
+/* Money: two flow bars (in and out) and a foot with net and runway. */
+.hq-money {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.hq-flow-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.hq-flow-label { color: var(--fg-2); }
+.btn.hq-flow-more { display: none; }
+.hq-money-foot {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+/* Training. */
+.hq-train {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.hq-train-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+.hq-train-name {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--fg);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hq-train-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  color: var(--fg-2);
+}
+
+/* Details: a closed drawer under the screen. */
+.hq-details {
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+}
+.hq-details-sum {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  min-height: 40px;
+  padding: 8px 12px;
+  color: var(--fg);
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+.hq-details-sum::-webkit-details-marker { display: none; }
+.hq-details-sum::before {
+  content: '▸';
+  color: var(--fg-3);
+  font-weight: 400;
+}
+.hq-details[open] > .hq-details-sum::before { content: '▾'; }
+.hq-details-sum:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: -2px;
+}
+.hq-details-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 12px 12px;
+}
+.hq-details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.hq-company {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.hq-prod-kind {
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+@media (max-width: 760px) {
+  .hq-top,
+  .hq-details-grid { grid-template-columns: minmax(0, 1fr); }
+
+  /* Phone order, top to bottom: camera feed, money (the key numbers), the next step, the training and product cards,
+     then the details. The intro text repeats the next-step card, so it is hidden here. */
+  .hq > .panel-intro { display: none; }
+  .hq > * { order: 5; }
+  .hq > .panel-header { order: 0; }
+  .hq > .grid-split { display: contents; }
+  .hq > .grid-split > :first-child { order: 1; }
+  .hq > .grid-split > :last-child { order: 2; }
+  .hq > .hq-top { order: 3; }
+  .hq > .grid-3 { order: 4; }
+  .hq-money { gap: 10px; }
+  .hq-money-foot { padding-top: 10px; }
+  /* The legend becomes a two-column grid without the share column (the bar shows the shares). */
+  .hq-money .flowbar-legend {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 12px;
+  }
+  .hq-money .flowbar-key {
+    grid-template-columns: 10px minmax(0, 1fr) auto;
+    padding: 6px 0;
+  }
+  .hq-money .flowbar-key .pct { display: none; }
+  .btn.hq-flow-more { display: flex; width: 100%; margin-top: 6px; }
+  .hq-flow:not(.is-open) .flowbar-key:nth-child(n + 5) { display: none; }
+}

@@ -1,0 +1,44 @@
+/* Finance (FIN). v10: a five-cell strip, a funding timeline and a revenue-to-profit waterfall. Tokens only. */
+
+.fin-panel .pa-strip--5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+
+/* Funding rounds as a timeline: a rule with one node per round. */
+.fin-tl {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; align-items: stretch; overflow-x: auto;
+}
+.fin-tl-node {
+  position: relative; flex: 1 0 116px; min-width: 0;
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 12px 10px 4px 0; border-top: 2px solid var(--line-2);
+}
+.fin-tl-node:last-child { padding-right: 0; }
+.fin-tl-dot {
+  position: absolute; top: -6px; left: 0;
+  width: 10px; height: 10px; background: var(--amber);
+}
+.fin-tl-node.ipo .fin-tl-dot { background: var(--yellow); }
+.fin-tl-name { color: var(--fg); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fin-tl-date { color: var(--fg-3); font-size: var(--fs-xs); }
+
+/* Waterfall sits in its own card; the details table opens under it. */
+.fin-panel .wf { margin-top: 2px; }
+
+@media (max-width: 760px) {
+  .fin-panel .pa-strip--5 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .fin-tl { flex-wrap: wrap; overflow-x: visible; }
+  .fin-tl-node { flex: 1 1 45%; padding-right: 8px; margin-bottom: 8px; }
+  .fin-tl-node:nth-child(2n) { padding-right: 0; }
+
+  /* Phone order, top to bottom: title, camera feed, the numbers strip, the funding decision (the main action),
+     the ownership and cash chart, loans and IPO, the funding rounds, the revenue waterfall, then the intro. */
+  .fin-panel > .panel-header { order: 0; }
+  .fin-panel > .scene-view { order: 1; }
+  .fin-panel > .office-toggle { order: 2; }
+  .fin-panel > .card-flush { order: 3; }
+  .fin-panel > .fin-row-funding { order: 4; }
+  .fin-panel > .fin-row-chart { order: 5; }
+  .fin-panel > .fin-rounds-card { order: 6; }
+  .fin-panel > .fin-books-card { order: 7; }
+  .fin-panel > .panel-intro { order: 8; }
+}

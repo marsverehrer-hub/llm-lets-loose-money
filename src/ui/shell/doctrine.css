@@ -1,0 +1,203 @@
+/* ==========================================================================
+   Lab doctrine (dp-): the focus picker modal and the Lab focus card on HQ.
+   Built on the shared .modal, .btn and .card classes. Tokens only, so both
+   themes work. No motion, no shadows, radius 0 (GAME_DESIGN §19.1, DESIGN.md).
+   ========================================================================== */
+
+/* Two classes so it beats the base .modal width whatever the load order. */
+.modal.dp-modal {
+  width: min(760px, 100%);
+}
+
+/* Dim strip header, the same as the eval reveal. Amber stays an accent. */
+.dp-modal .modal-header {
+  min-height: var(--strip);
+  padding: 0 12px;
+  background: var(--bg-2);
+  color: var(--fg);
+  border-bottom: 1px solid var(--line-2);
+}
+.dp-modal .modal-title {
+  color: var(--fg);
+  font-size: var(--fs);
+  font-weight: 600;
+}
+.dp-modal .modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px;
+}
+.dp-modal .modal-footer {
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+}
+
+.dp-intro,
+.dp-cost {
+  margin: 0;
+  color: var(--fg-2);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+.dp-cost {
+  padding-left: 10px;
+  border-left: 2px solid var(--line-2);
+}
+.dp-cost-warn {
+  color: var(--down);
+}
+.dp-muted {
+  color: var(--fg-3);
+  font-size: var(--fs-sm);
+}
+
+/* Tiles: one per doctrine. Keyboard reachable, one selected at a time. */
+.dp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 8px;
+}
+.dp-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px 12px;
+  background: var(--bg);
+  border: 1px solid var(--line-2);
+  border-radius: 0;
+  color: var(--fg);
+  text-align: left;
+  cursor: pointer;
+  user-select: none;
+}
+.dp-tile:hover {
+  border-color: var(--fg-3);
+}
+.dp-tile[aria-checked='true'] {
+  border-color: var(--amber);
+  background: var(--bg-2);
+}
+.dp-tile[aria-disabled='true'] {
+  cursor: default;
+  color: var(--fg-2);
+  border-style: dashed;
+}
+.dp-tile[aria-disabled='true']:hover {
+  border-color: var(--line-2);
+}
+.dp-tile-name {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--fg);
+}
+.dp-tile-tag {
+  font-size: var(--fs-xs);
+  line-height: 1.4;
+  color: var(--fg-3);
+}
+.dp-tile-now {
+  font-size: var(--fs-xs);
+  color: var(--amber);
+}
+
+.dp-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: var(--fs-xs);
+  line-height: 1.4;
+}
+.dp-list li {
+  position: relative;
+  padding-left: 14px;
+}
+.dp-list li::before {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+.dp-perks li,
+.dp-perks li::before {
+  color: var(--up);
+}
+.dp-drawbacks li,
+.dp-drawbacks li::before {
+  color: var(--down);
+}
+.dp-perks li::before {
+  content: '▲';
+}
+.dp-drawbacks li::before {
+  content: '▼';
+}
+
+.dp-detail {
+  min-height: 48px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  color: var(--fg-2);
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+}
+.dp-detail-name {
+  color: var(--fg);
+  font-weight: 600;
+}
+
+/* "Decide later": a text link in the footer, not a button. */
+.dp-link {
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--fg-2);
+  font-size: var(--fs-sm);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.dp-link:hover {
+  color: var(--amber);
+}
+
+/* Lab focus card on HQ. Perks and drawbacks each take one line. */
+.dp-focus {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.dp-focus-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.dp-focus-name {
+  font-weight: 600;
+  color: var(--fg);
+}
+.dp-focus-line {
+  min-width: 0;
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dp-focus-line.dp-up-text {
+  color: var(--up);
+}
+.dp-focus-line.dp-down-text {
+  color: var(--down);
+}
+.dp-focus-note {
+  font-size: var(--fs-xs);
+  color: var(--fg-3);
+}
