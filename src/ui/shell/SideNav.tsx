@@ -22,7 +22,7 @@ export interface SideNavProps {
 
 /** Display grouping. Ids not listed here land in "More". */
 export const GROUPS: { title: string; ids: PanelId[] }[] = [
-  { title: 'Company', ids: ['dashboard', 'finance', 'market', 'marketing', 'contracts', 'vs'] },
+  { title: 'Company', ids: ['dashboard', 'lab', 'finance', 'market', 'marketing', 'contracts', 'vs'] },
   { title: 'Lab', ids: ['models', 'products', 'research', 'benchmarks', 'data', 'compute', 'staff'] },
   { title: 'Meta', ids: ['achievements'] },
 ];

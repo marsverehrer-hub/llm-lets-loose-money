@@ -7,6 +7,7 @@ import { tdate } from '../ui/shell/fmt';
 import { MOBILE_QUERY, useIsMobile } from '../ui/components/useIsMobile';
 import { canvasPixelRatio, toCssPx, useUiScale } from '../ui/uiScale';
 import type { Scene, SceneHit } from './types';
+import { cameraHeight, useCameraMode } from '../ui/cameraPref'; // v13 compact cameras
 import '../office/office.css';
 import './scenes.css';
 
@@ -70,10 +71,12 @@ function placeTip(x: number, y: number, w: number, h: number, W: number, H: numb
 
 export function SceneView({ state, make, height, cam, camId = 'CAM-02', onSelect, label }: SceneViewProps) {
   const isPhone = useIsMobile();
-  const h = isPhone ? Math.min(height ?? 320, PHONE_MAX_H) : (height ?? 320);
-  // On phones the camera can fold to its header strip. The choice is remembered per camera; desktop ignores it.
+  const mode = useCameraMode();
+  const wanted = isPhone ? Math.min(height ?? 320, PHONE_MAX_H) : (height ?? 320);
+  const h = cameraHeight(mode, wanted, isPhone);
+  // v13: any camera can fold to its label strip (remembered per camera), and "Cameras: off" folds them all.
   const [hiddenPref, setHiddenPref] = useState(() => readHidden(camId));
-  const camHidden = isPhone && hiddenPref;
+  const camHidden = hiddenPref || mode === 'off';
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const tipElRef = useRef<HTMLDivElement>(null);
@@ -278,13 +281,13 @@ export function SceneView({ state, make, height, cam, camId = 'CAM-02', onSelect
             {tip.text}
           </div>
         )}
+        {/* v13: a small in-frame toggle replaces the full-width button under the feed. */}
+        {mode !== 'off' && (
+          <button type="button" class="cam-toggle" aria-expanded={!camHidden} onClick={toggleCam}>
+            {camHidden ? 'Show' : 'Hide'}
+          </button>
+        )}
       </div>
-      {/* Under the camera on every screen, so the feed stays the first thing you see. */}
-      {isPhone && (
-        <button type="button" class="office-toggle" aria-expanded={!camHidden} onClick={toggleCam}>
-          {camHidden ? 'Show camera' : 'Hide camera'}
-        </button>
-      )}
     </>
   );
 }

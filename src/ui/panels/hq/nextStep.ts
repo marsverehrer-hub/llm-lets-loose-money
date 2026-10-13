@@ -5,6 +5,7 @@ import { runwayDays } from '../../../sim/systems/finance';
 import { unlockedProductKinds } from '../../../sim/systems/products';
 import type { GameState } from '../../../sim/types';
 import { formatMoney } from '../../../sim/util';
+import { objectiveProgress } from '../../../sim/systems/board';
 import { formatDays } from '../../components';
 import { KIND_LABEL } from '../../components/derive';
 
@@ -46,6 +47,11 @@ export function nextStep(s: GameState): Step {
   if (!s.training && cap.training > 0 && s.models.length > 0) return { text: 'GPUs idle. Start the next training run.', panel: 'models' };
   // 6. Long-term growth.
   if (s.research.current === null) return { text: 'Research queue empty.', panel: 'research' };
+  // v13: perk points waiting, and a board goal that is nearly done.
+  const pts = s.progress?.perkPoints ?? 0;
+  if (pts > 0) return { text: `${pts} perk point${pts === 1 ? '' : 's'} to spend. Shape the lab.`, panel: 'lab' };
+  const close = s.board?.objectives.find((o) => o.doneDay === null && objectiveProgress(o) >= 0.75);
+  if (close) return { text: `Board goal almost done: ${close.text}.`, panel: 'lab' };
   if (s.data.owned.length < 4) return { text: `${s.data.owned.length} datasets owned. Buy more reading.`, panel: 'data' };
   return { text: 'Nothing on fire. Check how the market reacts.', panel: 'market' };
 }

@@ -5,6 +5,7 @@ import { MOBILE_QUERY, useIsMobile } from '../ui/components/useIsMobile';
 import { canvasPixelRatio, currentZoom, toCssPx, useUiScale } from '../ui/uiScale';
 import { OfficeScene } from './scene';
 import './office.css';
+import { cameraHeight, useCameraMode } from '../ui/cameraPref'; // v13 compact cameras
 
 /** Pixel ratio cap on phones. Above 2 the scene costs a lot of fill rate and the detail is not visible on a phone. */
 const MAX_DPR = 2;
@@ -32,7 +33,10 @@ function placeTip(x: number, y: number, w: number, h: number, W: number, H: numb
  * collapses the feed to its header line. A finger taps to show the tip (it stays about 3 s).
  */
 export function OfficeView(props: { state: GameState; height?: number }) {
-  const height = props.height ?? 360;
+  const isPhoneNow = useIsMobile();
+  const camMode = useCameraMode();
+  // v13: the global camera setting caps the feed (compact) or folds it (off).
+  const height = cameraHeight(camMode, props.height ?? 360, isPhoneNow);
   const isPhone = useIsMobile();
   const [collapsed, setCollapsed] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -193,12 +197,12 @@ export function OfficeView(props: { state: GameState; height?: number }) {
     tapTimerRef.current = window.setTimeout(hideTip, TAP_TIP_MS);
   };
 
-  const hidden = isPhone && collapsed;
+  const hidden = collapsed || camMode === 'off';
   return (
     <>
-      {isPhone && (
-        <button type="button" class="office-toggle" aria-expanded={!collapsed} onClick={() => { setCollapsed((c) => !c); hideTip(); }}>
-          {collapsed ? 'Show office' : 'Hide office'}
+      {hidden && (
+        <button type="button" class="office-toggle office-show" aria-expanded={false} onClick={() => { setCollapsed(false); hideTip(); }} disabled={camMode === 'off'}>
+          {camMode === 'off' ? 'Cameras are off (Menu)' : 'Show office'}
         </button>
       )}
       <div class="office-view" ref={wrapRef} style={{ height: hidden ? '0px' : `${height}px`, display: hidden ? 'none' : undefined }}>
@@ -218,6 +222,9 @@ export function OfficeView(props: { state: GameState; height?: number }) {
             {tip.text}
           </div>
         )}
+        <button type="button" class="cam-toggle" aria-expanded={true} onClick={() => { setCollapsed(true); hideTip(); }}>
+          Hide
+        </button>
       </div>
     </>
   );

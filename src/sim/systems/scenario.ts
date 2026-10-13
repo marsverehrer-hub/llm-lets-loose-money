@@ -485,6 +485,9 @@ export function applyScenarioStart(s: GameState, setup: GameSetup): void {
     fastForward(s, startDay);
   }
   rebasePlayer(s, s.setup, startDay);
+  // v13: the world's fast-forward must not leave the player XP or a stale board.
+  delete s.progress;
+  delete s.board;
 
   if (setup.skipTutorial || mid) s.tutorialStep = -1;
   if (!sandbox && sc.goals.length > 0) {

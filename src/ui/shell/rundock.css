@@ -1,0 +1,136 @@
+/* OWNER: PROGRESSION UI (v13). The run dock under the top bar. Tokens only (DESIGN.md). */
+.rundock {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  height: 34px;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--line);
+  overflow: hidden;
+}
+.dock-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 0 12px;
+  background: transparent;
+  border: 0;
+  border-right: 1px solid var(--line);
+  color: var(--fg);
+  font: inherit;
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+  cursor: pointer;
+}
+button.dock-cell:hover,
+.dock-link:hover { background: var(--bg-2); }
+.dock-train {
+  flex: 1 1 auto;
+  padding: 0 8px 0 0;
+  cursor: default;
+}
+.dock-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  padding: 0 12px;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.dock-res { flex: 0 1 300px; }
+.dock-level,
+.dock-board { flex: 0 0 auto; }
+.dock-k {
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.dock-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 600;
+}
+.dock-v { flex-shrink: 0; }
+.dock-bar {
+  position: relative;
+  flex: 1 1 60px;
+  min-width: 40px;
+  max-width: 220px;
+  height: 6px;
+  background: var(--bg-3);
+}
+.dock-bar-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--amber);
+  transition: width 150ms linear;
+}
+.dock-bar.info .dock-bar-fill { background: var(--blue); }
+.dock-bar.good .dock-bar-fill { background: var(--up); }
+.dock-bar.warn .dock-bar-fill { background: var(--yellow); }
+.dock-bar.hot .dock-bar-fill { background: var(--down); }
+.dock-level .dock-bar { flex: 0 0 64px; min-width: 64px; }
+.dock-lvl { font-weight: 600; }
+.dock-pts {
+  padding: 0 5px;
+  background: var(--amber);
+  color: var(--on-accent);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+.dock-streak {
+  color: var(--down);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+.dock-goals { display: inline-flex; gap: 3px; }
+.dock-goal {
+  width: 10px;
+  height: 10px;
+  border: 1px solid var(--fg-3);
+}
+.dock-goal.hit {
+  background: var(--up);
+  border-color: var(--up);
+}
+/* An idle slot is the loudest thing on the strip. */
+.dock-idle {
+  flex: 1 1 auto;
+  color: var(--amber);
+  background: var(--amber-3);
+}
+.dock-idle .dock-k { color: var(--amber); }
+.dock-idle:hover { background: var(--bg-2); }
+.dock-go { margin-left: auto; font-weight: 700; }
+.dock-train .tempo { flex-shrink: 0; }
+
+@media (max-width: 1100px) {
+  .dock-res { flex-basis: 180px; }
+  .dock-res .dock-name { display: none; }
+}
+
+@media (max-width: 760px) {
+  .rundock { height: 40px; }
+  .dock-cell { padding: 0 8px; gap: 6px; overflow: hidden; }
+  .dock-train { padding: 0; flex: 1 1 auto; }
+  .dock-link { padding: 0 8px; gap: 6px; }
+  .dock-name { max-width: 28vw; }
+  .dock-train .dock-bar { flex: 1 1 24px; min-width: 20px; }
+  /* Research shrinks to a labelled bar; the Research tab has the rest. */
+  .dock-res { flex: 0 0 76px; }
+  .dock-res .dock-v { display: none; }
+  .dock-res .dock-bar { min-width: 0; }
+  .dock-idle .dock-v { overflow: hidden; text-overflow: ellipsis; }
+  .dock-level { flex: 0 0 auto; padding: 0 8px; }
+  .dock-level .dock-bar { display: none; }
+}

@@ -34,6 +34,7 @@ import { roleStrength } from './staff';
 import { labName } from './labs';
 import { allDatasets, datasetById } from './data';
 import { nanoThresholdB, rivalActiveParamsB } from '../data/weightClasses';
+import { momentumSpeedMult } from './progression'; // v13
 
 
 const SAT = CAP_TUNING.SATURATION_FRACTION;
@@ -313,7 +314,8 @@ export function modalitiesFor(caps: Capabilities, lineage: readonly Id[]): ('tex
 export function trainingRatePerDay(s: GameState, cfg: TrainingConfig = defaultConfig(s)): number {
   const pflops = computeCapacity(s).training;
   const boost = 1 + CAP_TUNING.RESEARCHER_TRAIN_BOOST * Math.sqrt(roleStrength(s, 'researcher'));
-  return pflops * 1e15 * 86_400 * getBonuses(s).trainingSpeed * boost * speedMultiplier(s, cfg);
+  // v13: the Momentum perk turns the hot streak into training speed.
+  return pflops * 1e15 * 86_400 * getBonuses(s).trainingSpeed * boost * speedMultiplier(s, cfg) * momentumSpeedMult(s);
 }
 
 /** Capabilities of a model, reconstructed from its scores when the save predates v2. */

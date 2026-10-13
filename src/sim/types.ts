@@ -573,6 +573,8 @@ export interface TrainingRun {
   checkpoints?: CheckpointReading[];
   /** Emergence ids already detected during this run. */
   emerged?: Id[];
+  /** v13: how hard the team pushes the run. Undefined = 'standard'. Changeable while the run is live. */
+  tempo?: RunTempo;
 }
 
 // ---------------------------------------------------------------------------
@@ -1069,6 +1071,10 @@ export interface GameState {
   goals?: GoalState[];
   /** v9: data operations (crawler, refinery, marketplace, bounties, archives, rival API, startups). systems/dataOps.ts */
   dataOps?: DataOpsState;
+  /** v13 progression: lab XP, levels, perks and the hot streak (systems/progression.ts). Created on demand. */
+  progress?: ProgressState;
+  /** v13 board objectives: quarterly goals with rewards (systems/board.ts). Created on demand. */
+  board?: BoardState;
 }
 
 // ---------------------------------------------------------------------------
@@ -1077,6 +1083,11 @@ export interface GameState {
 
 export type GameAction =
   | { type: 'setSpeed'; speed: Speed }
+  // v13 progression, board objectives and run tempo
+  | { type: 'setRunTempo'; tempo: RunTempo }
+  | { type: 'buyPerk'; perkId: Id }
+  | { type: 'respecPerks' }
+  | { type: 'rerollObjective'; objectiveId: Id }
   | { type: 'renameCompany'; name: string }
   // training & data
   | { type: 'buyDataset'; datasetId: Id }
@@ -1471,4 +1482,90 @@ export interface FleetBreakdown {
   /** Cloud burst price, $ per PFLOP/s-day, this year. */
   burstPricePerPflopDay: number;
   slices: ServingSlice[];
+}
+
+// ---------------------------------------------------------------------------
+// v13 Progression, board objectives and run tempo (GAME_DESIGN.md §23)
+// ---------------------------------------------------------------------------
+/** How hard a live run is pushed. careful: slower, far fewer incidents. crunch: faster, risky, burns morale. */
+export type RunTempo = 'careful' | 'standard' | 'crunch';
+
+export type PerkBranch = 'scale' | 'craft' | 'hype' | 'data' | 'trust';
+
+export interface PerkDef {
+  id: Id;
+  name: string;
+  branch: PerkBranch;
+  /** 1..4. Tier 4 is the branch capstone; a lab may own only one capstone. */
+  tier: 1 | 2 | 3 | 4;
+  /** Perk points it costs. */
+  cost: number;
+  /** Lab level needed before it can be bought. */
+  minLevel: number;
+  /** Dry one-liner. */
+  description: string;
+  /** What it does in game, concretely. */
+  effectText: string;
+  /** Passive multipliers, folded into getBonuses. */
+  bonuses?: Partial<Bonuses>;
+}
+
+export interface ProgressState {
+  /** Lifetime lab XP. */
+  xp: number;
+  /** Current lab level (1-based). */
+  level: number;
+  /** Unspent perk points. */
+  perkPoints: number;
+  perks: Id[];
+  /** Consecutive pre-training runs that landed at or above their forecast. */
+  streak: number;
+  bestStreak: number;
+  /** Counters the observer already paid XP for. */
+  seen: { research: number; released: number; crowns: number; contractsWon: number; achievements: number; revealKey: string };
+  /** Recent XP gains, newest last (cap 30). */
+  log: { day: number; amount: number; reason: string }[];
+  /** Day of the last respec (respecs have a cooldown). */
+  respecDay?: number;
+}
+
+export type ObjectiveKind =
+  | 'revenue' | 'users' | 'ship' | 'research' | 'beat' | 'crown' | 'contract' | 'rank' | 'hype' | 'runway' | 'launch' | 'train' | 'scale';
+
+export interface ObjectiveReward {
+  xp: number;
+  cash?: number;
+  hype?: number;
+  /** Research points added to the current topic (or banked when idle). */
+  rp?: number;
+}
+
+export interface Objective {
+  id: Id;
+  kind: ObjectiveKind;
+  text: string;
+  /** Target value for the measured quantity. */
+  target: number;
+  /** Measured value when the quarter began (for count goals and progress bars). */
+  base: number;
+  /** Last measured value (refreshed daily). */
+  value: number;
+  reward: ObjectiveReward;
+  /** The stretch goal of the quarter: harder, pays double. */
+  stretch?: boolean;
+  doneDay: number | null;
+}
+
+export interface BoardState {
+  quarterStart: number;
+  quarterEnd: number;
+  /** 1-based quarter number since the lab opened. */
+  quarter: number;
+  objectives: Objective[];
+  /** 0..100. Hits raise it, misses lower it. Moves valuation a little (finance reads it through Bonuses.valuation). */
+  confidence: number;
+  /** Rerolls left this quarter. */
+  rerolls: number;
+  /** Past quarters, newest last (cap 24). */
+  history: { quarter: number; hit: number; total: number; day: number }[];
 }

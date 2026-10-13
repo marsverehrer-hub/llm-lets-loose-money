@@ -73,6 +73,7 @@ import { finishDerived } from './derive';
 import { pickCopy, VERDICT_NEWS } from '../data/evalCopy';
 
 export { lossToQuality, overallScore, trainingRatePerDay } from './capabilities';
+import { applyTempoDay, liveRunRate, tempoOf, tempoRisk } from './tempo'; // v13 run tempo
 export { chinchillaLoss, effectiveTokens, SCALE_TUNING, undertrainPenalty, runOverheadDays, repeatFactor } from './trainingMath';
 
 export interface TrainingEstimate {
@@ -512,7 +513,9 @@ export function trainingTick(s: GameState, rng: Rng): void {
     if (spent >= 1) return;
     workShare = 1 - spent;
   }
-  run.doneFlops = Math.min(run.totalFlops, run.doneFlops + workShare * trainingRatePerDay(s, runConfig(s, run)));
+  // v13: the run's tempo scales its speed (careful / standard / crunch) and its incident risk below.
+  run.doneFlops = Math.min(run.totalFlops, run.doneFlops + workShare * liveRunRate(s, run));
+  applyTempoDay(s, run);
   if (run.doneFlops >= run.totalFlops) {
     run.lossHistory.push(run.predictedLoss);
     finishRun(s, rng);
@@ -524,7 +527,7 @@ export function trainingTick(s: GameState, rng: Rng): void {
   run.lossHistory.push(lossCurve(run.predictedLoss, plateauProgress(run, progress)) + rng.normal(0, TRAINING_TUNING.LOSS_NOISE_SD));
   if (!run.pendingIncident) {
     const phys: RunPhysics = runPhysics(s, run);
-    if (rng.chance(phys.incidentRate)) fireIncident(s, run, rng);
+    if (rng.chance(phys.incidentRate * tempoRisk(s, tempoOf(run)))) fireIncident(s, run, rng);
   }
 }
 

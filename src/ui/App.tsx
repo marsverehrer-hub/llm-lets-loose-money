@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { TopBar } from './shell/TopBar';
 import { SideNav } from './shell/SideNav';
 import { NewsTicker } from './shell/NewsTicker';
+import { RunDock } from './shell/RunDock'; // v13: training, research, level and board on every screen
 import { EventModal } from './shell/EventModal';
 import { IncidentModal } from './shell/IncidentModal';
 import { EvalReveal } from './shell/EvalReveal';
@@ -27,6 +28,7 @@ import { MarketingPanel } from './panels/MarketingPanel';
 import { FinancePanel } from './panels/FinancePanel';
 import { AchievementsPanel } from './panels/AchievementsPanel';
 import { ContractsPanel } from './panels/ContractsPanel';
+import { LabPanel } from './panels/LabPanel'; // v13 progression
 import { VsPanel } from './mp/VsPanel';
 import { Lobby } from './mp/Lobby';
 import { MpOverlays } from './mp/MpOverlays';
@@ -50,10 +52,11 @@ import './mp/mp.css';
 // Saved theme applies before the first render (index.html also sets it before paint).
 applyTheme(readTheme());
 
-export type PanelId = 'dashboard' | 'models' | 'products' | 'compute' | 'data' | 'research' | 'benchmarks' | 'staff' | 'market' | 'contracts' | 'finance' | 'vs' | 'achievements' | 'marketing';
+export type PanelId = 'dashboard' | 'lab' | 'models' | 'products' | 'compute' | 'data' | 'research' | 'benchmarks' | 'staff' | 'market' | 'contracts' | 'finance' | 'vs' | 'achievements' | 'marketing';
 
 export const PANELS: { id: PanelId; label: string; code: string; Component: () => any }[] = [
   { id: 'dashboard', label: 'Headquarters', code: 'HQ', Component: DashboardPanel },
+  { id: 'lab', label: 'Lab & perks', code: 'LAB', Component: LabPanel }, // v13 progression
   { id: 'models', label: 'Models', code: 'MDL', Component: ModelsPanel },
   { id: 'products', label: 'Products', code: 'PRD', Component: ProductsPanel },
   { id: 'compute', label: 'Compute', code: 'CMP', Component: ComputePanel },
@@ -75,6 +78,7 @@ function computeBadges(s: GameState): Partial<Record<PanelId, 'dot' | 'warn'>> {
   if (s.models.some((m) => m.releasedDay === null)) out.models = 'dot';
   if (s.products.some((p) => p.active && p.servedFraction < 1)) out.products = 'warn';
   if (s.finance.pendingOffer) out.finance = 'warn';
+  if ((s.progress?.perkPoints ?? 0) > 0) out.lab = 'dot';
   return out;
 }
 
@@ -159,6 +163,7 @@ export function App() {
   return (
     <div class="app">
       <TopBar />
+      <RunDock />
       <div class="app-body">
         {!isPhone && <SideNav items={navItems} active={tab} onSelect={select} badges={navBadges} highlight={tutorialTarget(tutStep)} />}
         <main class="app-main" ref={mainRef}>

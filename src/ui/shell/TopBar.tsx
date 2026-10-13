@@ -7,6 +7,7 @@ import { saveMessage } from '../saveText';
 import { playSfx, toggleMuted, useMuted } from '../fx/sound';
 import { openShortcuts } from './Shortcuts';
 import { readTheme, setTheme, type Theme } from './theme';
+import { CAMERA_MODE_LABEL, NEXT_CAMERA_MODE, setCameraMode, useCameraMode } from '../cameraPref'; // v13
 import { InterfaceSizeRow } from './InterfaceSize';
 import { bareMoney, tdate } from './fmt';
 import { requestMatchSpeed, useSession, type NetStatus } from '../../net/session';
@@ -92,6 +93,7 @@ export function TopBar() {
   const savedTimer = useRef(0);
   const muted = useMuted();
   const [theme, setThemeState] = useState<Theme>(readTheme);
+  const camMode = useCameraMode();
   const autoPause = useAutoPause();
   const logOpen = useNoticeLogOpen();
   const unread = unreadCount(s);
@@ -405,6 +407,15 @@ export function TopBar() {
                 <span>{theme === 'light' ? 'Dark theme' : 'Light theme'}</span>
               </button>
               <InterfaceSizeRow />
+              {/* v13: one switch for every camera feed (compact by default). */}
+              <button
+                type="button"
+                class="menu-item"
+                role="menuitem"
+                onClick={() => setCameraMode(NEXT_CAMERA_MODE[camMode])}
+              >
+                <span>{CAMERA_MODE_LABEL[camMode]}</span>
+              </button>
               {/* Progressive disclosure (ui/unlocks.ts): open every nav screen, or bring back the one-line screen tips. */}
               <button
                 type="button"

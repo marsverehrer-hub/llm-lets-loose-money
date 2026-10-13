@@ -25,6 +25,9 @@ import { contractsTick, handlers as contractsHandlers } from './systems/contract
 import { handlers as doctrineHandlers } from './systems/doctrine';
 import { handlers as servingHandlers, servingTick } from './systems/serving'; // v10 serving
 import { scenarioTick, setScenarioTicker } from './systems/scenario'; // v9 scenario
+import { boardTick, handlers as boardHandlers } from './systems/board'; // v13 board objectives
+import { progressionTick, handlers as progressionHandlers } from './systems/progression'; // v13 lab XP and perks
+import { handlers as tempoHandlers } from './systems/tempo'; // v13 run tempo
 
 /** Order matters: costs/capacity first, then production, then market, then finance closes the books. */
 const SYSTEMS: System[] = [
@@ -50,6 +53,8 @@ const SYSTEMS: System[] = [
   financeTick,
   milestonesTick,
   momentsTick,
+  boardTick, // v13: quarterly goals, paid the day they are met
+  progressionTick, // v13: XP observer, last so it sees the whole day
 ];
 
 const coreHandlers: ActionHandlers = {
@@ -93,6 +98,9 @@ const HANDLERS: ActionHandlers = Object.assign(
   eventsHandlers,
   financeHandlers,
   mpHandlers,
+  boardHandlers,
+  progressionHandlers,
+  tempoHandlers,
 );
 
 /** True when the simulation should not advance (game over or an event awaits a decision). */
