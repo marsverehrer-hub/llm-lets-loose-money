@@ -24,16 +24,16 @@ Use dry jokes in descriptions. Keep them short and punchy.
   | GPU | Year | PFLOP/s | Buy | Rent/day | kW |
   |---|---|---|---|---|---|
   | Pascal P-100ish | 2017 | 0.012 | $9k | $30 | 0.3 |
-  | Volta V-1000 | 2018 | 0.03 | $11k | $55 | 0.3 |
-  | Ampere A-1OO | 2020 | 0.09 | $15k | $90 | 0.4 |
-  | Hopper H-1OO | 2022 | 0.3 | $30k | $200 | 0.7 |
-  | Blackwell B-2OO | 2024 | 0.7 | $45k | $350 | 1.0 |
-  | Rubin R-3OO | 2026 | 1.6 | $60k | $600 | 1.4 |
-  | Feynman F-5OO | 2028 | 4 | $80k | $1000 | 1.8 |
-  | H1000 Hypernova | 2031 | 12 | $120k | $2000 | 2.5 |
-  | Dyson D-1 | 2034 | 40 | $200k | $4000 | 3.5 |
+  | Volta V-1000 | 2018 | 0.03 | $16.5k | $55 | 0.3 |
+  | Ampere A-1OO | 2020 | 0.09 | $27k | $90 | 0.4 |
+  | Hopper H-1OO | 2022 | 0.3 | $60k | $200 | 0.7 |
+  | Blackwell B-2OO | 2024 | 0.7 | $105k | $350 | 1.0 |
+  | Rubin R-3OO | 2026 | 1.6 | $180k | $600 | 1.4 |
+  | Feynman F-5OO | 2028 | 4 | $300k | $1000 | 1.8 |
+  | H1000 Hypernova | 2031 | 12 | $600k | $2000 | 2.5 |
+  | Dyson D-1 | 2034 | 40 | $1.2M | $4000 | 3.5 |
 
-  Rent per day is roughly buy price ÷ 300. Renting is flexible; buying pays off after about a year.
+  Buy price is exactly 300 days of rent (v14, §24). Renting is flexible; buying pays off after about a year once power, cooling, hardware operations and wear are counted.
 - **Datacenter tiers:**
 
   | Tier | Max GPUs | Build cost | Build time | Upkeep/day | Power | Unlock |
@@ -1464,3 +1464,17 @@ ETAs everywhere (run dock, HQ, Models) use `liveRunEta`, which includes tempo, o
 - **Eval reveal** shows the XP the run paid and what it did to the streak.
 - Toasts: at most 3 at once on desktop (was 4), shorter lifetimes. Phone tabs use short labels ("Home").
 - Next-step card suggests spending perk points and finishing a nearly done board goal.
+
+## 24. Grounded hardware economy (v14)
+Player feedback: "it is actually very easy to be profitable, since GPUs are a one-time purchase and then cost almost nothing".
+
+That was true. An owned H-1OO cost about $1.2 to $2 a day in electricity against $200 a day to rent it, so a purchase paid for itself in about 150 days and then ran almost free forever. Real labs pay roughly a fifth to a quarter of a GPU's price every year to keep it running, and replace a slice of the fleet as it dies. v14 adds those costs. All of them are in `COMPUTE_TUNING` (`systems/compute.ts`).
+
+- **Prices.** Every GPU now costs 300 days of its rent (H-1OO $60k, B-2OO $105k, up to $1.2M for the Dyson D-1). Before, the ratio slid from 300 days in 2017 to 50 days in 2034, so late hardware paid for itself in weeks. With the costs below, every generation pays itself back in 346 to 354 days (`tests/hardware.test.ts` pins 300 to 420).
+- **Cooling.** Power bills are multiplied by the tier's PUE: closet 1.6, colo 1.4, hyperscale 1.25, cathedral 1.12. Bigger buildings run cooler.
+- **Hardware operations.** Each installed GPU costs 16% of its buy price per year in maintenance contracts, networking, spares and on-call (`OPS_RATE_PER_YEAR`). It is booked as a new expense line, `hardware`. An H-1OO now costs about $28/day to run in a hyperscale campus instead of about $1.5. Owning still beats renting by a wide margin, but it is no longer free.
+- **Wear.** Installed GPUs fail at `3% + 4.5% × age in years` a year (capped at 40%). Failures are deterministic: each day carries `count × rate / 365` as a fraction until a whole GPU dies, so seeded rolls elsewhere are unchanged. The lab is told at most once a month. Age is the count-weighted average purchase day per GPU model per datacenter (`Datacenter.bought`); old saves count their fleet as new.
+- **Resale.** Selling returns `40% × 0.65^age` of the buy price (at least 3%), not a flat 40%.
+- **Serving margins.** A product's own-GPU serving cost now includes cooling and hardware operations, so the Products screen shows what owned GPUs really cost per token.
+- **UI.** Compute's daily cost lists Hardware ops; the buy sheet shows the running cost per GPU next to its rent; installed GPU rows show age, failure rate and resale value; Finance groups power and hardware.
+- **Results.** One H-1OO over three years: before v14, about $31.6k to buy and run against $219k to rent (owning was 7× cheaper and effectively free after five months). Now it is about $100k including wear replacements (2.2× cheaper than renting, with a payback of about a year). The scripted bots mostly rent and only buy with spare cash, so their milestones stay within seed noise (`--all --years=20 --seeds=1,2,3`: frontier IPO 2023.3, $1T 2030.9 with a seed range of 2029.9 to 2033.2; no bot bankrupt; every §19 check passes). The change targets the buy-once-and-forget player, whom the bots do not model; ROADMAP item 1 still applies.

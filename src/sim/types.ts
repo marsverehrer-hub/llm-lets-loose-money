@@ -709,6 +709,10 @@ export interface Datacenter {
   tierId: Id;
   gpus: Record<Id, number>;    // gpuId -> count installed
   buildDaysLeft: number;       // > 0 = under construction
+  /** v14: count-weighted average purchase day per GPU model (age drives failures and resale). Missing = bought today. */
+  bought?: Record<Id, number>;
+  /** v14: fractional GPU failures carried to the next day, per GPU model. */
+  wear?: Record<Id, number>;
 }
 
 /** v8: buyer tiers inside every segment (GAME_DESIGN §19.3). Weights drift with the year. */

@@ -2,16 +2,19 @@ import type { GpuDef, DatacenterTier } from '../types';
 // OWNER: Agent A. Parody GPU generations 2017 -> 2034. Sold by "Nvidiot".
 // Order matters: the first GPU unlocked in 2017 is the starter fleet (see state.ts).
 // pflops are effective PFLOP/s per GPU (MFU already folded in).
+// v14 (GAME_DESIGN §24): buyPrice is 300 days of rent for every generation. With power, cooling, hardware ops and
+// wear (systems/compute.ts) a purchase pays itself back in about a year, as §1 always intended. Before v14 the ratio
+// slid from 300 days (2017) to 50 days (2034), so late-game hardware paid for itself in weeks and then ran for free.
 export const GPUS: GpuDef[] = [
   { id: 'p100', name: 'Pascal P-100ish', unlockYear: 2017, pflops: 0.012, buyPrice: 9_000, rentPerDay: 30, powerKw: 0.3, flavor: 'It can render Doom. Mostly.' },
-  { id: 'v1000', name: 'Volta V-1000', unlockYear: 2018, pflops: 0.03, buyPrice: 11_000, rentPerDay: 55, powerKw: 0.3, flavor: '40% more tensor cores, 0% more fan noise.' },
-  { id: 'a100', name: 'Ampere A-1OO', unlockYear: 2020, pflops: 0.09, buyPrice: 15_000, rentPerDay: 90, powerKw: 0.4, flavor: 'The one everyone quietly rented in 2020.' },
-  { id: 'h100', name: 'Hopper H-1OO', unlockYear: 2022, pflops: 0.3, buyPrice: 30_000, rentPerDay: 200, powerKw: 0.7, flavor: 'Sold out until 2027. Also sold out in 2026.' },
-  { id: 'b200', name: 'Blackwell B-2OO', unlockYear: 2024, pflops: 0.7, buyPrice: 45_000, rentPerDay: 350, powerKw: 1.0, flavor: 'Heats the office. Doubles as a space heater.' },
-  { id: 'r300', name: 'Rubin R-3OO', unlockYear: 2026, pflops: 1.6, buyPrice: 60_000, rentPerDay: 600, powerKw: 1.4, flavor: 'Comes with a 4-page liquid cooling manual.' },
-  { id: 'f500', name: 'Feynman F-5OO', unlockYear: 2028, pflops: 4, buyPrice: 80_000, rentPerDay: 1_000, powerKw: 1.8, flavor: 'Named after a physicist. Nobody asked his opinion.' },
-  { id: 'h1000', name: 'H1000 Hypernova', unlockYear: 2031, pflops: 12, buyPrice: 120_000, rentPerDay: 2_000, powerKw: 2.5, flavor: 'Needs its own zip code and a small utility company.' },
-  { id: 'd1', name: 'Dyson D-1', unlockYear: 2034, pflops: 40, buyPrice: 200_000, rentPerDay: 4_000, powerKw: 3.5, flavor: 'Surrounds the star. Lowers the electricity bill for everyone else.' },
+  { id: 'v1000', name: 'Volta V-1000', unlockYear: 2018, pflops: 0.03, buyPrice: 16_500, rentPerDay: 55, powerKw: 0.3, flavor: '40% more tensor cores, 0% more fan noise.' },
+  { id: 'a100', name: 'Ampere A-1OO', unlockYear: 2020, pflops: 0.09, buyPrice: 27_000, rentPerDay: 90, powerKw: 0.4, flavor: 'The one everyone quietly rented in 2020.' },
+  { id: 'h100', name: 'Hopper H-1OO', unlockYear: 2022, pflops: 0.3, buyPrice: 60_000, rentPerDay: 200, powerKw: 0.7, flavor: 'Sold out until 2027. Also sold out in 2026.' },
+  { id: 'b200', name: 'Blackwell B-2OO', unlockYear: 2024, pflops: 0.7, buyPrice: 105_000, rentPerDay: 350, powerKw: 1.0, flavor: 'Heats the office. Doubles as a space heater.' },
+  { id: 'r300', name: 'Rubin R-3OO', unlockYear: 2026, pflops: 1.6, buyPrice: 180_000, rentPerDay: 600, powerKw: 1.4, flavor: 'Comes with a 4-page liquid cooling manual.' },
+  { id: 'f500', name: 'Feynman F-5OO', unlockYear: 2028, pflops: 4, buyPrice: 300_000, rentPerDay: 1_000, powerKw: 1.8, flavor: 'Named after a physicist. Nobody asked his opinion.' },
+  { id: 'h1000', name: 'H1000 Hypernova', unlockYear: 2031, pflops: 12, buyPrice: 600_000, rentPerDay: 2_000, powerKw: 2.5, flavor: 'Needs its own zip code and a small utility company.' },
+  { id: 'd1', name: 'Dyson D-1', unlockYear: 2034, pflops: 40, buyPrice: 1_200_000, rentPerDay: 4_000, powerKw: 3.5, flavor: 'Surrounds the star. Lowers the electricity bill for everyone else.' },
 ];
 
 // Datacenter tiers. Power is billed per GPU kW; upkeep is a fixed daily cost once the building is online.
