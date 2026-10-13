@@ -14,6 +14,9 @@ import { NextCard } from './hq/NextCard';
 import { ProductsCard } from './hq/ProductsCard';
 import { RaceCard } from './hq/RaceCard';
 import { TrainingCard } from './hq/TrainingCard';
+import { BoardCard } from './lab/BoardCard'; // v13
+import { LevelCard } from './lab/LevelCard'; // v13
+import './lab/lab.css';
 import './panels-a.css';
 import './hq/hq.css';
 
@@ -43,18 +46,22 @@ export function DashboardPanel() {
         <GoalsCard />
       </div>
 
-      <div class="grid-split">
-        <Card title="Office" subtitle={`${office?.name ?? 'Unknown office'} · ${heads}/${seats} seats · ${datacenters} DC`} flush>
-          <OfficeView state={s} height={isPhone ? 220 : 300} />
-        </Card>
-        <MoneyCard s={s} />
+      {/* v13: the loop on one row. The live run (with its tempo), this quarter's board goals and the lab level. */}
+      <div class="hq-hero">
+        <TrainingCard s={s} />
+        <BoardCard s={s} />
+        <LevelCard s={s} />
       </div>
 
-      <div class="grid-3">
-        <TrainingCard s={s} />
+      <div class="grid-3 hq-numbers">
+        <MoneyCard s={s} />
         <ProductsCard s={s} />
         <RaceCard s={s} />
       </div>
+
+      <Card title="Office" class="hq-office" subtitle={`${office?.name ?? 'Unknown office'} · ${heads}/${seats} seats · ${datacenters} DC`} flush>
+        <OfficeView state={s} height={isPhone ? 190 : 240} />
+      </Card>
 
       <DetailsSection s={s} />
     </div>

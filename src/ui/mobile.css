@@ -97,7 +97,7 @@
     --bottom-total: calc(var(--ticker-h) + var(--tab-total));
     height: calc(100vh / var(--ui-zoom, 1));
     height: calc(100dvh / var(--ui-zoom, 1));
-    grid-template-rows: var(--top-total) minmax(0, 1fr) var(--ticker-h) var(--tab-total);
+    grid-template-rows: var(--top-total) auto minmax(0, 1fr) var(--ticker-h) var(--tab-total);
     padding-left: env(safe-area-inset-left, 0px);
     padding-right: env(safe-area-inset-right, 0px);
   }

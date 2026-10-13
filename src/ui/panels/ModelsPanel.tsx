@@ -13,6 +13,9 @@ import type { JournalRow } from '../../sim/systems/lab';
 import { specById, specOf } from '../../sim/systems/capabilities';
 import { weightClassOf } from '../../sim/systems/classes';
 import { datasetTokensOf, estimateTraining, trainingRatePerDay, TRAINING_TUNING } from '../../sim/systems/training';
+import { liveRunEta } from '../../sim/systems/tempo'; // v13
+import { TempoControl } from './lab/TempoControl'; // v13
+import './lab/lab.css';
 import { resolveRun, runConfig } from '../../sim/systems/trainingMath';
 import { RUN_TUNING } from '../../sim/data/trainingOptions';
 import type { GameState, Id, Model, TrainingConfig, TrainingRun } from '../../sim/types';
@@ -172,9 +175,8 @@ function LiveRun({ s, run }: { s: GameState; run: TrainingRun }) {
   const cfg = runConfig(s, run);
   const isFt = run.kind === 'finetune';
   const progress = run.totalFlops > 0 ? clamp(run.doneFlops / run.totalFlops, 0, 1) : 0;
-  const rate = trainingRatePerDay(s, cfg);
-  const remaining = Math.max(0, run.totalFlops - run.doneFlops);
-  const eta = rate > 0 ? remaining / rate + (run.overheadLeft ?? 0) : Infinity;
+  // v13: the ETA follows the run's tempo (and stalls).
+  const eta = liveRunEta(s, run);
   const pending = !!run.pendingIncident && run.pendingIncident.result === undefined;
   const elapsed = Math.max(0, s.day - run.startedDay);
   const lastLoss = run.lossHistory.length ? run.lossHistory[run.lossHistory.length - 1] : undefined;
@@ -214,6 +216,13 @@ function LiveRun({ s, run }: { s: GameState; run: TrainingRun }) {
           right={`${(progress * 100).toFixed(1)}% · ETA ${formatDays(eta)}`}
           height={8}
         />
+
+        {/* v13: push or protect the run while it is live. */}
+        <div class="md-tempo">
+          <span class="md-label">Tempo</span>
+          <TempoControl s={s} />
+          <span class="md-desc">Crunch is faster but doubles incidents and drains morale. Careful halves incidents.</span>
+        </div>
 
         <div class="md-readouts">
           <Stat label="Elapsed" value={`${elapsed} day${elapsed === 1 ? '' : 's'}`} size="sm" />

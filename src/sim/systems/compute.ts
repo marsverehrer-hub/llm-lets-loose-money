@@ -9,12 +9,29 @@ import { addExpense, addRevenue, calendarYear, clamp, formatMoney, newId, notify
 import { getBonuses } from '../bonuses';
 import { isResearched } from './research';
 import { roleStrength } from './staff';
+import { productPflopsNeed } from './modelLife'; // v15 routers
 
 export interface Capacity { total: number; training: number; inference: number }
 
 export const COMPUTE_TUNING = {
-  /** Fraction of buy price returned when selling a GPU. */
+  /** Fraction of buy price returned when selling a brand-new GPU. v14: it shrinks with age (RESALE_DECAY). */
   SELL_REFUND: 0.4,
+  /** v14: resale value multiplier per year of age, and the floor (scrap value) as a share of the buy price. */
+  RESALE_DECAY: 0.65,
+  RESALE_FLOOR: 0.03,
+  /**
+   * v14 (GAME_DESIGN §24): owning GPUs is not free after the purchase. Cooling and power delivery multiply the power
+   * bill by the tier's PUE, and maintenance contracts, networking, spares and on-call cost OPS_RATE_PER_YEAR of the
+   * buy price every year (booked under `hardware`).
+   */
+  PUE: { closet: 1.6, colo: 1.4, hyperscale: 1.25, cathedral: 1.12 } as Record<string, number>,
+  OPS_RATE_PER_YEAR: 0.16,
+  /** v14: annual failure rate of an installed GPU = FAIL_BASE + FAIL_PER_YEAR × age in years, capped at FAIL_MAX. */
+  FAIL_BASE: 0.03,
+  FAIL_PER_YEAR: 0.045,
+  FAIL_MAX: 0.4,
+  /** Failures are reported at most once per this many days. */
+  FAIL_NOTICE_DAYS: 30,
   HOURS_PER_DAY: 24,
   /** Inference efficiency gain per sqrt(engineer strength). */
   ENGINEER_BOOST: 0.08,
@@ -51,19 +68,102 @@ export function rentMultiplier(s: GameState): number {
   const m = s.flags['rentMult'];
   return m === undefined ? 1 : m;
 }
-/** Power bill per day for one datacenter (GPU kW x 24h x price per kWh). */
+/** v14: power usage effectiveness of a datacenter tier (cooling and power delivery on top of the GPUs' own draw). */
+export function pueOf(tierId: string): number {
+  return COMPUTE_TUNING.PUE[tierId] ?? 1.4;
+}
+/** Power bill per day for one datacenter (GPU kW x PUE x 24h x price per kWh). */
 function powerPerDay(dc: Datacenter): number {
   const tier = datacenterTierById(dc.tierId);
   if (!tier) return 0;
   let kw = 0;
   for (const [gid, n] of Object.entries(dc.gpus)) kw += n * (gpuById(gid)?.powerKw ?? 0);
-  return kw * COMPUTE_TUNING.HOURS_PER_DAY * tier.powerPricePerKwh;
+  return kw * pueOf(tier.id) * COMPUTE_TUNING.HOURS_PER_DAY * tier.powerPricePerKwh;
+}
+/** v14: hardware operations per day for one datacenter: maintenance, networking, spares and on-call per installed GPU. */
+function hardwarePerDay(dc: Datacenter): number {
+  let capex = 0;
+  for (const [gid, n] of Object.entries(dc.gpus)) capex += n * (gpuById(gid)?.buyPrice ?? 0);
+  return (capex * COMPUTE_TUNING.OPS_RATE_PER_YEAR) / 365;
 }
 /** Power bill per day for every finished datacenter. Booked under `power` whether the GPUs serve or train. */
 export function installedPowerPerDay(s: GameState): number {
   let p = 0;
   for (const dc of s.compute.datacenters) if (isFinished(dc)) p += powerPerDay(dc);
   return p;
+}
+/** v14: everything an installed fleet costs per day while it runs (power with cooling, plus hardware operations). */
+export function installedRunningCostPerDay(s: GameState): number {
+  let p = 0;
+  for (const dc of s.compute.datacenters) if (isFinished(dc)) p += powerPerDay(dc) + hardwarePerDay(dc);
+  return p;
+}
+
+/** v14: what one installed GPU costs per day to run in a datacenter tier (power with cooling plus hardware ops). */
+export function ownedCostPerGpuDay(gpu: GpuDef, tierId: string): number {
+  const tier = datacenterTierById(tierId);
+  const power = tier ? gpu.powerKw * pueOf(tier.id) * COMPUTE_TUNING.HOURS_PER_DAY * tier.powerPricePerKwh : 0;
+  return power + (gpu.buyPrice * COMPUTE_TUNING.OPS_RATE_PER_YEAR) / 365;
+}
+
+/** v14: age in years of the GPUs of one model in a datacenter (their count-weighted purchase day). */
+export function gpuAgeYears(s: GameState, dc: Datacenter, gpuId: string): number {
+  const day = dc.bought?.[gpuId];
+  return day === undefined ? 0 : Math.max(0, (s.day - day) / 365);
+}
+/** v14: annual failure rate for a GPU of this age. */
+export function annualFailureRate(ageYears: number): number {
+  const T = COMPUTE_TUNING;
+  return Math.min(T.FAIL_MAX, T.FAIL_BASE + T.FAIL_PER_YEAR * Math.max(0, ageYears));
+}
+/** v14: share of the buy price a GPU of this age sells for. */
+export function resaleFraction(ageYears: number): number {
+  const T = COMPUTE_TUNING;
+  return Math.max(T.RESALE_FLOOR, T.SELL_REFUND * T.RESALE_DECAY ** Math.max(0, ageYears));
+}
+
+/**
+ * v14: GPUs wear out. Each day every installed GPU model loses count × rate(age)/365 GPUs, carried as a fraction
+ * until a whole GPU fails. Deterministic (no random draws), so seeded games stay the same everywhere else.
+ */
+function wearTick(s: GameState): void {
+  let failed = 0;
+  const names = new Map<string, number>();
+  for (const dc of s.compute.datacenters) {
+    if (!isFinished(dc)) continue;
+    for (const [gid, n] of Object.entries(dc.gpus)) {
+      if (n <= 0) continue;
+      dc.bought ??= {};
+      dc.bought[gid] ??= s.day; // old saves: count the fleet as new
+      dc.wear ??= {};
+      const w = (dc.wear[gid] ?? 0) + (n * annualFailureRate(gpuAgeYears(s, dc, gid))) / 365;
+      const k = Math.min(n, Math.floor(w));
+      dc.wear[gid] = w - k;
+      if (k <= 0) continue;
+      const left = n - k;
+      if (left > 0) dc.gpus[gid] = left;
+      else {
+        delete dc.gpus[gid];
+        delete dc.bought[gid];
+        delete dc.wear[gid];
+      }
+      failed += k;
+      const name = gpuById(gid)?.name ?? gid;
+      names.set(name, (names.get(name) ?? 0) + k);
+    }
+  }
+  if (failed === 0) return;
+  const KEY = 'gpuFailedSinceNotice';
+  s.flags[KEY] = (s.flags[KEY] ?? 0) + failed;
+  s.flags['stat.gpusFailed'] = (s.flags['stat.gpusFailed'] ?? 0) + failed;
+  const last = s.flags['gpuFailNoticeDay'] ?? -Infinity;
+  if (s.day - last >= COMPUTE_TUNING.FAIL_NOTICE_DAYS) {
+    const total = s.flags[KEY];
+    const top = [...names.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+    notify(s, `Hardware: ${total.toLocaleString('en-US')} GPU${total === 1 ? '' : 's'} failed since the last report${top ? `, mostly ${top}` : ''}. Old GPUs fail more often; replace them in Compute.`, 'bad');
+    s.flags[KEY] = 0;
+    s.flags['gpuFailNoticeDay'] = s.day;
+  }
 }
 
 /**
@@ -174,8 +274,7 @@ export function servingDemandPflops(s: GameState): number {
     if (!p.active || !(p.mtokPerDay > 0)) continue;
     const m = modelOf(s, p.modelId);
     if (!m) continue;
-    const per = mtokPerPflopDay(s, m);
-    if (per > 0) need += p.mtokPerDay / per;
+    need += productPflopsNeed(s, p, m); // v15: a router splits the load with a smaller model
   }
   return need;
 }
@@ -262,14 +361,16 @@ export function fleetFor(s: GameState, priority: FleetPriority, run: boolean): F
   const gpus = ownGpuCount(s);
   const price = burstPricePerPflopDay(s);
   const ownShare = n.demand > 0 ? n.servingOwn / n.demand : 0;
-  // Power is paid for the whole installed fleet either way; each own PFLOP/s carries an equal share of it.
-  const powerRate = n.total > 0 ? installedPowerPerDay(s) / n.total : 0;
+  // Power and hardware operations are paid for the whole installed fleet either way; each own PFLOP/s carries an
+  // equal share of them (v14: hardware operations included, so product margins show what owned GPUs really cost).
+  // v15: cloud rent counts too. Rented GPUs that serve a product are part of what that product costs, so its margin
+  // is honest (before, rent was only booked company-wide and a rented fleet looked free per product).
+  const powerRate = n.total > 0 ? (installedRunningCostPerDay(s) + dailyComputeCost(s).rent) / n.total : 0;
   const slices: ServingSlice[] = [];
   for (const p of s.products) {
     if (!p.active) continue;
     const m = modelOf(s, p.modelId);
-    const per = m ? mtokPerPflopDay(s, m) : 0;
-    const need = per > 0 ? p.mtokPerDay / per : 0;
+    const need = productPflopsNeed(s, p, m);
     const own = need * ownShare;
     const burst = need - own;
     slices.push({
@@ -358,18 +459,20 @@ export function modelInferenceCapacityMtok(s: GameState, model: { paramsB: numbe
  * Daily compute cost breakdown preview. Power and upkeep are reported separately; computeTick books both under `power`.
  * Burst is not included: the serving tick books it under `serving`.
  */
-export function dailyComputeCost(s: GameState): { rent: number; power: number; upkeep: number } {
+export function dailyComputeCost(s: GameState): { rent: number; power: number; upkeep: number; hardware: number } {
   let rent = 0;
   for (const [gid, n] of Object.entries(s.compute.rented)) rent += n * (gpuById(gid)?.rentPerDay ?? 0);
   rent *= rentMultiplier(s);
   let power = 0;
   let upkeep = 0;
+  let hardware = 0;
   for (const dc of s.compute.datacenters) {
     if (!isFinished(dc)) continue;
     power += powerPerDay(dc);
     upkeep += datacenterTierById(dc.tierId)?.upkeepPerDay ?? 0;
+    hardware += hardwarePerDay(dc);
   }
-  return { rent, power, upkeep };
+  return { rent, power, upkeep, hardware };
 }
 
 export function computeTick(s: GameState, _rng: Rng): void {
@@ -395,6 +498,8 @@ export function computeTick(s: GameState, _rng: Rng): void {
   const cost = dailyComputeCost(s);
   addExpense(s, 'compute', cost.rent);
   addExpense(s, 'power', cost.power + cost.upkeep);
+  addExpense(s, 'hardware', cost.hardware); // v14
+  wearTick(s); // v14: GPUs fail more as they age
 }
 
 export const handlers: ActionHandlers = {
@@ -486,7 +591,12 @@ export const handlers: ActionHandlers = {
       return;
     }
     if (!trySpend(s, 'capex', a.count * gpu.buyPrice, `${a.count} × ${gpu.name}`)) return;
-    dc.gpus[gpu.id] = (dc.gpus[gpu.id] ?? 0) + a.count;
+    // v14: track the batch's age as a count-weighted average purchase day.
+    const had = dc.gpus[gpu.id] ?? 0;
+    dc.bought ??= {};
+    const prevDay = dc.bought[gpu.id] ?? s.day;
+    dc.bought[gpu.id] = (prevDay * had + s.day * a.count) / (had + a.count);
+    dc.gpus[gpu.id] = had + a.count;
     notify(s, `Installed ${a.count} × ${gpu.name} in ${dc.name}.`, 'good');
   },
 
@@ -506,11 +616,15 @@ export const handlers: ActionHandlers = {
       notify(s, `${dc.name} only has ${have} × ${gpu.name} to sell.`, 'bad');
       return;
     }
-    const refund = a.count * gpu.buyPrice * COMPUTE_TUNING.SELL_REFUND;
+    const refund = a.count * gpu.buyPrice * resaleFraction(gpuAgeYears(s, dc, gpu.id));
     addRevenue(s, 'other', refund);
     const left = have - a.count;
     if (left > 0) dc.gpus[gpu.id] = left;
-    else delete dc.gpus[gpu.id];
+    else {
+      delete dc.gpus[gpu.id];
+      if (dc.bought) delete dc.bought[gpu.id];
+      if (dc.wear) delete dc.wear[gpu.id];
+    }
     notify(s, `Sold ${a.count} × ${gpu.name} for ${formatMoney(refund)}.`, 'info');
   },
 

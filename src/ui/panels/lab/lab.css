@@ -1,0 +1,124 @@
+/* OWNER: PROGRESSION UI (v13). Lab screen, level and board cards, perk tree, tempo control. Tokens only. */
+
+/* ---- tempo ---- */
+.tempo { display: inline-flex; border: 1px solid var(--line-2); }
+.tempo .seg { display: inline-flex; align-items: center; gap: 6px; height: 26px; }
+.tempo-eta { color: inherit; opacity: 0.75; font-size: var(--fs-xs); }
+.tempo .seg.tempo-crunch.active { background: var(--down); }
+.tempo .seg.tempo-careful.active { background: var(--blue); }
+.tempo-compact .seg { height: 24px; padding: 0 8px; }
+
+/* ---- level card ---- */
+.lab-level { display: flex; align-items: center; gap: 14px; }
+.lab-level-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 64px;
+  height: 64px;
+  border: 2px solid var(--amber);
+  color: var(--amber);
+}
+.lab-level-k { font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.08em; }
+.lab-level-n { font-size: 26px; font-weight: 600; line-height: 1; }
+.lab-level-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.lab-level-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; color: var(--fg-2); }
+.lab-streak.hot { color: var(--down); font-weight: 600; }
+.lab-last { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+
+/* ---- board card ---- */
+.board-conf { font-size: var(--fs-xs); color: var(--fg-2); }
+.board-conf.good { color: var(--up); }
+.board-conf.bad { color: var(--down); }
+.board-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.board-goal { display: flex; flex-direction: column; gap: 5px; }
+.board-goal-head { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.board-check { color: var(--fg-3); font-family: var(--mono); }
+.board-goal.is-done .board-check { color: var(--up); }
+.board-goal.is-done .board-text { color: var(--fg-2); text-decoration: line-through; }
+.board-text { flex: 1 1 auto; min-width: 0; }
+.board-goal-foot { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; }
+.board-reward { margin-left: auto; color: var(--amber); }
+.board-goal.is-done .board-reward { color: var(--up); }
+.board-foot { display: flex; align-items: center; gap: 6px; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line); }
+
+/* ---- lab screen ---- */
+.lab-top { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 12px; align-items: start; }
+.perk-tree { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+.perk-branch { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.perk-branch-head { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; font-weight: 600; }
+.perk-branch-name { color: var(--fg); }
+.perk-branch-pitch { margin: 0 0 4px; min-height: 3em; }
+.perk-col { display: flex; flex-direction: column; gap: 8px; }
+.perk {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--line-2);
+}
+.perk-ready { border-left-color: var(--amber); }
+.perk-owned { border-color: var(--up); border-left-color: var(--up); background: var(--up-3); }
+.perk-locked { opacity: 0.72; }
+.perk-cap { border-style: solid; border-width: 1px 1px 1px 3px; }
+.perk-cap.perk-ready, .perk-cap.perk-locked { border-top: 1px solid var(--amber-2); }
+.perk-head { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.perk-tier { color: var(--fg-3); font-size: var(--fs-xs); }
+.perk-name { flex: 1 1 auto; min-width: 0; font-weight: 600; }
+.perk-cost {
+  flex: 0 0 auto;
+  min-width: 20px;
+  padding: 0 4px;
+  border: 1px solid var(--line-2);
+  color: var(--fg-2);
+  font-size: var(--fs-xs);
+  text-align: center;
+}
+.perk-effect { color: var(--fg); font-size: var(--fs-sm); }
+.perk-foot { display: flex; align-items: center; min-height: 24px; margin-top: 2px; }
+.perk-owned .perk-owned { color: var(--up); font-weight: 600; }
+.perk-picker { display: flex; width: 100%; margin-bottom: 10px; }
+.perk-picker .seg { flex: 1 1 0; height: 40px; }
+
+.xp-log { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.xp-log li { display: grid; grid-template-columns: 72px minmax(0, 1fr) auto; gap: 10px; padding: 5px 0; border-bottom: 1px solid var(--line); }
+.xp-log li:last-child { border-bottom: 0; }
+.xp-reason { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.board-history { display: flex; flex-wrap: wrap; gap: 10px 8px; }
+.bh-q { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.bh-cell { width: 14px; height: 10px; border: 1px solid var(--line-2); }
+.bh-cell.hit { background: var(--up); border-color: var(--up); }
+.bh-label { color: var(--fg-3); font-size: var(--fs-xs); }
+
+@media (max-width: 1250px) {
+  .perk-tree { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  .lab-top { grid-template-columns: minmax(0, 1fr); }
+  .perk-branch-pitch { min-height: 0; }
+  .tempo { display: flex; width: 100%; }
+  .tempo .seg { flex: 1 1 0; justify-content: center; height: 40px; }
+  .tempo-eta { display: none; }
+}
+
+/* Tempo row inside the Models live-run window. */
+.md-tempo { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; }
+
+/* ---- v15 Arena Cup and Hall of Fame ---- */
+.cup-open { display: flex; flex-direction: column; gap: 8px; }
+.cup-line { display: flex; align-items: baseline; gap: 10px; }
+.cup-line > :nth-child(2) { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cup-prize { margin-left: auto; color: var(--amber); font-weight: 600; }
+.cup-entry { display: flex; flex-direction: column; gap: 4px; }
+.cup-history, .hof-list { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; }
+.cup-history li { display: grid; grid-template-columns: 72px minmax(0, 1fr) auto; gap: 10px; padding: 4px 0; border-top: 1px solid var(--line); }
+.cup-h-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hof-list { margin-top: 0; }
+.hof-list li { display: flex; flex-direction: column; gap: 2px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.hof-list li:last-child { border-bottom: 0; }
+.hof-list li.is-faded { opacity: 0.6; }
+.hof-name { font-weight: 600; }

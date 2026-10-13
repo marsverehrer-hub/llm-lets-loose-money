@@ -13,13 +13,15 @@ import { fmtCtx } from '../train/model';
 import { BenchmarksTab } from './BenchmarksTab';
 import { ArenaTab } from './ArenaTab';
 import { LifecycleTab } from './LifecycleTab';
+import { CareerTab } from './CareerTab'; // v15 model life
 import { OverviewTab } from './OverviewTab';
 import { PlaygroundTab } from './PlaygroundTab';
+import { masteryName, masteryOf, versionLabel } from '../../../sim/systems/modelLife';
 import { derivedText, lineageText, statusPills, timelineOf } from './status';
 import './modelpage.css';
 import '../models.css';
 
-export type TabId = 'overview' | 'benchmarks' | 'playground' | 'arena' | 'lifecycle';
+export type TabId = 'overview' | 'benchmarks' | 'playground' | 'arena' | 'career' | 'lifecycle';
 
 /** Display names for the weight classes (v8). */
 export const CLASS_NAME: Record<WeightClass, string> = { nano: 'Nano', small: 'Small', medium: 'Medium', open: 'Open' };
@@ -29,6 +31,7 @@ const TABS: TabDef<TabId>[] = [
   { id: 'benchmarks', label: 'Benchmarks' },
   { id: 'playground', label: 'Playground' },
   { id: 'arena', label: 'Arena & hype' },
+  { id: 'career', label: 'Career' }, // v15
   { id: 'lifecycle', label: 'Lifecycle' },
 ];
 
@@ -54,6 +57,7 @@ export function ModelPage({ s, m }: { s: GameState; m: Model }) {
         {tab === 'benchmarks' && <BenchmarksTab s={s} m={m} />}
         {tab === 'playground' && <PlaygroundTab s={s} m={m} chat={chat} setChat={setChat} />}
         {tab === 'arena' && <ArenaTab s={s} m={m} />}
+        {tab === 'career' && <CareerTab s={s} m={m} />}
         {tab === 'lifecycle' && <LifecycleTab s={s} m={m} />}
       </div>
     </Card>
@@ -83,6 +87,11 @@ function Header({ s, m }: { s: GameState; m: Model }) {
             {p.label}
           </Pill>
         ))}
+        {m.releasedDay !== null && (
+          <Pill tone={masteryOf(m).level >= 4 ? 'milestone' : 'muted'} title="Mastery: field experience from serving users">
+            {`${versionLabel(m)} · ${masteryName(masteryOf(m).level)}`}
+          </Pill>
+        )}
         <Pill tone="cyan" title="Weight class: active size against the frontier of this year">
           {`${CLASS_NAME[weightClassOf(s, m)]} class`}
         </Pill>

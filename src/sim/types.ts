@@ -498,6 +498,18 @@ export interface Model {
   derivedFrom?: { kind: 'distill' | 'merge'; ids: Id[]; method?: MergeMethod };
   /** Playground prompts tried (ids), for flavour and the latent-quirk poke cooldown. */
   pokes?: { day: number; count: number };
+  // v15 model life (GAME_DESIGN §25)
+  /** Post-release patches applied (v1.1, v1.2 ...). */
+  patches?: number;
+  /** A patch in flight: finishes on doneDay. */
+  patchJob?: { doneDay: number; focus: PatchFocus; cost: number };
+  /** Field experience from serving users and contracts. Level 1..5. */
+  mastery?: { xp: number; level: number };
+  /** Day the model was retired (it is also deprecated). */
+  retiredDay?: number;
+  /** Arena Cup results: best placing (1 = won). */
+  cupBest?: number;
+  cupWins?: number;
 }
 
 // v7
@@ -573,6 +585,8 @@ export interface TrainingRun {
   checkpoints?: CheckpointReading[];
   /** Emergence ids already detected during this run. */
   emerged?: Id[];
+  /** v13: how hard the team pushes the run. Undefined = 'standard'. Changeable while the run is live. */
+  tempo?: RunTempo;
 }
 
 // ---------------------------------------------------------------------------
@@ -707,6 +721,10 @@ export interface Datacenter {
   tierId: Id;
   gpus: Record<Id, number>;    // gpuId -> count installed
   buildDaysLeft: number;       // > 0 = under construction
+  /** v14: count-weighted average purchase day per GPU model (age drives failures and resale). Missing = bought today. */
+  bought?: Record<Id, number>;
+  /** v14: fractional GPU failures carried to the next day, per GPU model. */
+  wear?: Record<Id, number>;
 }
 
 /** v8: buyer tiers inside every segment (GAME_DESIGN §19.3). Weights drift with the year. */
@@ -733,6 +751,8 @@ export interface Product {
   active: boolean;
   /** v7: switch to a better released model automatically. */
   autoUpgrade?: boolean;
+  /** v15: a router sends `share` of the queries (the easy ones) to a smaller model. */
+  router?: { modelId: Id; share: number };
 }
 
 export interface RoleState {
@@ -1069,6 +1089,14 @@ export interface GameState {
   goals?: GoalState[];
   /** v9: data operations (crawler, refinery, marketplace, bounties, archives, rival API, startups). systems/dataOps.ts */
   dataOps?: DataOpsState;
+  /** v13 progression: lab XP, levels, perks and the hot streak (systems/progression.ts). Created on demand. */
+  progress?: ProgressState;
+  /** v13 board objectives: quarterly goals with rewards (systems/board.ts). Created on demand. */
+  board?: BoardState;
+  /** v15: retired models remembered for their careers; each gives a small lasting bonus (systems/modelLife.ts). */
+  hallOfFame?: HallOfFameEntry[];
+  /** v15: the Arena Cup, a recurring themed tournament (systems/tournament.ts). Created on demand. */
+  cup?: CupState;
 }
 
 // ---------------------------------------------------------------------------
@@ -1077,6 +1105,16 @@ export interface GameState {
 
 export type GameAction =
   | { type: 'setSpeed'; speed: Speed }
+  // v13 progression, board objectives and run tempo
+  | { type: 'setRunTempo'; tempo: RunTempo }
+  | { type: 'buyPerk'; perkId: Id }
+  | { type: 'respecPerks' }
+  | { type: 'rerollObjective'; objectiveId: Id }
+  // v15 model life: patches, retirement, Arena Cup, routers
+  | { type: 'patchModel'; modelId: Id; focus: PatchFocus }
+  | { type: 'retireModel'; modelId: Id; openWeights?: boolean }
+  | { type: 'enterCup'; modelId: Id | null }
+  | { type: 'setProductRouter'; productId: Id; modelId: Id | null; share?: number }
   | { type: 'renameCompany'; name: string }
   // training & data
   | { type: 'buyDataset'; datasetId: Id }
@@ -1471,4 +1509,139 @@ export interface FleetBreakdown {
   /** Cloud burst price, $ per PFLOP/s-day, this year. */
   burstPricePerPflopDay: number;
   slices: ServingSlice[];
+}
+
+// ---------------------------------------------------------------------------
+// v13 Progression, board objectives and run tempo (GAME_DESIGN.md §23)
+// ---------------------------------------------------------------------------
+/** How hard a live run is pushed. careful: slower, far fewer incidents. crunch: faster, risky, burns morale. */
+export type RunTempo = 'careful' | 'standard' | 'crunch';
+
+export type PerkBranch = 'scale' | 'craft' | 'hype' | 'data' | 'trust';
+
+export interface PerkDef {
+  id: Id;
+  name: string;
+  branch: PerkBranch;
+  /** 1..4. Tier 4 is the branch capstone; a lab may own only one capstone. */
+  tier: 1 | 2 | 3 | 4;
+  /** Perk points it costs. */
+  cost: number;
+  /** Lab level needed before it can be bought. */
+  minLevel: number;
+  /** Dry one-liner. */
+  description: string;
+  /** What it does in game, concretely. */
+  effectText: string;
+  /** Passive multipliers, folded into getBonuses. */
+  bonuses?: Partial<Bonuses>;
+}
+
+export interface ProgressState {
+  /** Lifetime lab XP. */
+  xp: number;
+  /** Current lab level (1-based). */
+  level: number;
+  /** Unspent perk points. */
+  perkPoints: number;
+  perks: Id[];
+  /** Consecutive pre-training runs that landed at or above their forecast. */
+  streak: number;
+  bestStreak: number;
+  /** Counters the observer already paid XP for. */
+  seen: { research: number; released: number; crowns: number; contractsWon: number; achievements: number; revealKey: string };
+  /** Recent XP gains, newest last (cap 30). */
+  log: { day: number; amount: number; reason: string }[];
+  /** Day of the last respec (respecs have a cooldown). */
+  respecDay?: number;
+}
+
+export type ObjectiveKind =
+  | 'revenue' | 'users' | 'ship' | 'research' | 'beat' | 'crown' | 'contract' | 'rank' | 'hype' | 'runway' | 'launch' | 'train' | 'scale';
+
+export interface ObjectiveReward {
+  xp: number;
+  cash?: number;
+  hype?: number;
+  /** Research points added to the current topic (or banked when idle). */
+  rp?: number;
+}
+
+export interface Objective {
+  id: Id;
+  kind: ObjectiveKind;
+  text: string;
+  /** Target value for the measured quantity. */
+  target: number;
+  /** Measured value when the quarter began (for count goals and progress bars). */
+  base: number;
+  /** Last measured value (refreshed daily). */
+  value: number;
+  reward: ObjectiveReward;
+  /** The stretch goal of the quarter: harder, pays double. */
+  stretch?: boolean;
+  doneDay: number | null;
+}
+
+export interface BoardState {
+  quarterStart: number;
+  quarterEnd: number;
+  /** 1-based quarter number since the lab opened. */
+  quarter: number;
+  objectives: Objective[];
+  /** 0..100. Hits raise it, misses lower it. Moves valuation a little (finance reads it through Bonuses.valuation). */
+  confidence: number;
+  /** Rerolls left this quarter. */
+  rerolls: number;
+  /** Past quarters, newest last (cap 24). */
+  history: { quarter: number; hit: number; total: number; day: number }[];
+}
+
+// ---------------------------------------------------------------------------
+// v15 Model life: patches, mastery, retirement, Arena Cup, routers (GAME_DESIGN.md §25)
+// ---------------------------------------------------------------------------
+export type PatchFocus = 'general' | 'chat' | 'coding' | 'reasoning' | 'safety';
+
+export interface HallOfFameEntry {
+  modelId: Id;
+  name: string;
+  retiredDay: number;
+  /** Mastery level at retirement. */
+  mastery: number;
+  overall: number;
+  /** Why it made the hall, short: "Arena Cup winner", "Mastery 5", "Held Arena #1". */
+  honors: string[];
+  /** Open-sourced at retirement. */
+  open: boolean;
+}
+
+export type CupTheme = 'coding' | 'reasoning' | 'chat' | 'safety' | 'efficiency' | 'open';
+
+export interface CupEntrant {
+  /** 'player' or a competitor id. */
+  owner: Id;
+  name: string;
+  modelName: string;
+  score: number;
+}
+
+export interface CupResult {
+  edition: number;
+  theme: CupTheme;
+  day: number;
+  winner: string;
+  winnerModel: string;
+  /** Player placing: 1 won, 2 final, 3 semi, 5 quarter. Undefined = did not enter. */
+  placing?: number;
+  modelName?: string;
+  prize?: number;
+}
+
+export interface CupState {
+  edition: number;
+  /** Day the next cup is announced. */
+  nextAnnounceDay: number;
+  /** The cup currently open for entries, if any. */
+  open?: { edition: number; theme: CupTheme; announcedDay: number; playDay: number; prize: number; entryFee: number; entrantModelId?: Id };
+  history: CupResult[];
 }

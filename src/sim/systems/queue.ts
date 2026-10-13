@@ -91,7 +91,7 @@ function tickResearchQueue(s: GameState, rng: Rng): void {
 /** Cash the queue needs before it starts a run: QUEUE_TUNING.RESERVE_DAYS of compute bills. */
 function cashReserve(s: GameState): number {
   const bill = dailyComputeCost(s);
-  return QUEUE_TUNING.RESERVE_DAYS * (bill.rent + bill.power + bill.upkeep);
+  return QUEUE_TUNING.RESERVE_DAYS * (bill.rent + bill.power + bill.upkeep + bill.hardware);
 }
 
 function runLabel(item: QueuedRun): string {

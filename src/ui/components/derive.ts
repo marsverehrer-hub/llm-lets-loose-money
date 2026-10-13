@@ -1,6 +1,6 @@
-import { getBonuses } from '../../sim/bonuses';
 import type { FinanceSample, GameState } from '../../sim/types';
 import { ROLE_IDS } from '../../sim/types';
+import { liveRunEta } from '../../sim/systems/tempo';
 
 /** Finance history plus a live sample for today, so charts move every day instead of every week. */
 export function liveHistory(s: GameState): FinanceSample[] {
@@ -35,11 +35,8 @@ export function trainingStatus(s: GameState): { frac: number; days: number } | n
   const t = s.training;
   if (!t) return null;
   const frac = t.totalFlops > 0 ? Math.min(1, Math.max(0, t.doneFlops / t.totalFlops)) : 0;
-  const r = s.staff.roles.researcher;
-  const researcherStrength = r.count * r.skill * (0.6 + (0.8 * s.staff.morale) / 100);
-  const perDay = s.compute.trainingPflops * 1e15 * 86400 * getBonuses(s).trainingSpeed * (1 + 0.03 * Math.sqrt(Math.max(0, researcherStrength)));
-  const days = perDay > 0 ? Math.max(0, (t.totalFlops - t.doneFlops) / perDay) + (t.overheadLeft ?? 0) : Infinity;
-  return { frac, days };
+  // v13: the real rate of the live run, at its tempo, with stalls and overhead.
+  return { frac, days: liveRunEta(s, t) };
 }
 
 export const KIND_LABEL: Record<string, string> = { api: 'API', chat: 'Chat', enterprise: 'Enterprise' };

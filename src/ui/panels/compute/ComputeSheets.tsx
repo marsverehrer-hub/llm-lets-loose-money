@@ -3,7 +3,7 @@
 import { useState } from 'preact/hooks';
 import { dispatch, useGame } from '../../store';
 import { formatMoney } from '../../../sim/util';
-import { COMPUTE_TUNING, availableDatacenterTiers, availableGpus, gpuById } from '../../../sim/systems/compute';
+import { COMPUTE_TUNING, annualFailureRate, availableDatacenterTiers, availableGpus, gpuAgeYears, gpuById, ownedCostPerGpuDay, resaleFraction } from '../../../sim/systems/compute';
 import { DATACENTER_TIERS } from '../../../sim/data/gpus';
 import { RESEARCH } from '../../../sim/data/research';
 import type { GameState, Id } from '../../../sim/types';
@@ -120,11 +120,18 @@ function BlockBody({ s, room, b, onRent }: { s: GameState; room: ServerRoom; b: 
             {b.gpuMix.map((g) => {
               const def = gpuById(g.gpuId);
               const cut = (n: number) => Math.min(n, g.count);
+              // v14: installed GPUs age. Older ones fail more often and resell for less.
+              const dc = isDc ? s.compute.datacenters.find((d) => d.id === b.key) : undefined;
+              const age = dc ? gpuAgeYears(s, dc, g.gpuId) : 0;
+              const resale = resaleFraction(age);
               return (
                 <li key={g.gpuId} class="cc-row">
                   <div class="cc-row-main">
                     <b>{g.name}</b>
-                    <span class="cc-row-meta">{num(g.count)} · {fmtRate((def?.pflops ?? 0) * g.count)} PF/s</span>
+                    <span class="cc-row-meta">
+                      {num(g.count)} · {fmtRate((def?.pflops ?? 0) * g.count)} PF/s
+                      {dc && ` · ${age.toFixed(1)} yr old · ${Math.round(annualFailureRate(age) * 100)}% fail/yr`}
+                    </span>
                   </div>
                   <div class="cc-row-actions">
                     <StepButtons
@@ -134,7 +141,7 @@ function BlockBody({ s, room, b, onRent }: { s: GameState; room: ServerRoom; b: 
                         isDc
                           ? b.building
                             ? 'Wait until the datacenter is finished'
-                            : `Sell ${cut(n)} for ${formatMoney((def?.buyPrice ?? 0) * COMPUTE_TUNING.SELL_REFUND * cut(n))}`
+                            : `Sell ${cut(n)} for ${formatMoney((def?.buyPrice ?? 0) * resale * cut(n))} (${Math.round(resale * 100)}% of new)`
                           : `Return ${cut(n)} to the cloud`
                       }
                       onStep={(n) =>
@@ -194,6 +201,7 @@ function BuyGpus({ s, b }: { s: GameState; b: RoomBlock }) {
   const [pick, setPick] = useState<Id | null>(null);
   const gpu = gpus.find((g) => g.id === pick) ?? gpus[gpus.length - 1] ?? null;
   const free = Math.max(0, b.capacity - b.installed);
+  const dcTier = s.compute.datacenters.find((d) => d.id === b.key)?.tierId ?? 'colo';
   if (!gpu) return <Empty title="No GPUs for sale">Nothing in the catalogue for this year yet.</Empty>;
   return (
     <div class="cc-section">
@@ -218,6 +226,11 @@ function BuyGpus({ s, b }: { s: GameState; b: RoomBlock }) {
       <p class="cc-note">
         {num(free)} free slot{free === 1 ? '' : 's'} of {num(b.capacity)}.{' '}
         {STEPS.map((n) => `${n} = ${formatMoney(gpu.buyPrice * n)}`).join(' · ')}
+      </p>
+      {/* v14: owning is cheaper than renting, not free. Show the running cost next to the rent it replaces. */}
+      <p class="cc-note">
+        Runs at {formatMoney(ownedCostPerGpuDay(gpu, dcTier))}/day each (power, cooling, maintenance) against {formatMoney(gpu.rentPerDay)}/day to rent.
+        It fails more often every year it ages.
       </p>
     </div>
   );

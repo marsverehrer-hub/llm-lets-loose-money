@@ -395,6 +395,7 @@ function expireOffers(s: GameState, cs: ContractsState): void {
 function signContract(s: GameState, cs: ContractsState, offer: ContractOffer, model: Model): void {
   // v9 scenario: government contracts won (Sovereign AI goal)
   if (offer.kind === 'government') s.flags[SCENARIO_FLAGS.govContracts] = (s.flags[SCENARIO_FLAGS.govContracts] ?? 0) + 1;
+  s.flags['stat.contractsWon'] = (s.flags['stat.contractsWon'] ?? 0) + 1; // v13: progression XP and board goals
   const active: ActiveContract = {
     id: newId(s, 'ct'),
     offer,

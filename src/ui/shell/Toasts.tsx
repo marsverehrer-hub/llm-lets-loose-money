@@ -7,9 +7,9 @@ import { BANNER_EVENT, type BannerDetail } from '../fx/banner';
 
 const TITLE: Record<NoticeKind, string> = { good: 'News', bad: 'Alert', info: 'Update', milestone: 'Milestone' };
 /** Auto-dismiss time in ms. Milestones stay a little longer. */
-const LIFETIME: Record<NoticeKind, number> = { good: 5000, bad: 5000, info: 5000, milestone: 7000 };
+const LIFETIME: Record<NoticeKind, number> = { good: 4500, bad: 6000, info: 3500, milestone: 6000 };
 /** Only the newest toasts are shown. Older ones wait in state and appear as room frees up. */
-const MAX_VISIBLE = 4;
+const MAX_VISIBLE = 3; // v13: was 4; a stack of four covered half the screen
 /** How long a milestone banner stays in the stack. */
 const FLASH_MS = 4000;
 

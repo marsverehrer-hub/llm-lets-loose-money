@@ -8,6 +8,7 @@ import type { EmergenceDef, EvalReveal as Reveal, Forecast, GameState, Id } from
 import { Pill, clamp } from '../components';
 import { dispatch, useGame, useGameSelect } from '../store';
 import { plain } from './fmt';
+import { streakXpMult } from '../../sim/systems/progression'; // v13
 import './evalreveal.css';
 
 /**
@@ -154,6 +155,7 @@ function RevealBody({ r }: { r: Reveal }) {
               <section class="ev-verdict" aria-label="Verdict">
                 <div class={`ev-verdict-label ${VERDICT_TONE[r.verdict]}`}>{verdict.label}</div>
                 <div class="ev-verdict-line">{verdict.line}</div>
+                <XpLine s={s} r={r} />
                 {r.seedTag && (
                   <div class="ev-seed">
                     <Pill tone={SEED_NOTE[r.seedTag].tone}>{SEED_NOTE[r.seedTag].pill}</Pill>
@@ -213,6 +215,23 @@ function Band({ f, actual }: { f: Forecast; actual: number | null }) {
         <span>{lo.toFixed(0)}</span>
         <span>{hi.toFixed(0)}</span>
       </div>
+    </div>
+  );
+}
+
+/** v13: what the run paid in lab XP, and what it did to the hot streak. */
+function XpLine({ s, r }: { s: GameState; r: Reveal }) {
+  const p = s.progress;
+  // Other XP (research, crowns) can land the same day, so look for the eval line itself.
+  const last = p ? [...p.log].reverse().find((l) => l.reason.startsWith('Eval') && l.day >= s.day - 1) : undefined;
+  if (!p || !last) return null;
+  const pre = r.kind === 'pretrain';
+  return (
+    <div class="ev-xp">
+      <span class="num ev-up">+{last.amount} XP</span>
+      {pre && (p.streak > 0 ? <span>{`Hot streak ${p.streak}${p.streak >= p.bestStreak && p.streak > 1 ? ' (best yet)' : ''}`}</span> : <span class="ev-down">Streak reset</span>)}
+      {pre && p.streak > 0 && <span class="muted">{`x${streakXpMult(p.streak).toFixed(2)} run XP`}</span>}
+      <span class="muted">{`Lab level ${p.level}`}</span>
     </div>
   );
 }

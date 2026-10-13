@@ -19,7 +19,14 @@ export function DailyCost({ s, burstCost }: { s: GameState; burstCost: number })
       label: 'Power',
       value: cost.power,
       color: 'var(--yellow)',
-      help: 'Electricity for the GPUs installed in your datacenters.',
+      help: 'Electricity for the GPUs installed in your datacenters, plus cooling (PUE 1.1 to 1.6, better in bigger buildings).',
+    },
+    {
+      id: 'hardware',
+      label: 'Hardware ops',
+      value: cost.hardware,
+      color: 'var(--down)',
+      help: 'Maintenance contracts, networking, spares and on-call for every GPU you own: about 16% of its price a year. Owning is cheaper than renting, not free.',
     },
     {
       id: 'upkeep',

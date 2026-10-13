@@ -33,6 +33,7 @@ const EXP_LABEL: Record<string, string> = {
   compute: 'Rent',
   office: 'Rent',
   power: 'Power',
+  hardware: 'Hardware ops',
   serving: 'Serving (cloud)',
   payroll: 'Payroll',
   data: 'Data',
@@ -50,6 +51,7 @@ const EXP_COLOR: Record<string, string> = {
   compute: SERIES.amber,
   payroll: SERIES.fg,
   power: SERIES.blue,
+  hardware: SERIES.down,
   serving: SERIES.yellow,
   marketing: SERIES.up,
   research: SERIES.yellow,
@@ -70,7 +72,7 @@ const EXP_COLOR: Record<string, string> = {
  */
 const COST_GROUPS: { id: string; label: string; help: ComponentChildren; keys: string[] }[] = [
   { id: 'rent', label: 'Rent', help: 'GPUs you pay for in your datacenters, plus the office lease.', keys: ['compute', 'office'] },
-  { id: 'power', label: 'Power', help: 'Electricity for your datacenters.', keys: ['power'] },
+  { id: 'power', label: 'Power and hardware', help: 'Electricity and cooling for your datacenters, building upkeep, and the maintenance, networking and spares every owned GPU needs.', keys: ['power', 'hardware'] },
   {
     id: 'serving',
     label: 'Serving (cloud)',

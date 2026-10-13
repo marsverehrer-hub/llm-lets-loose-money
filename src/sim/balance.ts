@@ -32,7 +32,7 @@ export const BALANCE = {
   HISTORY_SAMPLE_DAYS: 7,
   IPO_MIN_VALUATION: 5_000_000_000,
   /** v1.0 tuning (GAME_DESIGN §18.2): the IPO waits for a real business, not a hyped one. Was $300M. */
-  IPO_MIN_ANNUAL_REVENUE: 1_500_000_000,
+  IPO_MIN_ANNUAL_REVENUE: 2_500_000_000, // v13: was $1.5B; the IPO is a late-game goal, not a mid-game formality
 };
 
 // v2 capabilities, benchmarks and specialisations (see GAME_DESIGN.md section 12, systems/capabilities.ts).

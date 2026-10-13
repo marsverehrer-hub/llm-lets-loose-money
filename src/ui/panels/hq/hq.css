@@ -24,6 +24,19 @@
 }
 .hq-next .btn { flex-shrink: 0; }
 
+/* v13 hero row: training, board goals, lab level. */
+.hq-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+@media (max-width: 1250px) {
+  .hq-hero { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .hq-hero > .lab-level-card { grid-column: 1 / -1; }
+}
+.hq-train-tempo { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; }
+
 /* Money: two flow bars (in and out) and a foot with net and runway. */
 .hq-money {
   display: flex;
@@ -130,16 +143,10 @@
   .hq-top,
   .hq-details-grid { grid-template-columns: minmax(0, 1fr); }
 
-  /* Phone order, top to bottom: camera feed, money (the key numbers), the next step, the training and product cards,
-     then the details. The intro text repeats the next-step card, so it is hidden here. */
+  /* Phone order: the hero row (training, goals, level) first, then the numbers, the office feed and the details.
+     The intro repeats the next-step card, so it is hidden here. */
   .hq > .panel-intro { display: none; }
-  .hq > * { order: 5; }
-  .hq > .panel-header { order: 0; }
-  .hq > .grid-split { display: contents; }
-  .hq > .grid-split > :first-child { order: 1; }
-  .hq > .grid-split > :last-child { order: 2; }
-  .hq > .hq-top { order: 3; }
-  .hq > .grid-3 { order: 4; }
+  .hq-hero { grid-template-columns: minmax(0, 1fr); }
   .hq-money { gap: 10px; }
   .hq-money-foot { padding-top: 10px; }
   /* The legend becomes a two-column grid without the share column (the bar shows the shares). */

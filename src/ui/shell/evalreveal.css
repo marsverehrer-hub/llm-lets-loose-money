@@ -212,6 +212,16 @@
 .ev-verdict-line {
   color: var(--fg-2);
 }
+/* v13: XP and streak under the verdict. */
+.ev-xp {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  margin-top: 8px;
+  font-size: var(--fs-sm);
+}
+.ev-xp .num { font-weight: 600; }
 .ev-seed {
   display: flex;
   flex-wrap: wrap;

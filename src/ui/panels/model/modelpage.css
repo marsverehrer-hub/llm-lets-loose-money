@@ -444,3 +444,11 @@ p.mpg-desc {
   .mpg-runbar { padding: 10px; }
   .mpg-leak { gap: 8px; }
 }
+
+/* v15 Career tab. */
+.career-foci { display: flex; flex-wrap: wrap; gap: 6px; }
+.career-retire { display: flex; flex-wrap: wrap; gap: 8px; }
+.career-field { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.career-field li { display: flex; justify-content: space-between; gap: 10px; padding: 4px 0; border-bottom: 1px solid var(--line); color: var(--fg-2); }
+.career-field li:last-child { border-bottom: 0; }
+.career-field li.is-me { color: var(--fg); font-weight: 600; }

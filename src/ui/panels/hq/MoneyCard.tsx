@@ -20,6 +20,7 @@ const EXPENSE_LABEL: Record<string, string> = {
   compute: 'Compute and cloud',
   serving: 'Serving (cloud)',
   power: 'Power',
+  hardware: 'Hardware ops',
   payroll: 'Payroll',
   staff: 'Staff',
   office: 'Office',

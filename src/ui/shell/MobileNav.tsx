@@ -8,6 +8,9 @@ import { useGame } from '../store';
 import { runwayLabel } from './fmt';
 import { GROUPS, type NavItemDef } from './SideNav';
 
+/** v13: tab labels short enough for a 75px column ("Headquarters" was cut to "Headquarte..."). */
+const SHORT: Partial<Record<PanelId, string>> = { dashboard: 'Home', research: 'Research', lab: 'Lab' };
+
 /** Panels that get a tab. Everything else lives under More. */
 const PRIMARY: PanelId[] = ['dashboard', 'models', 'products', 'research'];
 /** During a multiplayer match VS takes the last tab, and research moves under More. */
@@ -76,7 +79,7 @@ export function MobileNav({ items, active, onSelect, badges = {}, highlight = nu
               onClick={() => onSelect(item.id)}
             >
               <span class="mtab-code">{item.code}</span>
-              <span class="mtab-label">{item.label}</span>
+              <span class="mtab-label">{SHORT[item.id] ?? item.label}</span>
               {badge && <BadgeMark tone={badge} />}
             </button>
           );

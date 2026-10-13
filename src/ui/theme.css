@@ -174,7 +174,8 @@ textarea {
 /* App frame: top bar / (side nav | main) / news ticker. Shell internals: shell/shell.css */
 .app {
   display: grid;
-  grid-template-rows: 40px minmax(0, 1fr) 28px;
+  /* top bar, v13 run dock, body, news ticker */
+  grid-template-rows: 40px auto minmax(0, 1fr) 28px;
   /* Viewport units are multiplied by the UI zoom, so divide them back out (see ui/uiScale.ts). */
   height: calc(100vh / var(--ui-zoom, 1));
   height: calc(100dvh / var(--ui-zoom, 1));

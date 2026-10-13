@@ -24,16 +24,16 @@ Use dry jokes in descriptions. Keep them short and punchy.
   | GPU | Year | PFLOP/s | Buy | Rent/day | kW |
   |---|---|---|---|---|---|
   | Pascal P-100ish | 2017 | 0.012 | $9k | $30 | 0.3 |
-  | Volta V-1000 | 2018 | 0.03 | $11k | $55 | 0.3 |
-  | Ampere A-1OO | 2020 | 0.09 | $15k | $90 | 0.4 |
-  | Hopper H-1OO | 2022 | 0.3 | $30k | $200 | 0.7 |
-  | Blackwell B-2OO | 2024 | 0.7 | $45k | $350 | 1.0 |
-  | Rubin R-3OO | 2026 | 1.6 | $60k | $600 | 1.4 |
-  | Feynman F-5OO | 2028 | 4 | $80k | $1000 | 1.8 |
-  | H1000 Hypernova | 2031 | 12 | $120k | $2000 | 2.5 |
-  | Dyson D-1 | 2034 | 40 | $200k | $4000 | 3.5 |
+  | Volta V-1000 | 2018 | 0.03 | $16.5k | $55 | 0.3 |
+  | Ampere A-1OO | 2020 | 0.09 | $27k | $90 | 0.4 |
+  | Hopper H-1OO | 2022 | 0.3 | $60k | $200 | 0.7 |
+  | Blackwell B-2OO | 2024 | 0.7 | $105k | $350 | 1.0 |
+  | Rubin R-3OO | 2026 | 1.6 | $180k | $600 | 1.4 |
+  | Feynman F-5OO | 2028 | 4 | $300k | $1000 | 1.8 |
+  | H1000 Hypernova | 2031 | 12 | $600k | $2000 | 2.5 |
+  | Dyson D-1 | 2034 | 40 | $1.2M | $4000 | 3.5 |
 
-  Rent per day is roughly buy price ÷ 300. Renting is flexible; buying pays off after about a year.
+  Buy price is exactly 300 days of rent (v14, §24). Renting is flexible; buying pays off after about a year once power, cooling, hardware operations and wear are counted.
 - **Datacenter tiers:**
 
   | Tier | Max GPUs | Build cost | Build time | Upkeep/day | Power | Unlock |
@@ -1408,3 +1408,113 @@ For every number on a screen, ask: can the player act on it, and does the sim us
 - **Unpause:** a 30-second countdown for both, skipped when both press Ready. "Stay paused" cancels it.
 - **Reconnects and resumed saves** come back paused.
 - **No auto-pause in matches.** The "Pause when…" choices are single-player only, and an event window only holds up the player who has it (the other waits in lockstep).
+
+## 23. The loop pass (v13): levels, perks, board goals, tempo, a slower clock
+Player request: "rework UI and systems to make the game even more addicting, look good on desktop and mobile, add more depth and play styles, make the loop of training models even more fun, and slow time down because progression is still really fast".
+
+The diagnosis: the training loop already had real surprise (fog of training, §16), but between eval days the player had nothing short-term to chase, nothing to build up across a run of good results, and no decision to make while a run was live. Progression lived only in the calendar, and at 10× the whole 20-year game took about 24 minutes. Contract: `src/sim/types.ts`, search "v13". All new state is optional and created on first use, so old saves load as they are.
+
+### 23.1 Lab XP, levels and perks (`systems/progression.ts`, `data/perks.ts`)
+- **XP sources.** A daily observer compares counters it has paid for with the live ones and pays the difference, so no system needs a hook:
+  - eval day, by verdict: banger 140, solid 95, as expected 70, mid 45, dud 30, cursed 35 (fine-tunes, distills and merges pay 45% of that)
+  - research finished 18, model released 45, crown taken 25 (a lost and retaken crown pays again), contract won 60, achievement 20
+  - board goals (§23.2)
+  - Every grant is multiplied by `1 + 0.08 × years since 2017`, so late wins stay worth chasing.
+- **Hot streak.** Consecutive pre-training runs that land at or above forecast (banger, solid, as expected). Each step multiplies run XP by +15% (max 5 steps). A miss resets it. Notified from 3 up, and when a streak of 3+ breaks.
+- **Levels.** Level 1→2 costs 350 XP and each level costs 7% more (max level 50). Each level gives 1 perk point, plus a bonus point every 10 levels.
+- **Perks.** Five branches (Scale, Craft, Hype, Data, Trust) with four tiers each, plus Momentum.
+  - A tier needs a perk from the tier below in the same branch, and a minimum lab level (2 / 5 / 9 / 14).
+  - Tier 4 is a capstone, and a lab may own **only one**, so a build commits to a playstyle.
+  - Passive perks fold into `getBonuses`. `Bonuses.contractFit` is now read by contract bids (`contractFitMult`).
+  - Hook perks: `crunch_culture` and `careful_science` bend run tempo; `momentum` turns each streak step into +2% training speed (max +10%), applied in `trainingRatePerDay`.
+  - **Reorg** (`respecPerks`) refunds every point. It costs 30 days of expenses (min $50k), once a year.
+- Bot pacing: level ~6 after year 1, ~13 after year 2, ~24 by 2024. A full tree costs more points than a 20-year game gives, so choices stay real.
+
+### 23.2 Board goals (`systems/board.ts`)
+- Every **calendar quarter** the board sets 3 goals: easy, fair and stretch (the stretch pays double). A first quarter shorter than 45 days rolls into the next.
+- The goals are drawn from what makes sense for this lab today: revenue/day, users, release a model scoring N+, finish N research topics (sized to the lab's RP), a pre-training run that meets its forecast, a new crown, an Arena rank, a contract, hype, end-of-quarter runway, a first launch or run, a run 2× the largest so far.
+- Revenue and user targets come from the lab's **own** growth over the last quarter (`GROWTH_SCALE` per step, with a floor), so a startup gets big targets and a giant gets reachable ones.
+- A goal **pays the day it is met**: XP plus cash (8 days of expenses), hype or research points. Runway goals are judged at quarter end.
+- One **swap** per quarter replaces an open goal with another kind.
+- **Board confidence** (0..100, starts at 50): +6 per hit, −4 per miss, +5 for a clean sweep (which also pays 90 XP). It moves valuation between ×0.94 and ×1.06 (`boardValuationMult`, via `Bonuses.valuation`).
+- The board rolls on its own random stream (like contracts), so the rest of the sim's seeded rolls are unchanged.
+
+### 23.3 Run tempo (`systems/tempo.ts`)
+A decision while the run is live, changeable any day (`setRunTempo`):
+
+| tempo | speed | incident rate | other |
+|---|---|---|---|
+| careful | ×0.85 (×0.95 with Careful science) | ×0.45 | |
+| standard | ×1 | ×1 | |
+| crunch | ×1.3 | ×2.2 (×0.75 with Crunch culture) | morale −0.12/day (halved with Crunch culture); stops itself below morale 25 |
+
+ETAs everywhere (run dock, HQ, Models) use `liveRunEta`, which includes tempo, overhead and stalls.
+
+### 23.4 Pace
+- **Real time.** 1× / 3× / 10× now run 0.35 / 1 / 3 days per second (were 0.5 / 1.5 / 5). A 20-year game at 10× takes about 40 minutes instead of 24, and each eval day, goal and level-up has room to land.
+- **Game time.** The IPO needs $2.5B annual revenue (was $1.5B).
+- Balance harness, same seeds before and after (`--years=20 --seeds=1,2,3`, frontier medians): first profitable 2019.1 → 2019.9, IPO 2022.7 → 2023.3, $1T 2030.3 → 2031.2, peak valuation $22.1T → $15.9T. Every milestone lands later.
+- With `--all`: small and specialist profitable 2018.4–2018.7, open IPO 2025.1, no bot bankrupt, idle bankrupt in 2.0 years, and every §19 playstyle check passes. Three checks failed before this pass and still fail, though each moved toward its target: frontier profitability a hair before 2020, idle bankruptcy speed, and $1T before 2032 (ROADMAP item 1).
+
+### 23.5 UI
+- **Run dock** (`shell/RunDock.tsx`): a strip under the top bar on every screen with the live run (progress, ETA, latest checkpoint, tempo), research, lab level with unspent points and the hot streak, and the quarter's goals as cells. An idle training slot or research desk is filled amber and links to where to fix it.
+- **Lab screen** (`LAB`, `panels/LabPanel.tsx`): level and streak, board goals with swap, the perk tree (five columns on desktop, a branch picker on phones), recent XP and the board's track record.
+- **Headquarters** leads with a hero row: training (with tempo and the checkpoint against forecast), board goals and lab level. The money, products and rival cards follow, then the office feed.
+- **Cameras** (`ui/cameraPref.ts`): one Menu switch, compact (default: at most 230px, 170px on phones) / full / off, and a small in-frame Hide on every feed instead of the full-width phone button.
+- **Eval reveal** shows the XP the run paid and what it did to the streak.
+- Toasts: at most 3 at once on desktop (was 4), shorter lifetimes. Phone tabs use short labels ("Home").
+- Next-step card suggests spending perk points and finishing a nearly done board goal.
+
+## 24. Grounded hardware economy (v14)
+Player feedback: "it is actually very easy to be profitable, since GPUs are a one-time purchase and then cost almost nothing".
+
+That was true. An owned H-1OO cost about $1.2 to $2 a day in electricity against $200 a day to rent it, so a purchase paid for itself in about 150 days and then ran almost free forever. Real labs pay roughly a fifth to a quarter of a GPU's price every year to keep it running, and replace a slice of the fleet as it dies. v14 adds those costs. All of them are in `COMPUTE_TUNING` (`systems/compute.ts`).
+
+- **Prices.** Every GPU now costs 300 days of its rent (H-1OO $60k, B-2OO $105k, up to $1.2M for the Dyson D-1). Before, the ratio slid from 300 days in 2017 to 50 days in 2034, so late hardware paid for itself in weeks. With the costs below, every generation pays itself back in 346 to 354 days (`tests/hardware.test.ts` pins 300 to 420).
+- **Cooling.** Power bills are multiplied by the tier's PUE: closet 1.6, colo 1.4, hyperscale 1.25, cathedral 1.12. Bigger buildings run cooler.
+- **Hardware operations.** Each installed GPU costs 16% of its buy price per year in maintenance contracts, networking, spares and on-call (`OPS_RATE_PER_YEAR`). It is booked as a new expense line, `hardware`. An H-1OO now costs about $28/day to run in a hyperscale campus instead of about $1.5. Owning still beats renting by a wide margin, but it is no longer free.
+- **Wear.** Installed GPUs fail at `3% + 4.5% × age in years` a year (capped at 40%). Failures are deterministic: each day carries `count × rate / 365` as a fraction until a whole GPU dies, so seeded rolls elsewhere are unchanged. The lab is told at most once a month. Age is the count-weighted average purchase day per GPU model per datacenter (`Datacenter.bought`); old saves count their fleet as new.
+- **Resale.** Selling returns `40% × 0.65^age` of the buy price (at least 3%), not a flat 40%.
+- **Serving margins.** A product's own-GPU serving cost now includes cooling and hardware operations, so the Products screen shows what owned GPUs really cost per token.
+- **UI.** Compute's daily cost lists Hardware ops; the buy sheet shows the running cost per GPU next to its rent; installed GPU rows show age, failure rate and resale value; Finance groups power and hardware.
+- **Results.** One H-1OO over three years: before v14, about $31.6k to buy and run against $219k to rent (owning was 7× cheaper and effectively free after five months). Now it is about $100k including wear replacements (2.2× cheaper than renting, with a payback of about a year). The scripted bots mostly rent and only buy with spare cash, so their milestones stay within seed noise (`--all --years=20 --seeds=1,2,3`: frontier IPO 2023.3, $1T 2030.9 with a seed range of 2029.9 to 2033.2; no bot bankrupt; every §19 check passes). The change targets the buy-once-and-forget player, whom the bots do not model; ROADMAP item 1 still applies.
+
+## 25. Model life (v15): patches, mastery, the Arena Cup, retirement, routers
+Player request: "make models even more fun to train, build up, work with once trained and improve". The gap was that a released model never changed: it only aged against the frontier until it was replaced. v15 gives a model a career. Contract: `src/sim/types.ts`, search "v15". The code is in `systems/modelLife.ts`, `systems/tournament.ts` and `systems/hallOfFame.ts`. The UI is the model page's **Career** tab, a Router row on each product card, Arena Cup and Hall of Fame cards on the Lab screen, and a Cup cell in the run dock.
+
+### 25.1 Patches (`patchModel {modelId, focus}`)
+- A short post-release run that learns from user feedback: 14 days, no training slot, on a released model only.
+- Cost: `$40k × (1 + 0.2 × years since 2017) × max(1, activeB/20)^0.5 × finetuneCost`.
+- Gain: `2.4 × 0.6^patches × feedback` cap points on the focus. Feedback is `0.35 + 0.65 × log10(1 + users)/6`, capped at 1, where users are the users it serves plus 10k per contract. So a popular model patches better.
+- Foci: general (every cap ×0.45), chat (+multilingual), coding (+agentic), reasoning (+math), safety (×1.5). Gains roll ±30%.
+- 15% of patches regress: another cap loses 1 to 3 points ("it forgot French").
+- A model can take 6 patches at most. Each shows as a version (v1.0, v1.1 ...). Each pays 20 lab XP and +1 hype when the model is live in a product.
+
+### 25.2 Mastery
+- Every live model earns field XP each day: `0.4 + 0.4 × log10(1 + users/1000)` per product serving it (a routed model earns its share), +1 per active contract, plus Arena Cup results.
+- Levels: Fresh, Battle-tested (80 XP), Fan favourite (250), Institution (600), Legend (1,400). A million-user model reaches Legend in about two years.
+- Each level above 1 makes buyers like it 2.5% more, in every product it serves (`masteryAppeal`, applied in the market). Each level pays lab XP.
+
+### 25.3 Retirement and the Hall of Fame (`retireModel {modelId, openWeights?}`)
+- Retiring deprecates the model. It needs no product or contract still running on it, and a router that used it is dropped.
+- Retiring pays hype `2 + mastery`. **Open weights** also pays brand +3 and reputation +3, and rivals learn (`openBoost` +0.5).
+- Honors: mastery 3+, an Arena Cup win, a crown it still holds, 4+ patches. Any honor earns a **Hall of Fame** slot.
+- Each Hall of Fame entry gives brand ×1.02 and valuation ×1.01 for good; a Legend counts twice. The best 8 count.
+- Retiring pays 40 XP plus 25 per honor.
+
+### 25.4 The Arena Cup (`enterCup {modelId | null}`)
+- Every 60 days (the first on day 150) the Arena announces a themed cup: Coding, Reasoning, Chatbot, Safety, Featherweight (overall minus 10 per 10× above four times the nano size) or Open (overall).
+- Entries close 14 days later. Fee: `$20k × 1.3^(years since 2017)`. Prize: `$250k × 1.3^years`.
+- The field is your entry plus each active AI lab's best model for the theme (flagship or a small line), in an 8-seat single-elimination bracket. A match goes to A with probability `1 / (1 + 10^(−(a − b)/6))`.
+- Payouts by placing (won / final / semi / quarter): prize 100% / 40% / 15% / 0, hype 8 / 4 / 2 / 0, brand 2 / 1 / 0 / 0, lab XP 150 / 80 / 40 / 15, mastery XP 100 / 50 / 25 / 10. Wins are counted on the model (`cupWins`) and count as an honor.
+- The cup rolls on its own random stream, like the board and contracts.
+
+### 25.5 Routers (`setProductRouter {productId, modelId | null, share}`)
+- A product can route 20% to 80% of its queries (the easy ones) to a released model at most half its main model's active size.
+- Serving compute splits by share, so the load is much cheaper. Buyers see `share × gap × 0.35` less quality, and the budget tier feels the smaller blended size.
+
+### 25.6 Honest product margins
+Each product's serving cost now carries its share of cloud **rent** as well as the owned fleet's power and hardware costs. Before, rent was only booked company-wide, so a rented fleet looked free on every product card and margins read as nearly 100%.
+
+### 25.7 Balance
+`--all --years=20 --seeds=1,2,3`, medians: frontier profitable 2019.7, IPO 2023.0, $1T 2030.9; small and specialist profitable 2018.6; open IPO 2025.0; no bot bankrupt; idle bankrupt in 2.1 years (that check now passes). The bots never patch, enter cups, route or retire, so the only v15 effect on them is mastery's buyer appeal, which brings the frontier IPO forward by about 0.3 years. Profitability before 2020 and $1T before 2032 still fail, as in §23 and §24.

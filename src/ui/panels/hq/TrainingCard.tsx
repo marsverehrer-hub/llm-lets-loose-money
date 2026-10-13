@@ -5,6 +5,7 @@ import { Button, Card, EmptyState, HelpTip, LineChart, ProgressBar, SERIES, form
 import type { LineSeries } from '../../components';
 import { trainingStatus } from '../../components/derive';
 import { navigate } from '../../nav';
+import { TempoControl } from '../lab/TempoControl'; // v13 run tempo
 
 export function TrainingCard({ s }: { s: GameState }) {
   const run = trainingStatus(s);
@@ -12,13 +13,13 @@ export function TrainingCard({ s }: { s: GameState }) {
 
   if (!run || !training) {
     return (
-      <Card title="Training" code="MDL" subtitle="GPUs idle">
+      <Card title="Training" code="MDL" subtitle="Slot idle" hot>
         <EmptyState
           title="Not training"
-          text="Start a run and the progress shows here."
+          text="Every idle day is a day the rivals train and you don't."
           action={
             <Button variant="primary" size="sm" onClick={() => navigate('models')}>
-              Open Models
+              Start a run
             </Button>
           }
         />
@@ -26,6 +27,7 @@ export function TrainingCard({ s }: { s: GameState }) {
     );
   }
 
+  const cp = training.checkpoints?.[training.checkpoints.length - 1];
   const loss: LineSeries[] = [{ name: 'Loss', color: SERIES.blue, points: (training.lossHistory ?? []).map((y, i) => ({ x: i, y })) }];
   return (
     <Card title="Training" code="MDL" subtitle={`${formatParams(training.paramsB)} params · ${formatNumber(training.tokensB, 1)}B tokens`}>
@@ -35,10 +37,22 @@ export function TrainingCard({ s }: { s: GameState }) {
           <span class="num">{formatPct(run.frac)}</span>
         </div>
         <ProgressBar value={run.frac} height={6} />
-        <div class="hq-train-meta small">{isFinite(run.days) ? `ETA ${formatDays(run.days)}` : 'Stalled. Buy GPUs.'}</div>
+        <div class="hq-train-meta small">
+          {isFinite(run.days) ? `ETA ${formatDays(run.days)}` : 'Stalled. Buy GPUs.'}
+          {cp && (
+            <span>
+              · Checkpoint <span class="num">{cp.reading.toFixed(0)} ± {cp.band.toFixed(0)}</span>
+              {training.forecast && <span class="muted"> vs forecast <span class="num">{training.forecast.mid.toFixed(0)}</span></span>}
+            </span>
+          )}
+        </div>
+        <div class="hq-train-tempo">
+          <span class="small muted">Tempo</span>
+          <TempoControl s={s} />
+        </div>
         <LineChart
           series={loss}
-          height={112}
+          height={96}
           legend={false}
           yFormat={(v) => v.toFixed(2)}
           xFormat={(x) => `d${Math.round(x)}`}
