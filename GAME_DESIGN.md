@@ -1408,3 +1408,59 @@ For every number on a screen, ask: can the player act on it, and does the sim us
 - **Unpause:** a 30-second countdown for both, skipped when both press Ready. "Stay paused" cancels it.
 - **Reconnects and resumed saves** come back paused.
 - **No auto-pause in matches.** The "Pause when…" choices are single-player only, and an event window only holds up the player who has it (the other waits in lockstep).
+
+## 23. The loop pass (v13): levels, perks, board goals, tempo, a slower clock
+Player request: "rework UI and systems to make the game even more addicting, look good on desktop and mobile, add more depth and play styles, make the loop of training models even more fun, and slow time down because progression is still really fast".
+
+The diagnosis: the training loop already had real surprise (fog of training, §16), but between eval days the player had nothing short-term to chase, nothing to build up across a run of good results, and no decision to make while a run was live. Progression lived only in the calendar, and at 10× the whole 20-year game took about 24 minutes. Contract: `src/sim/types.ts`, search "v13". All new state is optional and created on first use, so old saves load as they are.
+
+### 23.1 Lab XP, levels and perks (`systems/progression.ts`, `data/perks.ts`)
+- **XP sources.** A daily observer compares counters it has paid for with the live ones and pays the difference, so no system needs a hook:
+  - eval day, by verdict: banger 140, solid 95, as expected 70, mid 45, dud 30, cursed 35 (fine-tunes, distills and merges pay 45% of that)
+  - research finished 18, model released 45, crown taken 25 (a lost and retaken crown pays again), contract won 60, achievement 20
+  - board goals (§23.2)
+  - Every grant is multiplied by `1 + 0.08 × years since 2017`, so late wins stay worth chasing.
+- **Hot streak.** Consecutive pre-training runs that land at or above forecast (banger, solid, as expected). Each step multiplies run XP by +15% (max 5 steps). A miss resets it. Notified from 3 up, and when a streak of 3+ breaks.
+- **Levels.** Level 1→2 costs 350 XP and each level costs 7% more (max level 50). Each level gives 1 perk point, plus a bonus point every 10 levels.
+- **Perks.** Five branches (Scale, Craft, Hype, Data, Trust) with four tiers each, plus Momentum.
+  - A tier needs a perk from the tier below in the same branch, and a minimum lab level (2 / 5 / 9 / 14).
+  - Tier 4 is a capstone, and a lab may own **only one**, so a build commits to a playstyle.
+  - Passive perks fold into `getBonuses`. `Bonuses.contractFit` is now read by contract bids (`contractFitMult`).
+  - Hook perks: `crunch_culture` and `careful_science` bend run tempo; `momentum` turns each streak step into +2% training speed (max +10%), applied in `trainingRatePerDay`.
+  - **Reorg** (`respecPerks`) refunds every point. It costs 30 days of expenses (min $50k), once a year.
+- Bot pacing: level ~6 after year 1, ~13 after year 2, ~24 by 2024. A full tree costs more points than a 20-year game gives, so choices stay real.
+
+### 23.2 Board goals (`systems/board.ts`)
+- Every **calendar quarter** the board sets 3 goals: easy, fair and stretch (the stretch pays double). A first quarter shorter than 45 days rolls into the next.
+- The goals are drawn from what makes sense for this lab today: revenue/day, users, release a model scoring N+, finish N research topics (sized to the lab's RP), a pre-training run that meets its forecast, a new crown, an Arena rank, a contract, hype, end-of-quarter runway, a first launch or run, a run 2× the largest so far.
+- Revenue and user targets come from the lab's **own** growth over the last quarter (`GROWTH_SCALE` per step, with a floor), so a startup gets big targets and a giant gets reachable ones.
+- A goal **pays the day it is met**: XP plus cash (8 days of expenses), hype or research points. Runway goals are judged at quarter end.
+- One **swap** per quarter replaces an open goal with another kind.
+- **Board confidence** (0..100, starts at 50): +6 per hit, −4 per miss, +5 for a clean sweep (which also pays 90 XP). It moves valuation between ×0.94 and ×1.06 (`boardValuationMult`, via `Bonuses.valuation`).
+- The board rolls on its own random stream (like contracts), so the rest of the sim's seeded rolls are unchanged.
+
+### 23.3 Run tempo (`systems/tempo.ts`)
+A decision while the run is live, changeable any day (`setRunTempo`):
+
+| tempo | speed | incident rate | other |
+|---|---|---|---|
+| careful | ×0.85 (×0.95 with Careful science) | ×0.45 | |
+| standard | ×1 | ×1 | |
+| crunch | ×1.3 | ×2.2 (×0.75 with Crunch culture) | morale −0.12/day (halved with Crunch culture); stops itself below morale 25 |
+
+ETAs everywhere (run dock, HQ, Models) use `liveRunEta`, which includes tempo, overhead and stalls.
+
+### 23.4 Pace
+- **Real time.** 1× / 3× / 10× now run 0.35 / 1 / 3 days per second (were 0.5 / 1.5 / 5). A 20-year game at 10× takes about 40 minutes instead of 24, and each eval day, goal and level-up has room to land.
+- **Game time.** The IPO needs $2.5B annual revenue (was $1.5B).
+- Balance harness, same seeds before and after (`--years=20 --seeds=1,2,3`, frontier medians): first profitable 2019.1 → 2019.9, IPO 2022.7 → 2023.3, $1T 2030.3 → 2031.2, peak valuation $22.1T → $15.9T. Every milestone lands later.
+- With `--all`: small and specialist profitable 2018.4–2018.7, open IPO 2025.1, no bot bankrupt, idle bankrupt in 2.0 years, and every §19 playstyle check passes. Three checks failed before this pass and still fail, though each moved toward its target: frontier profitability a hair before 2020, idle bankruptcy speed, and $1T before 2032 (ROADMAP item 1).
+
+### 23.5 UI
+- **Run dock** (`shell/RunDock.tsx`): a strip under the top bar on every screen with the live run (progress, ETA, latest checkpoint, tempo), research, lab level with unspent points and the hot streak, and the quarter's goals as cells. An idle training slot or research desk is filled amber and links to where to fix it.
+- **Lab screen** (`LAB`, `panels/LabPanel.tsx`): level and streak, board goals with swap, the perk tree (five columns on desktop, a branch picker on phones), recent XP and the board's track record.
+- **Headquarters** leads with a hero row: training (with tempo and the checkpoint against forecast), board goals and lab level. The money, products and rival cards follow, then the office feed.
+- **Cameras** (`ui/cameraPref.ts`): one Menu switch, compact (default: at most 230px, 170px on phones) / full / off, and a small in-frame Hide on every feed instead of the full-width phone button.
+- **Eval reveal** shows the XP the run paid and what it did to the streak.
+- Toasts: at most 3 at once on desktop (was 4), shorter lifetimes. Phone tabs use short labels ("Home").
+- Next-step card suggests spending perk points and finishing a nearly done board goal.

@@ -72,6 +72,8 @@ The UI is a **financial terminal**, a parody of the Bloomberg terminal. It shoul
 | MKT | market |
 | FIN | finance |
 | TRO | achievements (trophies) |
+| LAB | lab level, perks and board goals (v13) |
+| BRD | board goals card (v13) |
 
 
 ## v2 amendments: readability (these OVERRIDE the rules above where they conflict)

@@ -50,6 +50,9 @@ Saves live in the browser, so each device and address has its own game.
   - archive digitizing
   - rival API distillation (risky)
   - data startups
+- **Lab levels and perks:** everything you do earns XP. Levels give perk points for a five-branch tree (Scale, Craft, Hype, Data, Trust), and you may own only one capstone.
+- **Board goals:** three goals every quarter (easy, fair, stretch), each paid the day you hit it.
+- **Run tempo:** push a live run (crunch), protect it (careful), or leave it at standard. Land runs at or above forecast to build a hot streak.
 - **Multiplayer:** a 1v1 over the internet (Menu, then Multiplayer).
 
 ## Development
