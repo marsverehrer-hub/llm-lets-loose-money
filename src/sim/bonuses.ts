@@ -3,6 +3,7 @@ import { RESEARCH } from './data/research';
 import { doctrineById } from './data/doctrines';
 import { NEUTRAL_BONUSES } from './util';
 import { perkById } from './data/perks';
+import { hallBonuses } from './systems/hallOfFame';
 
 const RESEARCH_BY_ID = new Map(RESEARCH.map((r) => [r.id, r] as const));
 
@@ -21,6 +22,8 @@ export function getBonuses(s: GameState): Bonuses {
   // v13: bought lab perks and the board's confidence in the lab (GAME_DESIGN §23).
   for (const id of s.progress?.perks ?? []) apply(perkById(id)?.bonuses);
   if (s.board) apply({ valuation: boardValuationMult(s.board.confidence) });
+  // v15: retired models in the Hall of Fame.
+  if (s.hallOfFame?.length) apply(hallBonuses(s));
   // Temporary event modifiers: flags named `bonus.<key>` hold a multiplier, `bonusUntil.<key>` the expiry day
   for (const k of Object.keys(b) as (keyof Bonuses)[]) {
     const m = s.flags[`bonus.${k}`];

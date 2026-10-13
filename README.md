@@ -53,6 +53,7 @@ Saves live in the browser, so each device and address has its own game.
 - **Lab levels and perks:** everything you do earns XP. Levels give perk points for a five-branch tree (Scale, Craft, Hype, Data, Trust), and you may own only one capstone.
 - **Board goals:** three goals every quarter (easy, fair, stretch), each paid the day you hit it.
 - **Run tempo:** push a live run (crunch), protect it (careful), or leave it at standard. Land runs at or above forecast to build a hot streak.
+- **Model careers:** patch released models from user feedback, watch them gain mastery as they serve users, enter them in the Arena Cup every two months, route easy queries to a small model, and retire your best into a Hall of Fame that keeps paying.
 - **Multiplayer:** a 1v1 over the internet (Menu, then Multiplayer).
 
 ## Development

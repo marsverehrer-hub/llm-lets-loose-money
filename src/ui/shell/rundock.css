@@ -134,3 +134,6 @@ button.dock-cell:hover,
   .dock-level { flex: 0 0 auto; padding: 0 8px; }
   .dock-level .dock-bar { display: none; }
 }
+.dock-cup { flex: 0 0 auto; }
+.dock-cup.is-open .dock-k,
+.dock-cup.is-open .dock-v:first-of-type { color: var(--amber); }

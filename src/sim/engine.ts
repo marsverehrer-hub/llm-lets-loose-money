@@ -28,6 +28,8 @@ import { scenarioTick, setScenarioTicker } from './systems/scenario'; // v9 scen
 import { boardTick, handlers as boardHandlers } from './systems/board'; // v13 board objectives
 import { progressionTick, handlers as progressionHandlers } from './systems/progression'; // v13 lab XP and perks
 import { handlers as tempoHandlers } from './systems/tempo'; // v13 run tempo
+import { modelLifeTick, handlers as modelLifeHandlers } from './systems/modelLife'; // v15 patches, mastery, retirement, routers
+import { cupTick, handlers as cupHandlers } from './systems/tournament'; // v15 Arena Cup
 
 /** Order matters: costs/capacity first, then production, then market, then finance closes the books. */
 const SYSTEMS: System[] = [
@@ -48,6 +50,8 @@ const SYSTEMS: System[] = [
   productsTick,
   servingTick, // v10: after demand is known; books the cloud burst and each product's serving cost
   contractsTick,
+  modelLifeTick, // v15: patches land, models earn mastery from the users they serve
+  cupTick, // v15: Arena Cup announcements and play days
   eventsTick,
   scenarioTick, // v9 scenario: goals, grant and takeovers, before the books close
   financeTick,
@@ -101,6 +105,8 @@ const HANDLERS: ActionHandlers = Object.assign(
   boardHandlers,
   progressionHandlers,
   tempoHandlers,
+  modelLifeHandlers,
+  cupHandlers,
 );
 
 /** True when the simulation should not advance (game over or an event awaits a decision). */

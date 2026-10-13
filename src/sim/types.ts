@@ -498,6 +498,18 @@ export interface Model {
   derivedFrom?: { kind: 'distill' | 'merge'; ids: Id[]; method?: MergeMethod };
   /** Playground prompts tried (ids), for flavour and the latent-quirk poke cooldown. */
   pokes?: { day: number; count: number };
+  // v15 model life (GAME_DESIGN §25)
+  /** Post-release patches applied (v1.1, v1.2 ...). */
+  patches?: number;
+  /** A patch in flight: finishes on doneDay. */
+  patchJob?: { doneDay: number; focus: PatchFocus; cost: number };
+  /** Field experience from serving users and contracts. Level 1..5. */
+  mastery?: { xp: number; level: number };
+  /** Day the model was retired (it is also deprecated). */
+  retiredDay?: number;
+  /** Arena Cup results: best placing (1 = won). */
+  cupBest?: number;
+  cupWins?: number;
 }
 
 // v7
@@ -739,6 +751,8 @@ export interface Product {
   active: boolean;
   /** v7: switch to a better released model automatically. */
   autoUpgrade?: boolean;
+  /** v15: a router sends `share` of the queries (the easy ones) to a smaller model. */
+  router?: { modelId: Id; share: number };
 }
 
 export interface RoleState {
@@ -1079,6 +1093,10 @@ export interface GameState {
   progress?: ProgressState;
   /** v13 board objectives: quarterly goals with rewards (systems/board.ts). Created on demand. */
   board?: BoardState;
+  /** v15: retired models remembered for their careers; each gives a small lasting bonus (systems/modelLife.ts). */
+  hallOfFame?: HallOfFameEntry[];
+  /** v15: the Arena Cup, a recurring themed tournament (systems/tournament.ts). Created on demand. */
+  cup?: CupState;
 }
 
 // ---------------------------------------------------------------------------
@@ -1092,6 +1110,11 @@ export type GameAction =
   | { type: 'buyPerk'; perkId: Id }
   | { type: 'respecPerks' }
   | { type: 'rerollObjective'; objectiveId: Id }
+  // v15 model life: patches, retirement, Arena Cup, routers
+  | { type: 'patchModel'; modelId: Id; focus: PatchFocus }
+  | { type: 'retireModel'; modelId: Id; openWeights?: boolean }
+  | { type: 'enterCup'; modelId: Id | null }
+  | { type: 'setProductRouter'; productId: Id; modelId: Id | null; share?: number }
   | { type: 'renameCompany'; name: string }
   // training & data
   | { type: 'buyDataset'; datasetId: Id }
@@ -1572,4 +1595,53 @@ export interface BoardState {
   rerolls: number;
   /** Past quarters, newest last (cap 24). */
   history: { quarter: number; hit: number; total: number; day: number }[];
+}
+
+// ---------------------------------------------------------------------------
+// v15 Model life: patches, mastery, retirement, Arena Cup, routers (GAME_DESIGN.md §25)
+// ---------------------------------------------------------------------------
+export type PatchFocus = 'general' | 'chat' | 'coding' | 'reasoning' | 'safety';
+
+export interface HallOfFameEntry {
+  modelId: Id;
+  name: string;
+  retiredDay: number;
+  /** Mastery level at retirement. */
+  mastery: number;
+  overall: number;
+  /** Why it made the hall, short: "Arena Cup winner", "Mastery 5", "Held Arena #1". */
+  honors: string[];
+  /** Open-sourced at retirement. */
+  open: boolean;
+}
+
+export type CupTheme = 'coding' | 'reasoning' | 'chat' | 'safety' | 'efficiency' | 'open';
+
+export interface CupEntrant {
+  /** 'player' or a competitor id. */
+  owner: Id;
+  name: string;
+  modelName: string;
+  score: number;
+}
+
+export interface CupResult {
+  edition: number;
+  theme: CupTheme;
+  day: number;
+  winner: string;
+  winnerModel: string;
+  /** Player placing: 1 won, 2 final, 3 semi, 5 quarter. Undefined = did not enter. */
+  placing?: number;
+  modelName?: string;
+  prize?: number;
+}
+
+export interface CupState {
+  edition: number;
+  /** Day the next cup is announced. */
+  nextAnnounceDay: number;
+  /** The cup currently open for entries, if any. */
+  open?: { edition: number; theme: CupTheme; announcedDay: number; playDay: number; prize: number; entryFee: number; entrantModelId?: Id };
+  history: CupResult[];
 }

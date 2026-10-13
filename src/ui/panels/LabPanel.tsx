@@ -9,6 +9,8 @@ import { useGame } from '../store';
 import { BoardCard } from './lab/BoardCard';
 import { LevelCard } from './lab/LevelCard';
 import { PerkTree } from './lab/PerkTree';
+import { CupCard } from './lab/CupCard'; // v15
+import { HallCard } from './lab/HallCard'; // v15
 import './lab/lab.css';
 
 function XpLog({ s }: { s: GameState }) {
@@ -66,6 +68,10 @@ export function LabPanel() {
       <div class="lab-top">
         <LevelCard s={s} onOpen={() => document.querySelector('.perk-tree, .perk-picker')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} />
         <BoardCard s={s} />
+      </div>
+      <div class="grid-2">
+        <CupCard s={s} />
+        <HallCard s={s} />
       </div>
       <PerkTree s={s} />
       <div class="grid-2">

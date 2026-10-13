@@ -4,6 +4,7 @@ import { useState } from 'preact/hooks';
 import { dispatch } from '../../store';
 import { formatMoney } from '../../../sim/util';
 import { previewDemand } from '../../../sim/systems/market';
+import { MODEL_LIFE_TUNING, routerBlocker } from '../../../sim/systems/modelLife'; // v15
 
 import { BUYER_TIERS } from '../../../sim/types';
 import type { BuyerTier, GameState, Product, ProductKind } from '../../../sim/types';
@@ -133,6 +134,7 @@ export function LiveProductCard({ s, product }: { s: GameState; product: Product
             ))}
           </select>
         </div>
+        <RouterRow s={s} product={product} />
         <div class="pr-row">
           <span class="pr-k">Price</span>
           <div class="pr-price">
@@ -190,5 +192,68 @@ export function LiveProductCard({ s, product }: { s: GameState; product: Product
         </div>
       </div>
     </Card>
+  );
+}
+
+/**
+ * v15 router (GAME_DESIGN §25.5): send the easy share of queries to a smaller model. Serving gets cheaper; buyers notice
+ * a little of the quality gap.
+ */
+function RouterRow({ s, product }: { s: GameState; product: Product }) {
+  const main = s.models.find((m) => m.id === product.modelId && m.releasedDay !== null && !m.deprecated);
+  const candidates = releasedModels(s).filter((m) => routerBlocker(main, m) === null);
+  const share = product.router?.share ?? 0.5;
+  if (!main || (candidates.length === 0 && !product.router)) {
+    return (
+      <div class="pr-row">
+        <span class="pr-k">Router</span>
+        <span class="pr-note">Release a model at most half this size to route easy queries to it.</span>
+      </div>
+    );
+  }
+  const small = product.router ? s.models.find((m) => m.id === product.router!.modelId) : undefined;
+  const gap = small ? Math.max(0, main.overall - small.overall) * share * MODEL_LIFE_TUNING.ROUTER_GAP_VISIBLE : 0;
+  return (
+    <div class="pr-row">
+      <span class="pr-k">Router</span>
+      <div class="pr-price">
+        <div class="pr-price-line">
+          <select
+            class="select"
+            value={product.router?.modelId ?? ''}
+            onChange={(e) => {
+              const v = (e.currentTarget as HTMLSelectElement).value;
+              dispatch({ type: 'setProductRouter', productId: product.id, modelId: v || null, share });
+            }}
+          >
+            <option value="">Off: {main.name} answers everything</option>
+            {candidates.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name} · overall {Math.round(m.overall)}
+              </option>
+            ))}
+          </select>
+        </div>
+        {product.router && (
+          <>
+            <div class="pr-price-line">
+              <Range
+                label="Routed share"
+                min={Math.round(MODEL_LIFE_TUNING.ROUTER_SHARE_MIN * 100)}
+                max={Math.round(MODEL_LIFE_TUNING.ROUTER_SHARE_MAX * 100)}
+                step={5}
+                stepBy={5}
+                value={Math.round(share * 100)}
+                onChange={(v) => dispatch({ type: 'setProductRouter', productId: product.id, modelId: product.router!.modelId, share: v / 100 })}
+              />
+              <span class="pr-readout num">{Math.round(share * 100)}%</span>
+            </div>
+            <div class="pr-note">
+              {`${Math.round(share * 100)}% of queries go to ${small?.name ?? 'the small model'}. Buyers see about ${gap.toFixed(1)} points less quality; serving costs drop with it.`}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
   );
 }

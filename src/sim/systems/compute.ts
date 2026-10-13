@@ -9,6 +9,7 @@ import { addExpense, addRevenue, calendarYear, clamp, formatMoney, newId, notify
 import { getBonuses } from '../bonuses';
 import { isResearched } from './research';
 import { roleStrength } from './staff';
+import { productPflopsNeed } from './modelLife'; // v15 routers
 
 export interface Capacity { total: number; training: number; inference: number }
 
@@ -273,8 +274,7 @@ export function servingDemandPflops(s: GameState): number {
     if (!p.active || !(p.mtokPerDay > 0)) continue;
     const m = modelOf(s, p.modelId);
     if (!m) continue;
-    const per = mtokPerPflopDay(s, m);
-    if (per > 0) need += p.mtokPerDay / per;
+    need += productPflopsNeed(s, p, m); // v15: a router splits the load with a smaller model
   }
   return need;
 }
@@ -363,13 +363,14 @@ export function fleetFor(s: GameState, priority: FleetPriority, run: boolean): F
   const ownShare = n.demand > 0 ? n.servingOwn / n.demand : 0;
   // Power and hardware operations are paid for the whole installed fleet either way; each own PFLOP/s carries an
   // equal share of them (v14: hardware operations included, so product margins show what owned GPUs really cost).
-  const powerRate = n.total > 0 ? installedRunningCostPerDay(s) / n.total : 0;
+  // v15: cloud rent counts too. Rented GPUs that serve a product are part of what that product costs, so its margin
+  // is honest (before, rent was only booked company-wide and a rented fleet looked free per product).
+  const powerRate = n.total > 0 ? (installedRunningCostPerDay(s) + dailyComputeCost(s).rent) / n.total : 0;
   const slices: ServingSlice[] = [];
   for (const p of s.products) {
     if (!p.active) continue;
     const m = modelOf(s, p.modelId);
-    const per = m ? mtokPerPflopDay(s, m) : 0;
-    const need = per > 0 ? p.mtokPerDay / per : 0;
+    const need = productPflopsNeed(s, p, m);
     const own = need * ownShare;
     const burst = need - own;
     slices.push({

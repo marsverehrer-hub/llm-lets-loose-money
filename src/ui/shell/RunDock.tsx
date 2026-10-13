@@ -6,6 +6,7 @@ import { RESEARCH } from '../../sim/data/research';
 import { effectiveResearchCost } from '../../sim/systems/research';
 import { levelProgress, progressOf } from '../../sim/systems/progression';
 import { quarterLabel } from '../../sim/systems/board';
+import { cupThemeLabel } from '../../sim/systems/tournament';
 import { trainingStatus } from '../components/derive';
 import { formatDays, useIsMobile } from '../components';
 import { navigate } from '../nav';
@@ -116,6 +117,20 @@ function BoardCell({ s }: { s: GameState }) {
   );
 }
 
+/** v15: the open Arena Cup, shown until play day. Amber while you have no entry. */
+function CupCell({ s }: { s: GameState }) {
+  const open = s.cup?.open;
+  if (!open || !s.models.some((m) => m.releasedDay !== null && !m.deprecated)) return null;
+  const left = Math.max(0, open.playDay - s.day);
+  return (
+    <button type="button" class={`dock-cell dock-cup ${open.entrantModelId ? '' : 'is-open'}`} onClick={() => navigate('lab')} title={`${cupThemeLabel(open.theme)} #${open.edition}`}>
+      <span class="dock-k">Cup</span>
+      <span class="dock-v">{open.entrantModelId ? 'Entered' : 'Enter'}</span>
+      <span class="dock-v muted num">{formatDays(left)}</span>
+    </button>
+  );
+}
+
 export function RunDock() {
   const s = useGame();
   const phone = useIsMobile();
@@ -125,6 +140,7 @@ export function RunDock() {
       <TrainCell s={s} phone={phone} />
       <ResearchCell s={s} phone={phone} />
       <LevelCell s={s} />
+      {!phone && <CupCell s={s} />}
       {!phone && <BoardCell s={s} />}
     </div>
   );

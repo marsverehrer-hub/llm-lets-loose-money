@@ -13,6 +13,7 @@ import { marketGrowthMult } from './scenario'; // v9 scenario
 import { productFitFor, rivalFlagshipActiveB, sycophancyAttraction } from './capabilities';
 import { playerCrownCounts, rivalLines } from './classes';
 import { labInfo, labName } from './labs';
+import { masteryAppeal, productActiveB, routedQuality, routerModelOf } from './modelLife'; // v15
 
 export interface ShareRow { id: string; name: string; color: string; isPlayer: boolean; users: number; share: number; quality: number; price: number }
 
@@ -346,12 +347,14 @@ function tierEntrants(s: GameState, ctx: TierCtx, seg: Segment, tier: BuyerTier,
       if (!p.active || p.kind !== kind || p.id === replacingId) continue;
       const m = modelById(s, p.modelId);
       if (!m) continue;
-      const quality = segQuality(seg, m.scores, m.overall);
+      // v15: a router shows part of the small model's gap; mastery makes a seasoned model more attractive.
+      const small = routerModelOf(s, p);
+      const quality = routedQuality(seg, segQuality(seg, m.scores, m.overall), small ? segQuality(seg, small.scores, small.overall) : null, small ? p.router!.share : 0);
       // A specialisation can fit a product kind better or worse (productFit), e.g. a Coder model for the API.
-      const extra = playerExtra(s, seg, m.scores, p.satisfaction, ctx.bonuses, ctx.crown[seg]) * productFitFor(m, p.kind) * sycophancyAttraction(m, p.kind);
+      const extra = playerExtra(s, seg, m.scores, p.satisfaction, ctx.bonuses, ctx.crown[seg]) * productFitFor(m, p.kind) * sycophancyAttraction(m, p.kind) * masteryAppeal(m);
       const a = tierAttractiveness(
         tier,
-        { quality, price: p.price, refPrice: st.refPrice, brand: s.company.brand, hype: s.company.hype, extra, activeB: m.activeParamsB ?? m.paramsB, budgetAppeal: ctx.bonuses.budgetAppeal ?? 1 },
+        { quality, price: p.price, refPrice: st.refPrice, brand: s.company.brand, hype: s.company.hype, extra, activeB: productActiveB(s, p, m), budgetAppeal: ctx.bonuses.budgetAppeal ?? 1 },
         ctx.year,
         ctx.frontier,
       );

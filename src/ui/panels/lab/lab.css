@@ -107,3 +107,18 @@
 
 /* Tempo row inside the Models live-run window. */
 .md-tempo { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; }
+
+/* ---- v15 Arena Cup and Hall of Fame ---- */
+.cup-open { display: flex; flex-direction: column; gap: 8px; }
+.cup-line { display: flex; align-items: baseline; gap: 10px; }
+.cup-line > :nth-child(2) { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cup-prize { margin-left: auto; color: var(--amber); font-weight: 600; }
+.cup-entry { display: flex; flex-direction: column; gap: 4px; }
+.cup-history, .hof-list { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; }
+.cup-history li { display: grid; grid-template-columns: 72px minmax(0, 1fr) auto; gap: 10px; padding: 4px 0; border-top: 1px solid var(--line); }
+.cup-h-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hof-list { margin-top: 0; }
+.hof-list li { display: flex; flex-direction: column; gap: 2px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.hof-list li:last-child { border-bottom: 0; }
+.hof-list li.is-faded { opacity: 0.6; }
+.hof-name { font-weight: 600; }

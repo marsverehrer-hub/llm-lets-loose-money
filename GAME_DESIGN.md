@@ -1478,3 +1478,43 @@ That was true. An owned H-1OO cost about $1.2 to $2 a day in electricity against
 - **Serving margins.** A product's own-GPU serving cost now includes cooling and hardware operations, so the Products screen shows what owned GPUs really cost per token.
 - **UI.** Compute's daily cost lists Hardware ops; the buy sheet shows the running cost per GPU next to its rent; installed GPU rows show age, failure rate and resale value; Finance groups power and hardware.
 - **Results.** One H-1OO over three years: before v14, about $31.6k to buy and run against $219k to rent (owning was 7× cheaper and effectively free after five months). Now it is about $100k including wear replacements (2.2× cheaper than renting, with a payback of about a year). The scripted bots mostly rent and only buy with spare cash, so their milestones stay within seed noise (`--all --years=20 --seeds=1,2,3`: frontier IPO 2023.3, $1T 2030.9 with a seed range of 2029.9 to 2033.2; no bot bankrupt; every §19 check passes). The change targets the buy-once-and-forget player, whom the bots do not model; ROADMAP item 1 still applies.
+
+## 25. Model life (v15): patches, mastery, the Arena Cup, retirement, routers
+Player request: "make models even more fun to train, build up, work with once trained and improve". The gap was that a released model never changed: it only aged against the frontier until it was replaced. v15 gives a model a career. Contract: `src/sim/types.ts`, search "v15". The code is in `systems/modelLife.ts`, `systems/tournament.ts` and `systems/hallOfFame.ts`. The UI is the model page's **Career** tab, a Router row on each product card, Arena Cup and Hall of Fame cards on the Lab screen, and a Cup cell in the run dock.
+
+### 25.1 Patches (`patchModel {modelId, focus}`)
+- A short post-release run that learns from user feedback: 14 days, no training slot, on a released model only.
+- Cost: `$40k × (1 + 0.2 × years since 2017) × max(1, activeB/20)^0.5 × finetuneCost`.
+- Gain: `2.4 × 0.6^patches × feedback` cap points on the focus. Feedback is `0.35 + 0.65 × log10(1 + users)/6`, capped at 1, where users are the users it serves plus 10k per contract. So a popular model patches better.
+- Foci: general (every cap ×0.45), chat (+multilingual), coding (+agentic), reasoning (+math), safety (×1.5). Gains roll ±30%.
+- 15% of patches regress: another cap loses 1 to 3 points ("it forgot French").
+- A model can take 6 patches at most. Each shows as a version (v1.0, v1.1 ...). Each pays 20 lab XP and +1 hype when the model is live in a product.
+
+### 25.2 Mastery
+- Every live model earns field XP each day: `0.4 + 0.4 × log10(1 + users/1000)` per product serving it (a routed model earns its share), +1 per active contract, plus Arena Cup results.
+- Levels: Fresh, Battle-tested (80 XP), Fan favourite (250), Institution (600), Legend (1,400). A million-user model reaches Legend in about two years.
+- Each level above 1 makes buyers like it 2.5% more, in every product it serves (`masteryAppeal`, applied in the market). Each level pays lab XP.
+
+### 25.3 Retirement and the Hall of Fame (`retireModel {modelId, openWeights?}`)
+- Retiring deprecates the model. It needs no product or contract still running on it, and a router that used it is dropped.
+- Retiring pays hype `2 + mastery`. **Open weights** also pays brand +3 and reputation +3, and rivals learn (`openBoost` +0.5).
+- Honors: mastery 3+, an Arena Cup win, a crown it still holds, 4+ patches. Any honor earns a **Hall of Fame** slot.
+- Each Hall of Fame entry gives brand ×1.02 and valuation ×1.01 for good; a Legend counts twice. The best 8 count.
+- Retiring pays 40 XP plus 25 per honor.
+
+### 25.4 The Arena Cup (`enterCup {modelId | null}`)
+- Every 60 days (the first on day 150) the Arena announces a themed cup: Coding, Reasoning, Chatbot, Safety, Featherweight (overall minus 10 per 10× above four times the nano size) or Open (overall).
+- Entries close 14 days later. Fee: `$20k × 1.3^(years since 2017)`. Prize: `$250k × 1.3^years`.
+- The field is your entry plus each active AI lab's best model for the theme (flagship or a small line), in an 8-seat single-elimination bracket. A match goes to A with probability `1 / (1 + 10^(−(a − b)/6))`.
+- Payouts by placing (won / final / semi / quarter): prize 100% / 40% / 15% / 0, hype 8 / 4 / 2 / 0, brand 2 / 1 / 0 / 0, lab XP 150 / 80 / 40 / 15, mastery XP 100 / 50 / 25 / 10. Wins are counted on the model (`cupWins`) and count as an honor.
+- The cup rolls on its own random stream, like the board and contracts.
+
+### 25.5 Routers (`setProductRouter {productId, modelId | null, share}`)
+- A product can route 20% to 80% of its queries (the easy ones) to a released model at most half its main model's active size.
+- Serving compute splits by share, so the load is much cheaper. Buyers see `share × gap × 0.35` less quality, and the budget tier feels the smaller blended size.
+
+### 25.6 Honest product margins
+Each product's serving cost now carries its share of cloud **rent** as well as the owned fleet's power and hardware costs. Before, rent was only booked company-wide, so a rented fleet looked free on every product card and margins read as nearly 100%.
+
+### 25.7 Balance
+`--all --years=20 --seeds=1,2,3`, medians: frontier profitable 2019.7, IPO 2023.0, $1T 2030.9; small and specialist profitable 2018.6; open IPO 2025.0; no bot bankrupt; idle bankrupt in 2.1 years (that check now passes). The bots never patch, enter cups, route or retire, so the only v15 effect on them is mastery's buyer appeal, which brings the frontier IPO forward by about 0.3 years. Profitability before 2020 and $1T before 2032 still fail, as in §23 and §24.
