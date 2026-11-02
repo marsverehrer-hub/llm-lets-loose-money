@@ -1,6 +1,6 @@
 /* ==========================================================================
    LLM: Lets Loose Money — "Blueprint" design system (v5, see DESIGN.md)
-   The lab's drafting table: blueprint navy (dark) or graph paper (light), crop-marked
+   The lab's drafting table: warm graphite (dark) or graph paper (light), crop-marked
    sheets, serif headlines and figures, mono annotations, marker-yellow highlights,
    stamped tags and tactile buttons on hard offset shadows.
    OWNER: lead. Only THIS file may contain hex colours or gradients.
@@ -35,52 +35,52 @@
    ========================================================================== */
 
 :root {
-  /* Blueprint: a drafting sheet at night. Navy paper, cyan linework, a highlighter for what matters. */
-  --bg: #0a1830;
-  --bg-1: #0e2140;
-  --bg-2: #13294f;
-  --bg-3: #1a345f;
-  --line: #24467a;
-  --line-2: #3a64a0;
-  --grid: rgba(128, 186, 255, 0.07);
-  --grid-major: rgba(128, 186, 255, 0.14);
-  --ink-shadow: #040c1a;
+  /* The drafting table at night: warm graphite under a desk lamp, bone linework, a highlighter for what matters. */
+  --bg: #141311;
+  --bg-1: #1c1a17;
+  --bg-2: #25221e;
+  --bg-3: #2f2b26;
+  --line: #3b372f;
+  --line-2: #5c5546;
+  --grid: rgba(255, 238, 205, 0.045);
+  --grid-major: rgba(255, 238, 205, 0.09);
+  --ink-shadow: #050504;
 
   /* Text */
-  --fg: #eef4ff;
-  --fg-2: #bccde9;
-  --fg-3: #8ba4ca;
-  --fg-4: #56719b;
+  --fg: #f3eee3;
+  --fg-2: #cac2b1;
+  --fg-3: #999180;
+  --fg-4: #5f594d;
 
   /* The accent: highlighter yellow. --hl is always the marker fill; --accent is the readable accent for text. */
-  --hl: #ffe14a;
-  --hl-soft: rgba(255, 225, 74, 0.2);
-  --on-hl: #0a1830;
-  --accent: #ffe14a;
-  --accent-2: #f2c500;
-  --accent-3: #2a3242;
-  --on-accent: #0a1830;
+  --hl: #ffd84a;
+  --hl-soft: rgba(255, 216, 74, 0.2);
+  --on-hl: #17150f;
+  --accent: #ffd84a;
+  --accent-2: #f0c020;
+  --accent-3: #33301f;
+  --on-accent: #17150f;
   --amber: var(--accent);
   --amber-2: var(--accent-2);
   --amber-3: var(--accent-3);
 
   /* Meaning */
-  --up: #5df2a0;
-  --up-3: #0f3a33;
-  --down: #ff7066;
-  --down-3: #3d1d2a;
-  --warn: #ffb547;
-  --warn-3: #3a2c1a;
-  --blue: #7fd4ff;
-  --blue-3: #14335a;
-  --yellow: #ffe14a;
+  --up: #7fe0a4;
+  --up-3: #1c3326;
+  --down: #ff7a64;
+  --down-3: #3d211b;
+  --warn: #ffb04a;
+  --warn-3: #3a2c18;
+  --blue: #8ccbe6;
+  --blue-3: #1d2d35;
+  --yellow: #ffd84a;
 
   /* Hubs: each binder section has its own index colour. */
-  --hub-home: #ffe14a;
-  --hub-lab: #7fd4ff;
-  --hub-infra: #ff9f5a;
-  --hub-business: #5df2a0;
-  --hub-company: #d4a8ff;
+  --hub-home: #ffd84a;
+  --hub-lab: #8ccbe6;
+  --hub-infra: #ff9b5e;
+  --hub-business: #7fe0a4;
+  --hub-company: #d6b0ff;
 
   /* Type: a serif for headlines and big figures, mono for drafting annotations, a sans for reading. */
   --font: 'Figtree', system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -114,7 +114,7 @@
     linear-gradient(90deg, var(--grid-major) 1px, transparent 1px) 0 0 / 120px 120px,
     linear-gradient(var(--grid) 1px, transparent 1px) 0 0 / 24px 24px,
     linear-gradient(90deg, var(--grid) 1px, transparent 1px) 0 0 / 24px 24px;
-  --tex-hatch: repeating-linear-gradient(-45deg, rgba(10, 24, 48, 0.28) 0 4px, transparent 4px 9px);
+  --tex-hatch: repeating-linear-gradient(-45deg, rgba(20, 19, 17, 0.3) 0 4px, transparent 4px 9px);
   --tex-ruler: repeating-linear-gradient(90deg, var(--line-2) 0 1px, transparent 1px 10%);
   --tex-marker: linear-gradient(transparent 84%, var(--hl) 84%, var(--hl) 94%, transparent 94%);
   --tex-dash: repeating-linear-gradient(90deg, var(--line) 0 4px, transparent 4px 8px);

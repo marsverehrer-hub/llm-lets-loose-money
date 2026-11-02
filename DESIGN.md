@@ -1,7 +1,7 @@
 # LLM: Lets Loose Money: UI design rules ("Blueprint", v5)
 
-The UI is the **lab's own drafting table**: the plans for a company that builds intelligence, drawn on blueprint paper
-at night (dark) or graph paper by day (light). Sheets are crisp and crop-marked; headlines and money are set in a serif
+The UI is the **lab's own drafting table**: the plans for a company that builds intelligence, drawn at night on a graphite
+drafting table under a desk lamp (dark) or on graph paper by day (light). Sheets are crisp and crop-marked; headlines and money are set in a serif
 like a financial broadsheet; every small label is a mono **drafting annotation**; what matters is **highlighted** in
 marker yellow; status tags are **rubber stamps**; buttons are chunky and tactile, with a hard offset shadow you press
 into. It must stay easy to read for hours and easy to learn: every screen says what it is for, the home screen says
@@ -27,12 +27,12 @@ straight man: a serious engineering drawing of a deeply unserious company.
 6. Inline styles in TSX follow the same rules.
 
 ## Tokens (`src/ui/theme.css`)
-| token | dark (blueprint) | light (graph paper) | use |
+| token | dark (graphite) | light (graph paper) | use |
 |---|---|---|---|
-| `--bg` / `--bg-1..3` | navy #0a1830 up to #1a345f | paper #f1ede2, sheets #fbf9f3 | paper, sheets, raised rows, tracks |
-| `--grid` / `--grid-major` | cyan at 7% / 14% | blue at 7% / 14% | the 24px / 120px drafting grid behind everything |
+| `--bg` / `--bg-1..3` | warm graphite #141311 up to #2f2b26 | paper #f1ede2, sheets #fbf9f3 | paper, sheets, raised rows, tracks |
+| `--grid` / `--grid-major` | warm bone at 4.5% / 9% | blue at 7% / 14% | the 24px / 120px drafting grid behind everything |
 | `--line` / `--line-2` | | | dashed rules and hairlines / control borders and crop marks |
-| `--ink-shadow` | near-black navy | ink | the hard offset shadow colour |
+| `--ink-shadow` | near-black | ink | the hard offset shadow colour |
 | `--hl` / `--hl-soft` / `--on-hl` | marker yellow | marker yellow | primary buttons, active tabs, highlights, the selected row |
 | `--accent` (`--amber` legacy) | yellow | blueprint blue | accent **text** (readable on its paper) |
 | `--up` / `--down` / `--warn` / `--blue` | | | money in / out, caution, info |
