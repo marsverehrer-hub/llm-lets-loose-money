@@ -202,11 +202,15 @@ export function SceneView({ state, make, height, cam, camId = 'CAM-02', onSelect
     window.clearTimeout(tapTimerRef.current);
     const p = at(e);
     const hit = scene.hitTest(p.x, p.y);
+    scene.setHover?.(hit ? hit.id : null);
     showTip(hit ? { x: p.x, y: p.y, text: hit.label, id: hit.id } : null);
   };
   const onLeave = (e: PointerEvent) => {
     // A finger lifts with a pointerleave too, so a tap tip stays for its full time.
-    if (e.pointerType === 'mouse') clearTip();
+    if (e.pointerType === 'mouse') {
+      sceneRef.current?.setHover?.(null);
+      clearTip();
+    }
   };
   const onDown = (e: PointerEvent) => {
     suppressClickRef.current = false;

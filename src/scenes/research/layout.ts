@@ -1,57 +1,22 @@
-// Research lab geometry: room constants, pod and desk positions, and how researchers are spread over the branches.
-// Pure data. Nothing here draws or reads GameState except the allocation helper.
+// Research lab geometry: one lab island per research branch (whiteboard, experiment rig, two rows of benches), plus
+// islands for the projector (current topic), the "next up" board, the star bay and the coffee lounge. Islands sit on
+// the kit's staggered lattice, so the lab fills the frame at any size. Pure data; nothing here draws.
 import { RESEARCH_BRANCHES, type ResearchBranch } from '../../sim/types';
 import { RESEARCH } from '../../sim/data/research';
+import { lattice } from '../kit';
 
-export const WALL_H = 60;
-
-/** Desk slots per branch pod (3 across, 2 deep). */
+export const CELL = 4.4;
+export const ISLE = 4.0;
+/** Desk slots per branch island (3 across, 2 deep). */
 export const SLOTS = 6;
-
-// Pods: 4 columns x 3 rows. 11 branches fill the first 11 cells; the last cell is the coffee nook.
-const COLS = 4;
-const ROWS = 3;
-const PW = 4.2; // pod width along x
-const PD = 3.4; // pod depth along y (whiteboard at the back, two desk rows)
-const AISLE_X = 0.5;
-const AISLE_Y = 0.6;
-const PX0 = 0.8;
-const PY0 = 2.6;
-export const ROOM_W = PX0 + COLS * PW + (COLS - 1) * AISLE_X + 0.8;
-export const ROOM_D = PY0 + ROWS * PD + (ROWS - 1) * AISLE_Y + 0.8;
-
-export const POD_W = PW;
-export const POD_D = PD;
-export const DESK_W = 1.2;
-export const DESK_D = 0.7;
-export const DESK_TOP = 12;
-
-export const BOARD_Z0 = 24;
-export const BOARD_Z1 = 44;
-
-/** Central projector on the back wall (y = 0). */
-export const PROJ_X0 = ROOM_W / 2 - 3.2;
-export const PROJ_X1 = ROOM_W / 2 + 3.2;
-export const PROJ_Z0 = 18;
-export const PROJ_Z1 = 48;
-
-/** "Next up" board on the left wall (x = 0). */
-export const QUEUE_Y0 = 3.2;
-export const QUEUE_Y1 = 9.0;
-export const QUEUE_Z0 = 15;
-export const QUEUE_Z1 = 50;
-
-/** Star bay: a row of highlighted desks along the back wall, right of the projector. */
-export const STAR_Y = 0.7;
-export const STAR_X0 = 14.3;
-export const STAR_STEP = 1.4;
+export const DESK_W = 0.95;
+export const DESK_D = 0.55;
+export const DESK_TOP = 10;
+export const WALL_H = 32;
+export const BOARD_Z0 = 12;
+export const BOARD_Z1 = 29;
 export const STAR_MAX = 4;
-export const STAR_BAY_X1 = STAR_X0 + STAR_STEP * (STAR_MAX - 1) + DESK_W + 0.2;
-
-export const COFFEE = { x: 15.2, y: 10.9 };
-export const PLANT = { x: 18.9, y: 13.4 };
-export const LOUNGE = { x: 16.9, y: 12.3 };
-/** People drawn in the lounge while idle. Everyone else is counted in a pill. */
+/** People drawn in the lounge while idle. Everyone else is counted in a tag. */
 export const LOUNGE_SHOW = 16;
 
 export interface Pod {
@@ -60,43 +25,73 @@ export interface Pod {
   branch: ResearchBranch;
   px: number;
   py: number;
+  line: number;
 }
 
-export const PODS: Pod[] = RESEARCH_BRANCHES.map((branch, i) => {
-  const col = i % COLS;
-  const row = Math.floor(i / COLS);
-  return { i, branch, px: PX0 + col * (PW + AISLE_X), py: PY0 + row * (PD + AISLE_Y) };
-});
+export interface Spot {
+  x: number;
+  y: number;
+  line: number;
+}
+
+export interface Room {
+  pods: Pod[];
+  proj: Spot;
+  queue: Spot;
+  stars: Spot;
+  lounge: Spot;
+  lines: number;
+}
+
+/** Lay the lab out for a W x H canvas: the projector and the queue first, then the branches, the star bay, the lounge. */
+export function buildRoom(W: number, H: number): Room {
+  const n = RESEARCH_BRANCHES.length + 4;
+  const cells = lattice(n, CELL, 0.4, WALL_H + 6, W, H);
+  const at = (k: number): Spot => {
+    const c = cells[k] ?? { x: 0, y: 0, line: 0 };
+    return { x: c.x + (CELL - ISLE) / 2, y: c.y + (CELL - ISLE) / 2, line: c.line };
+  };
+  const proj = at(0);
+  const queue = at(1);
+  const pods = RESEARCH_BRANCHES.map((branch, i) => {
+    const s = at(i + 2);
+    return { i, branch, px: s.x, py: s.y, line: s.line };
+  });
+  const stars = at(n - 2);
+  const lounge = at(n - 1);
+  const lines = cells.length ? cells[cells.length - 1].line + 1 : 1;
+  return { pods, proj, queue, stars, lounge, lines };
+}
 
 /** Top-left of desk slot k in a pod. Slots run left to right, then the second row. */
 export function deskXY(pod: Pod, k: number): [number, number] {
   const col = k % 3;
   const row = Math.floor(k / 3);
-  return [pod.px + 0.15 + col * 1.35, pod.py + 0.95 + row * 1.5];
+  return [pod.px + 0.35 + col * 1.15, pod.py + 1.35 + row * 1.3];
 }
 
 /** Floor point where the person in desk slot k sits (the chair centre). */
 export function seatXY(pod: Pod, k: number): [number, number] {
   const [dx, dy] = deskXY(pod, k);
-  return [dx + 0.6, dy + 0.98];
+  return [dx + DESK_W / 2, dy + DESK_D + 0.35];
 }
 
-export function starDeskXY(j: number): [number, number] {
-  return [STAR_X0 + j * STAR_STEP, STAR_Y];
+export function starDeskXY(room: Room, j: number): [number, number] {
+  return [room.stars.x + 0.5 + (j % 2) * 1.6, room.stars.y + 1.0 + Math.floor(j / 2) * 1.4];
 }
 
-export function starSeatXY(j: number): [number, number] {
-  const [dx, dy] = starDeskXY(j);
-  return [dx + 0.6, dy + 0.98];
+export function starSeatXY(room: Room, j: number): [number, number] {
+  const [dx, dy] = starDeskXY(room, j);
+  return [dx + DESK_W / 2, dy + DESK_D + 0.35];
 }
 
-/** Standing spot in the coffee lounge: an arc in front of the machine, ring by ring. */
-export function loungeSpot(i: number): [number, number] {
+/** Standing spot in the coffee lounge: rings around the middle of the island. */
+export function loungeSpot(room: Room, i: number): [number, number] {
   const ring = Math.floor(i / 8);
   const k = i % 8;
-  const ang = Math.PI * (0.15 + (k / 7) * 0.7);
-  const r = 1.0 + ring * 0.9;
-  return [LOUNGE.x + Math.cos(ang) * r * 1.1, LOUNGE.y + Math.sin(ang) * r];
+  const ang = (k / 8) * Math.PI * 2 + ring * 0.4;
+  const r = 0.75 + ring * 0.7;
+  return [room.lounge.x + 2.2 + Math.cos(ang) * r, room.lounge.y + 2.2 + Math.sin(ang) * r];
 }
 
 /** Research nodes per branch: the lab's desks follow the size of the tree. */
@@ -120,44 +115,3 @@ export function allocateResearchers(total: number): number[] {
 
 /** Number of topics in each branch, in RESEARCH_BRANCHES order. */
 export const TOPICS_PER_BRANCH: number[] = NODES_PER_BRANCH;
-
-/** Convex hull of flat [x0,y0,x1,y1,...] points, flat output in counter-clockwise order. */
-export function convexHull(flat: number[]): number[] {
-  const P: [number, number][] = [];
-  for (let i = 0; i < flat.length; i += 2) P.push([flat[i], flat[i + 1]]);
-  P.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
-  const cross = (o: [number, number], a: [number, number], b: [number, number]) =>
-    (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
-  const lower: [number, number][] = [];
-  for (const p of P) {
-    while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) lower.pop();
-    lower.push(p);
-  }
-  const upper: [number, number][] = [];
-  for (let i = P.length - 1; i >= 0; i--) {
-    const p = P[i];
-    while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) upper.pop();
-    upper.push(p);
-  }
-  lower.pop();
-  upper.pop();
-  const out: number[] = [];
-  for (const [x, y] of lower.concat(upper)) out.push(x, y);
-  return out;
-}
-
-/** True when (x, y) is inside a convex polygon from convexHull. */
-export function inHull(h: number[], x: number, y: number): boolean {
-  const n = h.length / 2;
-  if (n < 3) return false;
-  let sign = 0;
-  for (let i = 0; i < n; i++) {
-    const j = (i + 1) % n;
-    const c = (h[2 * j] - h[2 * i]) * (y - h[2 * i + 1]) - (h[2 * j + 1] - h[2 * i + 1]) * (x - h[2 * i]);
-    if (c === 0) continue;
-    const sg = c > 0 ? 1 : -1;
-    if (sign === 0) sign = sg;
-    else if (sign !== sg) return false;
-  }
-  return true;
-}

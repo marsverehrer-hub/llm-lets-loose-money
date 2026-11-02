@@ -1,52 +1,43 @@
-// Compute scene layout: a pure function of the game state and the fleet picture. Floor units are x and y, heights are z
-// (see src/office/iso.ts). Halls sit on a grid (three to a row, later rows further back), the training pod stands in
-// front of the halls, the cloud rental platform floats off to the left and the product block sits to the right.
+// Compute scene layout: a pure function of the game state, the fleet picture and the canvas size. Every hall, the
+// training cluster, the product edge and the cloud get a square cell on the staggered lattice (kit.lattice), so the
+// campus spreads across a wide strip and stacks up on a phone. Floor units are x and y, heights are z.
 import type { FleetBreakdown, GameState, Datacenter } from '../../sim/types';
 import { DATACENTER_TIERS } from '../../sim/data/gpus';
 import { cloudGpusByType } from '../../sim/systems/cloudMarket';
-import { prand } from '../../office/iso';
+import { lattice, type Box3 } from '../kit';
 
-export const GAP = 1.2;
-/** LED rows per rack. One row per slice of the rack's GPUs, so the LEDs show the fleet mix. */
-export const LEDS = 6;
-export const RACK_FOOT = 0.45;
-/** Top of the floating cloud rental platform's slab; racks stand on it. */
-export const CLOUD_Z = 40;
-export const CLOUD_TOP = CLOUD_Z + 14;
-export const CLOUD_W = 4.6;
-export const CLOUD_X0 = -7.6;
-/** Racks the platform holds (5 x 5). */
-export const CLOUD_SLOTS = 25;
-export const POD_H = 26;
-/** Racks the training pod draws at most. */
-export const POD_SLOTS = 64;
+/** Rack footprint (x by y) and the aisle in front of each row. The aisle is wide enough that no row hides the next one's front. */
+export const RACK_W = 0.5;
+export const RACK_D = 0.7;
+export const AISLE = 1.2;
+export const ROW_PITCH = RACK_D + AISLE;
+/** Back strip for cooling units, side strip for the wall, front strip for the walkway. */
+const BACK = 1.05;
+const SIDE = 0.75;
+const FRONT = 0.45;
+export const LED_ROWS = 6;
+export const CLOUD_Z = 16;
+export const BURST_Z = 44;
+export const POD_SLOTS = 18;
+export const CLOUD_SLOTS = 12;
 export const PRODUCT_H = 22;
-export const PRODUCT_W = 3.2;
-/** Front band: the pod, the cloud platform and the products share this y line. */
-export const FRONT_Y = 1.8;
-/** Height of the burst cloud's centre. */
-export const BURST_Z = 62;
-export const BURST_TOP = 78;
-/** Spacing of pod racks along both floor axes. */
-export const POD_PITCH = 0.8;
+const GAP = 1.0;
 
 export type HallStyle = 'closet' | 'cage' | 'campus' | 'cathedral';
 
 export interface HallLook {
   style: HallStyle;
-  /** Footprint along x and y, floor units. */
   w: number;
   d: number;
   wallH: number;
   rackH: number;
-  floor: string;
 }
 
 const LOOKS: Record<string, HallLook> = {
-  closet: { style: 'closet', w: 3.6, d: 3.0, wallH: 24, rackH: 16, floor: '#33302c' },
-  colo: { style: 'cage', w: 6.0, d: 4.5, wallH: 30, rackH: 20, floor: '#2c2a26' },
-  hyperscale: { style: 'campus', w: 10.5, d: 7.5, wallH: 40, rackH: 24, floor: '#2a2c2f' },
-  cathedral: { style: 'cathedral', w: 14, d: 10.5, wallH: 58, rackH: 28, floor: '#2a2622' },
+  closet: { style: 'closet', w: 3.6, d: 3.1, wallH: 26, rackH: 17 },
+  colo: { style: 'cage', w: 5.6, d: 4.9, wallH: 28, rackH: 19 },
+  hyperscale: { style: 'campus', w: 7.8, d: 6.8, wallH: 32, rackH: 21 },
+  cathedral: { style: 'cathedral', w: 10.2, d: 8.7, wallH: 38, rackH: 23 },
 };
 
 export function hallLook(tierId: string): HallLook {
@@ -57,13 +48,10 @@ export function tierName(tierId: string): string {
   return DATACENTER_TIERS.find((t) => t.id === tierId)?.name ?? tierId;
 }
 
-/** Rack columns that fit a hall of width w (columns run along y, 1.5 apart). */
-export function hallCols(w: number): number {
-  return Math.max(1, Math.floor((w - 1.05) / 1.5) + 1);
-}
-/** Racks per column that fit a hall of depth d (0.6 apart). */
-export function hallPerCol(d: number): number {
-  return Math.max(1, Math.floor((d - 1.05) / 0.6) + 1);
+export function installedOf(dc: Datacenter): number {
+  let n = 0;
+  for (const k in dc.gpus) n += dc.gpus[k] ?? 0;
+  return n;
 }
 
 export function nextPow2(n: number): number {
@@ -72,49 +60,43 @@ export function nextPow2(n: number): number {
   return p;
 }
 
-export function installedOf(dc: Datacenter): number {
-  let n = 0;
-  for (const k in dc.gpus) n += dc.gpus[k] ?? 0;
-  return n;
-}
-
-/** One rack glyph. Paths are filled in by the scene each time the camera fit changes. */
-export interface RackDraw {
+/** One rack slot: its footprint origin, row and a stable random number for its LEDs. */
+export interface RackSlot {
   x: number;
   y: number;
-  z: number;
-  h: number;
+  row: number;
+  filled: boolean;
   seed: number;
-  pod: boolean;
-  top: Path2D;
-  left: Path2D;
-  right: Path2D;
-  leds: Path2D[];
-}
-
-export function makeRack(x: number, y: number, z: number, h: number, seed: number, pod: boolean): RackDraw {
-  return { x, y, z, h, seed, pod, top: new Path2D(), left: new Path2D(), right: new Path2D(), leds: [] };
 }
 
 export interface HallLayout {
   dc: Datacenter;
-  tierId: string;
   tierName: string;
   look: HallLook;
   built: boolean;
+  liquid: boolean;
+  infiniband: boolean;
+  /** Dedicated to the neocloud: sold to customers. */
+  leased: boolean;
+  /** 0..1 build progress for halls under construction. */
+  progress: number;
   x0: number;
   y0: number;
   w: number;
   d: number;
-  /** Draw order: halls further back draw first. Used as the sort group. */
-  group: number;
+  line: number;
   installed: number;
-  rackSize: number;
-  cols: number;
-  perCol: number;
-  /** x of each aisle, running along y. */
-  laneX: number[];
-  racks: RackDraw[];
+  slots: number;
+  gpusPerRack: number;
+  filledRacks: number;
+  rows: number;
+  perRow: number;
+  /** y of each row's back edge. */
+  rowY: number[];
+  /** x where the rows start. */
+  rowX: number;
+  racks: RackSlot[];
+  box: Box3;
 }
 
 export interface PodLayout {
@@ -122,9 +104,11 @@ export interface PodLayout {
   y0: number;
   w: number;
   d: number;
+  line: number;
   gpus: number;
-  rackSize: number;
-  racks: RackDraw[];
+  gpusPerRack: number;
+  racks: RackSlot[];
+  box: Box3;
 }
 
 export interface CloudLayout {
@@ -132,10 +116,13 @@ export interface CloudLayout {
   y0: number;
   w: number;
   d: number;
+  line: number;
   rentedGpus: number;
-  rackSize: number;
-  racks: RackDraw[];
+  gpusPerRack: number;
+  racks: RackSlot[];
   burst: boolean;
+  box: Box3;
+  burstBox: Box3;
 }
 
 export interface ProductsLayout {
@@ -143,15 +130,9 @@ export interface ProductsLayout {
   y0: number;
   w: number;
   d: number;
+  line: number;
   live: number;
-}
-
-export interface Bounds {
-  xmin: number;
-  xmax: number;
-  ymin: number;
-  ymax: number;
-  zmax: number;
+  box: Box3;
 }
 
 export interface Layout {
@@ -159,9 +140,11 @@ export interface Layout {
   pod: PodLayout | null;
   cloud: CloudLayout | null;
   products: ProductsLayout | null;
-  frontY: number;
-  bounds: Bounds;
+  cell: number;
+  /** Everything the camera has to fit. */
+  bounds: Box3[];
   engineers: number;
+  lines: number;
 }
 
 export function engineersOf(s: GameState): number {
@@ -175,163 +158,153 @@ export function rentedOf(s: GameState): number {
   return n;
 }
 
-export function buildLayout(s: GameState, fleet: FleetBreakdown): Layout {
+function rackGrid(x0: number, y0: number, w: number, d: number, n: number, pitchX: number, pitchY: number, seed: number): RackSlot[] {
+  const cols = Math.max(1, Math.floor(w / pitchX));
+  const out: RackSlot[] = [];
+  for (let k = 0; k < n; k++) {
+    const col = k % cols;
+    const row = Math.floor(k / cols);
+    if (row * pitchY + RACK_D > d + 1e-6) break;
+    out.push({ x: x0 + col * pitchX, y: y0 + row * pitchY, row, filled: true, seed: seed + k * 0.6180339 });
+  }
+  return out;
+}
+
+export function buildLayout(s: GameState, fleet: FleetBreakdown, W: number, H: number): Layout {
   const dcs = s.compute.datacenters;
-  const ncols = Math.min(3, Math.max(1, dcs.length));
   const looks = dcs.map((dc) => hallLook(dc.tierId));
-
-  // Grid: column widths and row depths are the largest hall in that column or row.
-  const colW: number[] = [];
-  const rowD: number[] = [];
-  dcs.forEach((_, i) => {
-    const c = i % ncols;
-    const r = Math.floor(i / ncols);
-    colW[c] = Math.max(colW[c] ?? 0, looks[i].w);
-    rowD[r] = Math.max(rowD[r] ?? 0, looks[i].d);
-  });
-  const colLeft: number[] = [];
-  let acc = 0;
-  for (let c = 0; c < ncols; c++) {
-    colLeft.push(acc);
-    acc += (colW[c] ?? 0) + GAP;
-  }
-  // Row 0's front edge is y = 0. Later rows sit further back (negative y).
-  const rowFront: number[] = [];
-  acc = 0;
-  for (let r = 0; r < rowD.length; r++) {
-    rowFront.push(-acc);
-    acc += rowD[r] + GAP;
-  }
-
-  const halls: HallLayout[] = dcs.map((dc, i) => {
-    const c = i % ncols;
-    const r = Math.floor(i / ncols);
-    const look = looks[i];
-    const x0 = colLeft[c];
-    const y1 = rowFront[r];
-    const y0 = y1 - look.d;
-    const built = dc.buildDaysLeft <= 0;
-    const cols = hallCols(look.w);
-    const perCol = hallPerCol(look.d);
-    const installed = installedOf(dc);
-    const cap = cols * perCol;
-    // Rack size doubles until the GPUs fit in the hall's rack slots, so every hall stays readable.
-    const rackSize = built && installed > 0 ? nextPow2(Math.ceil(installed / cap)) : 1;
-    const glyphs = built && installed > 0 ? Math.ceil(installed / rackSize) : 0;
-    const racks: RackDraw[] = [];
-    for (let k = 0; k < glyphs; k++) {
-      const col = Math.floor(k / perCol);
-      const row = k % perCol;
-      racks.push(makeRack(x0 + 0.6 + col * 1.5, y0 + 0.6 + row * 0.6, 0, look.rackH, Math.floor(prand(i * 131.7 + k * 7.13) * LEDS), false));
-    }
-    const laneX: number[] = [];
-    for (let j = 0; j < cols; j++) laneX.push(j === 0 ? x0 + 0.3 : x0 + 1.575 + (j - 1) * 1.5);
-    return { dc, tierId: dc.tierId, tierName: tierName(dc.tierId), look, built, x0, y0, w: look.w, d: look.d, group: 0, installed, rackSize, cols, perCol, laneX, racks };
-  });
-
-  // Draw order: back rows first, then left to right. Halls never overlap in x or y, so this order is correct.
-  const order = halls.map((_, i) => i).sort((a, b) => {
-    const ra = Math.floor(a / ncols);
-    const rb = Math.floor(b / ncols);
-    if (ra !== rb) return rb - ra;
-    return a % ncols - b % ncols;
-  });
-  order.forEach((idx, rank) => {
-    halls[idx].group = rank;
-  });
-  const ordered = order.map((idx) => halls[idx]);
-
-  const gridX1 = halls.reduce((m, h) => Math.max(m, h.x0 + h.w), 0);
-
-  let pod: PodLayout | null = null;
-  if (s.training) {
-    // A run can be active before any GPU is installed; then the pod is an empty glowing pad.
-    const tg = Math.max(0, Math.round(fleet.trainingGpus));
-    const rackSize = tg > 0 ? nextPow2(Math.ceil(tg / POD_SLOTS)) : 1;
-    const glyphs = tg > 0 ? Math.ceil(tg / rackSize) : 0;
-    const cols = Math.max(1, Math.ceil(Math.sqrt(glyphs)));
-    const rows = Math.max(1, Math.ceil(glyphs / cols));
-    const x0 = 0;
-    const y0 = FRONT_Y;
-    const racks: RackDraw[] = [];
-    for (let k = 0; k < glyphs; k++) {
-      racks.push(makeRack(x0 + 0.3 + (k % cols) * POD_PITCH, y0 + 0.3 + Math.floor(k / cols) * POD_PITCH, 0, POD_H, Math.floor(prand(900 + k * 3.37) * LEDS), true));
-    }
-    pod = {
-      x0,
-      y0,
-      w: Math.max(3, cols * POD_PITCH + 0.3),
-      d: Math.max(3, rows * POD_PITCH + 0.3),
-      gpus: tg,
-      rackSize,
-      racks,
-    };
-  }
-
   const rented = rentedOf(s);
   const burst = fleet.burstPflops > 1e-6;
+  const hasCloud = rented > 0 || burst;
+  const hasPod = !!s.training;
+  const hasProducts = s.products.length > 0;
+  const leasedIds = new Set(s.neocloud?.dedicated ?? []);
+
+  let cell = 4.4;
+  for (const l of looks) cell = Math.max(cell, l.w, l.d);
+  // Order on the lattice: the cloud first (top left), then the halls, the training cluster and the product edge.
+  const kinds: ('cloud' | 'pod' | 'products' | number)[] = [];
+  if (hasCloud) kinds.push('cloud');
+  dcs.forEach((_, i) => kinds.push(i));
+  if (hasPod) kinds.push('pod');
+  if (hasProducts) kinds.push('products');
+  const n = Math.max(1, kinds.length);
+  const zTop = 46;
+  const cells = lattice(n, cell, GAP, zTop, W, H);
+  const lines = cells.length ? cells[cells.length - 1].line + 1 : 1;
+
+  const halls: HallLayout[] = [];
+  let pod: PodLayout | null = null;
   let cloud: CloudLayout | null = null;
-  if (rented > 0 || burst) {
-    const rackSize = rented > 0 ? nextPow2(Math.ceil(rented / CLOUD_SLOTS)) : 1;
-    const glyphs = rented > 0 ? Math.ceil(rented / rackSize) : 0;
-    const racks: RackDraw[] = [];
-    for (let k = 0; k < glyphs; k++) {
-      racks.push(makeRack(CLOUD_X0 + 0.3 + (k % 5) * 0.9, FRONT_Y + 0.3 + Math.floor(k / 5) * 0.9, CLOUD_Z, 14, Math.floor(prand(5000 + k * 1.91) * LEDS), false));
-    }
-    cloud = { x0: CLOUD_X0, y0: FRONT_Y, w: CLOUD_W, d: CLOUD_W, rentedGpus: rented, rackSize, racks, burst };
-  }
-
   let products: ProductsLayout | null = null;
-  if (s.products.length > 0) {
-    const podX1 = pod ? pod.x0 + pod.w : 0;
-    products = {
-      x0: Math.max(gridX1, podX1) + 2.2,
-      y0: FRONT_Y,
-      w: PRODUCT_W,
-      d: PRODUCT_W,
-      live: s.products.filter((p) => p.active).length,
-    };
-  }
+  const bounds: Box3[] = [];
 
-  const frontY = (pod ? pod.y0 + pod.d : FRONT_Y + PRODUCT_W) + 0.9;
+  kinds.forEach((kind, ci) => {
+    const c = cells[ci];
+    if (!c) return;
+    bounds.push({ x0: c.x, y0: c.y, x1: c.x + cell, y1: c.y + cell, z0: -2, z1: 0 });
+    if (typeof kind === 'number') {
+      const dc = dcs[kind];
+      const look = looks[kind];
+      const x0 = c.x + (cell - look.w) / 2;
+      const y0 = c.y + (cell - look.d) / 2;
+      const tier = DATACENTER_TIERS.find((t) => t.id === dc.tierId);
+      const built = dc.buildDaysLeft <= 0;
+      const perRow = Math.max(1, Math.floor((look.w - SIDE - 0.25) / RACK_W));
+      const rows = Math.max(1, Math.floor((look.d - BACK - FRONT + AISLE) / ROW_PITCH));
+      const cap = perRow * rows;
+      const installed = installedOf(dc);
+      const maxGpus = tier?.maxGpus ?? Math.max(1, installed);
+      const gpusPerRack = Math.max(1, Math.ceil(Math.max(maxGpus, installed) / cap));
+      const filledRacks = built && installed > 0 ? Math.min(cap, Math.ceil(installed / gpusPerRack)) : 0;
+      const rowX = x0 + SIDE;
+      const rowY: number[] = [];
+      for (let r = 0; r < rows; r++) rowY.push(y0 + BACK + r * ROW_PITCH);
+      const racks: RackSlot[] = [];
+      for (let r = 0; r < rows; r++) {
+        for (let k = 0; k < perRow; k++) {
+          const idx = r * perRow + k;
+          racks.push({ x: rowX + k * RACK_W, y: rowY[r], row: r, filled: idx < filledRacks, seed: kind * 97.13 + idx * 0.6180339 });
+        }
+      }
+      const buildDays = Math.max(1, (tier?.buildDays ?? 1));
+      const progress = built ? 1 : Math.max(0, Math.min(1, 1 - dc.buildDaysLeft / buildDays));
+      halls.push({
+        dc,
+        tierName: tierName(dc.tierId),
+        look,
+        built,
+        liquid: !!dc.liquid,
+        infiniband: !!dc.infiniband,
+        leased: leasedIds.has(dc.id),
+        progress,
+        x0,
+        y0,
+        w: look.w,
+        d: look.d,
+        line: c.line,
+        installed,
+        slots: maxGpus,
+        gpusPerRack,
+        filledRacks,
+        rows,
+        perRow,
+        rowY,
+        rowX,
+        racks,
+        box: { x0, y0, x1: x0 + look.w, y1: y0 + look.d, z0: 0, z1: look.wallH },
+      });
+      bounds.push({ x0, y0, x1: x0 + look.w, y1: y0 + look.d, z0: 0, z1: look.wallH + 14 });
+    } else if (kind === 'pod') {
+      const tg = Math.max(0, Math.round(fleet.trainingGpus));
+      const gpusPerRack = tg > 0 ? nextPow2(Math.ceil(tg / POD_SLOTS)) : 1;
+      const glyphs = tg > 0 ? Math.min(POD_SLOTS, Math.ceil(tg / gpusPerRack)) : 0;
+      const w = Math.min(cell, 5.2);
+      const x0 = c.x + (cell - w) / 2;
+      const y0 = c.y + (cell - w) / 2;
+      const racks = rackGrid(x0 + 0.5, y0 + 0.6, w - 0.9, w - 0.9, glyphs, RACK_W + 0.12, RACK_D + 1.05, 900);
+      pod = { x0, y0, w, d: w, line: c.line, gpus: tg, gpusPerRack, racks, box: { x0, y0, x1: x0 + w, y1: y0 + w, z0: 0, z1: 28 } };
+      bounds.push({ x0, y0, x1: x0 + w, y1: y0 + w, z0: 0, z1: 40 });
+    } else if (kind === 'cloud') {
+      const gpusPerRack = rented > 0 ? nextPow2(Math.ceil(rented / CLOUD_SLOTS)) : 1;
+      const glyphs = rented > 0 ? Math.min(CLOUD_SLOTS, Math.ceil(rented / gpusPerRack)) : 0;
+      const w = Math.min(cell, 4.6);
+      const x0 = c.x + (cell - w) / 2;
+      const y0 = c.y + (cell - w) / 2;
+      const racks = rackGrid(x0 + 0.45, y0 + 0.45, w - 0.8, w - 0.8, glyphs, RACK_W + 0.32, RACK_D + 0.62, 5000);
+      const cx = x0 + w / 2;
+      const cy = y0 + w / 2;
+      cloud = {
+        x0,
+        y0,
+        w,
+        d: w,
+        line: c.line,
+        rentedGpus: rented,
+        gpusPerRack,
+        racks,
+        burst,
+        box: { x0, y0, x1: x0 + w, y1: y0 + w, z0: CLOUD_Z - 3, z1: CLOUD_Z + 14 },
+        burstBox: { x0: cx - 1.2, y0: cy - 1.2, x1: cx + 1.2, y1: cy + 1.2, z0: BURST_Z - 8, z1: BURST_Z + 10 },
+      };
+      bounds.push({ x0, y0, x1: x0 + w, y1: y0 + w, z0: 0, z1: burst ? BURST_Z + 14 : CLOUD_Z + 26 });
+    } else {
+      const w = Math.min(cell, 3.6);
+      const x0 = c.x + (cell - w) / 2;
+      const y0 = c.y + (cell - w) / 2;
+      products = {
+        x0,
+        y0,
+        w,
+        d: w,
+        line: c.line,
+        live: s.products.filter((p) => p.active).length,
+        box: { x0: x0 + 0.5, y0: y0 + 0.5, x1: x0 + w - 0.5, y1: y0 + w - 0.5, z0: 0, z1: PRODUCT_H },
+      };
+      bounds.push({ x0, y0, x1: x0 + w, y1: y0 + w, z0: 0, z1: PRODUCT_H + 16 });
+    }
+  });
+  if (!bounds.length) bounds.push({ x0: 0, y0: 0, x1: cell, y1: cell, z0: 0, z1: 10 });
 
-  // Bounds for the camera fit.
-  let xmin = 0;
-  let xmax = gridX1;
-  let ymin = 0;
-  let ymax = FRONT_Y + PRODUCT_W;
-  let zmax = 30;
-  for (const h of halls) {
-    ymin = Math.min(ymin, h.y0);
-    zmax = Math.max(zmax, h.look.wallH + (h.look.style === 'cathedral' ? 22 : 0));
-  }
-  if (cloud) {
-    xmin = Math.min(xmin, cloud.x0);
-    ymax = Math.max(ymax, cloud.y0 + cloud.d);
-    zmax = Math.max(zmax, CLOUD_TOP);
-    if (cloud.burst) zmax = Math.max(zmax, BURST_TOP);
-  }
-  if (pod) {
-    xmax = Math.max(xmax, pod.x0 + pod.w);
-    ymax = Math.max(ymax, pod.y0 + pod.d);
-    zmax = Math.max(zmax, POD_H);
-  }
-  if (products) {
-    xmax = Math.max(xmax, products.x0 + products.w);
-    ymax = Math.max(ymax, products.y0 + products.d);
-    zmax = Math.max(zmax, PRODUCT_H + 4);
-  }
-  // A small or empty campus still gets a sensible frame.
-  if (xmax - xmin < 10) xmax = xmin + 10;
-  if (ymax - ymin < 8) ymin = ymax - 8;
-
-  return {
-    halls: ordered,
-    pod,
-    cloud,
-    products,
-    frontY,
-    bounds: { xmin, xmax, ymin, ymax, zmax },
-    engineers: engineersOf(s),
-  };
+  return { halls, pod, cloud, products, cell, bounds, engineers: engineersOf(s), lines };
 }

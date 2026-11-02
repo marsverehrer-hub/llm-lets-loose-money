@@ -49,7 +49,7 @@ export function ComputePanel() {
         cam={DC_CAM}
         camId="CAM-03"
         height={360}
-        label="Your datacenters: racks blink amber for training, blue for serving and dark when idle; the cloud floats to the side"
+        label="Your datacenters: rack lights are yellow for training, green for serving and dim when idle; the cloud floats to the side"
         onSelect={(hit) => {
           const key = hit.id.startsWith('dc:') ? hit.id.slice(3) : hit.id === 'cloud:rented' ? 'rental' : hit.id === 'cloud:burst' ? 'burst' : null;
           if (key) setSheet({ kind: 'block', key });
