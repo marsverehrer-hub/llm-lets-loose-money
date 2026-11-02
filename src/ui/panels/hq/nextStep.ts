@@ -1,5 +1,6 @@
 // OWNER: ONBOARD. The Headquarters advisor: every useful move right now, most urgent first, in plain words.
 import type { PanelId } from '../../App';
+import type { Intent } from '../../nav';
 import { computeCapacity } from '../../../sim/systems/compute';
 import { runwayDays } from '../../../sim/systems/finance';
 import { unlockedProductKinds } from '../../../sim/systems/products';
@@ -25,6 +26,8 @@ export interface Step {
   priority: Priority;
   /** v17: this step is the current lab chapter (HQ shows it in its own banner). */
   chapter?: boolean;
+  /** v17.2: where on the panel the button should land (navigate's intent). */
+  intent?: Intent;
 }
 
 /** Every suggestion that applies, urgent first, then the core loop, then ideas. */
@@ -45,6 +48,7 @@ export function nextSteps(s: GameState): Step[] {
       why: 'A term sheet is waiting. Investors get bored and walk.',
       panel: 'finance',
       cta: 'Review offer',
+      intent: { focus: 'offer' },
     });
   if (s.finance.negativeCashDays > 0)
     add({
@@ -53,6 +57,7 @@ export function nextSteps(s: GameState): Step[] {
       why: 'Thirty days below zero and the lab is bankrupt. Borrow, raise or cut costs today.',
       panel: 'finance',
       cta: 'Fix cash',
+      intent: { focus: 'pitch' },
     });
   else if (runway < 120)
     add({
@@ -60,7 +65,8 @@ export function nextSteps(s: GameState): Step[] {
       text: `Runway is ${formatDays(runway)}. Raise money or cut burn`,
       why: 'Runway is how long your cash lasts at today’s spending. Under four months is the danger zone.',
       panel: 'finance',
-      cta: 'Open Finance',
+      cta: 'Pitch investors',
+      intent: { focus: 'pitch' },
     });
   const down = live.filter((p) => p.servedFraction < 1);
   if (down.length)
@@ -81,7 +87,7 @@ export function nextSteps(s: GameState): Step[] {
       cta: 'Fix pricing',
     });
   if (cap.total <= 0)
-    add({ priority: 'urgent', text: 'Rent some GPUs', why: 'With no compute, nothing trains and nothing serves.', panel: 'compute', cta: 'Open Compute' });
+    add({ priority: 'urgent', text: 'Rent some GPUs', why: 'With no compute, nothing trains and nothing serves.', panel: 'compute', cta: 'Rent GPUs', intent: { tab: 'rent' } });
 
   // Next: the current chapter, unless another move already points at the same screen.
   const chapterStep = chapterNextStep(s);
@@ -96,6 +102,7 @@ export function nextSteps(s: GameState): Step[] {
       why: 'A finished model earns nothing until it ships. Release it, then sell it as a product.',
       panel: 'models',
       cta: 'Release it',
+      intent: { open: 'release', modelId: unreleased.id },
     });
   const notLive = unlockedProductKinds(s).filter((k) => !live.some((p) => p.kind === k));
   if (released.length > 0 && notLive.length > 0) {
@@ -106,6 +113,7 @@ export function nextSteps(s: GameState): Step[] {
       why: 'Products turn a released model into daily revenue.',
       panel: 'products',
       cta: 'Launch',
+      intent: { open: 'launch', kind },
     });
   }
   if (!s.training && cap.training > 0 && s.models.length > 0)
@@ -115,6 +123,7 @@ export function nextSteps(s: GameState): Step[] {
       why: 'Your training GPUs are idle. Every idle day is a day the rivals pull ahead.',
       panel: 'models',
       cta: 'Train',
+      intent: { open: 'train' },
     });
   if (s.research.current === null)
     add({
@@ -132,6 +141,7 @@ export function nextSteps(s: GameState): Step[] {
       why: 'Traffic your own GPUs cannot carry spills onto pricey rented cloud. Add serving capacity.',
       panel: 'compute',
       cta: 'Add compute',
+      intent: { tab: 'rent' },
     });
 
   // The chapter leads the 'next' moves (after anything urgent), unless a more specific move already points at its screen.
@@ -160,7 +170,7 @@ export function nextSteps(s: GameState): Step[] {
     add({ priority: 'idea', text: 'Bid on a client contract', why: 'Contracts pay a lump sum for a model that clears the bar.', panel: 'contracts', cta: 'See offers' });
   const seats = OFFICE_TIERS.find((t) => t.id === s.company.officeTierId)?.capacity ?? 0;
   if (seats > 0 && headcount(s) < seats && runway > 365)
-    add({ priority: 'idea', text: 'Hire into the empty desks', why: 'More researchers and engineers make everything faster. You can afford it.', panel: 'staff', cta: 'Hire' });
+    add({ priority: 'idea', text: 'Hire into the empty desks', why: 'More researchers and engineers make everything faster. You can afford it.', panel: 'staff', cta: 'Hire', intent: { open: 'hire' } });
   if (s.data.owned.length < 4)
     add({ priority: 'idea', text: 'Buy more training data', why: `You own ${s.data.owned.length} dataset${s.data.owned.length === 1 ? '' : 's'}. More and better data means smarter models.`, panel: 'data', cta: 'Shop data' });
   if (out.every((st) => st.chapter))
@@ -168,11 +178,30 @@ export function nextSteps(s: GameState): Step[] {
   return out;
 }
 
+/** Where a chapter's button lands. */
+function chapterIntent(s: GameState, id: string): Intent | undefined {
+  const unreleased = s.models.find((m) => m.releasedDay === null);
+  switch (id) {
+    case 'first_run':
+      return { open: 'train' };
+    case 'first_release':
+      return unreleased ? { open: 'release', modelId: unreleased.id } : undefined;
+    case 'first_round':
+      return { focus: 'pitch' };
+    case 'first_product':
+      return { open: 'launch' };
+    case 'own_gpus':
+      return { tab: 'build' };
+    default:
+      return undefined;
+  }
+}
+
 /** The current lab chapter as a move (null once every chapter is done). */
 export function chapterNextStep(s: GameState): Step | null {
   const ch = currentChapter(s);
   if (!ch) return null;
-  return { priority: 'next', text: ch.title, why: ch.why, panel: ch.panel as PanelId, cta: ch.cta, chapter: true };
+  return { priority: 'next', text: ch.title, why: ch.why, panel: ch.panel as PanelId, cta: ch.cta, chapter: true, intent: chapterIntent(s, ch.id) };
 }
 
 /** The single most useful move. */

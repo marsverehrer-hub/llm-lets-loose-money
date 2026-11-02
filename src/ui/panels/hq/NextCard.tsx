@@ -38,7 +38,7 @@ export function NextCard({ s }: { s: GameState }) {
               </div>
               <p class="adv-why">{st.why}</p>
             </div>
-            <Button size="sm" variant={i === 0 ? 'primary' : 'default'} onClick={() => navigate(st.panel)}>
+            <Button size="sm" variant={i === 0 ? 'primary' : 'default'} onClick={() => navigate(st.panel, st.intent)}>
               {st.cta}
             </Button>
           </li>

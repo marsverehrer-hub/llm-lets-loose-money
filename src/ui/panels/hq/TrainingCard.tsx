@@ -18,7 +18,7 @@ export function TrainingCard({ s }: { s: GameState }) {
           title="Not training"
           text="Every idle day is a day the rivals train and you don't."
           action={
-            <Button variant="primary" size="sm" onClick={() => navigate('models')}>
+            <Button variant="primary" size="sm" onClick={() => navigate('models', { open: 'train' })}>
               Start a run
             </Button>
           }

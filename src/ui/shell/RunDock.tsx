@@ -32,7 +32,7 @@ function TrainCell({ s, phone }: { s: GameState; phone: boolean }) {
   if (!run || !st) {
     const queued = (s.trainingQueue ?? []).length;
     return (
-      <button type="button" class="dock-cell dock-idle" onClick={() => navigate('models')} title="The training slot is empty">
+      <button type="button" class="dock-cell dock-idle" onClick={() => navigate('models', { open: 'train' })} title="The training slot is empty">
         <span class="dock-k">Train</span>
         <span class="dock-v">{queued > 0 ? `${queued} queued, waiting` : phone ? 'Idle. Start a run' : 'Slot idle. Start a run'}</span>
         <span class="dock-go" aria-hidden="true">›</span>
@@ -43,7 +43,7 @@ function TrainCell({ s, phone }: { s: GameState; phone: boolean }) {
   const cp = run.checkpoints?.[run.checkpoints.length - 1];
   return (
     <div class="dock-cell dock-train" role="group" aria-label="Training run">
-      <button type="button" class="dock-link" onClick={() => navigate('models')} title="Open the run in Models">
+      <button type="button" class="dock-link" onClick={() => navigate('models', { open: 'run' })} title="Open the run in Models">
         <span class="dock-k">{run.kind === 'pretrain' || !run.kind ? 'Train' : run.kind === 'finetune' ? 'Tune' : run.kind === 'distill' ? 'Distill' : 'Merge'}</span>
         <span class="dock-name">{run.name}</span>
         <Bar frac={st.frac} tone={pending ? 'warn' : run.tempo === 'crunch' ? 'hot' : ''} />
@@ -137,7 +137,7 @@ function NextCell({ s }: { s: GameState }) {
   const st = nextStep(s);
   if (!st) return null;
   return (
-    <button type="button" class={`dock-cell dock-next ${st.priority === 'urgent' ? 'is-urgent' : ''}`} onClick={() => navigate(st.panel)} title={st.why}>
+    <button type="button" class={`dock-cell dock-next ${st.priority === 'urgent' ? 'is-urgent' : ''}`} onClick={() => navigate(st.panel, st.intent)} title={st.why}>
       <span class="dock-k">{st.priority === 'urgent' ? 'Urgent' : 'Next'}</span>
       <span class="dock-name">{st.text}</span>
       <span class="dock-go" aria-hidden="true">›</span>

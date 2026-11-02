@@ -4,6 +4,7 @@ import type { GameState } from '../../../sim/types';
 import { CHAPTERS, chapterIndex } from '../../../sim/systems/chapters';
 import { Button } from '../../components';
 import { navigate } from '../../nav';
+import { chapterNextStep } from './nextStep';
 import type { PanelId } from '../../App';
 
 export function ChapterBanner({ s }: { s: GameState }) {
@@ -44,7 +45,7 @@ export function ChapterBanner({ s }: { s: GameState }) {
         )}
         {pips}
       </div>
-      <Button variant="primary" onClick={() => navigate(ch.panel as PanelId)}>
+      <Button variant="primary" onClick={() => navigate(ch.panel as PanelId, chapterNextStep(s)?.intent)}>
         {ch.cta}
       </Button>
     </section>

@@ -30,6 +30,7 @@ import { DistillWizard } from './train/DistillWizard';
 import { MergeWizard } from './train/MergeWizard';
 import { TrainingQueue } from './train/TrainingQueue';
 import { getView, setView, useDraftStore } from './train/draft';
+import { useIntent } from '../nav';
 import { arenaTop, bandText, fmtCtx, lineageRows, optionName, pct, r0, tokensShort } from './train/model';
 import { ArmButton } from './model/parts';
 import { CLASS_NAME, ModelPage } from './model/ModelPage';
@@ -44,11 +45,25 @@ import './models-rows.css';
 // panel
 // ---------------------------------------------------------------------------
 
+/** Scrolls an element into view once the next render has placed it. */
+function scrollToSoon(id: string): void {
+  requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
+}
+
 export function ModelsPanel() {
   const s = useGame();
   useDraftStore();
   const view = getView();
   const [selId, setSelId] = useState<Id | null>(null);
+  // v17.2: buttons elsewhere land here on the thing they name (train sheet, release wizard, a model, the live run).
+  useIntent('models', (i) => {
+    if (!('open' in i)) return;
+    if (i.open === 'train') return setView({ kind: 'train' });
+    if (i.open === 'release') return setView({ kind: 'release', modelId: i.modelId });
+    setView({ kind: 'list' });
+    if (i.open === 'model') setSelId(i.modelId);
+    scrollToSoon(i.open === 'model' ? 'md-detail' : 'md-run');
+  });
 
   // A model awaiting its eval-day reveal stays off the list so the scores aren't spoiled behind the modal.
   const hiddenId = s.pendingReveal?.modelId;
@@ -125,10 +140,14 @@ export function ModelsPanel() {
           if (hit.id.startsWith('model:')) setSelId(hit.id.slice(6));
         }}
       />
-      {s.training ? <LiveRun s={s} run={s.training} /> : <StartCard s={s} />}
+      <div id="md-run">{s.training ? <LiveRun s={s} run={s.training} /> : <StartCard s={s} />}</div>
       <TrainingQueue />
       <ModelList s={s} models={models} selId={detail?.id ?? null} onSelect={setSelId} />
-      {detail && <ModelPage key={detail.id} s={s} m={detail} />}
+      {detail && (
+        <div id="md-detail">
+          <ModelPage key={detail.id} s={s} m={detail} />
+        </div>
+      )}
       <LabNotebook s={s} />
       <MediaStudio s={s} />
     </div>
