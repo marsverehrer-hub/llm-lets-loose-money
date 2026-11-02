@@ -3,22 +3,24 @@ import type { GameState, Product, ProductKind } from '../../sim/types';
 import { formatMoney, formatNumber } from '../../sim/util';
 import { liveLines, unlockedProductKinds } from '../../sim/systems/products';
 import { RESEARCH } from '../../sim/data/research';
-import { TILE_H, TILE_W, project, type Projector } from '../../office/iso';
-import { C } from '../../office/palette';
-import { type Ctx, glow, withAlpha } from '../../office/draw/prims';
+import { project, type Projector } from '../../office/iso';
+import { type Ctx, glow } from '../../office/draw/prims';
+import { T, alpha, syncTheme } from '../../office/kit/theme';
+import { type Box2, type HudPart, arrangePods, drawGround, feedMargins, fitTo, hud, tag } from '../../office/kit/frame';
 import type { Scene, SceneHit } from '../types';
 import {
-  CAR_D,
-  DC_Y1,
+  CAR_DY,
+  DC_D,
+  DC_W,
   DcSnap,
-  FRONT_Y,
   KIND_LABEL,
   LOT_D,
-  LOT_PITCH,
+  LOT_IN,
   LOT_W,
-  LOT_X0,
-  LOT_Y,
   Lot,
+  POD_D,
+  POD_W,
+  dcIntake,
   drawCar,
   drawDown,
   drawFace,
@@ -27,6 +29,7 @@ import {
   drawStreet,
   drawSuit,
   mood,
+  shortNum,
 } from './shops';
 
 const KINDS_OF_LOT: ProductKind[] = ['chat', 'chat', 'api', 'api', 'enterprise', 'enterprise'];
@@ -37,7 +40,8 @@ const CARS_PER_LOT = 2;
 const CAR_SPEED = 4.2;
 const CAR_PARK_DX = 1.8;
 const CAR_UNLOAD_S = 2.4;
-const HMAX = 50;
+/** Tallest storefront plus its sign, and the pipe run above the roofs. */
+const HMAX = 52;
 
 const clamp = (v: number, lo: number, hi: number) => (v < lo ? lo : v > hi ? hi : v);
 const log10p = (v: number) => Math.log10(1 + Math.max(0, v));
@@ -68,6 +72,7 @@ interface Snapshot {
   sig: string;
   lots: Lot[];
   dc: DcSnap;
+  box: Box2;
 }
 
 /** Total GPUs owned or rented, the same count the office uses. */
@@ -83,8 +88,8 @@ function productIn(s: GameState, L: Lot): Product | undefined {
   return s.products.find((p) => p.id === L.productId && p.active);
 }
 
-/** The layout and figures for the current state. Pure function of GameState. */
-function snapshot(s: GameState): Snapshot {
+/** The layout and figures for the current state and frame (available CSS px). Pure function of its inputs. */
+function snapshot(s: GameState, aw: number, ah: number): Snapshot {
   const unlocked = unlockedProductKinds(s);
   const lots: Lot[] = [];
   let sig = '';
@@ -96,8 +101,8 @@ function snapshot(s: GameState): Snapshot {
       index: i,
       kind,
       slot,
-      x: LOT_X0 + i * LOT_PITCH,
-      y: LOT_Y,
+      x: 0,
+      y: 0,
       state: p ? 'live' : unlocked.includes(kind) ? 'vacant' : 'locked',
       productId: p ? p.id : null,
       H: 0,
@@ -132,13 +137,25 @@ function snapshot(s: GameState): Snapshot {
   const gpus = totalGpus(s);
   const g = clamp(log10p(gpus) / 5, 0, 1);
   const dc: DcSnap = {
-    hallH: 30 + 12 * g,
-    racks: Math.min(18, 2 + Math.round(Math.log2(1 + gpus) * 0.8)),
-    label: gpus > 0 ? `DATACENTER ${formatNumber(gpus, 1)} GPUS` : 'RENTED CLOUD CAPACITY',
+    x: 0,
+    y: 0,
+    racks: Math.min(18, 2 + Math.round(Math.log2(1 + gpus) * 0.8 * (0.6 + 0.4 * g))),
+    label: gpus > 0 ? `${formatNumber(gpus, 1)} GPUs` : 'Rented cloud',
     training: !!s.training,
   };
-  sig += `|dc${dc.hallH.toFixed(1)}|${dc.racks}|${dc.label}|${dc.training}`;
-  return { sig, lots, dc };
+  // Storefront pods across the frame, the datacenter last.
+  const specs = lots.map((L) => ({ w: POD_W, d: POD_D, h: L.state === 'live' ? L.H + 6 : 14 }));
+  specs.push({ w: DC_W, d: DC_D, h: HMAX });
+  const plan = arrangePods(specs, aw, ah, 1.4, 1.2, 3);
+  lots.forEach((L, i) => {
+    L.x = plan.x[i] + LOT_IN;
+    L.y = plan.y[i] + LOT_IN;
+  });
+  dc.x = plan.x[LOT_COUNT];
+  dc.y = plan.y[LOT_COUNT];
+  plan.box.y0 -= HMAX - 30;
+  sig += `|dc${dc.racks}|${dc.label}|${dc.training}|${plan.rows}|${plan.x.join(',')}|${plan.y.join(',')}`;
+  return { sig, lots, dc, box: plan.box };
 }
 
 /** Convex hull (monotone chain) of a flat [x0,y0,x1,y1,...] list. Returns a flat CCW-ish list. */
@@ -189,8 +206,9 @@ export class ProductsScene implements Scene {
   private time = 0;
   private sigTimer = 0;
   private sig = '';
+  private box: Box2 = { x0: 0, y0: 0, x1: 1, y1: 1 };
   private lots: Lot[] = [];
-  private dc: DcSnap = { hallH: 30, racks: 2, label: '', training: false };
+  private dc: DcSnap = { x: 0, y: 0, racks: 2, label: '', training: false };
   private statics: StaticItem[] = [];
   private hulls: number[][] = [];
   private last: GameState | null = null;
@@ -200,31 +218,20 @@ export class ProductsScene implements Scene {
   private accRev: number[] = new Array(LOT_COUNT).fill(0);
   private accSrv: number[] = new Array(LOT_COUNT).fill(0);
   private flash: number[] = new Array(LOT_COUNT).fill(0);
-  private marginColor: string[] = new Array(LOT_COUNT).fill(C.fgDim);
+  private marginColor: string[] = new Array(LOT_COUNT).fill('#888888');
+  private tagRects: { box: Box2; lot: number }[] = [];
 
   resize(cssW: number, cssH: number): void {
     this.cssW = cssW;
     this.cssH = cssH;
+    this.sigTimer = 0;
     this.fit();
     this.rebuildHulls();
   }
 
-  /** Fit the street, lots and datacenter into the canvas. */
+  /** Auto-fit camera on the storefront pods. */
   private fit(): void {
-    const X0 = -0.8;
-    const X1 = LOT_X0 + LOT_COUNT * LOT_PITCH + 0.6;
-    const Y0 = -0.6;
-    const Y1 = FRONT_Y + 2.8;
-    const availW = Math.max(40, this.cssW - 20);
-    const availH = Math.max(40, this.cssH - 20);
-    const spanX = (X1 - Y0) - (X0 - Y1);
-    const spanY = (X1 + Y1) - (X0 + Y0);
-    const sc = clamp(Math.min(availW / ((spanX * TILE_W) / 2), availH / ((spanY * TILE_H) / 2 + HMAX)), 0.35, 2.6);
-    this.proj.scale = sc;
-    const cx = (X0 + X1) / 2;
-    const cy = (Y0 + Y1) / 2;
-    this.proj.ox = this.cssW / 2 - (cx - cy) * (TILE_W / 2) * sc;
-    this.proj.oy = this.cssH / 2 - (cx + cy) * (TILE_H / 2) * sc + (HMAX / 2) * sc;
+    fitTo(this.proj, this.box, this.cssW, this.cssH);
   }
 
   private rebuildHulls(): void {
@@ -248,35 +255,36 @@ export class ProductsScene implements Scene {
     this.sig = snap.sig;
     this.lots = snap.lots;
     this.dc = snap.dc;
+    this.box = snap.box;
+    this.fit();
     const items: StaticItem[] = [];
-    items.push({ d: -2, fn: (c) => drawStreet(c) });
     const dc = this.dc;
-    items.push({ d: -1, fn: (c, t) => drawHall(c, dc, t) });
-    for (const L of this.lots) items.push({ d: L.x + L.y, fn: (c, t) => drawLot(c, L, t) });
+    items.push({ d: dc.x + dc.y, fn: (c, t) => drawHall(c, dc, t) });
+    for (const L of this.lots) {
+      items.push({ d: L.x + L.y - 0.01, fn: (c) => drawStreet(c, L) });
+      items.push({ d: L.x + L.y, fn: (c, t) => drawLot(c, L, t) });
+    }
     items.sort((a, b) => a.d - b.d);
     this.statics = items;
     this.rebuildHulls();
   }
 
-  draw(g: CanvasRenderingContext2D, s: GameState, dt: number, _nowMs: number): void {
+  draw(g: CanvasRenderingContext2D, s: GameState, dt: number, nowMs: number): void {
+    syncTheme(nowMs);
     this.last = s;
     this.time += dt;
     const t = this.time;
     this.sigTimer -= dt;
     if (this.sigTimer <= 0 || this.statics.length === 0) {
       this.sigTimer = 0.25;
-      const snap = snapshot(s);
+      const m = feedMargins(this.cssW, this.cssH);
+      const snap = snapshot(s, Math.max(40, this.cssW - m.l - m.r), Math.max(40, this.cssH - m.t - m.b));
       if (snap.sig !== this.sig || this.statics.length === 0) this.rebuild(snap);
     }
     const c = this.ctx;
     c.g = g;
     c.p = this.proj;
-
-    const bg = g.createLinearGradient(0, 0, 0, this.cssH);
-    bg.addColorStop(0, C.bgTop);
-    bg.addColorStop(1, C.bgBottom);
-    g.fillStyle = bg;
-    g.fillRect(0, 0, this.cssW, this.cssH);
+    drawGround(g, this.proj, this.cssW, this.cssH);
 
     for (const it of this.statics) it.fn(c, t);
 
@@ -307,7 +315,7 @@ export class ProductsScene implements Scene {
           car.on = true;
           car.lot = i;
           car.phase = 0;
-          car.cx = -0.2;
+          car.cx = L.x - LOT_IN + 0.8;
           car.t = 0;
           car.seed = i * 7 + Math.floor(this.time * 13) % 97;
         }
@@ -338,7 +346,7 @@ export class ProductsScene implements Scene {
         }
       } else {
         car.cx += CAR_SPEED * dt;
-        if (car.cx > L.x + 10) car.on = false;
+        if (car.cx > L.x + LOT_W + 0.2) car.on = false;
       }
     }
   }
@@ -348,11 +356,14 @@ export class ProductsScene implements Scene {
       if (!car.on) continue;
       const L = this.lots[car.lot];
       if (!L) continue;
-      drawCar(c, car.cx, car.seed);
+      const fade = clamp((car.cx - (L.x - LOT_IN + 0.8)) / 0.6, 0, 1) * clamp((L.x + LOT_W + 0.2 - car.cx) / 0.6, 0, 1);
+      c.g.globalAlpha = fade;
+      drawCar(c, car.cx, L.y + CAR_DY, car.seed);
+      c.g.globalAlpha = 1;
       if (car.phase === 1 && car.t > 0.3 && car.t < 2.1) {
         // Suit steps out at the kerb and walks into the lobby door.
         const u = clamp((car.t - 0.3) / 1.8, 0, 1);
-        const y = 9.5 + (7.95 - 9.5) * u;
+        const y = L.y + 4.1 + (2.55 - 4.1) * u;
         drawSuit(c, car.cx, y, car.seed + 3, t);
       }
     }
@@ -372,8 +383,22 @@ export class ProductsScene implements Scene {
     return [L.x + 1.8, L.y + 2.6, 4];
   }
 
+  /** Height of a lot's pipe run, above every roof. */
   private pipeZ(L: Lot): number {
-    return L.slot === 0 ? 27 : 33;
+    return HMAX - 4 + L.index * 1.2;
+  }
+
+  /** Where a lot's serving pipe runs: up from the till, then across to the datacenter intake. */
+  private pipePts(L: Lot): [number, number, number][] {
+    const [tx, ty, tz] = this.tillOf(L);
+    const z = this.pipeZ(L);
+    const [ix, iy, iz] = dcIntake(this.dc);
+    return [
+      [tx, ty, tz],
+      [tx, ty, z],
+      [ix, iy + (L.index - 2.5) * 0.25, z],
+      [ix, iy + (L.index - 2.5) * 0.25, iz - 6],
+    ];
   }
 
   private spawn(lot: number, rev: boolean): void {
@@ -409,7 +434,7 @@ export class ProductsScene implements Scene {
       const rev = p.revenuePerDay ?? 0;
       const cost = p.servingCostPerDay ?? 0;
       const margin = rev - cost;
-      this.marginColor[i] = margin > 0 ? C.green : margin < 0 ? C.red : C.fgDim;
+      this.marginColor[i] = margin > 0 ? T.up : margin < 0 ? T.down : T.fg2;
       // Coins per second on a log scale: a few for small products, about three a second for the largest.
       const rr = rev > 0 ? clamp(0.6 * log10p(rev) - 1.2, 0, 6) : 0;
       const sr = cost > 0 ? clamp(0.5 * log10p(cost) - 0.6, 0, 4) : 0;
@@ -432,23 +457,16 @@ export class ProductsScene implements Scene {
     for (let i = 0; i < LOT_COUNT; i++) {
       const L = this.lots[i];
       if (!L || !productIn(s, L)) continue;
-      const [tx, ty, tz] = this.tillOf(L);
-      const z = this.pipeZ(L);
-      const a = project(p, tx, ty, tz);
-      const b = project(p, tx, ty, z);
-      const d = project(p, tx, DC_Y1, z);
+      const pts = this.pipePts(L).map(([x, y, z]) => project(p, x, y, z));
       g.save();
-      g.strokeStyle = withAlpha(this.marginColor[i], 0.5);
-      g.lineWidth = Math.max(1, 1.2 * p.scale);
+      g.strokeStyle = alpha(this.marginColor[i], 0.45);
+      g.lineWidth = Math.max(1, 1.1 * p.scale);
       g.beginPath();
-      g.moveTo(a[0], a[1]);
-      g.lineTo(b[0], b[1]);
-      g.lineTo(d[0], d[1]);
+      g.moveTo(pts[0][0], pts[0][1]);
+      for (let k = 1; k < pts.length; k++) g.lineTo(pts[k][0], pts[k][1]);
       g.stroke();
       g.fillStyle = this.marginColor[i];
-      g.beginPath();
-      g.arc(d[0], d[1], Math.max(1.5, 2 * p.scale), 0, Math.PI * 2);
-      g.fill();
+      g.fillRect(pts[1][0] - 1.5, pts[1][1] - 1.5, 3, 3);
       g.restore();
     }
   }
@@ -470,23 +488,21 @@ export class ProductsScene implements Scene {
         y = src[1] + (till[1] - src[1]) * u;
         z = src[2] + (till[2] - src[2]) * u + Math.sin(Math.PI * u) * 14;
       } else {
-        const zP = this.pipeZ(L);
-        if (k.u < 0.3) {
-          const v = k.u / 0.3;
-          x = till[0];
-          y = till[1];
-          z = till[2] + (zP - till[2]) * v;
-        } else {
-          const v = (k.u - 0.3) / 0.7;
-          x = till[0];
-          y = till[1] + (DC_Y1 - till[1]) * v;
-          z = zP;
-        }
+        // Along the pipe: up (first 20%), across (next 70%), down into the datacenter.
+        const P = this.pipePts(L);
+        const seg = k.u < 0.2 ? 0 : k.u < 0.9 ? 1 : 2;
+        const v = seg === 0 ? k.u / 0.2 : seg === 1 ? (k.u - 0.2) / 0.7 : (k.u - 0.9) / 0.1;
+        const a = P[seg];
+        const b = P[seg + 1];
+        x = a[0] + (b[0] - a[0]) * v;
+        y = a[1] + (b[1] - a[1]) * v;
+        z = a[2] + (b[2] - a[2]) * v;
       }
       const [sx, sy] = project(p, x, y, z);
-      g.fillStyle = k.rev ? C.amber : this.marginColor[k.lot];
+      const r = Math.max(1.3, 1.7 * p.scale);
+      g.fillStyle = k.rev ? T.hl : this.marginColor[k.lot];
       g.beginPath();
-      g.arc(sx, sy, Math.max(1.3, 1.6 * p.scale), 0, Math.PI * 2);
+      g.arc(sx, sy, r, 0, Math.PI * 2);
       g.fill();
     }
     for (let i = 0; i < LOT_COUNT; i++) {
@@ -495,7 +511,7 @@ export class ProductsScene implements Scene {
       if (!L) continue;
       const [tx, ty, tz] = this.tillOf(L);
       const [sx, sy] = project(p, tx, ty, tz);
-      glow(g, sx, sy, 10 * p.scale, C.amber, 0.6 * (this.flash[i] / 0.25));
+      glow(g, sx, sy, 10 * p.scale, T.hl, 0.6 * (this.flash[i] / 0.25));
     }
   }
 
@@ -505,10 +521,22 @@ export class ProductsScene implements Scene {
     const { g, p } = c;
     let liveN = 0;
     let margin = 0;
+    this.tagRects = [];
+    const small = this.cssW < 520;
     for (let i = 0; i < LOT_COUNT; i++) {
       const L = this.lots[i];
       if (!L) continue;
       const pr = productIn(s, L);
+      // Tag on the lot's left corner: the product (in its margin colour) or what the empty lot is for.
+      const [lx, ly] = project(p, L.x - LOT_IN + 0.2, L.y - LOT_IN + POD_D - 0.2, 0);
+      if (pr) {
+        const name = small && pr.name.length > 12 ? `${pr.name.slice(0, 11)}.` : pr.name.length > 20 ? `${pr.name.slice(0, 19)}.` : pr.name;
+        const box = tag(g, lx, ly, name, this.marginColor[i], { value: shortNum(pr.users), size: small ? 9.5 : 10.5, align: 'left', anchor: 'center' });
+        this.tagRects.push({ box, lot: i });
+      } else if (!small) {
+        const box = tag(g, lx, ly, `${KIND_LABEL[L.kind]} lot`, L.state === 'locked' ? T.fg4 : T.fg3, { size: 10, align: 'left', anchor: 'center', alpha: 0.8 });
+        this.tagRects.push({ box, lot: i });
+      }
       if (!pr) continue;
       liveN++;
       const rev = pr.revenuePerDay ?? 0;
@@ -519,27 +547,23 @@ export class ProductsScene implements Scene {
       // Satisfaction face at the building's top corner.
       const [fx, fy] = project(p, L.x + LOT_W - 0.1, frontY, top + 4);
       drawFace(g, fx, fy, Math.max(4.5, 5.5 * p.scale), pr.satisfaction);
-      // Margin light on the sign band.
-      const [lx, ly] = project(p, L.x + 0.3, frontY + 0.03, top + 2.8);
-      g.fillStyle = this.marginColor[i];
-      g.fillRect(lx - 1.5 * p.scale, ly - 1.5 * p.scale, Math.max(3, 3 * p.scale), Math.max(3, 3 * p.scale));
       if (L.drop > 0) {
         const [dx, dy] = project(p, L.x + LOT_W / 2, L.y + 1.0, top + 9);
         drawDown(g, dx, dy, t);
       }
     }
-    g.save();
-    g.font = '10px JetBrains Mono, monospace';
-    g.textAlign = 'right';
-    g.textBaseline = 'alphabetic';
-    g.fillStyle = C.textDim;
-    const label =
+    // Datacenter tag on its left corner.
+    const dc = this.dc;
+    const [dx, dy] = project(p, dc.x, dc.y + DC_D, 40);
+    tag(g, dx - 2, dy - 3, small ? 'DC' : 'Datacenter', T.up, { value: dc.label, size: small ? 9.5 : 10.5, align: 'left' });
+    const parts: HudPart[] =
       liveN === 0
-        ? 'NO LIVE PRODUCTS'
-        : `${liveN} LIVE · MARGIN ${margin >= 0 ? '+' : ''}${formatMoney(margin)}/DAY`.toUpperCase();
-    g.fillStyle = liveN === 0 ? C.textDim : margin >= 0 ? C.green : C.red;
-    g.fillText(label, this.cssW - 10, this.cssH - 8);
-    g.restore();
+        ? [['No live products', T.fg3]]
+        : [
+            [`${liveN} live`, T.fg],
+            [`Margin ${margin >= 0 ? '+' : ''}${formatMoney(margin)}/day`, margin >= 0 ? T.up : T.down],
+          ];
+    hud(g, this.cssW, this.cssH, parts);
   }
 
   /* ---------- hit testing and tips ---------- */
@@ -547,9 +571,11 @@ export class ProductsScene implements Scene {
   hitTest(x: number, y: number): SceneHit | null {
     const s = this.last;
     if (!s) return null;
-    for (let i = this.hulls.length - 1; i >= 0; i--) {
-      if (!insideConvex(this.hulls[i], x, y)) continue;
-      const L = this.lots[i];
+    const onTag = this.tagRects.find((r) => x >= r.box.x0 && x <= r.box.x1 && y >= r.box.y0 && y <= r.box.y1);
+    for (let i = this.hulls.length - 1; i >= -1; i--) {
+      if (i === -1 && !onTag) break;
+      if (i >= 0 && !insideConvex(this.hulls[i], x, y)) continue;
+      const L = this.lots[i >= 0 ? i : (onTag as { lot: number }).lot];
       if (!L) return null;
       const p = productIn(s, L);
       if (p) return { id: `product:${p.id}`, label: productTip(s, p) };

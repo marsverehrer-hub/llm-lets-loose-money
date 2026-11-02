@@ -1,22 +1,27 @@
-// Dev harness for the office scene: http://localhost:5320/src/office/demo.html
+// Dev harness for the office scene: /src/office/demo.html?tier=2&staff=54&theme=light (wide strip and phone size).
 import { h, render } from 'preact';
 import { createInitialState } from '../sim/state';
 import { GPUS } from '../sim/data/gpus';
 import { OFFICE_TIERS } from '../sim/data/roles';
 import { ROLE_IDS, type GameState, type Model, type RoleId, type TrainingRun } from '../sim/types';
 import { OfficeView } from './OfficeView';
+import '../ui/theme.css';
+
+const q = new URLSearchParams(location.search);
+if (q.get('theme') === 'light') document.documentElement.setAttribute('data-theme', 'light');
 
 const TIER_IDS: string[] = OFFICE_TIERS.length ? OFFICE_TIERS.map((t) => t.id) : ['garage', 'hotdesk', 'loft', 'floors', 'campus', 'arcology'];
 
 const s: GameState = createInitialState(42, 'Demo Labs');
 s.day = 900; // ~2019.5
 s.speed = 1;
-s.staff.roles.researcher = { count: 14, skill: 1.1, salaryLevel: 1 };
-s.staff.roles.engineer = { count: 18, skill: 1, salaryLevel: 1 };
-s.staff.roles.safety = { count: 6, skill: 1, salaryLevel: 1 };
-s.staff.roles.sales = { count: 10, skill: 1, salaryLevel: 1 };
-s.staff.roles.marketing = { count: 6, skill: 1, salaryLevel: 1 };
-s.company.officeTierId = TIER_IDS[Math.min(2, TIER_IDS.length - 1)];
+const k = Number(q.get('staff') ?? 54) / 54;
+s.staff.roles.researcher = { count: Math.round(14 * k), skill: 1.1, salaryLevel: 1 };
+s.staff.roles.engineer = { count: Math.round(18 * k), skill: 1, salaryLevel: 1 };
+s.staff.roles.safety = { count: Math.round(6 * k), skill: 1, salaryLevel: 1 };
+s.staff.roles.sales = { count: Math.round(10 * k), skill: 1, salaryLevel: 1 };
+s.staff.roles.marketing = { count: Math.round(6 * k), skill: 1, salaryLevel: 1 };
+s.company.officeTierId = TIER_IDS[Math.min(Number(q.get('tier') || 2), TIER_IDS.length - 1)];
 s.compute.rented = { [GPUS[1]?.id ?? 'v1000']: 2400, [GPUS[3]?.id ?? 'h100']: 300 };
 s.compute.datacenters = [
   { id: 'dc1', name: 'Server Closet #1', tierId: 'closet', gpus: { [GPUS[2]?.id ?? 'a100']: 2000 }, buildDaysLeft: 0 },
@@ -30,7 +35,7 @@ s.models = [];
 s.company.hype = 40;
 
 let nextModel = 1;
-let tierIdx = Math.min(2, TIER_IDS.length - 1);
+let tierIdx = Math.min(Number(q.get('tier') || 2), TIER_IDS.length - 1);
 let savedCash = 0;
 
 function makeTraining(st: GameState): TrainingRun {
@@ -79,7 +84,8 @@ setInterval(() => {
 }, 500);
 
 const container = document.getElementById('office')!;
-render(h(OfficeView, { state: s, height: 420 }), container);
+render(h(OfficeView, { state: s, height: 260 }), container);
+render(h(OfficeView, { state: s, height: 170 }), document.getElementById('office-phone')!);
 
 const status = document.getElementById('status')!;
 function updateStatus(): void {

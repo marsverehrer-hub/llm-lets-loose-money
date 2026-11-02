@@ -2,12 +2,12 @@
 // only when the layout signature changes, and paints one frame at a time.
 import type { GameState } from '../../sim/types';
 import { formatMoney, formatNumber } from '../../sim/util';
-import { project, TILE_H, TILE_W, type Projector } from '../../office/iso';
-import { C } from '../../office/palette';
+import { project, type Projector } from '../../office/iso';
+import { TC as C, T, syncTheme, tone } from '../../office/kit/theme';
 import { glow, type Ctx } from '../../office/draw/prims';
-import { drawFloor, drawWalls, WALL_H } from '../../office/draw/room';
-import { drawPerson } from '../../office/draw/person';
-import { drawPlant } from '../../office/draw/furniture';
+import { plant as drawPlant, room } from '../../office/kit/props';
+import { person } from '../../office/kit/person';
+import { addWorldBox, drawGround, emptyBox, fitTo, hud } from '../../office/kit/frame';
 import type { Scene, SceneHit } from '../types';
 import { EXP_LABEL, logCount, tipFor, VAULT_FULL } from './model';
 import type { Lane } from './plan';
@@ -39,6 +39,8 @@ import * as parts from './parts';
 import { TREAS } from './parts';
 
 const FLOW_SPEED = 0.035; // belt cycles per second
+/** Back wall height: the stock ticker hangs on it. */
+const WALL_H = 60;
 const TAU = Math.PI * 2;
 const COIN_MAX = 40;
 const HISTORY_SHOWN = 80;
@@ -194,17 +196,9 @@ export class TreasuryScene implements Scene {
     this.layoutHits();
   }
 
-  /** Fit the room into the canvas (CSS px). Same framing as the HQ office. */
+  /** Auto-fit camera on the room and its back wall (the ticker board sits up there). */
   private fit(): void {
-    const pad = 14;
-    const availW = Math.max(40, this.cssW - pad * 2);
-    const availH = Math.max(40, this.cssH - pad * 2);
-    const X = W + 0.5;
-    const Y = D + 0.5;
-    const sc = Math.max(0.35, Math.min(availW / (((X + Y) * TILE_W) / 2), availH / (((X + Y) * TILE_H) / 2 + WALL_H), 2.6));
-    this.proj.scale = sc;
-    this.proj.ox = this.cssW / 2 - (((X - Y) * TILE_W) / 4) * sc;
-    this.proj.oy = this.cssH / 2 - (((X + Y) * TILE_H) / 4 - WALL_H / 2) * sc;
+    fitTo(this.proj, addWorldBox(emptyBox(), -0.2, -0.2, W + 0.2, D + 0.2, -3, WALL_H), this.cssW, this.cssH);
   }
 
   private rebuild(L: Layout): void {
@@ -235,7 +229,8 @@ export class TreasuryScene implements Scene {
     add('cash', [...boxCorners(VAULT.x0 - 0.2, -0.1, VAULT.x1 + 0.2, VAULT.y1 + 0.05, 0, VAULT.h + 2), ...boxCorners(6.3, 4.4, 7.8, 6.5, 0, 14)]);
   }
 
-  draw(g: CanvasRenderingContext2D, s: GameState, dt: number): void {
+  draw(g: CanvasRenderingContext2D, s: GameState, dt: number, nowMs = Date.now()): void {
+    syncTheme(nowMs);
     this.time += dt;
     this.flow = (this.flow + dt * FLOW_SPEED) % 1;
     this.s = s;
@@ -251,17 +246,10 @@ export class TreasuryScene implements Scene {
     const sc = this.proj.scale;
     const p = this.proj;
 
-    // background
-    const bg = g.createLinearGradient(0, 0, 0, this.cssH);
-    bg.addColorStop(0, C.bgTop);
-    bg.addColorStop(1, C.bgBottom);
-    g.fillStyle = bg;
-    g.fillRect(0, 0, this.cssW, this.cssH);
-
+    drawGround(g, p, this.cssW, this.cssH);
     const c: Ctx = { g, p };
-    drawFloor(c, W, D, 1, TREAS.carpetA, TREAS.carpetB);
+    room(c, 0, 0, W, D, { wallH: WALL_H, floor: TREAS.carpetA, floorAlt: TREAS.carpetB, livery: true });
     parts.drawVaultFloor(c);
-    drawWalls(c, W, D, WALL_H, TREAS.trim);
     parts.drawShell(c);
     this.vals = this.chartValues(s);
     parts.drawBoard(c, s, t, this.vals);
@@ -282,17 +270,7 @@ export class TreasuryScene implements Scene {
         st[si].fn(c, t);
         si++;
       }
-      drawPerson(c, {
-        x: pe.x,
-        y: pe.y,
-        role: pe.role,
-        seed: pe.seed,
-        sitting: pe.sitting,
-        typing: false,
-        walkPhase: 0,
-        highlight: false,
-        t,
-      });
+      person(c, { x: pe.x, y: pe.y, role: pe.role, seed: pe.seed, sitting: pe.sitting, t });
       if (pe.kind === 'offer') this.drawTermSheet(g, pe, t, sc, p);
       if (pe.kind === 'collector') this.drawBriefcase(g, pe, sc, p);
     }
@@ -319,7 +297,7 @@ export class TreasuryScene implements Scene {
         const [lx, ly] = project(p, x, VAULT.y1, VAULT.h + 1);
         g.beginPath();
         g.arc(lx, ly, 2 * sc, 0, TAU);
-        g.fillStyle = Math.sin(t * 6) > 0 ? C.red : '#5a2a25';
+        g.fillStyle = Math.sin(t * 6) > 0 ? C.red : tone(0.203);
         g.fill();
       }
     }
@@ -337,18 +315,12 @@ export class TreasuryScene implements Scene {
       parts.drawPill(g, mx, my, `+${L.moreSeats} more`, C.amber);
     }
 
-    // HUD, bottom right
-    g.save();
-    g.font = '10px JetBrains Mono, monospace';
-    g.textAlign = 'right';
-    g.textBaseline = 'alphabetic';
-    g.fillStyle = C.textDim;
-    g.fillText(
-      `IN ${formatMoney(s.finance.dailyRevenue)}/DAY  ·  OUT ${formatMoney(s.finance.dailyExpenses)}/DAY`,
-      this.cssW - 10,
-      this.cssH - 8,
-    );
-    g.restore();
+    const net = s.finance.dailyRevenue - s.finance.dailyExpenses;
+    hud(g, this.cssW, this.cssH, [
+      [`In ${formatMoney(s.finance.dailyRevenue)}/day`, T.up],
+      [`Out ${formatMoney(s.finance.dailyExpenses)}/day`, T.down],
+      [`Net ${net >= 0 ? '+' : ''}${formatMoney(net)}`, net >= 0 ? T.fg : T.down],
+    ]);
   }
 
   /**
@@ -359,7 +331,7 @@ export class TreasuryScene implements Scene {
     if (!L.lanes.length) return;
     const fs = Math.max(7, 8 * p.scale);
     g.save();
-    g.font = `600 ${fs}px JetBrains Mono, monospace`;
+    g.font = `600 ${fs}px ${T.figure}`;
     g.textAlign = 'center';
     g.textBaseline = 'middle';
     g.fillStyle = C.fgDim;
@@ -461,9 +433,9 @@ export class TreasuryScene implements Scene {
   /** The collector's briefcase, by the hand. */
   private drawBriefcase(g: CanvasRenderingContext2D, pe: Person, sc: number, p: Projector): void {
     const [bx, by] = project(p, pe.x, pe.y, 0);
-    g.fillStyle = '#4a2f22';
+    g.fillStyle = tone(0.203);
     g.fillRect(bx - 11 * sc, by - 10 * sc, 6 * sc, 4.5 * sc);
-    g.strokeStyle = '#2a1a12';
+    g.strokeStyle = tone(0.113);
     g.lineWidth = 1 * sc;
     g.strokeRect(bx - 11 * sc, by - 10 * sc, 6 * sc, 4.5 * sc);
   }

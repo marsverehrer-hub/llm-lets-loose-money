@@ -1,4 +1,5 @@
-// Screen-space particles: floating "+$" text and a short square-flake burst on model release.
+// Screen-space particles: floating "+$" text and a short square-flake burst on model release. Theme colours.
+import { T } from './kit/theme';
 
 interface Particle {
   kind: 'text' | 'confetti';
@@ -16,7 +17,6 @@ interface Particle {
 }
 
 const MAX_PARTICLES = 160;
-const CONFETTI = ['#ffa630', '#ffe14d', '#e8e4dc', '#b8741a'];
 
 export class Effects {
   private parts: Particle[] = [];
@@ -38,7 +38,7 @@ export class Effects {
       life: 0,
       max: 1.8,
       text: label,
-      color: '#3fd47f',
+      color: T.up,
       size: 11,
       rot: 0,
       vr: 0,
@@ -57,7 +57,7 @@ export class Effects {
         vy: Math.sin(a) * sp - 60,
         life: 0,
         max: 0.5 + Math.random() * 0.3,
-        color: CONFETTI[i % CONFETTI.length],
+        color: [T.hl, T.fg, T.fg2, T.up][i % 4],
         size: 3 + Math.random() * 3,
         rot: Math.random() * 6,
         vr: (Math.random() - 0.5) * 12,
@@ -82,7 +82,7 @@ export class Effects {
       g.save();
       g.globalAlpha = Math.max(0, 1 - k * k);
       if (p.kind === 'text') {
-        g.font = `800 ${p.size}px JetBrains Mono, monospace`;
+        g.font = `700 ${p.size + 1}px ${T.figure}`;
         g.textAlign = 'center';
         g.fillStyle = p.color;
         g.fillText(p.text ?? '', p.x, p.y);

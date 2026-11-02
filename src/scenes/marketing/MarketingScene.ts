@@ -1,11 +1,14 @@
 // Marketing street scene. Layout (floor units, x to the right, y toward the viewer):
 //   back row of lots along y=0..3 (their +y facades face the street), a left column along x=0..2.6,
 //   a street along y=3.2..5.6, a sidewalk to y=6.8, and a plaza in front with the marketing office.
-import { TILE_H, TILE_W, hashStr, project, type Projector } from '../../office/iso';
-import { C, shade, mix } from '../../office/palette';
+import { hashStr, project, type Projector } from '../../office/iso';
+import { T, TC as C, alpha, shade, mix, syncTheme, tone } from '../../office/kit/theme';
 import { floorLine, floorTile, glow, isoBlock, isoBox, planeX, planeY, poly, withAlpha, type Ctx } from '../../office/draw/prims';
-import { CHAIR_DX, CHAIR_DY, drawChair, drawDesk, drawPlant, type Role } from '../../office/draw/furniture';
-import { drawPerson } from '../../office/draw/person';
+import { CHAIR_DX, CHAIR_DY, type Role } from '../../office/draw/furniture';
+import { chair as drawChair, desk as drawDesk, plant as drawPlant } from '../../office/kit/props';
+import { person } from '../../office/kit/person';
+import { type PodSpec, addWorldBox, arrangePods, drawGround, emptyBox, feedMargins, fitTo, hud, tag } from '../../office/kit/frame';
+import { block } from '../../office/kit/props';
 import { COMPETITORS } from '../../sim/data/competitors';
 import { CAMPAIGNS } from '../../sim/data/campaigns';
 import { MAX_ACTIVE_CAMPAIGNS } from '../../sim/systems/market';
@@ -20,7 +23,6 @@ const STREET_Y0 = 3.2;
 const STREET_Y1 = 5.6;
 const WALK_Y1 = 6.8;
 const TOP = 84; // headroom above the ground for the tallest lot's top edge (fit only)
-const FONT = 'JetBrains Mono, monospace';
 
 const BUS_LEN = 2.4;
 const BUS_DEP = 1.2;
@@ -31,6 +33,9 @@ const BLIMP_X0 = [0, 7.5];
 const OFFICE = { x0: 7.0, x1: 14.6, y0: 7.6, y1: 11.2, h: 36 };
 const OFFICE_KEY = 22; // painter key: after the sidewalk crowd behind it, before the blimp layer
 const DESK_MAX = 8;
+/** Campaign board pod. */
+const BOARD_W = 7;
+const BOARD_D = 3.4;
 
 type SurfaceKind = 'billboard' | 'stadium' | 'blimp' | 'bus';
 interface Surface {
@@ -198,12 +203,12 @@ function fitText(g: CanvasRenderingContext2D, pts: number[], u0: number, v0: num
   const hpx = Math.hypot(pts[6] - pts[0], pts[7] - pts[1]) * (v1 - v0);
   if (wpx < 5 || hpx < 4) return;
   let fs = Math.min(maxPx, hpx * 0.75);
-  g.font = `600 ${fs.toFixed(1)}px ${FONT}`;
+  g.font = `600 ${fs.toFixed(1)}px ${T.figure}`;
   let shown = text;
   let w = g.measureText(shown).width;
   if (w > wpx * 0.92) {
     fs = Math.max(3.5, (fs * wpx * 0.92) / w);
-    g.font = `600 ${fs.toFixed(1)}px ${FONT}`;
+    g.font = `600 ${fs.toFixed(1)}px ${T.figure}`;
     w = g.measureText(shown).width;
     if (w > wpx * 0.92) {
       // still too wide at the smallest size: cut it short, or drop it when nothing readable fits
@@ -220,44 +225,28 @@ function fitText(g: CanvasRenderingContext2D, pts: number[], u0: number, v0: num
   g.fillText(shown, cx, cy);
 }
 
-/** Small terminal label in screen space, bottom edge at y. Same look as the office pills. */
+/** Pit Wall tag in screen space, bottom edge at y. */
 function pill(g: CanvasRenderingContext2D, x: number, y: number, text: string, color: string, fs = 10): void {
-  g.save();
-  g.globalAlpha = 1;
-  g.font = `600 ${fs}px ${FONT}`;
-  const w = Math.ceil(g.measureText(text).width) + 10;
-  const h = fs + 8;
-  const px = Math.round(x - w / 2);
-  const py = Math.round(y - h);
-  g.fillStyle = '#000000';
-  g.fillRect(px, py, w, h);
-  g.strokeStyle = withAlpha(color, 0.9);
-  g.lineWidth = 1;
-  g.strokeRect(px + 0.5, py + 0.5, w - 1, h - 1);
-  g.fillStyle = C.fg;
-  g.textAlign = 'center';
-  g.textBaseline = 'middle';
-  g.fillText(text, px + w / 2, py + h / 2 + 0.5);
-  g.restore();
+  tag(g, x, y, text, color, { size: fs + 0.5 });
 }
 
 /** Paint one ad inside a screen quad. */
 function drawAd(g: CanvasRenderingContext2D, pts: number[], ad: Ad | null, company: string, daysFrac: number): void {
   if (!ad) {
-    poly(g, pts, '#100f0d');
+    poly(g, pts, tone(0.059));
     fitText(g, pts, 0.1, 0.3, 0.9, 0.7, 'AD SPACE', C.textDim, 9);
     return;
   }
   if (ad.t === 'house') {
-    poly(g, pts, '#0c0b09');
+    poly(g, pts, tone(0.043));
     fitText(g, pts, 0.06, 0.18, 0.94, 0.66, company.toUpperCase(), C.amber, 12);
     poly(g, sub(pts, 0.25, 0.76, 0.75, 0.82), C.amberDim);
     return;
   }
   if (ad.t === 'campaign') {
-    poly(g, pts, '#0c0b09');
+    poly(g, pts, tone(0.043));
     fitText(g, pts, 0.06, 0.1, 0.94, 0.56, SHORT_NAME[ad.def.id] ?? ad.def.name, C.fg, 11);
-    poly(g, sub(pts, 0.06, 0.7, 0.94, 0.82), '#262219');
+    poly(g, sub(pts, 0.06, 0.7, 0.94, 0.82), tone(0.134));
     poly(g, sub(pts, 0.06, 0.7, 0.06 + 0.88 * daysFrac, 0.82), C.amber);
     return;
   }
@@ -308,6 +297,9 @@ export class MarketingScene implements Scene {
   private dynActive: DynRef[] = [];
   private statics: StaticItem[] = [];
   private hits: Hit[] = [];
+  /** Campaign boards beside the block, one per campaign slot: back corner and pod-row row. */
+  private boards: { x: number; y: number; row: number }[] = [];
+  private blockRow = 0;
   private billboardOf: number[] = LOTS.map(() => -1);
   private stadiumSurface = -1;
   private blimpSurface: number[] = [];
@@ -376,17 +368,71 @@ export class MarketingScene implements Scene {
   }
 
   /** Fit the block into the canvas (CSS px): the footprint across, and the tallest tower up. */
+  /**
+   * The block with a campaign board per campaign slot beside it (half each side), laid out as a pod row so wide
+   * frames fill up, then the auto-fit camera. The block stays at the world origin; the boards move around it.
+   */
   private fit(): void {
-    const pad = 14;
-    const availW = Math.max(40, this.cssW - pad * 2);
-    const availH = Math.max(40, this.cssH - pad * 2);
-    const sc = Math.max(0.35, Math.min(availW / ((W + D) * TILE_W / 2), availH / ((W + D) * TILE_H / 2 + TOP), 2.6));
-    this.proj.scale = sc;
-    this.proj.ox = this.cssW / 2 - ((W - D) * TILE_W / 4) * sc;
-    this.proj.oy = this.cssH / 2 - ((W + D) * TILE_H / 4 - TOP / 2) * sc;
+    const m = feedMargins(this.cssW, this.cssH);
+    const n = MAX_ACTIVE_CAMPAIGNS;
+    const left = Math.floor(n / 2);
+    const specs: PodSpec[] = [];
+    for (let k = 0; k < n; k++) specs.push({ w: BOARD_W, d: BOARD_D, h: 84 });
+    specs.splice(left, 0, { w: W, d: D, h: TOP });
+    const plan = arrangePods(specs, Math.max(40, this.cssW - m.l - m.r), Math.max(40, this.cssH - m.t - m.b), 1.2, 1.4, 3);
+    const bx = plan.x[left];
+    const by = plan.y[left];
+    this.blockRow = plan.row[left];
+    this.boards = [];
+    const box = addWorldBox(emptyBox(), 0, 0, W, D, 0, TOP);
+    for (let i = 0; i < specs.length; i++) {
+      if (i === left) continue;
+      const b = { x: plan.x[i] - bx, y: plan.y[i] - by, row: plan.row[i] };
+      this.boards.push(b);
+      addWorldBox(box, b.x, b.y, BOARD_W, BOARD_D, 0, 84);
+    }
+    fitTo(this.proj, box, this.cssW, this.cssH);
   }
 
-  draw(g: CanvasRenderingContext2D, s: GameState, dt: number, _nowMs: number): void {
+  /** One campaign board: a lit billboard on silver legs with the campaign, its days left and a slot number. */
+  private drawBoard(c: Ctx, k: number, s: GameState, t: number): void {
+    const { g, p } = c;
+    const b = this.boards[k];
+    if (!b) return;
+    const run = s.market.campaigns[k];
+    const def = run ? CAMPAIGN_BY_ID.get(run.defId) : undefined;
+    const x0 = b.x + 0.2;
+    const x1 = b.x + BOARD_W - 0.2;
+    const fy = b.y + BOARD_D - 0.6;
+    floorTile(c, b.x, b.y, BOARD_W, BOARD_D, T.floorAlt);
+    block(c, b.x + 0.1, b.y + 0.1, BOARD_W - 0.2, BOARD_D - 0.2, -2, 0.6, T.floor, false);
+    for (const lx of [x0 + 0.8, x1 - 0.9]) block(c, lx, fy - 0.35, 0.14, 0.14, 0, 40, T.metal, false);
+    block(c, x0, fy - 0.16, x1 - x0, 0.16, 36, 82, T.dark ? '#16181c' : '#2a2d33', false);
+    const q = planeY(c, x0 + 0.08, x1 - 0.08, fy + 0.005, 37.5, 80.5, def ? (T.dark ? '#0d0e10' : '#1c1e22') : T.dark ? mix(T.bg3, T.fg4, 0.45) : T.bg3);
+    if (def) {
+      poly(g, sub(q, 0, 0, 0.06, 1), T.hl);
+      fitText(g, q, 0.1, 0.1, 0.96, 0.5, SHORT_NAME[def.id] ?? def.name, T.fg, 13);
+      fitText(g, q, 0.1, 0.52, 0.96, 0.78, `${run.daysLeft}d left  ·  +${def.hypePerDay} hype`, T.hl, 9);
+      const frac = Math.max(0, Math.min(1, run.daysLeft / Math.max(1, def.days)));
+      poly(g, sub(q, 0.1, 0.84, 0.94, 0.9), alpha(T.fg, 0.15));
+      poly(g, sub(q, 0.1, 0.84, 0.1 + 0.84 * frac, 0.9), T.hl);
+      // floodlights
+      if (p.scale > 0.35) {
+        const [lx, ly] = project(p, (x0 + x1) / 2, fy + 0.4, 22);
+        glow(g, lx, ly - 10 * p.scale, 30 * p.scale, T.lamp, (T.dark ? 0.1 : 0.05) + 0.02 * Math.sin(t * 2 + k));
+      }
+      this.hits.push({ id: `campaign:${def.id}`, pts: q });
+    } else {
+      fitText(g, q, 0.12, 0.22, 0.88, 0.56, 'FREE SLOT', T.fg2, 13);
+      fitText(g, q, 0.12, 0.6, 0.88, 0.8, 'Launch a campaign', T.fg2, 9);
+      this.hits.push({ id: 'team', pts: q });
+    }
+    const [tx, ty] = project(p, b.x + BOARD_W - 0.4, b.y + BOARD_D - 0.2, 0);
+    tag(g, tx, ty, `Slot ${k + 1}`, def ? T.hl : T.fg4, { size: 9.5, anchor: 'center', alpha: 0.9 });
+  }
+
+  draw(g: CanvasRenderingContext2D, s: GameState, dt: number, nowMs: number): void {
+    syncTheme(nowMs);
     this.time += dt;
     const t = this.time;
     this.s = s;
@@ -399,13 +445,9 @@ export class MarketingScene implements Scene {
     c.p = this.proj;
     this.hits.length = 0;
 
-    // Background
-    const bg = g.createLinearGradient(0, 0, 0, this.cssH);
-    bg.addColorStop(0, C.bgTop);
-    bg.addColorStop(1, C.bgBottom);
-    g.fillStyle = bg;
-    g.fillRect(0, 0, this.cssW, this.cssH);
+    drawGround(g, this.proj, this.cssW, this.cssH);
 
+    for (let k = 0; k < this.boards.length; k++) if (this.boards[k].row <= this.blockRow) this.drawBoard(c, k, s, t);
     this.drawGround(c, t);
 
     // Walkers and buses interleaved with the statics, painter's order by x + y.
@@ -440,20 +482,17 @@ export class MarketingScene implements Scene {
 
     // Blimps float above everything, then the office count pill on top of them all.
     for (let k = 0; k < BLIMP_X0.length; k++) this.drawBlimp(c, k, t);
+    for (let k = 0; k < this.boards.length; k++) if (this.boards[k].row > this.blockRow) this.drawBoard(c, k, s, t);
     const O = OFFICE;
     const [lx, ly] = project(this.proj, (O.x0 + O.x1) / 2, O.y0 + 0.5, O.h + 9);
     if (this.marketing === 0) pill(g, lx, ly, 'VACANT', C.textDim);
     else if (this.marketing > DESK_MAX) pill(g, lx, ly, `+${this.marketing - DESK_MAX} more`, C.amber);
 
-    // HUD, bottom right (same place as the office HUD)
     const campaigns = s.market.campaigns.length;
-    g.save();
-    g.font = '10px JetBrains Mono, monospace';
-    g.textAlign = 'right';
-    g.textBaseline = 'alphabetic';
-    g.fillStyle = C.textDim;
-    g.fillText(`MARKETING · ${this.marketing} STAFF · ${campaigns} OF ${MAX_ACTIVE_CAMPAIGNS} CAMPAIGNS LIVE`, this.cssW - 10, this.cssH - 8);
-    g.restore();
+    hud(g, this.cssW, this.cssH, [
+      [`Marketing ${this.marketing} staff`, T.fg],
+      [`${campaigns} of ${MAX_ACTIVE_CAMPAIGNS} campaigns live`, campaigns > 0 ? T.hl : T.fg3],
+    ]);
   }
 
   hitTest(x: number, y: number): { id: string; label: string } | null {
@@ -596,19 +635,19 @@ export class MarketingScene implements Scene {
     const h = project(p, W + 0.6, D + 0.6, -4);
     const k = project(p, -0.6, D + 0.6, -4);
     poly(g, [e[0], e[1], f[0], f[1], h[0], h[1], k[0], k[1]], C.floorEdge);
-    floorTile(c, 0, 0, W, D, '#2a2723');
+    floorTile(c, 0, 0, W, D, tone(0.154));
     // plaza checker
     for (let x = LEFT_X1; x < W; x++) {
       for (let y = WALK_Y1; y < D; y++) {
-        if ((x + y) % 2 === 0) floorTile(c, x, y, 1, 1, '#2d2a25');
+        if ((x + y) % 2 === 0) floorTile(c, x, y, 1, 1, tone(0.166));
       }
     }
     // left column ground
-    floorTile(c, 0, 3.0, LEFT_X1, D - 3.0, '#23211d');
+    floorTile(c, 0, 3.0, LEFT_X1, D - 3.0, tone(0.130));
     // curb along the back, asphalt, sidewalk
-    floorTile(c, LEFT_X1, 3.0, W - LEFT_X1, STREET_Y0 - 3.0, '#3a3731');
-    floorTile(c, LEFT_X1, STREET_Y0, W - LEFT_X1, STREET_Y1 - STREET_Y0, '#1c1b19');
-    floorTile(c, LEFT_X1, STREET_Y1, W - LEFT_X1, WALK_Y1 - STREET_Y1, '#36332e');
+    floorTile(c, LEFT_X1, 3.0, W - LEFT_X1, STREET_Y0 - 3.0, tone(0.216));
+    floorTile(c, LEFT_X1, STREET_Y0, W - LEFT_X1, STREET_Y1 - STREET_Y0, tone(0.106));
+    floorTile(c, LEFT_X1, STREET_Y1, W - LEFT_X1, WALK_Y1 - STREET_Y1, tone(0.201));
     // curb lines and paving joints
     for (const y of [STREET_Y1, WALK_Y1]) floorLine(c, LEFT_X1, y, W, y, 0.05, withAlpha(C.fg, 0.12), 1);
     for (let x = LEFT_X1 + 2; x < W; x += 2) floorLine(c, x, STREET_Y1, x, WALK_Y1, 0.05, withAlpha(C.fg, 0.05), 1);
@@ -632,19 +671,19 @@ export class MarketingScene implements Scene {
 
     if (grow < 0.02) {
       // empty plot with a fence and a sign
-      floorTile(c, L.x0, L.y0, L.w, L.d, '#1f1d1a');
-      poly(g, faceQuad(p, face, 0, 9), '#2e2b26');
+      floorTile(c, L.x0, L.y0, L.w, L.d, tone(0.115));
+      poly(g, faceQuad(p, face, 0, 9), tone(0.170));
       const sign = faceQuad(p, { ...face, a0: face.a0 + 0.3, a1: face.a1 - 0.3 }, 13, 23);
-      poly(g, sign, '#14120f');
+      poly(g, sign, tone(0.071));
       fitText(g, sign, 0.06, 0.12, 0.94, 0.9, 'TO LET', C.amberDim, 10);
       this.hits.push({ id: 'brand', pts: faceQuad(p, face, 0, 23) });
       return;
     }
 
     const h = L.H * grow;
-    const top = '#3b3731';
-    const front = '#2c2924';
-    const side = '#211f1b';
+    const top = tone(0.217);
+    const front = tone(0.162);
+    const side = tone(0.122);
     const flip = !back; // the facade is the right face on left lots
     isoBox(c, L.x0, L.y0, L.w, L.d, h, top, flip ? side : front, flip ? front : side);
 
@@ -660,13 +699,13 @@ export class MarketingScene implements Scene {
         if (isStadium && z0 > 46) break;
         const lit = hashStr(`w-${li}-${col}-${row}`) > 0.42;
         const flick = lit ? 0.75 + 0.15 * Math.sin(t * 0.7 + col * 1.3 + row * 2.1) : 0;
-        const fill = lit ? mix('#3a2a16', '#ffa630', flick * 0.5) : '#121110';
+        const fill = lit ? mix(tone(0.172), T.hl, flick * 0.5) : tone(0.067);
         poly(g, faceQuad(p, { ...face, a0, a1: a0 + 0.5 }, z0, z0 + 5), fill);
       }
     }
 
     // roof unit
-    if (back) isoBlock(c, L.x0 + 0.4, L.y0 + 0.4, 0.8, 0.6, h, h + 5, '#4a463f');
+    if (back) isoBlock(c, L.x0 + 0.4, L.y0 + 0.4, 0.8, 0.6, h, h + 5, tone(0.276));
 
     // storefront bays: shutters when unbranded, awning and sign when branded
     if (grow > 0.9) {
@@ -675,17 +714,17 @@ export class MarketingScene implements Scene {
         const shop: Face = { ...face, a0: bay.a0, a1: bay.a1 };
         const frontQ = faceQuad(p, shop, 0, 9.5);
         if (bay.branded) {
-          poly(g, frontQ, mix('#0f0e0c', C.amberDim, 0.3));
+          poly(g, frontQ, mix(tone(0.055), C.amberDim, 0.3));
           const gl = qpt(frontQ, 0.5, 0.5);
           glow(g, gl[0], gl[1], 16 * p.scale, C.amber, 0.12);
           poly(g, faceQuad(p, shop, 9.5, 13), C.amber);
-          poly(g, faceQuad(p, shop, 13, 19), '#0c0b09');
+          poly(g, faceQuad(p, shop, 13, 19), tone(0.043));
           fitText(g, faceQuad(p, shop, 13, 19), 0.04, 0.12, 0.96, 0.9, this.companyName.toUpperCase(), C.amber, 9);
         } else {
-          poly(g, frontQ, '#1a1815');
-          for (const z of [2.5, 5, 7.5]) poly(g, faceQuad(p, shop, z, z + 0.5), '#26231e');
-          poly(g, faceQuad(p, shop, 13, 19), '#161512');
-          poly(g, faceQuad(p, shop, 15.5, 16.2), '#2a2722');
+          poly(g, frontQ, tone(0.095));
+          for (const z of [2.5, 5, 7.5]) poly(g, faceQuad(p, shop, z, z + 0.5), tone(0.138));
+          poly(g, faceQuad(p, shop, 13, 19), tone(0.082));
+          poly(g, faceQuad(p, shop, 15.5, 16.2), tone(0.154));
         }
         this.hits.push({ id: 'brand', pts: faceQuad(p, shop, 0, bay.branded ? 19 : 13) });
       });
@@ -699,9 +738,9 @@ export class MarketingScene implements Scene {
       const z0 = h + 2;
       const z1 = h + 36;
       const bf: Face = { axis: 'y', a0, a1, f: 2.6 };
-      poly(g, faceQuad(p, { ...bf, a0: a0 - 0.12, a1: a1 + 0.12 }, z0 - 1.2, z1 + 1.2), '#1d1b18');
-      isoBlock(c, a0 + 0.1, 2.5, 0.12, 0.12, h, z0, '#2a2823');
-      isoBlock(c, a1 - 0.22, 2.5, 0.12, 0.12, h, z0, '#2a2823');
+      poly(g, faceQuad(p, { ...bf, a0: a0 - 0.12, a1: a1 + 0.12 }, z0 - 1.2, z1 + 1.2), tone(0.107));
+      isoBlock(c, a0 + 0.1, 2.5, 0.12, 0.12, h, z0, tone(0.157));
+      isoBlock(c, a1 - 0.22, 2.5, 0.12, 0.12, h, z0, tone(0.157));
       const q = faceQuad(p, bf, z0, z1);
       drawAd(g, q, this.ads[bj], this.companyName, this.daysFrac(bj));
       this.pushSurfaceHit(bj, q);
@@ -711,7 +750,7 @@ export class MarketingScene implements Scene {
     const sj = this.stadiumSurface;
     if (isStadium && grow > 0.9) {
       const sf: Face = { axis: 'x', a0: 3.5, a1: 5.7, f: L.x0 + L.w + 0.02 };
-      poly(g, faceQuad(p, { ...sf, a0: sf.a0 - 0.12, a1: sf.a1 + 0.12 }, 54, 108), '#15130f');
+      poly(g, faceQuad(p, { ...sf, a0: sf.a0 - 0.12, a1: sf.a1 + 0.12 }, 54, 108), tone(0.075));
       const q = faceQuad(p, sf, 56, 106);
       drawAd(g, q, this.ads[sj], this.companyName, this.daysFrac(sj));
       this.pushSurfaceHit(sj, q);
@@ -719,14 +758,14 @@ export class MarketingScene implements Scene {
 
     // scaffold while it rises
     if (grow < 0.98) {
-      const pole = '#b45309';
+      const pole = shade(T.hl, 0.7);
       const hh = h + 4;
       for (let k = 0; k <= 3; k++) {
         const a = face.a0 + (k * (face.a1 - face.a0)) / 3;
         const f0 = { ...face, a0: a, a1: a + 0.08 };
         poly(g, faceQuad(p, f0, 0, hh), pole);
       }
-      for (let z = 12; z < hh; z += 12) poly(g, faceQuad(p, face, z, z + 1.2), '#d97706');
+      for (let z = 12; z < hh; z += 12) poly(g, faceQuad(p, face, z, z + 1.2), shade(T.hl, 0.85));
     }
   }
 
@@ -746,16 +785,16 @@ export class MarketingScene implements Scene {
     const O = OFFICE;
     const H = O.h;
     const count = this.marketing;
-    floorTile(c, O.x0, O.y0, O.x1 - O.x0, O.y1 - O.y0, '#2d2a25');
+    floorTile(c, O.x0, O.y0, O.x1 - O.x0, O.y1 - O.y0, tone(0.166));
     // back and left walls only: the front is open, like a cut-away
-    planeY(c, O.x0, O.x1, O.y0, 0, H, '#2a2824');
-    planeX(c, O.x0, O.y0, O.y1, 0, H, '#211f1b');
-    planeY(c, O.x0, O.x1, O.y0, H - 1.5, H, '#3a362f');
-    planeX(c, O.x0, O.y0, O.y1, H - 1.5, H, '#34312b');
+    planeY(c, O.x0, O.x1, O.y0, 0, H, tone(0.157));
+    planeX(c, O.x0, O.y0, O.y1, 0, H, tone(0.122));
+    planeY(c, O.x0, O.x1, O.y0, H - 1.5, H, tone(0.213));
+    planeX(c, O.x0, O.y0, O.y1, H - 1.5, H, tone(0.193));
     planeY(c, O.x0, O.x1, O.y0 + 0.01, 20, 21, withAlpha(C.amberDim, 0.6));
 
     const sign = faceQuad(p, { axis: 'y', a0: O.x0 + 1.4, a1: O.x1 - 1.4, f: O.y0 + 0.02 }, 26, 33);
-    poly(g, sign, '#0c0c0c');
+    poly(g, sign, tone(0.047));
     fitText(g, sign, 0.06, 0.12, 0.94, 0.9, 'MARKETING', C.amber, 11);
 
     // desks: two rows of four, then a count pill when the team is bigger than the room
@@ -770,7 +809,7 @@ export class MarketingScene implements Scene {
       const cx = dx + CHAIR_DX;
       const cy = dy + CHAIR_DY;
       drawChair(c, cx - 0.2, cy - 0.2);
-      if (occ) drawPerson(c, { x: cx, y: cy, role: 'marketing', seed: k * 13 + 5, sitting: true, typing: true, walkPhase: 0, highlight: false, t });
+      if (occ) person(c, { x: cx, y: cy, role: 'marketing', seed: k * 13 + 5, sitting: true, typing: true, back: true, t });
     }
     const corners: [number, number][] = [];
     for (const [x, y] of [[O.x0, O.y0], [O.x1, O.y0], [O.x1, O.y1], [O.x0, O.y1]] as const) {
@@ -797,9 +836,9 @@ export class MarketingScene implements Scene {
     const fade = clamp(Math.min(bx - LEFT_X1, W - (bx + BUS_LEN)) / 0.6, 0, 1);
     g.save();
     g.globalAlpha = fade;
-    isoBox(c, bx, BUS_Y0, BUS_LEN, BUS_DEP, BUS_H, '#3b3730', '#24211c', '#1d1b17');
+    isoBox(c, bx, BUS_Y0, BUS_LEN, BUS_DEP, BUS_H, tone(0.217), tone(0.130), tone(0.106));
     const front = faceQuad(p, { axis: 'x', a0: BUS_Y0 + 0.12, a1: BUS_Y0 + BUS_DEP - 0.12, f: bx + BUS_LEN + 0.005 }, 10, BUS_H - 4);
-    poly(g, front, '#0b0a08');
+    poly(g, front, tone(0.039));
     const q = faceQuad(p, { axis: 'y', a0: bx + 0.12, a1: bx + BUS_LEN - 0.12, f: BUS_Y0 + BUS_DEP + 0.005 }, 4, BUS_H - 3);
     drawAd(g, q, this.ads[j], this.companyName, this.daysFrac(j));
     g.restore();
@@ -814,7 +853,7 @@ export class MarketingScene implements Scene {
   private drawWalker(c: Ctx, w: Walker, t: number): void {
     const { g, p } = c;
     const x = this.walkerX(w, t);
-    drawPerson(c, { x, y: w.y, role: w.role, seed: w.seed, sitting: false, typing: false, walkPhase: 0.5 + t * w.speed * 6, highlight: false, t });
+    person(c, { x, y: w.y, role: w.role, seed: w.seed, walk: 0.5 + t * w.speed * 6, back: w.dir < 0, t });
     const s = p.scale;
     const hype = this.hypeShown;
     const [bx, by] = project(p, x, w.y, 0);
@@ -842,10 +881,10 @@ export class MarketingScene implements Scene {
     const ry = 15 * s;
     const j = this.blimpSurface[k];
 
-    g.fillStyle = '#17150f';
+    g.fillStyle = tone(0.082);
     g.fillRect(cx - rx * 0.2, cy + ry * 0.75, rx * 0.4, ry * 0.45);
     g.beginPath();
-    g.fillStyle = '#24211c';
+    g.fillStyle = tone(0.130);
     g.moveTo(cx + rx * 0.7, cy);
     g.lineTo(cx + rx * 1.0, cy - ry * 0.9);
     g.lineTo(cx + rx * 1.0, cy + ry * 0.7);
@@ -853,9 +892,9 @@ export class MarketingScene implements Scene {
     g.fill();
     g.beginPath();
     g.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
-    g.fillStyle = '#2e2b25';
+    g.fillStyle = tone(0.169);
     g.fill();
-    g.strokeStyle = '#4a463e';
+    g.strokeStyle = tone(0.276);
     g.lineWidth = 1;
     g.stroke();
 
@@ -866,8 +905,8 @@ export class MarketingScene implements Scene {
 
   private drawLamp(c: Ctx, x: number, y: number): void {
     const { g, p } = c;
-    isoBlock(c, x, y, 0.1, 0.1, 0, 30, '#3a3731');
-    isoBlock(c, x - 0.06, y - 0.06, 0.22, 0.22, 30, 32, '#2a2823');
+    isoBlock(c, x, y, 0.1, 0.1, 0, 30, tone(0.216));
+    isoBlock(c, x - 0.06, y - 0.06, 0.22, 0.22, 30, 32, tone(0.157));
     const [lx, ly] = project(p, x + 0.05, y + 0.05, 30);
     glow(g, lx, ly, 14 * p.scale, C.amber, 0.22);
   }

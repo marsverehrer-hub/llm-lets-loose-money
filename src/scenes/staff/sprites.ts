@@ -3,7 +3,7 @@
 // when the projection, the device pixel ratio or the layout changes. Screens are static here; the bars, racks and
 // LEDs in the zones still move.
 import { project, type Projector } from '../../office/iso';
-import { drawChair, drawDesk } from '../../office/draw/furniture';
+import { chair, desk } from '../../office/kit/props';
 import type { Ctx } from '../../office/draw/prims';
 import type { DeskSpot } from './layout';
 import { drawEmptyDesk } from './draw';
@@ -30,9 +30,9 @@ export class DeskSprites {
   }
 
   /** Call once per frame: drops the sprites when the projection or the pixel ratio has moved. */
-  frame(p: Projector, dpr: number): void {
+  frame(p: Projector, dpr: number, theme: number): void {
     this.dpr = dpr;
-    const k = `${p.ox.toFixed(2)}|${p.oy.toFixed(2)}|${p.scale.toFixed(4)}|${dpr}`;
+    const k = `${p.ox.toFixed(2)}|${p.oy.toFixed(2)}|${p.scale.toFixed(4)}|${dpr}|${theme}`;
     if (k !== this.frameKey) {
       this.frameKey = k;
       this.cache.clear();
@@ -58,7 +58,7 @@ export class DeskSprites {
       [d.x - 0.1, d.y + 1.7],
       [d.x + 1.5, d.y + 1.7],
     ] as [number, number][]) {
-      for (const z of [0, 34]) corners.push(project(p, wx, wy, z));
+      for (const z of [0, 30]) corners.push(project(p, wx, wy, z));
     }
     let x0 = Infinity;
     let y0 = Infinity;
@@ -83,8 +83,8 @@ export class DeskSprites {
       g.setTransform(dpr, 0, 0, dpr, 0, 0);
       const c: Ctx = { g, p: { ox: p.ox - ox, oy: p.oy - oy, scale: p.scale } };
       if (d.kind === 'empty' || !d.role) drawEmptyDesk(c, d.x, d.y);
-      else drawDesk(c, d.x, d.y, d.role, d.role === 'engineer', 0.6, 0);
-      drawChair(c, d.x + 0.45, d.y + 0.95);
+      else desk(c, d.x, d.y, d.role, d.role === 'engineer', 0.6, 0);
+      chair(c, d.x + 0.45, d.y + 0.95);
     }
     return { canvas, x: ox, y: oy, w, h };
   }

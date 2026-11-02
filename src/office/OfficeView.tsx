@@ -162,8 +162,7 @@ export function OfficeView(props: { state: GameState; height?: number }) {
     // Pointer px are visual; the scene and the tip work in CSS px of the zoomed root.
     const mx = toCssPx(e.clientX - r.left);
     const my = toCssPx(e.clientY - r.top);
-    const pe = scene.hitTest(mx, my);
-    const text = pe ? scene.roleLabel(pe) : '';
+    const text = scene.tipAt(mx, my) ?? '';
     if (text !== tipTextRef.current) {
       tipTextRef.current = text;
       setTip(text ? { x: mx, y: my, text } : null);
@@ -184,13 +183,12 @@ export function OfficeView(props: { state: GameState; height?: number }) {
     const r = canvas.getBoundingClientRect();
     const mx = toCssPx(e.clientX - r.left);
     const my = toCssPx(e.clientY - r.top);
-    const pe = scene.hitTest(mx, my);
-    if (!pe) {
+    const text = scene.tipAt(mx, my);
+    if (!text) {
       hideTip();
       return;
     }
-    // A tap on a person shows their tag for TAP_TIP_MS. The HQ has no select action yet, so a second tap just keeps it.
-    const text = scene.roleLabel(pe);
+    // A tap on a person or a room shows its tag for TAP_TIP_MS. The HQ has no select action yet, so a second tap just keeps it.
     window.clearTimeout(tapTimerRef.current);
     tipTextRef.current = text;
     setTip({ x: mx, y: my, text });
