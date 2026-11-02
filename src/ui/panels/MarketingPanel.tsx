@@ -87,13 +87,11 @@ export function MarketingPanel() {
         </div>
       </Card>
 
-      <Card
-        class="mk-timeline-card"
-        title="Campaigns"
-        subtitle={`${running} of ${MAX_RUNNING_CAMPAIGNS} running`}
->
-        <CampaignTimeline s={s} />
-      </Card>
+      {running > 0 && (
+        <Card class="mk-timeline-card" title="Campaigns" subtitle={`${running} of ${MAX_RUNNING_CAMPAIGNS} running`}>
+          <CampaignTimeline s={s} />
+        </Card>
+      )}
 
       <Card class="mk-shop-card" title="Start a campaign" subtitle={`${MAX_RUNNING_CAMPAIGNS - running} slot${MAX_RUNNING_CAMPAIGNS - running === 1 ? '' : 's'} free · cash ${formatMoney(s.finance.cash, 1)}`}>
         <CampaignShop s={s} />

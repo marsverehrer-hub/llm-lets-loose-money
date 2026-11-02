@@ -51,10 +51,6 @@ export function StaffPanel() {
 
   return (
     <div class="panel sf">
-      <PanelIntro id="staff">
-        Your people. Each team does one job for the lab, and pay decides whether they stay.
-      </PanelIntro>
-
       <PanelHeader
         code="STF"
         title="Staff"
@@ -65,6 +61,9 @@ export function StaffPanel() {
           </Button>
         }
       />
+      <PanelIntro id="staff">
+        Your people. Each team does one job for the lab, and pay decides whether they stay.
+      </PanelIntro>
 
       <Card title="The office floor" class="sf-floor-card">
         <div class="sf-office-line">

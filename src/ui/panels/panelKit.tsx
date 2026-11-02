@@ -233,7 +233,7 @@ export function ConfirmButton(props: {
   return (
     <button
       type="button"
-      class={`pn-btn pn-btn--danger ${armed ? 'is-armed' : ''} ${props.class ?? ''}`}
+      class={`btn btn-danger ${armed ? 'is-armed' : ''} ${props.class ?? ''}`}
       disabled={props.disabled}
       title={props.title}
       onClick={() => {

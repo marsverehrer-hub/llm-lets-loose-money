@@ -1,9 +1,8 @@
 // Compute screen (GAME_DESIGN §21.1, §21.5). Leads with the server room; renting and building sit right below it.
 import { useState } from 'preact/hooks';
 import { useGame } from '../store';
-import { Card, PanelHeader, PanelIntro, Tabs } from '../components';
+import { Card, PanelHeader, PanelIntro, Stat, Tabs } from '../components';
 import { buildRoom } from './compute/roomModel';
-import { summaryParts } from './compute/roomModel';
 import { SceneView } from '../../scenes/SceneView';
 import { createScene as createDatacenter, CAM as DC_CAM } from '../../scenes/compute';
 import { FleetPicker } from './compute/FleetPicker';
@@ -13,6 +12,8 @@ import { CloudMarket } from './compute/CloudMarket'; // v16 cloud providers
 import { NeocloudTab } from './compute/NeocloudTab'; // v16 neocloud
 import './panels.css';
 import './compute/compute.css';
+
+const gpus = (n: number) => Math.round(n).toLocaleString('en-US');
 
 type OpenSheet = { kind: 'block'; key: string } | null;
 
@@ -25,10 +26,22 @@ export function ComputePanel() {
 
   return (
     <div class="panel pn pn-compute cc">
+      <PanelHeader
+        code="CMP"
+        title="Compute"
+        subtitle="Your GPUs, where they work, and what they cost"
+        actions={
+          <>
+            <Stat label="GPUs" value={gpus(room.ownGpus)} size="sm" />
+            <Stat label="Training" value={gpus(room.training)} tone={room.training > 0 ? 'warn' : 'muted'} size="sm" />
+            <Stat label="Serving" value={gpus(room.serving)} tone={room.serving > 0 ? 'info' : 'muted'} size="sm" />
+            {room.idle > 0 && <Stat label="Idle" value={gpus(room.idle)} tone="muted" size="sm" />}
+          </>
+        }
+      />
       <PanelIntro id="compute">
         Compute is the hardware your models train and serve on. Products run on your own GPUs first. Anything more is bought from the cloud.
       </PanelIntro>
-      <PanelHeader code="CMP" title="Compute" subtitle="Your GPUs, where they work, and what they cost" />
 
       <SceneView
         state={s}
@@ -43,13 +56,6 @@ export function ComputePanel() {
         }}
       />
       <p class="cc-summary cc-summary-under">
-        {summaryParts(s, room).map((p, i) => (
-          <span key={i}>
-            {i > 0 && <span class="cc-sep"> · </span>}
-            {p}
-          </span>
-        ))}
-        <span class="cc-sep"> · </span>
         <span class="cc-legend-inline">
           <i class="cc-swatch cc-training" /> training <i class="cc-swatch cc-serving" /> serving <i class="cc-swatch cc-idle" /> idle · click a hall to manage it
         </span>
@@ -57,13 +63,14 @@ export function ComputePanel() {
 
       <Card
         title="Get more GPUs"
+        subtitle={get === 'rent' ? 'No upfront cost, billed daily' : undefined}
         actions={
           <Tabs
             variant="segmented"
             value={get}
             onChange={setGet}
             tabs={[
-              { id: 'rent', label: 'Rent (no upfront cost)' },
+              { id: 'rent', label: 'Rent' },
               { id: 'market', label: 'Cloud providers' },
               { id: 'build', label: 'Build a datacenter' },
               { id: 'neocloud', label: 'Neocloud', count: s.neocloud?.offers.length || undefined },

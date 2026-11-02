@@ -526,3 +526,7 @@
   .md-mix-row .md-mix-v { grid-column: 2; grid-row: 1; }
   .md-mix-row .slider-row { grid-column: 1 / -1; grid-row: 2; }
 }
+
+/* Image and video arenas sit side by side; the rank column stays narrow. */
+.md-arenas { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 16px; }
+.md-rank { width: 2.5em; }

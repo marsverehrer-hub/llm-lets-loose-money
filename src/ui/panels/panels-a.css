@@ -218,5 +218,7 @@
   .btn.tro-more { display: flex; width: calc(100% - 24px); margin: 8px 12px 12px; }
   .tro-list tr { padding: 6px 12px; }
   .tro-list .table-stack td { padding: 2px 0; }
+  /* Status and date share a row; the description reads last. */
+  .tro-list .table-stack td.mb-block { order: 1; }
 }
 

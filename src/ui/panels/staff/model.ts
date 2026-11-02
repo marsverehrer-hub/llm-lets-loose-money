@@ -114,11 +114,6 @@ export function teamEffect(s: GameState, id: RoleId): TeamEffect {
   }
 }
 
-/** The effect text with the team name in front, e.g. "Researchers: 22.0 research points/day". */
-export function effectSentence(team: TeamStat, eff: TeamEffect): string {
-  return `${team.role.plural}: ${eff.line}`;
-}
-
 /** A copy of the state with `n` more people in `id` at pay level `level` (0.8..1.6). Read-only use only. */
 export function withHire(s: GameState, id: RoleId, n: number, level: number): GameState {
   const rs = s.staff.roles[id];

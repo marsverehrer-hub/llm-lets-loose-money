@@ -59,11 +59,12 @@
 .mo-tone {
   padding: 2px 12px;
   background: color-mix(in srgb, currentColor 14%, transparent);
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.06em;
+  font-family: var(--display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  border-radius: var(--r-pill);
+  clip-path: polygon(5px 0, 100% 0, calc(100% - 5px) 100%, 0 100%);
 }
 .mo-tone-triumph {
   color: var(--amber);
@@ -80,9 +81,10 @@
   margin: 0;
   font-family: var(--display);
   font-size: clamp(32px, calc(5.6vw / var(--ui-zoom, 1)), 68px);
-  font-weight: 800;
-  line-height: 1.08;
-  letter-spacing: -0.01em;
+  font-weight: 900;
+  font-style: italic;
+  line-height: 1.02;
+  text-transform: uppercase;
   overflow-wrap: anywhere;
 }
 .mo-title-triumph {
@@ -122,7 +124,11 @@
 }
 .mo-stat-label {
   margin: 0;
-  font-size: var(--fs-sm);
+  font-family: var(--display);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
   color: var(--fg-3);
 }
 .mo-stat-value {
@@ -133,7 +139,7 @@
   overflow-wrap: anywhere;
 }
 .mo-stat-value.mo-num {
-  font-family: var(--mono);
+  font-family: var(--figure);
   font-size: clamp(26px, calc(3.6vw / var(--ui-zoom, 1)), 40px);
   font-weight: 500;
   font-variant-numeric: tabular-nums;
@@ -149,23 +155,26 @@
 }
 .mo-continue {
   min-height: 40px;
-  padding: 0 22px;
-  font: inherit;
-  font-size: var(--fs);
-  font-weight: 600;
-  color: var(--on-accent);
-  background: var(--amber);
-  border: 1px solid var(--amber);
-  border-radius: var(--r-sm);
+  padding: 0 calc(22px + var(--slant) / 2);
+  font-family: var(--display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--on-hl);
+  background: var(--hl);
+  border: 0;
+  border-radius: 0;
+  clip-path: polygon(var(--slant) 0, 100% 0, calc(100% - var(--slant)) 100%, 0 100%);
   cursor: pointer;
 }
 .mo-continue:hover {
-  background: var(--amber-2);
-  border-color: var(--amber-2);
+  background: var(--accent-2);
 }
 .mo-continue:focus-visible {
-  outline: 2px solid var(--fg);
-  outline-offset: 3px;
+  /* The slant clips an outline, so the focus ring sits inside the button. */
+  outline: none;
+  box-shadow: inset 0 0 0 3px var(--on-hl);
 }
 .mo-hint {
   font-size: var(--fs-xs);

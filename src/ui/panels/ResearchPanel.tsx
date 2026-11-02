@@ -147,15 +147,9 @@ export function ResearchPanel() {
   return (
     <div class="panel rs">
       <PanelHeader code="RES" title="Research" subtitle="Pick a topic and press Start. Queued topics start one after another." />
-      <PanelIntro
-        id="research"
-        steps={[
-          'Pick a card under "Ready to research" and press Start.',
-          'Press Queue on more topics: they start one after another, so your researchers never sit idle.',
-          'Looking for something specific? Type it into the search under "Browse all research". Locked topics show what they need first.',
-        ]}
-      >
-        Research unlocks new techniques, model sizes and products. Old ideas get cheaper every year as papers spread.
+      <PanelIntro id="research">
+        Research unlocks techniques, model sizes and products, and old ideas get cheaper as papers spread. Queue a few topics so your researchers never sit
+        idle; search below finds anything, and locked topics show what they need first.
       </PanelIntro>
 
       <SceneView
@@ -181,7 +175,7 @@ export function ResearchPanel() {
         </div>
       )}
 
-      <ResearchQueueStrip perDay={v.perDay} />
+      {(v.current || (s.research.queue ?? []).length > 0) && <ResearchQueueStrip perDay={v.perDay} />}
 
       <Card
         class="rs-ready-card-wrap"

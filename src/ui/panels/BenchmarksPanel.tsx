@@ -236,13 +236,16 @@ export function BenchmarksPanel() {
               <LeaderBoard s={s} def={sel.def} cls={cls} />
 
               {announced.length > 0 && (
-                <div class="bmk-announced">
-                  {announced.map((b) => (
-                    <div key={b.id}>
-                      Announced {b.year} ─ {b.name}
-                    </div>
-                  ))}
-                </div>
+                <details class="disclosure">
+                  <summary>{`Coming benchmarks (${announced.length})`}</summary>
+                  <ul class="bmk-announced">
+                    {announced.map((b) => (
+                      <li key={b.id}>
+                        <span class="num">{b.year}</span> {b.name}
+                      </li>
+                    ))}
+                  </ul>
+                </details>
               )}
             </div>
           ) : (
@@ -349,6 +352,9 @@ function ClassArena({ s, cls }: { s: GameState; cls: WeightClass }) {
   }
   const shown = rows.slice(0, 8);
   const top = Math.max(1, ...shown.map((r) => r.elo));
+  // Bars start 100 Elo under the last shown row so the gaps between models show.
+  const floor = Math.max(0, Math.floor((Math.min(...shown.map((r) => r.elo)) - 100) / 100) * 100);
+  const w = (elo: number) => `${Math.max(2, ((elo - floor) / Math.max(1, top - floor)) * 100).toFixed(1)}%`;
   return (
     <div class="table-wrap table-stack">
       <table class="table wc-arena-table">
@@ -364,7 +370,7 @@ function ClassArena({ s, cls }: { s: GameState; cls: WeightClass }) {
             const isPlayer = r.holder === 'player';
             return (
               <tr key={`${r.holder}-${r.name}`} class={isPlayer ? 'me' : ''}>
-                <td class="num" data-label="Rank">
+                <td class="num faint wc-rank" data-label="Rank">
                   {i + 1}
                 </td>
                 <td data-label="Model">
@@ -374,7 +380,7 @@ function ClassArena({ s, cls }: { s: GameState; cls: WeightClass }) {
                 <td data-label="Elo">
                   <div class="bmk-bar is-lab">
                     <span class="bmk-track" aria-hidden="true">
-                      <span class="bmk-fill" style={{ width: `${((r.elo / top) * 100).toFixed(1)}%`, background: isPlayer ? 'var(--amber)' : 'var(--fg-3)' }} />
+                      <span class="bmk-fill" style={{ width: w(r.elo), background: isPlayer ? 'var(--amber)' : 'var(--fg-3)' }} />
                     </span>
                     <span class="bmk-bar-v num">{Math.round(r.elo)}</span>
                   </div>
@@ -384,7 +390,7 @@ function ClassArena({ s, cls }: { s: GameState; cls: WeightClass }) {
           })}
         </tbody>
       </table>
-      {rows.length > shown.length && <div class="wc-more">{`${rows.length - shown.length} more in this class`}</div>}
+      <div class="wc-more">{`${rows.length > shown.length ? `${rows.length - shown.length} more in this class. ` : ''}Bars start at ${floor.toLocaleString()} Elo so the gaps show.`}</div>
     </div>
   );
 }

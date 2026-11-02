@@ -65,13 +65,16 @@ export function LabPanel() {
       <PanelIntro id="lab">
         Everything you do earns lab XP. Levels give perk points: spend them to shape the kind of lab you run. The board sets three goals each quarter, and each pays the day you hit it.
       </PanelIntro>
+      {/* Two balanced columns: the level and the cup on the left, the board's goals and the hall of fame on the right. */}
       <div class="lab-top">
-        <LevelCard s={s} onOpen={() => document.querySelector('.perk-tree, .perk-picker')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} />
-        <BoardCard s={s} />
-      </div>
-      <div class="grid-2">
-        <CupCard s={s} />
-        <HallCard s={s} />
+        <div class="stack gap-12">
+          <LevelCard s={s} onOpen={() => document.querySelector('.perk-tree, .perk-picker')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} />
+          <CupCard s={s} />
+        </div>
+        <div class="stack gap-12">
+          <BoardCard s={s} />
+          <HallCard s={s} />
+        </div>
       </div>
       <PerkTree s={s} />
       <div class="grid-2">

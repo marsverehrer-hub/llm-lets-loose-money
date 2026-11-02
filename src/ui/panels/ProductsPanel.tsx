@@ -24,10 +24,6 @@ export function ProductsPanel() {
 
   return (
     <div class="panel pn pn-products pr">
-      <PanelIntro id="products">
-        A product is a model you sell: by the token to developers, by the month to chatbot users, or by the seat to companies. Revenue minus serving cost is
-        your margin.
-      </PanelIntro>
       <PanelHeader
         code="PRD"
         title="Products"
@@ -40,6 +36,10 @@ export function ProductsPanel() {
           </>
         }
       />
+      <PanelIntro id="products">
+        A product is a model you sell: by the token to developers, by the month to chatbot users, or by the seat to companies. Revenue minus serving cost is
+        your margin.
+      </PanelIntro>
 
       <SceneView
         state={s}
