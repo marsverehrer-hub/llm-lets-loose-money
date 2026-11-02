@@ -10,6 +10,7 @@ import { liveHistory } from '../components/derive';
 import { dispatch, useGame } from '../store';
 import './panels-a.css';
 import './finance.css';
+import { ConfirmButton } from './panelKit';
 import { SceneView } from '../../scenes/SceneView';
 import { createScene as createTreasury, CAM as TREASURY_CAM } from '../../scenes/finance';
 
@@ -404,9 +405,7 @@ export function FinancePanel() {
             <Button variant="primary" title="Take the cash and the dilution" onClick={accept}>
               Accept
             </Button>
-            <Button title="Keep your equity and see who calls next" onClick={decline}>
-              Decline
-            </Button>
+            <ConfirmButton label="Decline" confirmLabel="Turn it down?" title="Keep your equity and see who calls next" onConfirm={decline} />
           </div>
         </div>
       ) : (
@@ -419,13 +418,6 @@ export function FinancePanel() {
     <div class="panel fin-panel">
       <PanelHeader code="FIN" title="Finance" subtitle={`${s.company.isPublic ? 'Public' : 'Private'} · ${dateTag(s.day)}`} />
       <PanelIntro id="finance">Where the money comes from and goes. Cash and runway tell you how long you can keep going.</PanelIntro>
-      <SceneView
-        state={s}
-        make={createTreasury}
-        cam={TREASURY_CAM}
-        camId="CAM-09"
-        label="The treasury: your cash in the vault, money flowing in and out by category, investors at the table and the stock board"
-      />
 
       <Card flush>
         <div class="pa-strip pa-strip--5">
@@ -478,6 +470,14 @@ export function FinancePanel() {
           </div>
         </Card>
       </div>
+
+      <SceneView
+        state={s}
+        make={createTreasury}
+        cam={TREASURY_CAM}
+        camId="CAM-09"
+        label="The treasury: your cash in the vault, money flowing in and out by category, investors at the table and the stock board"
+      />
 
       <div class="grid-split fin-row-chart">
         <Card

@@ -17,6 +17,7 @@ import type { ActiveContract, ContractBid, ContractOffer, GameState, Model } fro
 import { Button, Card, EmptyState, PanelHeader, PanelIntro, Pill, Stat } from '../components';
 import type { PillTone } from '../components';
 import { tdate } from '../shell/fmt';
+import { ConfirmButton } from './panelKit';
 import './panels.css';
 import './contracts.css';
 import './ct-viz.css';
@@ -223,9 +224,13 @@ function ActiveRow({ a }: { a: ActiveContract }) {
           <Button size="sm" disabled={!pick?.ok} onClick={() => dispatch({ type: 'reassignContract', contractId: a.id, modelId: pickId })}>
             Reassign
           </Button>
-          <Button size="sm" variant="danger" onClick={() => dispatch({ type: 'cancelContract', contractId: a.id })}>
-            Cancel
-          </Button>
+          <ConfirmButton
+            class="btn-sm"
+            label="Cancel"
+            confirmLabel={`Refund ${formatMoney(CONTRACT_TUNING.REFUND_SHARE * a.offer.upfront)}?`}
+            title={`Ends the deal: you refund ${Math.round(CONTRACT_TUNING.REFUND_SHARE * 100)}% of the upfront payment and lose ${CONTRACT_TUNING.CANCEL_REPUTATION} reputation`}
+            onConfirm={() => dispatch({ type: 'cancelContract', contractId: a.id })}
+          />
         </div>
       </td>
     </tr>
@@ -243,7 +248,6 @@ export function ContractsPanel() {
   return (
     <div class="ct">
       <PanelHeader
-        code="CON"
         title="Contracts"
         subtitle="Deals that pay for fit, not size"
         actions={
@@ -256,7 +260,7 @@ export function ContractsPanel() {
       />
       <PanelIntro id="contracts">Clients pay for a model that fits their job. Bid with a model that qualifies, and keep it in spec while the deal runs.</PanelIntro>
 
-      <Card code="OFR" title="Open offers" class="ct-card">
+      <Card title="Open offers" class="ct-card">
         {offers.length === 0 ? (
           <EmptyState title="No offers yet." text="Clients call when they hear about you. Brand and reputation help." />
         ) : (
@@ -268,7 +272,7 @@ export function ContractsPanel() {
         )}
       </Card>
 
-      <Card code="ACT" title="Active contracts" class="ct-card" flush>
+      <Card title="Active contracts" class="ct-card" flush>
         {active.length === 0 ? (
           <div class="ct-pad">
             <EmptyState title="No active contracts" text="Win a bid and it lands here, paying every day." />
@@ -295,7 +299,7 @@ export function ContractsPanel() {
         )}
       </Card>
 
-      <Card code="HST" title="History" subtitle="Last ten" class="ct-card" flush>
+      <Card title="History" subtitle="Last ten" class="ct-card" flush>
         {history.length === 0 ? (
           <div class="ct-pad">
             <EmptyState title="Nothing decided yet." />

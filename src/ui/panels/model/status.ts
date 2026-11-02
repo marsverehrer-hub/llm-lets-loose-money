@@ -5,6 +5,9 @@ import type { GameState, Id, Model } from '../../../sim/types';
 import { benchPending } from '../../../sim/systems/vault';
 import { tdate } from '../../shell/fmt';
 
+/** What "Take off sale" (the deprecateModel action) does, for its button and tooltip. */
+export const OFF_SALE_TIP = 'Takes the model out of the lineup. It stops counting as a live model, and products still running it stop earning until you switch them.';
+
 export interface StatusPill {
   label: string;
   tone: PillTone;
@@ -12,13 +15,14 @@ export interface StatusPill {
 }
 
 /**
- * Status pills. The table uses the short form (Unreleased, Internal, Preview, Live, Open, Leaked, Deprecated).
+ * Status pills. The table uses the short form (Unreleased, Internal, Preview, Live, Open, Leaked, Off sale, Retired).
  * The page header (`full`) adds the dates and the teaser.
  */
 export function statusPills(m: Model, full = false): StatusPill[] {
   const out: StatusPill[] = [];
   const released = m.releasedDay !== null;
-  if (m.deprecated) out.push({ label: 'Deprecated', tone: 'muted' });
+  if (m.retiredDay !== undefined) out.push({ label: 'Retired', tone: 'muted' });
+  else if (m.deprecated) out.push({ label: 'Off sale', tone: 'muted' });
   if (!released) {
     out.push({ label: 'Unreleased', tone: 'warn' });
   } else if (m.releaseMode === 'preview' && m.previewUntil !== undefined) {

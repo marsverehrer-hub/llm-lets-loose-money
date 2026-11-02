@@ -319,11 +319,6 @@ textarea {
   border-radius: var(--r-pill);
   background: currentColor;
 }
-/* Function codes are terminal-era; kept as a hook but not shown. */
-.ph-code,
-.card-code {
-  display: none;
-}
 .panel-title {
   color: var(--fg);
   font-family: var(--display);

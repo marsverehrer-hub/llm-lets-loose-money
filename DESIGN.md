@@ -101,13 +101,19 @@ It answers "what is going on, and what should I do next":
 
 ## Copy
 - Plain and friendly in the chrome: "Runway 3.1 years", "Start training", "Your next moves".
+- Point at screens by their names ("Data", "Models", "Fleet priority in Compute"), never by terminal-era codes.
+- One word per action: `deprecateModel` is "Take off sale", `retireModel` is "Retire to Hall of Fame".
+- **One confirm rule:** anything irreversible or costing a large share of cash is a `ConfirmButton` (`panels/panelKit.tsx`):
+  the first click arms it and names the consequence, the second does it, and it disarms after 3 seconds.
 - The advisor speaks like a sharp chief of staff: an imperative, then one sentence of why.
 - Satire belongs to data: model names, news, events, research and dataset descriptions, lab taglines.
 - Dates read `14 Mar 2019`. Money uses `formatMoney`.
 
 ## Visuals per screen (still in force from v3)
-Every panel opens with a picture of its subject (camera feed, server room, office floor, token map, share bars,
-capability shapes, research timeline, finance waterfall). Visuals are interactive: hover shows exact numbers, click
+Every panel has a picture of its subject (camera feed, server room, office floor, token map, share bars,
+capability shapes, research timeline, finance waterfall). **Actions first, scene below:** the first thing under the
+panel header (and its intro) is the card or list the player acts on; a camera scene (`SceneView`, `OfficeView`) and its
+legend sit below that, on phones too. Visuals are interactive: hover shows exact numbers, click
 selects or drills in, and nothing important lives only in a hover. They must work at phone width and in both themes.
 Secondary controls go behind a `Popover` or a `Sheet`; lists of owned things are cards first, tables behind a toggle.
 

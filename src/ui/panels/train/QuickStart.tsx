@@ -156,7 +156,7 @@ function TextQuick({ pick, set, name }: { pick: QuickPick; set: (p: Partial<Quic
   const cost = plan ? plan.totalFlops * cheapestCloudCostPerFlop(s) : NaN;
   const errs: string[] = [];
   if (!name.trim()) errs.push('Give the model a codename.');
-  if (!plan) errs.push(s.data.owned.length === 0 ? 'You own no data yet. Buy some in DAT.' : 'No training compute. Rent GPUs or raise the training share.');
+  if (!plan) errs.push(s.data.owned.length === 0 ? 'You own no data yet. Buy some in Data.' : 'No training compute. Rent GPUs or set Fleet priority in Compute to favour training.');
   const busy = s.training ? `${s.training.name} is still training.` : null;
   const stages = (a?.config?.post ?? []).map((id) => optionById(id)?.name ?? id);
   const anneal = a?.config?.anneal ? optionById(a.config.anneal)?.name : null;

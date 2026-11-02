@@ -1,49 +1,11 @@
 // OWNER: UI-PAGE. Small pieces shared by the model page tabs and the Models table.
 // Latent quirks: the UI shows a count and "unknown" only. Contents stay hidden until a red-team reveals them.
 import type { ComponentChildren } from 'preact';
-import { useEffect, useState } from 'preact/hooks';
 import { dispatch } from '../../store';
 import { formatMoney } from '../../../sim/util';
 import { latentCount, redTeamQuote } from '../../../sim/systems/lab';
 import type { GameState, Model } from '../../../sim/types';
 import { clamp, formatDays } from '../../components';
-
-/** Two-click destructive button: the first click arms it, the second confirms. Disarms after 3 seconds. */
-export function ArmButton({
-  label,
-  confirmLabel,
-  onConfirm,
-  title,
-}: {
-  label: string;
-  confirmLabel: string;
-  onConfirm: () => void;
-  title?: string;
-}) {
-  const [armed, setArmed] = useState(false);
-  useEffect(() => {
-    if (!armed) return;
-    const t = setTimeout(() => setArmed(false), 3000);
-    return () => clearTimeout(t);
-  }, [armed]);
-  return (
-    <button
-      type="button"
-      class={`btn btn-sm btn-danger ${armed ? 'md-armed' : ''}`}
-      title={title}
-      onClick={() => {
-        if (armed) {
-          setArmed(false);
-          onConfirm();
-        } else {
-          setArmed(true);
-        }
-      }}
-    >
-      {armed ? confirmLabel : label}
-    </button>
-  );
-}
 
 /** Signed bipolar bar for persona knobs (-1..1). */
 export function Bipolar({ label, value }: { label: string; value: number }) {

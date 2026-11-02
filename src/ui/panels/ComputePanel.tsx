@@ -1,4 +1,4 @@
-// Compute screen (GAME_DESIGN §21.1, §21.5). Leads with the server room; renting and building sit right below it.
+// Compute screen (GAME_DESIGN §21.1, §21.5). Leads with renting and building; the server room camera sits below.
 import { useState } from 'preact/hooks';
 import { useGame } from '../store';
 import { Card, PanelHeader, PanelIntro, Stat, Tabs } from '../components';
@@ -43,24 +43,6 @@ export function ComputePanel() {
         Compute is the hardware your models train and serve on. Products run on your own GPUs first. Anything more is bought from the cloud.
       </PanelIntro>
 
-      <SceneView
-        state={s}
-        make={createDatacenter}
-        cam={DC_CAM}
-        camId="CAM-03"
-        height={360}
-        label="Your datacenters: rack lights are yellow for training, green for serving and dim when idle; the cloud floats to the side"
-        onSelect={(hit) => {
-          const key = hit.id.startsWith('dc:') ? hit.id.slice(3) : hit.id === 'cloud:rented' ? 'rental' : hit.id === 'cloud:burst' ? 'burst' : null;
-          if (key) setSheet({ kind: 'block', key });
-        }}
-      />
-      <p class="cc-summary cc-summary-under">
-        <span class="cc-legend-inline">
-          <i class="cc-swatch cc-training" /> training <i class="cc-swatch cc-serving" /> serving <i class="cc-swatch cc-idle" /> idle · click a hall to manage it
-        </span>
-      </p>
-
       <Card
         title="Get more GPUs"
         subtitle={get === 'rent' ? 'No upfront cost, billed daily' : undefined}
@@ -80,6 +62,24 @@ export function ComputePanel() {
       >
         {get === 'rent' ? <RentBody /> : get === 'market' ? <CloudMarket /> : get === 'build' ? <BuildBody /> : <NeocloudTab />}
       </Card>
+
+      <SceneView
+        state={s}
+        make={createDatacenter}
+        cam={DC_CAM}
+        camId="CAM-03"
+        height={360}
+        label="Your datacenters: rack lights are yellow for training, green for serving and dim when idle; the cloud floats to the side"
+        onSelect={(hit) => {
+          const key = hit.id.startsWith('dc:') ? hit.id.slice(3) : hit.id === 'cloud:rented' ? 'rental' : hit.id === 'cloud:burst' ? 'burst' : null;
+          if (key) setSheet({ kind: 'block', key });
+        }}
+      />
+      <p class="cc-summary cc-summary-under">
+        <span class="cc-legend-inline">
+          <i class="cc-swatch cc-training" /> training <i class="cc-swatch cc-serving" /> serving <i class="cc-swatch cc-idle" /> idle · click a hall to manage it
+        </span>
+      </p>
 
       <div class="cc-two">
         <FleetPicker s={s} />

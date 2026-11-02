@@ -424,7 +424,7 @@ export function FinetuneWizard({ parentId, onClose }: { parentId: string; onClos
   if (run) blocker = `${run.name} is training. Stop or finish it first.`;
   else if (leaf) blocker = 'Nothing below this model. It is a leaf of the tree.';
   else if (openSet.size === 0) blocker = 'No specialisation is open for this model. Check the research tree.';
-  else if (rate <= 0) blocker = 'No compute is allocated to training. Rent GPUs or raise the training share.';
+  else if (rate <= 0) blocker = 'No compute is allocated to training. Rent GPUs or set Fleet priority in Compute to favour training.';
   const footBlock = leaf ? '' : blocker;
   const stepBlock = !leaf && cur === 'direction' && !sp ? 'Pick a direction.' : '';
   const launchBlock = footBlock || (!leaf && !sp ? 'Pick a direction.' : '');
@@ -463,7 +463,7 @@ export function FinetuneWizard({ parentId, onClose }: { parentId: string; onClos
       ? 'No specialisation is open for this model. Check the research tree.'
       : 'Pick a direction.'
     : rate <= 0
-      ? 'No compute is allocated to training. Rent GPUs or raise the training share.'
+      ? 'No compute is allocated to training. Rent GPUs or set Fleet priority in Compute to favour training.'
       : '';
   const queueLaunch = () => {
     if (!sp || queueBlock) return;

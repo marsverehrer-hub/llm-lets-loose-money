@@ -21,11 +21,9 @@ export function ProductsPanel() {
   const margin = revenue - serving;
   const [launchKind, setLaunchKind] = useState<ProductKind | null>(null);
 
-
   return (
     <div class="panel pn pn-products pr">
       <PanelHeader
-        code="PRD"
         title="Products"
         subtitle="Models you sell"
         actions={
@@ -41,21 +39,8 @@ export function ProductsPanel() {
         your margin.
       </PanelIntro>
 
-      <SceneView
-        state={s}
-        make={createStreet}
-        cam={STREET_CAM}
-        camId="CAM-08"
-        height={360}
-        label="Your products as storefronts: queues of users, coins into the till, serving costs piped to the datacenter"
-        onSelect={(hit) => {
-          if (hit.id.startsWith('product:')) document.getElementById(`pr-${hit.id.slice(8)}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          else if (hit.id.startsWith('lot:')) setLaunchKind(hit.id.slice(4) as ProductKind);
-        }}
-      />
-
       {live.length === 0 ? (
-        <Card code="PRD" title="No live products" subtitle="Launch one to start earning">
+        <Card title="No live products" subtitle="Launch one to start earning">
           <Empty title="Nothing on sale">Products need a released model. Launch one below once you have it.</Empty>
         </Card>
       ) : (
@@ -70,9 +55,22 @@ export function ProductsPanel() {
         </>
       )}
 
-      <Card code="NEW" title="Launch" subtitle="Up to two live lines per kind">
+      <Card title="Launch" subtitle="Up to two live lines per kind">
         <LaunchTiles s={s} onLaunch={(k) => setLaunchKind(k)} />
       </Card>
+
+      <SceneView
+        state={s}
+        make={createStreet}
+        cam={STREET_CAM}
+        camId="CAM-08"
+        height={360}
+        label="Your products as storefronts: queues of users, coins into the till, serving costs piped to the datacenter"
+        onSelect={(hit) => {
+          if (hit.id.startsWith('product:')) document.getElementById(`pr-${hit.id.slice(8)}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          else if (hit.id.startsWith('lot:')) setLaunchKind(hit.id.slice(4) as ProductKind);
+        }}
+      />
 
       <LaunchSheet kind={launchKind} onClose={() => setLaunchKind(null)} />
     </div>

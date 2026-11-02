@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'preact/hooks';
 import type { Bonuses, Rng, Scores } from '../../sim/types';
 import { formatNumber } from '../../sim/util';
-import { PanelHeader as SharedPanelHeader, useIsMobile } from '../components';
+import { useIsMobile } from '../components';
 
 export type Tone = 'accent' | 'good' | 'warn' | 'bad' | 'info' | 'muted';
 
@@ -100,11 +100,6 @@ export const SCORE_LABELS: Record<keyof Scores, string> = {
   chat: 'Chat',
   safety: 'Safety',
 };
-
-/** Panel header: [CODE <GO>] TITLE sub, amber rule underneath. Wraps the shared PanelHeader. */
-export function PanelHeader(props: { code?: string; title: string; sub?: string; children?: any }) {
-  return <SharedPanelHeader code={props.code} title={props.title} subtitle={props.sub} actions={props.children} />;
-}
 
 /** Window container. Extra props (e.g. data-owned, data-state) are forwarded to the element. */
 export function Card(props: { class?: string; glow?: boolean; children?: any; [attr: string]: any }) {

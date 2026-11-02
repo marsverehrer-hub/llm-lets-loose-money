@@ -30,13 +30,13 @@
   .fin-tl-node { flex: 1 1 45%; padding-right: 8px; margin-bottom: 8px; }
   .fin-tl-node:nth-child(2n) { padding-right: 0; }
 
-  /* Phone order, top to bottom: title, camera feed, the numbers strip, the funding decision (the main action),
-     the ownership and cash chart, loans and IPO, the funding rounds, the revenue waterfall, then the intro. */
+  /* Phone order, top to bottom: title, the numbers strip, the funding decision (the main action) and ownership,
+     camera feed, the cash chart, loans and IPO, the funding rounds, the revenue waterfall, then the intro. */
   .fin-panel > .panel-header { order: 0; }
-  .fin-panel > .scene-view { order: 1; }
-  .fin-panel > .office-toggle { order: 2; }
-  .fin-panel > .card-flush { order: 3; }
-  .fin-panel > .fin-row-funding { order: 4; }
+  .fin-panel > .card-flush { order: 1; }
+  .fin-panel > .fin-row-funding { order: 2; }
+  .fin-panel > .scene-view { order: 3; }
+  .fin-panel > .office-toggle { order: 4; }
   .fin-panel > .fin-row-chart { order: 5; }
   .fin-panel > .fin-rounds-card { order: 6; }
   .fin-panel > .fin-books-card { order: 7; }

@@ -594,7 +594,7 @@ export const handlers: ActionHandlers = {
     const cfg: MediaRunConfig = { ...a.config, datasetIds: [...new Set(a.config.datasetIds)] };
     const err = validateMediaRun(s, cfg);
     if (err) return notify(s, err, 'bad');
-    if (!(mediaRate(s) > 0)) return notify(s, 'No compute is allocated to training. Rent GPUs or raise the training share.', 'bad');
+    if (!(mediaRate(s) > 0)) return notify(s, 'No compute is allocated to training. Rent GPUs or set Fleet priority in Compute to favour training.', 'bad');
     const est = estimateMediaRun(s, cfg);
     const luck = rollLuck(rng);
     const quirks = MEDIA_QUIRKS.filter((q) => !q.kind || q.kind === cfg.kind);

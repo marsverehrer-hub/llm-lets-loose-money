@@ -56,9 +56,9 @@ function LeadCell({ lead, rivalName, rivalColor }: { lead: Lead | 'you' | 'rival
 }
 
 /** Window in the VS grid. Keeps the card chrome consistent with the rest of the game. */
-function Win({ code, title, subtitle, flush, children }: { code: string; title: string; subtitle?: ComponentChildren; flush?: boolean; children: ComponentChildren }) {
+function Win({ title, subtitle, flush, children }: { title: string; subtitle?: ComponentChildren; flush?: boolean; children: ComponentChildren }) {
   return (
-    <Card code={code} title={title} subtitle={subtitle} flush={flush} class="mp-win">
+    <Card title={title} subtitle={subtitle} flush={flush} class="mp-win">
       {children}
     </Card>
   );
@@ -82,8 +82,8 @@ export function VsPanel() {
   if (!mp) {
     return (
       <div class="panel mp-vs">
-        <PanelHeader code="VS" title="Versus" subtitle="Head-to-head with a human rival" />
-        <Card code="VS" title="No match running">
+        <PanelHeader title="Versus" subtitle="Head-to-head with a human rival" />
+        <Card title="No match running">
           <EmptyState
             title="Not in a match"
             text="Host a room or join one with a code. This panel opens once the match starts."
@@ -187,7 +187,6 @@ export function VsPanel() {
   return (
     <div class="panel mp-vs">
       <PanelHeader
-        code="VS"
         title="Versus"
         subtitle={[`You vs ${rivalName}`, linkText(session.status, session.pingMs)].filter(Boolean).join(' · ')}
         actions={
@@ -207,7 +206,7 @@ export function VsPanel() {
       )}
 
       <div class="mp-vs-grid">
-        <Win code="H2H" title="Head to head">
+        <Win title="Head to head">
           <div class="table-wrap table-stack">
             <table class="table mp-h2h">
               <thead>
@@ -240,7 +239,7 @@ export function VsPanel() {
           </div>
         </Win>
 
-        <Win code="VAL" title="Valuation" subtitle="Weekly samples">
+        <Win title="Valuation" subtitle="Weekly samples">
           <LineChart
             series={[
               { name: 'You', color: YOU, points: hist.map((h) => ({ x: h.day, y: h.me })) },
@@ -252,7 +251,7 @@ export function VsPanel() {
           />
         </Win>
 
-        <Win code="CRN" title="Benchmark crowns" subtitle={`Crowns: you ${myCrowns} · rival ${rivalCrowns}`} flush>
+        <Win title="Benchmark crowns" subtitle={`Crowns: you ${myCrowns} · rival ${rivalCrowns}`} flush>
           {crowns.length === 0 ? (
             <div class="mp-pad">
               <EmptyState title="No crowns yet" text="Both labs need a scored model on a benchmark before a crown can change hands." />
@@ -285,7 +284,7 @@ export function VsPanel() {
           )}
         </Win>
 
-        <Win code="SHR" title="Share by segment" subtitle="Users, you and the rival">
+        <Win title="Share by segment" subtitle="Users, you and the rival">
           <div class="mp-shares">
             {SEGMENTS.map((g) => {
               const rows = segmentShares(s, g.id);
@@ -317,7 +316,7 @@ export function VsPanel() {
           </div>
         </Win>
 
-        <Win code="ATK" title="Attacks" subtitle="Cost cash, then cool down">
+        <Win title="Attacks" subtitle="Cost cash, then cool down">
           <div class="mp-attacks">
             {KINDS.map((kind) => {
               const def = ATTACKS[kind];
@@ -347,7 +346,7 @@ export function VsPanel() {
           </div>
         </Win>
 
-        <Win code="LOG" title="Feed" subtitle="Attacks, crowns and chat">
+        <Win title="Feed" subtitle="Attacks, crowns and chat">
           <div class="mp-feed" ref={feedRef} role="log" aria-live="polite">
             {mp.log.length === 0 ? (
               <div class="mp-feed-empty">Nothing yet. Attacks, crown changes and chat show up here.</div>

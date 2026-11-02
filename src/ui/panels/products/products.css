@@ -359,19 +359,19 @@ button.pr-tile:focus-visible {
     text-align: left;
   }
 
-  /* Phone order, top to bottom: title, camera feed, the revenue numbers, the launch card (the main action),
-     the live product cards, then the intro. The header is opened up so its readouts can move below the camera. */
+  /* Phone order, top to bottom: title, the revenue numbers, the launch card (the main action), the live product
+     cards, camera feed, then the intro. The header is opened up so its readouts sit on their own ruled line. */
   .pn-products > .panel-header { display: contents; }
   .pn-products > .panel-header > .panel-header-main { order: 0; }
-  .pn-products > .scene-view,
-  .pn-products > .office-toggle { order: 1; }
   .pn-products > .panel-header > .row-wrap {
-    order: 2;
+    order: 1;
     padding-bottom: 10px;
     border-bottom: 1px solid var(--line-2);
   }
-  .pn-products > .card { order: 3; }
-  .pn-products > .pr-grid { order: 4; }
+  .pn-products > .card { order: 2; }
+  .pn-products > .pr-grid { order: 3; }
+  .pn-products > .scene-view,
+  .pn-products > .office-toggle { order: 4; }
   .pn-products > .panel-intro { order: 5; }
 }
 .pr-foot-inline { display: flex; flex-direction: column; gap: 8px; }

@@ -113,7 +113,15 @@ export function LiveProductCard({ s, product }: { s: GameState; product: Product
       <TierBar tierUsers={product.tierUsers} userWord={info.userWord} />
       <Economics revenue={revenue} cost={cost} margin={margin} />
 
-      {outage && <div class="pr-outage">Only {fmtPct(served)} of demand is being served right now.</div>}
+      {outage &&
+        (current && models.some((m) => m.id === current.id) ? (
+          <div class="pr-outage">
+            An incident has it down: only {fmtPct(served)} of demand is served. Capacity is not the cause (the cloud covers any shortfall), so
+            more GPUs will not fix it. Users leave and reputation slips each day it lasts.
+          </div>
+        ) : (
+          <div class="pr-outage">Its model is off sale, so nobody is served. Pick a live model below to bring it back.</div>
+        ))}
 
       <div class="pr-form">
         <div class="pr-row">

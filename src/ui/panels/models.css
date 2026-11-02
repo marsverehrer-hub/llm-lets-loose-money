@@ -288,12 +288,6 @@
   border-radius: var(--r-md);
 }
 
-.md-armed {
-  background: var(--down);
-  border-color: var(--down);
-  color: var(--on-accent);
-}
-
 /* ---------- live run ------------------------------------------------------- */
 .md-readouts {
   display: grid;
