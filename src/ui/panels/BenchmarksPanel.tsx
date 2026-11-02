@@ -135,7 +135,6 @@ export function BenchmarksPanel() {
   return (
     <div class="panel pn pn-bmk">
       <PanelHeader
-        code="BMK"
         title="Benchmarks"
         subtitle={`Scores in %. Frontier is the best rival${cls === 'open' ? '' : ` in the ${CLASS_LABEL[cls].toLowerCase()} class`}.`}
         actions={<Stat label="Ranked #1" value={String(sotaCount(s))} hint="Benchmarks where you are #1" size="sm" />}
@@ -154,7 +153,7 @@ export function BenchmarksPanel() {
       </div>
 
       <div class="bmk-grid">
-        <Card class={`bmk-active ${allOpen ? 'is-open' : ''}`} code="LST" title="Active" subtitle={`${lines.length} in play · ${CLASS_LABEL[cls]} class`} flush>
+        <Card class={`bmk-active ${allOpen ? 'is-open' : ''}`} title="Active" subtitle={`${lines.length} in play · ${CLASS_LABEL[cls]} class`} flush>
           <div class="table-wrap table-stack">
             <table class="table bmk-table">
               <thead>
@@ -223,7 +222,7 @@ export function BenchmarksPanel() {
           )}
         </Card>
 
-        <Card code="WIN" title={sel ? sel.def.name : 'No benchmark'} subtitle={sel ? CAT_LABEL[sel.def.category] : undefined}>
+        <Card title={sel ? sel.def.name : 'No benchmark'} subtitle={sel ? CAT_LABEL[sel.def.category] : undefined}>
           {sel ? (
             <div class="pn-stack">
               <div class="bmk-full">{sel.def.fullName}</div>
@@ -254,7 +253,7 @@ export function BenchmarksPanel() {
         </Card>
       </div>
 
-      <Card code="ARN" title={`${CLASS_LABEL[cls]} class arena`} subtitle={`${arenaCount} ${arenaCount === 1 ? 'model' : 'models'} · by Elo`} flush>
+      <Card title={`${CLASS_LABEL[cls]} class arena`} subtitle={`${arenaCount} ${arenaCount === 1 ? 'model' : 'models'} · by Elo`} flush>
         <ClassArena s={s} cls={cls} />
       </Card>
     </div>

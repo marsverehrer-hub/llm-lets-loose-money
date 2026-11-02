@@ -1,4 +1,4 @@
-// OWNER: DATAOPS. The "Get data" area inside the DAT panel (GAME_DESIGN.md §20.2 and §20.3). Eight tabs: the catalogue
+// OWNER: DATAOPS. The "Get data" area inside the Data panel (GAME_DESIGN.md §20.2 and §20.3). Eight tabs: the catalogue
 // (passed in), then the seven ways to get data. Each tab opens with one plain line, shows its state as a picture (bars,
 // slots, meters), keeps one primary action visible, with its settings right above it.
 import type { ComponentChildren } from 'preact';

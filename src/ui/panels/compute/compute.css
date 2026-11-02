@@ -466,18 +466,18 @@
     width: 100%;
   }
 
-  /* Phone order, top to bottom: title, server-room camera, the GPU summary, the rent or build card (the main action),
-     the fleet and cost cards, then the intro. */
+  /* Phone order, top to bottom: title, the rent or build card (the main action), the server-room camera and its
+     legend, the fleet and cost cards, then the intro. */
   .pn-compute > .panel-header { order: 0; }
   /* The rent or build switch takes its own line under the card title, so the title is never cut off. */
   .pn-compute > .card > .card-header { flex-wrap: wrap; height: auto; padding-top: 8px; padding-bottom: 8px; }
   .pn-compute > .card > .card-header > .card-actions { width: 100%; }
   .pn-compute > .card > .card-header > .card-actions .segmented { display: flex; width: 100%; }
   .pn-compute > .card > .card-header > .card-actions .seg { flex: 1 1 0; min-width: 0; }
+  .pn-compute > .card { order: 1; }
   .pn-compute > .scene-view,
-  .pn-compute > .office-toggle { order: 1; }
-  .pn-compute > .cc-summary-under { order: 2; margin: 0 0 4px; }
-  .pn-compute > .card { order: 3; }
+  .pn-compute > .office-toggle { order: 2; }
+  .pn-compute > .cc-summary-under { order: 3; margin: 0 0 4px; }
   .pn-compute > .cc-two { order: 4; }
   .pn-compute > .panel-intro { order: 5; }
 }

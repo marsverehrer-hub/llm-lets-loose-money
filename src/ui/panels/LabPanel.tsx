@@ -16,7 +16,7 @@ import './lab/lab.css';
 function XpLog({ s }: { s: GameState }) {
   const log = [...progressOf(s).log].reverse().slice(0, 12);
   return (
-    <Card title="Recent XP" code="XP">
+    <Card title="Recent XP">
       {log.length === 0 ? (
         <p class="muted small">Finish research, runs, releases and board goals to earn XP.</p>
       ) : (
@@ -37,7 +37,7 @@ function XpLog({ s }: { s: GameState }) {
 function BoardHistory({ s }: { s: GameState }) {
   const h = s.board?.history ?? [];
   return (
-    <Card title="Track record" code="BRD" subtitle={h.length ? `${h.length} quarter${h.length === 1 ? '' : 's'}` : undefined}>
+    <Card title="Track record" subtitle={h.length ? `${h.length} quarter${h.length === 1 ? '' : 's'}` : undefined}>
       {h.length === 0 ? (
         <p class="muted small">The first quarter is still running.</p>
       ) : (
@@ -61,7 +61,7 @@ export function LabPanel() {
   const p = progressOf(s);
   return (
     <div class="panel lab-panel">
-      <PanelHeader code="LAB" title="Level & perks" subtitle={`Level ${p.level} · ${p.perkPoints} perk point${p.perkPoints === 1 ? '' : 's'}`} />
+      <PanelHeader title="Level & perks" subtitle={`Level ${p.level} · ${p.perkPoints} perk point${p.perkPoints === 1 ? '' : 's'}`} />
       <PanelIntro id="lab">
         Everything you do earns lab XP. Levels give perk points: spend them to shape the kind of lab you run. The board sets three goals each quarter, and each pays the day you hit it.
       </PanelIntro>

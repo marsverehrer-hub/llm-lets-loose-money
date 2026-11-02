@@ -72,7 +72,7 @@ function LaunchForm({ s, kind, first, onDone }: { s: GameState; kind: ProductKin
   const cannotAfford = s.finance.cash < fee;
 
   let blocker = '';
-  if (models.length === 0) blocker = 'Release a model first (MDL).';
+  if (models.length === 0) blocker = 'Release a model first in Models.';
   else if (!name.trim()) blocker = 'Name the product.';
   else if (cannotAfford) blocker = `Launch fee ${formatMoney(fee)}. Not enough cash.`;
 

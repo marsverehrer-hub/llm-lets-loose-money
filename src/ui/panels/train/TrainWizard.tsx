@@ -84,7 +84,7 @@ function AdvancedWizard() {
   if (!sheet.name.trim()) errs.push('Give the model a name.');
   if (selected.length === 0) errs.push('Pick at least one dataset you own.');
   else if (!canTokens) errs.push('The selected datasets have no usable tokens.');
-  if (rate <= 0) errs.push('No training compute. Rent GPUs or raise the training share.');
+  if (rate <= 0) errs.push('No training compute. Rent GPUs or set Fleet priority in Compute to favour training.');
   const cfgErr = validateConfig(s, sheet.cfg) ?? null;
   if (cfgErr) errs.push(cfgErr);
 
@@ -174,7 +174,7 @@ function AdvancedWizard() {
   };
 
   return (
-    <Card code="NEW" title="New pretraining run" class="tw-card" subtitle={`Step ${step} of 5 · ${STEP_NAMES[stepIndex]}`} actions={
+    <Card title="New pretraining run" class="tw-card" subtitle={`Step ${step} of 5 · ${STEP_NAMES[stepIndex]}`} actions={
       <>
         <button type="button" class="btn btn-sm btn-ghost" onClick={() => updateDraft((x) => ({ ...x, mode: 'quick' }))}>
           Presets

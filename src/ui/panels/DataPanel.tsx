@@ -1,4 +1,4 @@
-// DAT: the Data screen. Leads with "Your tokens" (a treemap of what you own) and two numbers training reads. The
+// The Data screen. Leads with "Your tokens" (a treemap of what you own) and two numbers training reads. The
 // catalogue has its filters in one row; a set's detail opens in a sheet; the make-your-own-data tools are tabs on the page.
 import { useState } from 'preact/hooks';
 import { useGame } from '../store';
@@ -37,24 +37,10 @@ export function DataPanel() {
   return (
     <div class="panel pn pn-data">
       <div class="dt">
-        <PanelHeader code="DAT" title="Data" subtitle="What models learn from. Buy it, crawl it or make it." />
+        <PanelHeader title="Data" subtitle="What models learn from. Buy it, crawl it or make it." />
         <PanelIntro id="data">
           Pick a block in the map or a row in the catalogue to open a set. Audit a set to learn its real quality: until then it is the seller's claim.
         </PanelIntro>
-
-        <SceneView
-          state={s}
-          make={createWarehouse}
-          cam={WAREHOUSE_CAM}
-          camId="CAM-04"
-          label="Your data warehouse: shelves of datasets by domain, the crawler, the refinery and jobs in flight"
-          onSelect={(hit) => {
-            if (hit.id.startsWith('domain:')) {
-              patch({ domain: hit.id.slice(7) as CatalogueView['domain'], status: 'owned' as CatalogueView['status'] });
-              document.querySelector('.dt-filter-inline')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-          }}
-        />
 
         <section class="dt-hero" aria-label="Your tokens">
           <Card title="Your tokens" subtitle={`${hero.owned} ${hero.owned === 1 ? 'set' : 'sets'}`} class="dt-hero-map">
@@ -77,6 +63,20 @@ export function DataPanel() {
             <DataFacts s={s} onTool={openTool} />
           </div>
         </section>
+
+        <SceneView
+          state={s}
+          make={createWarehouse}
+          cam={WAREHOUSE_CAM}
+          camId="CAM-04"
+          label="Your data warehouse: shelves of datasets by domain, the crawler, the refinery and jobs in flight"
+          onSelect={(hit) => {
+            if (hit.id.startsWith('domain:')) {
+              patch({ domain: hit.id.slice(7) as CatalogueView['domain'], status: 'owned' as CatalogueView['status'] });
+              document.querySelector('.dt-filter-inline')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }}
+        />
 
         <GetDataArea
           s={s}

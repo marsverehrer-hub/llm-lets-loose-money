@@ -189,14 +189,14 @@
   .mk-funnel { grid-template-columns: minmax(0, 1fr); }
   .mk-nohist { min-height: 120px; }
 
-  /* Phone order, top to bottom: title, camera feed, brand and hype (the numbers), the campaign timeline,
-     the campaign shop (the main action, three cards then "Show all"), the funnel and team, the intro. */
+  /* Phone order, top to bottom: title, brand and hype (the numbers), the campaign timeline, the campaign shop (the
+     main action, three cards then "Show all"), camera feed, the funnel and team, the intro. */
   .mk > .panel-header { order: 0; }
-  .mk > .scene-view { order: 1; }
-  .mk > .office-toggle { order: 2; }
-  .mk > .mk-hero-card { order: 3; }
-  .mk > .mk-timeline-card { order: 4; }
-  .mk > .mk-shop-card { order: 5; }
+  .mk > .mk-hero-card { order: 1; }
+  .mk > .mk-timeline-card { order: 2; }
+  .mk > .mk-shop-card { order: 3; }
+  .mk > .scene-view { order: 4; }
+  .mk > .office-toggle { order: 5; }
   .mk > .mk-lower { order: 6; }
   .mk > .panel-intro { order: 7; }
   .mk-shop:not(.is-open) > .mk-camp:nth-child(n + 4) { display: none; }

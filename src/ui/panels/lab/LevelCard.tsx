@@ -11,7 +11,6 @@ export function LevelCard({ s, onOpen }: { s: GameState; onOpen?: () => void }) 
   return (
     <Card
       title="Lab level"
-      code="LAB"
       class="lab-level-card"
       actions={
         p.perkPoints > 0 ? (

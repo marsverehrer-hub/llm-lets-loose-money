@@ -67,7 +67,7 @@ export function ResearchPanel() {
   if (RESEARCH.length === 0) {
     return (
       <div class="panel rs">
-        <PanelHeader code="RES" title="Research" subtitle="The tree is still being drawn up." />
+        <PanelHeader title="Research" subtitle="The tree is still being drawn up." />
       </div>
     );
   }
@@ -146,26 +146,11 @@ export function ResearchPanel() {
 
   return (
     <div class="panel rs">
-      <PanelHeader code="RES" title="Research" subtitle="Pick a topic and press Start. Queued topics start one after another." />
+      <PanelHeader title="Research" subtitle="Pick a topic and press Start. Queued topics start one after another." />
       <PanelIntro id="research">
         Research unlocks techniques, model sizes and products, and old ideas get cheaper as papers spread. Queue a few topics so your researchers never sit
         idle; search below finds anything, and locked topics show what they need first.
       </PanelIntro>
-
-      <SceneView
-        state={s}
-        make={createLab}
-        cam={LAB_CAM}
-        camId="CAM-10"
-        label="The research lab: one desk pod per branch, whiteboards fill as you finish topics, the projector shows what is being researched"
-        onSelect={(hit) => {
-          if (hit.id.startsWith('branch:')) {
-            setQuery('');
-            chooseBranch(hit.id.slice(7) as BranchTab);
-            document.querySelector('.rs-toolbar')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          } else if (hit.id === 'current' && v.current) jump(v.current.id);
-        }}
-      />
 
       {!v.current && (s.research.queue ?? []).length === 0 && (
         <div class="rs-idle" role="alert">
@@ -184,6 +169,21 @@ export function ResearchPanel() {
       >
         <ReadyCards view={v} onShow={(n) => jump(n.id)} />
       </Card>
+
+      <SceneView
+        state={s}
+        make={createLab}
+        cam={LAB_CAM}
+        camId="CAM-10"
+        label="The research lab: one desk pod per branch, whiteboards fill as you finish topics, the projector shows what is being researched"
+        onSelect={(hit) => {
+          if (hit.id.startsWith('branch:')) {
+            setQuery('');
+            chooseBranch(hit.id.slice(7) as BranchTab);
+            document.querySelector('.rs-toolbar')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          } else if (hit.id === 'current' && v.current) jump(v.current.id);
+        }}
+      />
 
       <h2 class="rs-section">Browse all research</h2>
       <div class="rs-toolbar" role="search">

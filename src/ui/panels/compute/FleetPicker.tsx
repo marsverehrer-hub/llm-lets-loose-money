@@ -35,7 +35,6 @@ export function FleetPicker({ s }: { s: GameState }) {
 
   return (
     <Card
-      code="PRI"
       title="Fleet priority"
       subtitle="Who gets your own GPUs"
       actions={

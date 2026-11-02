@@ -4,8 +4,6 @@ import { HUBS, HubIcon, hubBadge, hubOf, type Badge, type Hub } from './hubs';
 export interface NavItemDef {
   id: PanelId;
   label: string;
-  /** Legacy function code (e.g. MDL). Not shown; kept for callers. */
-  code: string;
 }
 
 export interface SideNavProps {

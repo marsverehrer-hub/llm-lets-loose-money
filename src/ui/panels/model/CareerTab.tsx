@@ -21,7 +21,8 @@ import {
 } from '../../../sim/systems/modelLife';
 import { cupThemeLabel, playerCupScore, rivalField } from '../../../sim/systems/tournament';
 import { Pill, ProgressBar, Stat, formatCount, formatDays } from '../../components';
-import { ArmButton, Section } from './parts';
+import { Section } from './parts';
+import { ConfirmButton } from '../panelKit';
 
 export function CareerTab({ s, m }: { s: GameState; m: Model }) {
   return (
@@ -177,6 +178,8 @@ function RetireBlock({ s, m }: { s: GameState; m: Model }) {
   }
   const why = retireBlocker(s, m);
   const honors = honorsOf(s, m);
+  // Without an honour there is no Hall of Fame entry, so the button does not promise one.
+  const retire = honors.length > 0 ? 'Retire to Hall of Fame' : 'Retire';
   return (
     <div class="mpg-stack">
       <span class="mpg-desc">
@@ -188,10 +191,11 @@ function RetireBlock({ s, m }: { s: GameState; m: Model }) {
         <span class="mpg-desc">{why}.</span>
       ) : (
         <div class="career-retire">
-          <ArmButton label="Retire" confirmLabel="Confirm retire" onConfirm={() => dispatch({ type: 'retireModel', modelId: m.id })} />
-          <ArmButton
-            label="Retire as open weights"
-            confirmLabel="Confirm: release weights"
+          <ConfirmButton class="btn-sm" label={retire} confirmLabel="Retire it for good?" onConfirm={() => dispatch({ type: 'retireModel', modelId: m.id })} />
+          <ConfirmButton
+            class="btn-sm"
+            label={`${retire}, open weights`}
+            confirmLabel="Retire and release the weights?"
             title="Brand and reputation up, and rivals learn from it"
             onConfirm={() => dispatch({ type: 'retireModel', modelId: m.id, openWeights: true })}
           />

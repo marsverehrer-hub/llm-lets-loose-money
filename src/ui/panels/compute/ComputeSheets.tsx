@@ -285,16 +285,8 @@ function BuyGpus({ s, b }: { s: GameState; b: RoomBlock }) {
 }
 
 // ---------------------------------------------------------------------------
-// Rent sheet: every GPU you can rent this year, with +/- buttons.
+// Rent: every GPU you can rent this year, with +/- buttons (the Rent tab of "Get more GPUs").
 // ---------------------------------------------------------------------------
-
-export function RentSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
-  return (
-    <Sheet open={open} title="Rent GPUs" subtitle="No upfront cost. Billed every day." onClose={onClose} width={620}>
-      {open && <RentBody />}
-    </Sheet>
-  );
-}
 
 export function RentBody() {
   const s = useGame();
@@ -341,16 +333,8 @@ export function RentBody() {
 }
 
 // ---------------------------------------------------------------------------
-// Build sheet: the datacenter tiers, with cost, time to build and upkeep. Power price is behind Details.
+// Build: the datacenter tiers, with cost, time to build and upkeep (the Build tab). Power price is behind Details.
 // ---------------------------------------------------------------------------
-
-export function BuildSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
-  return (
-    <Sheet open={open} title="Build a datacenter" subtitle="Takes days to build, then upkeep every day." onClose={onClose} width={680}>
-      {open && <BuildBody />}
-    </Sheet>
-  );
-}
 
 export function BuildBody() {
   const s = useGame();

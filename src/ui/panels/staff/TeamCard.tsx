@@ -4,6 +4,7 @@ import { Button, HelpTip, Pill, ProgressBar, Slider } from '../../components';
 import { dispatch } from '../../store';
 import { UNDERPAID_BELOW, POACH_MORALE_BELOW, teamEffect, type TeamStat } from './model';
 import { StarCard } from './StarCard';
+import { ConfirmButton } from '../panelKit';
 
 export interface TeamCardProps {
   s: GameState;
@@ -26,6 +27,7 @@ export function TeamCard({ s, team, selected, onToggle, onHire }: TeamCardProps)
   const poaching = team.heads > 0 && morale < POACH_MORALE_BELOW;
   const levelPct = Math.round(team.level * 100);
   const headsWord = team.heads === 1 ? 'person' : 'people';
+  const fireMany = Math.min(5, Math.max(1, team.count));
 
   return (
     <section class={`sf-team-card sf-team-card--${team.id} ${selected ? 'is-open' : ''}`}>
@@ -105,24 +107,22 @@ export function TeamCard({ s, team, selected, onToggle, onHire }: TeamCardProps)
               <Button size="sm" variant="primary" onClick={() => onHire(team.id)}>
                 Hire into {team.role.plural}
               </Button>
-              <Button
-                size="sm"
-                variant="danger"
+              <ConfirmButton
+                class="btn-sm"
+                label="Fire 1"
+                confirmLabel="Fire 1?"
                 disabled={team.count < 1}
                 title={team.count < 1 ? 'No ordinary staff to let go' : 'Let go 1 person from this team'}
-                onClick={() => dispatch({ type: 'fire', role: team.id, count: 1 })}
-              >
-                Fire 1
-              </Button>
-              <Button
-                size="sm"
-                variant="danger"
+                onConfirm={() => dispatch({ type: 'fire', role: team.id, count: 1 })}
+              />
+              <ConfirmButton
+                class="btn-sm"
+                label={`Fire ${fireMany}`}
+                confirmLabel={`Fire ${fireMany}?`}
                 disabled={team.count < 1}
-                title={team.count < 1 ? 'No ordinary staff to let go' : `Let go ${Math.min(5, team.count)} people from this team`}
-                onClick={() => dispatch({ type: 'fire', role: team.id, count: 5 })}
-              >
-                Fire {Math.min(5, Math.max(1, team.count))}
-              </Button>
+                title={team.count < 1 ? 'No ordinary staff to let go' : `Let go ${fireMany} people from this team`}
+                onConfirm={() => dispatch({ type: 'fire', role: team.id, count: 5 })}
+              />
             </div>
           </div>
         )}
