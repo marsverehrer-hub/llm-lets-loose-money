@@ -314,7 +314,7 @@ export function drawLabel(g: CanvasRenderingContext2D, x: number, y: number, tex
 /** Terminal-style pill: black box, amber hairline, optional progress rule. Same as the office label. */
 export function drawPill(g: CanvasRenderingContext2D, x: number, y: number, text: string, color: string, progress?: number, t = 0): void {
   g.save();
-  g.font = '600 11px IBM Plex Mono, monospace';
+  g.font = '600 11px JetBrains Mono, monospace';
   const w = Math.ceil(g.measureText(text).width) + 16;
   const h = 20;
   const px = Math.round(clampCentre(g, x, w) - w / 2);

@@ -11,19 +11,11 @@
 
 /* Restrained header: a dim strip instead of the amber event bar. */
 .ev-modal .modal-header {
-  min-height: var(--strip);
-  padding: 0 12px;
-  background: var(--bg-2);
-  color: var(--fg);
-  border-bottom: 1px solid var(--line-2);
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 12px;
 }
 .ev-modal .modal-title {
   color: var(--fg);
-  font-size: var(--fs);
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .ev-body {

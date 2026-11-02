@@ -1,9 +1,9 @@
-// Enforces the hard rules from DESIGN.md. Usage: node scripts/lint-style.mjs
+// Enforces the hard rules from DESIGN.md ("Night Shift" design system). Usage: node scripts/lint-style.mjs
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
 const root = new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
-const dirs = ['src/ui', 'src/office'];
+const dirs = ['src/ui', 'src/office', 'src/scenes'];
 const files = [];
 function walk(d) {
   for (const n of readdirSync(d)) {
@@ -13,6 +13,9 @@ function walk(d) {
   }
 }
 for (const d of dirs) walk(join(root, d));
+
+/** Literal radii up to this size are fine for small parts (chips, keys, swatches). Bigger shapes use the tokens. */
+const MAX_LITERAL_RADIUS = 12;
 
 const problems = [];
 const EMOJI = /\p{Extended_Pictographic}/u;
@@ -25,17 +28,28 @@ for (const f of files) {
     if (EMOJI.test(line)) problems.push(`${at}  emoji: ${line.trim().slice(0, 80)}`);
     if (rel.endsWith('.css')) {
       const code = line.replace(/\/\*.*?\*\//g, '');
-      if (!isTheme && /gradient\(/.test(code)) problems.push(`${at}  gradient`);
-      if (/(box-shadow|text-shadow|drop-shadow|backdrop-filter|filter:\s*blur)/.test(code) && !/:\s*none/.test(code)) problems.push(`${at}  shadow/blur`);
-      const r = code.match(/border-radius:\s*([\d.]+)(px|%|rem|em)?/);
-      if (r && !(r[2] === 'px' || r[2] === undefined ? +r[1] <= 2 : false)) problems.push(`${at}  border-radius > 2px`);
-      if (!isTheme && /#[0-9a-fA-F]{3,8}\b/.test(code)) problems.push(`${at}  raw hex colour (use tokens)`);
-      if (/@keyframes\s+(fade|pop|slide|glow|float|bounce)/i.test(code)) problems.push(`${at}  decorative animation`);
+      if (isTheme) return;
+      // Colours, gradients and depth live in theme tokens.
+      if (/#[0-9a-fA-F]{3,8}\b/.test(code)) problems.push(`${at}  raw hex colour (use tokens)`);
+      if (/gradient\(/.test(code)) problems.push(`${at}  gradient outside theme.css (add a token)`);
+      if (/box-shadow:/.test(code) && !/:\s*none/.test(code) && !/var\(--/.test(code)) problems.push(`${at}  box-shadow without a token (use --shadow-*, --ring or a var() colour)`);
+      if (/(text-shadow|backdrop-filter|filter:\s*blur|drop-shadow)/.test(code) && !/:\s*none/.test(code)) problems.push(`${at}  glow/blur (not part of the look)`);
+      const r = code.match(/border-radius:\s*([^;]+)/);
+      if (r) {
+        for (const part of r[1].trim().split(/\s+/)) {
+          if (/^var\(--r-/.test(part) || part === '0' || part === '50%' || part === 'inherit') continue;
+          const px = part.match(/^([\d.]+)px$/);
+          if (!px || +px[1] > MAX_LITERAL_RADIUS) problems.push(`${at}  border-radius ${part} (use var(--r-*) above ${MAX_LITERAL_RADIUS}px)`);
+        }
+      }
+      if (/@keyframes\s+(bounce|wobble|shake|glow|float|jiggle)/i.test(code)) problems.push(`${at}  decorative animation`);
     } else {
-      // inline styles in TSX
-      if (/(boxShadow|textShadow|drop-shadow|backdropFilter)/.test(line)) problems.push(`${at}  shadow/blur in inline style`);
+      // Inline styles in TSX follow the same rules.
+      if (/(textShadow|backdropFilter|drop-shadow)/.test(line)) problems.push(`${at}  glow/blur in inline style`);
+      if (/boxShadow:\s*['"`](?![^'"`]*var\(--)/.test(line)) problems.push(`${at}  boxShadow without a token in inline style`);
       if (/(linear|radial|conic)-gradient\(/.test(line)) problems.push(`${at}  gradient in inline style`);
-      if (/borderRadius:\s*['"]?([3-9]|\d{2,})/.test(line)) problems.push(`${at}  borderRadius > 2px`);
+      const r = line.match(/borderRadius:\s*['"]?(\d+)/);
+      if (r && +r[1] > MAX_LITERAL_RADIUS) problems.push(`${at}  borderRadius > ${MAX_LITERAL_RADIUS}px in inline style`);
     }
   });
 }

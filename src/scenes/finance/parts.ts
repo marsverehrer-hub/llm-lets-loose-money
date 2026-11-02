@@ -319,7 +319,7 @@ export function drawBoard(c: Ctx, s: GameState, t: number, vals: number[]): void
   const fs = Math.max(8, 9 * sc);
   g.save();
   g.textBaseline = 'middle';
-  g.font = `600 ${fs}px IBM Plex Mono, monospace`;
+  g.font = `600 ${fs}px JetBrains Mono, monospace`;
   g.textAlign = 'left';
   g.fillStyle = C.textDim;
   const [hx, hy] = P(cx0, 46.2);
@@ -329,11 +329,11 @@ export function drawBoard(c: Ctx, s: GameState, t: number, vals: number[]): void
     const mid = (cx0 + cx1) / 2;
     const [px, py] = P(mid, 42.5);
     g.textAlign = 'center';
-    g.font = `600 ${Math.max(9, 11 * sc)}px IBM Plex Mono, monospace`;
+    g.font = `600 ${Math.max(9, 11 * sc)}px JetBrains Mono, monospace`;
     g.fillStyle = C.textDim;
     g.fillText('PRIVATE', px, py);
     const [vx, vy] = P(mid, 36);
-    g.font = `600 ${fs}px IBM Plex Mono, monospace`;
+    g.font = `600 ${fs}px JetBrains Mono, monospace`;
     g.fillStyle = C.textDim;
     g.globalAlpha = 0.7;
     g.fillText(`val. ${formatMoney(s.finance.valuation)}`, vx, vy);
@@ -403,12 +403,12 @@ export function drawBoard(c: Ctx, s: GameState, t: number, vals: number[]): void
   const first = n >= 1 ? vals[0] : price;
   const change = first > 0 ? (price / first - 1) * 100 : 0;
   g.textAlign = 'left';
-  g.font = `600 ${Math.max(9, 11 * sc)}px IBM Plex Mono, monospace`;
+  g.font = `600 ${Math.max(9, 11 * sc)}px JetBrains Mono, monospace`;
   g.fillStyle = C.fg;
   const [qx, qy] = P(cx0, 42.5);
   g.fillText(`$${price.toFixed(2)}`, qx, qy);
   g.textAlign = 'right';
-  g.font = `600 ${fs}px IBM Plex Mono, monospace`;
+  g.font = `600 ${fs}px JetBrains Mono, monospace`;
   g.fillStyle = change >= 0 ? C.green : C.red;
   const [rx, ry] = P(cx1, 42.5);
   g.fillText(`${change >= 0 ? '+' : ''}${change.toFixed(1)}%`, rx, ry);
@@ -428,7 +428,7 @@ export function drawBoard(c: Ctx, s: GameState, t: number, vals: number[]): void
 /** Screen-space label in the office's pill style. */
 export function drawPill(g: CanvasRenderingContext2D, x: number, y: number, text: string, color: string): void {
   g.save();
-  g.font = '600 11px IBM Plex Mono, monospace';
+  g.font = '600 11px JetBrains Mono, monospace';
   const w = Math.ceil(g.measureText(text).width) + 16;
   const h = 20;
   const px = Math.round(x - w / 2);

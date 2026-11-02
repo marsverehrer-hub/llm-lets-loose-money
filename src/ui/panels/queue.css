@@ -5,6 +5,7 @@
   background: var(--bg-1);
   margin-bottom: 12px;
   min-width: 0;
+  border-radius: var(--r-md);
 }
 .q-head {
   display: flex;
@@ -115,11 +116,13 @@
   font-variant-numeric: tabular-nums;
   line-height: 1.5;
   vertical-align: middle;
+  border-radius: var(--r-md);
 }
 .q-train {
   border: 1px solid var(--line);
   background: var(--bg-1);
   margin-bottom: 12px;
+  border-radius: var(--r-md);
 }
 .q-train .q-row {
   padding: 8px 12px;

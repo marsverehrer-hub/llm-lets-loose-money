@@ -11,6 +11,7 @@
   border: 1px solid var(--line);
   background: var(--bg-1);
   margin-bottom: 12px;
+  border-radius: var(--r-md);
 }
 .rs-kpi {
   display: flex;
@@ -148,7 +149,7 @@
   height: 12px;
   padding: 0;
   border: 1px solid var(--line-2);
-  border-radius: 0;
+  border-radius: var(--r-sm);
   background: transparent;
   cursor: pointer;
 }
@@ -322,6 +323,7 @@
   color: var(--fg);
   text-align: left;
   cursor: pointer;
+  border-radius: var(--r-md);
 }
 .rs-node:focus-visible {
   outline: 2px solid var(--amber);
@@ -595,6 +597,7 @@
   font: inherit;
   font-size: var(--fs-xs);
   cursor: pointer;
+  border-radius: var(--r-md);
 }
 .rs-chip-btn.is-done {
   border-color: var(--up);
@@ -670,6 +673,7 @@
   border: 1px solid var(--line-2);
   color: var(--fg-2);
   font-size: var(--fs-xs);
+  border-radius: var(--r-md);
 }
 .rs-chip i {
   color: var(--fg-3);
@@ -808,6 +812,7 @@
   border: 1px solid var(--line-2);
   color: var(--fg);
   font: inherit;
+  border-radius: var(--r-sm);
 }
 .rs-search:focus {
   outline: none;
@@ -832,6 +837,7 @@
   font-size: 13px;
   cursor: pointer;
   overflow: hidden;
+  border-radius: var(--r-md);
 }
 .rs-chip-btn:hover {
   border-color: var(--line-2);
@@ -883,6 +889,7 @@
   background: var(--bg-1);
   color: var(--fg);
   font-weight: 600;
+  border-radius: var(--r-md);
 }
 .rs-ready-card-wrap {
   margin: 12px 0;
@@ -900,6 +907,7 @@
   background: var(--bg-1);
   border: 1px solid var(--line-2);
   border-top: 2px solid var(--blue);
+  border-radius: var(--r-md);
 }
 .rs-ready-top {
   display: flex;

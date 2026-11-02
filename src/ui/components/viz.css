@@ -19,29 +19,31 @@
 /* Popover */
 .popover { position: relative; display: inline-flex; }
 .popover-trigger { gap: 6px; }
-.popover-count { min-width: 18px; padding: 0 4px; background: var(--amber); color: var(--on-accent); font-size: 12px; text-align: center; }
+.popover-count { min-width: 20px; padding: 0 6px; border-radius: var(--r-pill); background: var(--accent); color: var(--on-accent); font-size: 12px; font-weight: 800; text-align: center; }
 .popover-caret { color: var(--fg-3); font-size: 12px; }
 .popover-panel {
   position: fixed; z-index: 40;
-  background: var(--bg-1); border: 1px solid var(--line-2); padding: 12px;
+  background: var(--bg-1); border: 1px solid var(--line-2); border-radius: var(--r-lg); box-shadow: var(--shadow-3); padding: 14px;
   display: flex; flex-direction: column; gap: 10px; max-height: 70vh; overflow: auto;
   max-width: calc(100vw - 16px);
 }
-.popover.open .popover-trigger { border-color: var(--amber); color: var(--fg); }
+.popover.open .popover-trigger { border-color: var(--accent); color: var(--fg); }
 
 /* HelpTip */
 .helptip { display: inline-flex; vertical-align: middle; margin-left: 4px; }
 .helptip-mark {
-  display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px;
-  border: 1px solid var(--line-2); color: var(--fg-3); font-family: var(--mono); font-size: 12px; line-height: 1; cursor: help;
+  display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px;
+  border-radius: var(--r-pill); background: var(--bg-3); color: var(--fg-2); font-size: 11.5px; font-weight: 800; line-height: 1; cursor: help;
+  transition: background var(--t-fast) linear, color var(--t-fast) linear;
 }
-.helptip-mark:hover, .helptip-mark:focus { color: var(--amber); border-color: var(--amber); outline: none; }
+.helptip-mark:hover, .helptip-mark:focus { background: var(--accent); color: var(--on-accent); outline: none; }
 .helptip-text { display: block; max-width: 300px; white-space: normal; text-transform: none; letter-spacing: 0; font-weight: 400; }
 
 /* PanelIntro */
 .panel-intro {
-  display: flex; align-items: flex-start; gap: 12px; padding: 10px 12px; margin-bottom: 12px;
-  border: 1px solid var(--line); border-left: 2px solid var(--blue); background: var(--bg-1);
+  display: flex; align-items: center; gap: 12px; padding: 12px 14px 12px 18px;
+  border-radius: var(--r-md); background: color-mix(in srgb, var(--blue) 9%, var(--bg-1));
+  border: 1px solid color-mix(in srgb, var(--blue) 25%, transparent); box-shadow: inset 4px 0 0 var(--blue);
 }
 .panel-intro-body { flex: 1; min-width: 0; }
 .panel-intro-text { color: var(--fg); line-height: 1.6; }
@@ -49,9 +51,9 @@
 
 /* FlowBar */
 .flowbar { display: flex; flex-direction: column; gap: 8px; }
-.flowbar-track { display: flex; width: 100%; background: var(--bg-3); overflow: hidden; }
+.flowbar-track { display: flex; width: 100%; background: var(--bg-3); overflow: hidden; border-radius: var(--r-pill); gap: 2px; }
 .flowbar-seg { background: var(--c); min-width: 2px; transition: opacity 100ms linear; }
-.flowbar-seg + .flowbar-seg { border-left: 1px solid var(--bg-1); }
+
 .flowbar-seg.dim { opacity: 0.35; }
 .flowbar-seg.clickable { cursor: pointer; }
 .flowbar-seg.sel { outline: 2px solid var(--fg); outline-offset: -2px; }
@@ -62,7 +64,7 @@
 .flowbar-legend { display: flex; flex-direction: column; }
 .flowbar-key {
   display: grid; grid-template-columns: 12px 1fr auto 44px; gap: 8px; align-items: center;
-  padding: 4px 6px; background: none; border: 0; color: var(--fg); text-align: left; font: inherit;
+  padding: 5px 8px; background: none; border: 0; border-radius: var(--r-sm); color: var(--fg); text-align: left; font: inherit;
 }
 .flowbar-key:not([aria-disabled="true"]) { cursor: pointer; }
 .flowbar-key[aria-disabled="true"] { cursor: default; }
@@ -76,17 +78,17 @@
 .barlist { display: flex; flex-direction: column; }
 .barlist-row {
   display: grid; grid-template-columns: minmax(120px, 2fr) minmax(80px, 3fr) auto; gap: 10px; align-items: center;
-  padding: 6px; border-bottom: 1px solid var(--line);
+  padding: 8px; border-bottom: 1px solid var(--line);
 }
 .barlist-row:has(.barlist-extra) { grid-template-columns: minmax(120px, 2fr) minmax(80px, 3fr) auto auto; }
 .barlist.clickable .barlist-row { cursor: pointer; }
 .barlist.clickable .barlist-row:hover { background: var(--bg-2); }
 .barlist-row.sel { background: var(--bg-3); }
-.barlist-row.me .barlist-name { color: var(--amber); }
+.barlist-row.me .barlist-name { color: var(--accent); font-weight: 700; }
 .barlist-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .barlist-sub { color: var(--fg-3); }
-.barlist-track { height: 8px; background: var(--bg-3); }
-.barlist-fill { height: 100%; background: var(--c); transition: width 120ms linear; }
+.barlist-track { height: 8px; border-radius: var(--r-pill); background: var(--bg-3); overflow: hidden; }
+.barlist-fill { height: 100%; border-radius: var(--r-pill); background: var(--c); transition: width var(--t-med) var(--ease); }
 .barlist-val { text-align: right; }
 
 /* LineChart: the canvas takes horizontal drags (for the tip), and the page keeps vertical scrolling. */
@@ -113,7 +115,7 @@
 .radar-ring.outer { stroke: var(--line-2); stroke-dasharray: none; }
 .radar-spoke { stroke: var(--line); stroke-width: 1; }
 .radar-spoke.on { stroke: var(--fg-2); stroke-width: 1.5; }
-.radar-shape { fill: var(--c, var(--amber)); fill-opacity: 0.12; stroke: var(--c, var(--amber)); stroke-width: 1.75; stroke-linejoin: miter; }
+.radar-shape { fill: var(--c, var(--amber)); fill-opacity: 0.16; stroke: var(--c, var(--amber)); stroke-width: 2; stroke-linejoin: round; }
 .radar-shape.dashed { fill-opacity: 0; stroke-dasharray: 5 4; }
 .radar-dot { fill: var(--c, var(--amber)); }
 .radar-dot.on { fill: var(--bg-1); stroke: var(--c, var(--amber)); stroke-width: 2; }
@@ -137,9 +139,9 @@
 .wf-row:focus-visible { background: var(--bg-2); }
 .wf-label { color: var(--fg-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .wf-start .wf-label, .wf-subtotal .wf-label, .wf-end .wf-label { color: var(--fg); font-weight: 600; }
-.wf-track { position: relative; height: 12px; background: var(--bg-3); }
+.wf-track { position: relative; height: 12px; border-radius: 4px; background: var(--bg-3); }
 .wf-zero { position: absolute; top: -3px; bottom: -3px; width: 1px; background: var(--fg-3); }
-.wf-bar { position: absolute; top: 0; bottom: 0; background: var(--c, var(--amber)); }
+.wf-bar { position: absolute; top: 0; bottom: 0; border-radius: 4px; background: var(--c, var(--amber)); }
 .wf-val { text-align: right; color: var(--fg); white-space: nowrap; }
 .wf-readout { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; min-height: 1.5em; color: var(--fg-2); }
 .wf-readout-label { color: var(--fg); font-weight: 600; }

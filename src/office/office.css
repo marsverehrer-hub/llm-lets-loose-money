@@ -1,10 +1,18 @@
-/* OWNER: shell agent. Office camera frame and hover tag. Terminal tokens only. */
+/* OWNER: shell agent. Office camera frame and hover tag. Tokens only. The feed keeps its own art; the frame is a
+   rounded card so it sits with the rest of the UI. */
 
 .office-view {
   position: relative;
   width: 100%;
   overflow: hidden;
   background: var(--bg);
+  border-radius: var(--r-lg);
+  border: 1px solid var(--line);
+}
+/* Inside a flush card the card is the frame. */
+.card-flush .office-view {
+  border: 0;
+  border-radius: 0;
 }
 .office-view canvas {
   display: block;
@@ -16,12 +24,13 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 2px 6px;
+  padding: 3px 10px;
+  border-radius: var(--r-pill);
   pointer-events: none;
   background: rgba(18, 20, 23, 0.72);
   color: rgba(223, 225, 229, 0.92);
-  font-family: var(--mono);
   font-size: var(--fs-xs);
+  font-weight: 600;
   white-space: nowrap;
   line-height: 1.4;
 }
@@ -57,6 +66,7 @@
   color: var(--fg);
   font-size: var(--fs-xs);
   white-space: nowrap;
+  border-radius: var(--r-md);
 }
 /* Phones: the tap tip wraps and stays narrow, so a finger can read it beside the point. Placement is set in TSX. */
 @media (max-width: 760px) {
@@ -95,5 +105,6 @@
   font: inherit;
   font-size: var(--fs-xs);
   cursor: pointer;
+  border-radius: var(--r-sm);
 }
 .office-view .cam-toggle:hover { color: var(--amber); border-color: var(--amber); }

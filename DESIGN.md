@@ -1,145 +1,129 @@
-# LLM: Lets Loose Money: UI design rules (terminal edition)
+# LLM: Lets Loose Money: UI design rules ("Night Shift", v4)
 
-The UI is a **financial terminal**, a parody of the Bloomberg terminal. It should feel like a dense instrument that a trader stares at for 14 hours. It must not feel like a SaaS landing page. The jokes live in the *content*: names, news, events and descriptions. The chrome stays dead serious.
+The UI is a **tycoon game's control room**, not a terminal and not a SaaS dashboard. Think of the screens a lab
+founder would keep open on the night shift: layered ink surfaces, chunky rounded cards, one lavender accent,
+a colour per area of the company, big friendly numbers. It must be easy to read for hours and easy to learn: every
+screen says what it is for, the home screen says what to do next, and jargon gets a plain-language tip.
+
+The satire lives in the **content** (names, news, events, descriptions, advisor copy). The chrome is calm and clean.
 
 `scripts/lint-style.mjs` enforces the hard rules. Run `node scripts/lint-style.mjs`; it must print `style lint: OK`.
 
 ## Hard rules (lint-enforced)
-1. **No emoji** anywhere in UI source. Arrows and box glyphs such as `▲ ▼ ■ ● ─ │ ›` are fine.
-   - The sim data has `icon` fields (research, events, achievements). **Never render them.**
-2. **No decoration**: no gradients, `box-shadow`, `text-shadow`, `drop-shadow`, `backdrop-filter` or blur.
-   - `border-radius` must be at most 2px; use 0 by default.
-   - The only gradients allowed are in `theme.css`, for functional slider fills.
-3. **No raw hex colors in CSS** outside `theme.css`. Use the tokens. Data-driven colors such as lab colors may be passed inline through `--c`.
-4. **No entrance animations** (fade-up, pop, slide). The only allowed motion is:
-   - blinking cursor and status dots (`.blink`)
-   - the news ticker scroll
-   - a 100ms toast/row flash
+1. **No emoji** anywhere in UI source (`src/ui`, `src/office`, `src/scenes`). Simple glyphs such as `▲ ▼ ● › ×` are
+   fine; icons are inline SVG line drawings (see `shell/hubs.tsx`). The sim's `icon` fields are never rendered.
+2. **Colours, gradients and depth are tokens.** No raw hex in CSS outside `src/ui/theme.css`. No `gradient()` outside
+   `theme.css` (add a token, e.g. `--fade-x`). Every `box-shadow` references a token (`--shadow-1/2/3`, `--ring`, or a
+   `var()` colour for inset accent bars). Data-driven colours (lab colours) come in through `--c`.
+3. **No glow or glass:** no `text-shadow`, `backdrop-filter`, blur or `drop-shadow`.
+4. **Radii:** shapes use `--r-sm` (8), `--r-md` (12), `--r-lg` (16), `--r-xl` (22) or `--r-pill`. Literal radii are
+   allowed up to 12px for small parts (keys, swatches, cells).
+5. **Motion** is short and functional: hover transitions (`--t-fast` 120ms), panel/modal/toast entrances
+   (`--t-med` 200ms, a few px of travel), the news crawl, and the tutorial pulse. No bouncing, wobbling or glowing.
+   `prefers-reduced-motion` switches all of it off (global rule in `theme.css`).
+6. Inline styles in TSX follow the same rules.
 
-## Tokens (in `src/ui/theme.css`)
-| token | use |
-|---|---|
-| `--bg` #000 | app background |
-| `--bg-1` #0a0a0a | window body |
-| `--bg-2` #141414 | window title strips, table header, hover |
-| `--bg-3` #1f1f1f | pressed, track backgrounds |
-| `--line` #262626 / `--line-2` #3a3a3a | hairlines |
-| `--fg` #e8e4dc | values and primary text |
-| `--fg-2` #a9a49a | secondary text |
-| `--fg-3` #6e6a63 | labels, captions |
-| `--fg-4` #45423d | disabled |
-| `--amber` #ffa630 | THE accent: labels, titles, active states, primary buttons |
-| `--amber-2` #b8741a | dim amber (secondary labels) |
-| `--up` #3fd47f / `--down` #ff5a4f | deltas, good/bad |
-| `--blue` #5aa9ff | info, links, the player's own series |
-| `--yellow` #ffe14d | milestones |
+## Tokens (`src/ui/theme.css`)
+| token | dark | use |
+|---|---|---|
+| `--bg` | #0f0d18 | app background (ink) |
+| `--bg-1` | #191626 | cards, HUD, sheets |
+| `--bg-2` | #221e33 | raised rows, inputs' neighbours, hover |
+| `--bg-3` | #2d2842 | tracks, pressed, chips |
+| `--line` / `--line-2` | | dividers / control borders |
+| `--fg` `--fg-2` `--fg-3` | | primary / secondary / labels. `--fg-4` is for disabled only |
+| `--accent` (`--amber` is its legacy alias) | #a796ff | THE accent: primary buttons, active states, focus, progress |
+| `--accent-3` | | accent tint for selected rows and soft highlights |
+| `--on-accent` | | text on accent fills |
+| `--up` / `--down` | mint / coral | good / bad, money in / out |
+| `--warn` | amber | caution (runway getting short, pending) |
+| `--blue` | sky | info, research, intros |
+| `--yellow` | gold | milestones |
+| `--hub-*` | | one colour per hub (see Navigation) |
+| `--shadow-1/2/3`, `--ring` | | resting cards / popovers / dialogs, focus ring |
 
-**Type:** `IBM Plex Mono` for everything, with tabular numbers. Base size 12.5px with line-height 1.4. Labels are UPPERCASE, 10.5–11px, letter-spacing 0.06em.
+The light theme (`html[data-theme='light']`) is lavender paper with white cards; every token has a light value.
+Canvas charts read tokens at draw time. The camera feeds (office and scenes) keep their own art and stay dark, framed
+in a rounded card.
 
-## Vocabulary
-- **Window** (`<Card code="MDL" title="Models">`): a 1px `--line` box with a 22px title strip (`--bg-2`). The strip shows an amber UPPERCASE title, an optional dim function code on the left, and actions on the right. There is no subtitle prose in the strip; a terse dim note is allowed.
-- **Panel header** (`<PanelHeader code="MDL" title="Models" sub="…" />`): one line, `MDL <GO>` code block, amber title, dim one-line sub, rule underneath.
-- **Tables first.** Any list of 3 or more homogeneous things is a `.table`: right-aligned `td.num`, `tr.me` for the player, `tr.sel` for the selected row (amber background, black text), and row hover in `--bg-2`.
-- **Readouts** (`<Stat>`): amber-dim label, off-white value, colored delta with ▲/▼.
-- **Tags** (`<Pill>`): bracketed uppercase tags with a 1px currentColor border, e.g. `LIVE`, `RET`, `SECRET`.
-- **Buttons**: rectangular and uppercase.
-  - Default: hairline border, fg text; on hover, amber border and text.
-  - Primary: solid amber with black text.
-  - Danger: red.
-  - Labels are short verbs: `TRAIN`, `RELEASE`, `LAUNCH`, `BUY 8`.
-- **Bars**: flat 6px bars (`.progress`). No donuts, no gauges. Use horizontal bars and stacked bars.
-- **Charts**: hairline dotted grid, 1.5px lines, no area fills, mono axis labels. Series colors in order: amber, fg, blue, up, down.
-- **Empty states**: one dim uppercase line, e.g. `NO MODELS. ── TRAIN ONE IN MDL <GO>`, plus an optional button.
-- **Density**: 8px gaps between windows, 6–10px padding inside them. Fill the space with information, not air.
+**Type:**
+- `Figtree` (`--font`) for text. Base 15px, small 13.5px, minimum 12px. Line-height 1.5 (1.6 in prose).
+- `Bricolage Grotesque` (`--display`) for screen titles, card titles, modal titles and big moments.
+- `--mono` is the **figures** face: Figtree with tabular numerals, used by `.num`, `td.num`, stat values.
+  `--code` (JetBrains Mono) is for `kbd` and canvas labels only.
+- Sentence case everywhere. UPPERCASE only for eyebrows, table headings, dock labels and `Pill` tags, all set by CSS
+  (never write caps in JSX strings).
+
+## Navigation (information architecture)
+The ~15 panels are grouped into five **hubs** (`src/ui/shell/hubs.tsx`). PanelId values never change, and
+`navigate(id)` still opens any panel directly.
+
+| Hub | Colour | Panels (tabs) |
+|---|---|---|
+| Headquarters | accent | Overview (`dashboard`), Versus (`vs`, only during a match) |
+| Lab | teal | Models, Research, Data, Benchmarks |
+| Infrastructure | orange | Compute, Staff |
+| Business | mint | Products, Market, Marketing, Contracts, Finance |
+| Company | gold | Level & perks (`lab`), Trophies (`achievements`) |
+
+- **Desktop:** a sidebar of five hub buttons (icon chip in the hub colour, name, one-line blurb, a dot when something
+  inside needs attention). Under 1100px it folds to an icon rail. The hub's panels are pill tabs pinned at the top of
+  the main area (`HubTabs`); a hub reopens on the panel last visited there.
+- **Phones (<= 760px):** the same five hubs as a bottom tab bar; the same hub tabs at the top.
+- Locked panels (progressive disclosure, `ui/unlocks.ts`) are simply absent from their hub's tabs until they open.
+- The tutorial highlight (`tutorialTarget`) pulses the hub and the tab of the panel it points at.
+
+## The frame
+- **HUD** (top bar): company mark and name (click to rename), date and a status pill (Paused, Decision pending),
+  readout tiles for cash (with today's net), runway, revenue, valuation and AI hype, then the speed control, Inbox,
+  sound and Menu. Tiles drop out right-to-left as the window narrows; phones keep cash only.
+- **Run dock:** rounded chips for the training run, research, lab level, the Arena Cup and the board quarter. An idle
+  slot is an accent-tinted call to action.
+- **News ticker:** a quiet strip at the bottom with a coloured dot per headline.
+- **Toasts** stack bottom-right with a coloured edge; dialogs are centred cards on desktop and full-screen sheets on phones.
+
+## Headquarters (home)
+It answers "what is going on, and what should I do next":
+1. **Your next moves** (`panels/hq/nextStep.ts`): every applicable suggestion derived from game state, ranked Urgent
+   (cash, outages, losing products), Next (the core loop: train, release, launch, research, capacity) and Idea
+   (perks, board goals, the Cup, contracts, hiring, data). Each has a plain reason and a button that goes there.
+2. **Goals:** this quarter's board goals and the scenario goals.
+3. **Key numbers** (`KpiStrip`): cash, profit per day, runway, revenue, users, valuation, each with a 6-month trend,
+   a four-week change, a HelpTip, and a link to the screen where you change it.
+4. The live run with its tempo, the lab level, money flows, products, the rival race, the office camera and charts.
+
+## Components
+- **Card** (`<Card title subtitle actions>`): `--bg-1`, 1px `--line`, `--r-lg`, `--shadow-1`. Title in the display
+  face; the header has no strip. `flush` removes the body padding and clips children to the corners. `hot` adds an
+  accent ring.
+- **Panel header** (`<PanelHeader title subtitle actions>`): the hub as a coloured eyebrow, a 30px display title, one
+  line of context. It always renders first in a panel. The legacy `code` prop is accepted and not shown.
+- **Button:** 36px (30 small, 44 large), `--r-sm`. Default is a raised `--bg-2` button; primary is solid accent;
+  danger and success are tinted. Labels are short verbs in sentence case.
+- **Pill:** a tinted capsule in its tone's colour (`color-mix` of currentColor), uppercase 12px.
+- **Stat:** label in `--fg-3`, a big tabular value, coloured delta with ▲/▼.
+- **Tabs:** pill tabs in a `--bg-2` tray; the active tab is a raised `--bg-1` chip. Segmented controls fill the active
+  segment with the accent.
+- **Tables:** uppercase 12px headings, 10px row padding, row hover `--bg-2`, `tr.sel` is an accent tint with an accent
+  edge, `tr.me` is accent text. On phones use `table-stack` or `table-scroll`.
+- **Progress and bars:** 8px rounded tracks in `--bg-3`, rounded fills.
+- **Charts:** 1.5–2px lines, soft area fills allowed (14% opacity), series colours in `SERIES_ORDER`
+  (accent, fg, blue, up, down, yellow). Tooltips are small raised cards.
+- **Modal / Sheet:** `--r-xl`, `--shadow-3`, a display-face title, footer on a `--bg-2` band. `tone="danger"` adds a
+  red top edge and a red title.
+- **Tooltip / HelpTip:** raised `--bg-2` cards with `--r-md`. A HelpTip is a small round `?` next to any jargon; it
+  explains what the thing is and what to do about it in one or two plain sentences.
+- **PanelIntro:** a blue-tinted note card under the header, dismissible per screen.
+- **Empty states:** a display-face title, one plain sentence, and the button that fixes it.
 
 ## Copy
-- Chrome copy is terse and functional:
-  - `TRAINING  Loosey-2  37%  ETA 12D`, not "Your model is cooking! 🔥"
-  - `RUNWAY 2.3Y`, not "You have plenty of time to vibe."
-- Satire belongs to data: model names, news, event text, research and dataset descriptions, and lab taglines. Showing those in full is good.
-- Dates use the form `14 MAR 2019` or `2019-03-14`. Money uses `formatMoney`.
+- Plain and friendly in the chrome: "Runway 3.1 years", "Start training", "Your next moves".
+- The advisor speaks like a sharp chief of staff: an imperative, then one sentence of why.
+- Satire belongs to data: model names, news, events, research and dataset descriptions, lab taglines.
+- Dates read `14 Mar 2019`. Money uses `formatMoney`.
 
-## Panel function codes
-| Code | Panel |
-|---|---|
-| HQ | dashboard |
-| MDL | models |
-| PRD | products |
-| CMP | compute |
-| DAT | data |
-| RES | research |
-| STF | staff |
-| MKT | market |
-| FIN | finance |
-| TRO | achievements (trophies) |
-| LAB | lab level, perks and board goals (v13) |
-| BRD | board goals card (v13) |
-| CUP | Arena Cup card (v15) |
-| HOF | Hall of Fame card (v15) |
-
-
-## v2 amendments: readability (these OVERRIDE the rules above where they conflict)
-The user found v1 hard on the eyes: pure black, amber text everywhere, all-caps 10.5px mono. v2 keeps the terminal identity (dense windows, tables, function codes, hairlines, no decoration) but has to be comfortable for hours.
-
-- **Colours:**
-  - Soft charcoal background (`--bg` #121417), not pure black.
-  - Text is `--fg` #dfe1e5, not pure white.
-  - Amber is an **accent only**: the active nav item, primary buttons, the selected row, focus, `ph-code` blocks and key highlights.
-  - Never use amber for body text, labels or window titles. Window titles are `--fg` and semibold.
-  - Labels use `--fg-3`.
-- **Type:**
-  - `IBM Plex Sans` (`--font`) for all text.
-  - `IBM Plex Mono` (`--mono`) only for numbers, codes, kbd and tabular data. `.num` and `td.num` already switch to mono.
-  - Base size is 14px. Small text is 13px; the minimum is 12px. Nothing smaller.
-  - Line-height is 1.5, or 1.6 in prose.
-- **Case:**
-  - Sentence case for labels, buttons, headers and table headings ("Revenue / day", "Train", "Release").
-  - UPPERCASE only for status tags (`Pill`), function codes (`HQ`, `MDL`) and kbd.
-  - Never write labels in caps in JSX source strings. Write sentence case and let tags uppercase themselves.
-- **Space:**
-  - 12px gaps between windows, 12–14px padding inside them.
-  - Table rows have 6px vertical padding.
-  - Buttons are 30px tall (24px small); title strips are 32px.
-  - Density comes from tables, not from cramming.
-- **Contrast:** secondary text `--fg-2`, tertiary `--fg-3`. Don't use `--fg-4` for anything the player has to read; it's for disabled states only.
-- **Themes:** dark is the default.
-  - `html[data-theme='light']` gives a warm paper theme. The toggle lives in the top-bar menu and persists to localStorage key `llm-lets-loose-money/theme`.
-  - Everything must use tokens so both themes work. Canvas charts read tokens at draw time. The office canvas stays dark (it's a camera feed).
-- **Text on accent fills** uses `--on-accent`, never #000.
-
-
-## v3 amendments: show, don't list (v10). These OVERRIDE the rules above where they conflict.
-The player feedback was blunt: too much text thrown at you, too many numbers that change nothing, no overview. The terminal
-identity stays (flat, hairlines, tokens, mono numbers, no decoration), but every screen must **lead with a picture of the
-thing**, and push the detail behind a click.
-
-**Every panel opens with a visual of its subject**, drawn in SVG or canvas with flat token colours:
-| Panel | The picture |
-|---|---|
-| Compute | A server room: each datacenter and the cloud as a block of GPU cells (one cell = N GPUs), coloured by what they do right now: training, serving (per product), idle, cloud burst. Hover a cell group for numbers, click to manage. |
-| Staff | An office floor: one small person glyph per employee (or per N), grouped by team in team colours, empty seats as hollow cells. Click a team to see who they are and what they do. |
-| Data | A map of your tokens: a treemap of owned data by domain (area = tokens, shade = quality). |
-| Marketing | Brand and hype over time (line chart), running campaigns as timeline bars, and the funnel from awareness to users. |
-| Market | Share bars per segment in lab colours, plus a tier matrix (heat cells instead of a percentage table). |
-| Models | A capability shape (radar or bar fan) per model, comparable against the best rival. |
-| Research | A timeline of what unlocks when, and per-branch progress. |
-| Finance | A waterfall from revenue to profit, and charts you can hover. |
-
-**Rules for visuals:**
-- Allowed now: SVG and canvas illustrations, unit grids, treemaps, radar shapes, timelines, heat cells, simple
-  person and rack glyphs built from rects and circles, hover highlight and click selection, and width/opacity
-  transitions up to 150ms. Donuts are allowed where a share-of-whole is the point.
-- Still forbidden: gradients (except functional slider fills in theme.css), shadows, glows, blur, emoji, rounded
-  corners above 2px, raw hex outside theme.css, entrance animations, neon or glassy looks. Colours come from tokens;
-  lab colours come from data via `--c`.
-- Every visual is **interactive**: hovering shows the exact numbers (Tooltip or an inline detail line), and clicking
-  selects or drills in. Nothing important lives only in a hover; the selected thing's details show beside or below.
-- Visuals must work at phone width (they scale down or switch to a simpler stacked form) and in the light theme.
-
-**Less text:**
-- One `PanelIntro` (what this screen is for, in plain words) per panel, dismissible.
-- A `HelpTip` (?) instead of explanatory paragraphs next to jargon.
-- Secondary controls (filters, sort, advanced options, rarely used actions) go behind a `Popover` or a `Sheet`.
-- A stat earns its place only if the player can act on it or it decides something. Everything else goes behind
-  "Details" or is removed.
-- Lists of things the player owns are cards or visual rows first; full tables are a "Table" toggle or a sheet.
+## Visuals per screen (still in force from v3)
+Every panel opens with a picture of its subject (camera feed, server room, office floor, token map, share bars,
+capability shapes, research timeline, finance waterfall). Visuals are interactive: hover shows exact numbers, click
+selects or drills in, and nothing important lives only in a hover. They must work at phone width and in both themes.
+Secondary controls go behind a `Popover` or a `Sheet`; lists of owned things are cards first, tables behind a toggle.

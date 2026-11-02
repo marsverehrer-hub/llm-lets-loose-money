@@ -373,7 +373,7 @@ class StaffScene implements Scene {
       drawPill(g, lx, ly, zoneLabel(z), ZONE_ACCENT(z.id), labelSize);
     }
     g.save();
-    g.font = '10px IBM Plex Mono, monospace';
+    g.font = '10px JetBrains Mono, monospace';
     g.textAlign = 'right';
     g.textBaseline = 'alphabetic';
     g.fillStyle = C.textDim;

@@ -47,7 +47,7 @@
   background: transparent;
   border: 0;
   border-bottom: 2px solid transparent;
-  border-radius: 0;
+  border-radius: var(--r-sm);
   color: var(--fg-3);
   font-size: var(--fs-sm);
   cursor: pointer;
@@ -110,6 +110,7 @@
   background: var(--bg-1);
   color: var(--fg-2);
   font-size: var(--fs-sm);
+  border-radius: var(--r-md);
 }
 .tf-row-between {
   display: flex;
@@ -156,7 +157,7 @@
   padding: 10px 12px 10px 13px;
   background: var(--bg-1);
   border: 1px solid var(--line-2);
-  border-radius: 0;
+  border-radius: var(--r-sm);
   color: var(--fg);
   text-align: left;
   cursor: pointer;
@@ -260,7 +261,7 @@
   padding: 0 10px;
   background: transparent;
   border: 1px solid var(--line-2);
-  border-radius: 0;
+  border-radius: var(--r-sm);
   color: var(--fg-2);
   font-size: var(--fs-xs);
   cursor: pointer;
@@ -316,6 +317,7 @@
   background: var(--bg-1);
   border: 1px solid var(--line);
   min-width: 0;
+  border-radius: var(--r-md);
 }
 .tf-big {
   color: var(--fg);
@@ -349,6 +351,7 @@
   background: var(--bg-1);
   border: 1px solid var(--line);
   min-width: 0;
+  border-radius: var(--r-md);
 }
 .tf-reasons {
   margin: 0;
@@ -425,7 +428,7 @@
   padding: 8px 10px;
   background: transparent;
   border: 1px solid var(--line-2);
-  border-radius: 0;
+  border-radius: var(--r-sm);
   color: var(--fg);
   text-align: left;
   font-size: var(--fs-sm);
@@ -443,7 +446,7 @@
   width: 12px;
   height: 12px;
   border: 1px solid var(--fg-3);
-  border-radius: 0;
+  border-radius: var(--r-sm);
 }
 .tf-check-on .tf-check-box {
   background: var(--amber);

@@ -82,7 +82,7 @@ export class Effects {
       g.save();
       g.globalAlpha = Math.max(0, 1 - k * k);
       if (p.kind === 'text') {
-        g.font = `800 ${p.size}px IBM Plex Mono, monospace`;
+        g.font = `800 ${p.size}px JetBrains Mono, monospace`;
         g.textAlign = 'center';
         g.fillStyle = p.color;
         g.fillText(p.text ?? '', p.x, p.y);

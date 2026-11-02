@@ -3,14 +3,14 @@ export interface SparklineProps {
   /** Pixel height; the width stretches to its container. Default 22. */
   height?: number;
   color?: string;
-  /** @deprecated no area fills in the terminal theme */
+  /** Soft area under the line. */
   fill?: boolean;
   strokeWidth?: number;
   class?: string;
 }
 
 /** Tiny inline SVG trend line. Renders a dotted flat line when there are fewer than 2 values. */
-export function Sparkline({ values, height = 22, color = 'var(--amber)', strokeWidth = 1.25, class: cls }: SparklineProps) {
+export function Sparkline({ values, height = 22, color = 'var(--accent)', fill, strokeWidth = 1.5, class: cls }: SparklineProps) {
   const vals = values.filter((v) => isFinite(v));
   const W = 100;
   const H = height;
@@ -38,7 +38,8 @@ export function Sparkline({ values, height = 22, color = 'var(--amber)', strokeW
     .join(' ');
   return (
     <svg class={`spark ${cls ?? ''}`} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ height: `${H}px` }}>
-      <path d={d} fill="none" stroke={color} stroke-width={strokeWidth} vector-effect="non-scaling-stroke" />
+      {fill && <path d={`${d} L${W} ${H} L0 ${H} Z`} fill={color} fill-opacity={0.14} stroke="none" />}
+      <path d={d} fill="none" stroke={color} stroke-width={strokeWidth} stroke-linejoin="round" vector-effect="non-scaling-stroke" />
     </svg>
   );
 }

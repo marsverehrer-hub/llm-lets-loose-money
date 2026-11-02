@@ -38,6 +38,7 @@
   background: var(--bg-1);
   border: 1px solid var(--line);
   min-width: 0;
+  border-radius: var(--r-md);
 }
 .dt-big-label {
   display: flex;
@@ -183,6 +184,7 @@
   min-height: 220px;
   padding: 16px;
   border: 1px dashed var(--line-2);
+  border-radius: var(--r-md);
 }
 .tm-empty-title {
   color: var(--fg);
@@ -459,6 +461,7 @@
   padding: 12px;
   background: var(--bg-1);
   border: 1px solid var(--line);
+  border-radius: var(--r-md);
 }
 .dt-quality-value {
   min-width: 84px;
@@ -521,6 +524,7 @@
   color: var(--fg);
   font-size: var(--fs-sm);
   white-space: nowrap;
+  border-radius: var(--r-md);
 }
 .dt-detail-foot {
   display: flex;
@@ -619,6 +623,7 @@
   margin-top: 12px;
   background: var(--line);
   border: 1px solid var(--line);
+  border-radius: var(--r-md);
 }
 .dt-quote-cell {
   padding: 8px 10px;
@@ -693,6 +698,7 @@
   color: var(--fg);
   font-size: var(--fs-sm);
   line-height: 1.5;
+  border-radius: var(--r-md);
 }
 .dt-warn strong {
   font-weight: 600;

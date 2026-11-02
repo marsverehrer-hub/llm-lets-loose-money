@@ -437,7 +437,7 @@ export class ComputeScene implements Scene {
       drawPill(g, px, py, `Training ${run.name} ${Math.round(pct * 100)}%`, C.amber, pct, t);
     }
     g.save();
-    g.font = '10px IBM Plex Mono, monospace';
+    g.font = '10px JetBrains Mono, monospace';
     g.textAlign = 'center';
     g.textBaseline = 'middle';
     for (const h of L.halls) {
@@ -448,9 +448,9 @@ export class ComputeScene implements Scene {
         }
       } else {
         const [lx, ly] = project(p, h.x0 + h.w / 2, h.y0 + h.d / 2, h.look.wallH + 8);
-        g.font = '600 10px IBM Plex Mono, monospace';
+        g.font = '600 10px JetBrains Mono, monospace';
         drawLabel(g, lx, ly, `building · ${Math.ceil(h.dc.buildDaysLeft)}d left`, C.amber);
-        g.font = '10px IBM Plex Mono, monospace';
+        g.font = '10px JetBrains Mono, monospace';
       }
     }
     if (captions && L.cloud && L.cloud.rentedGpus > 0) {
@@ -482,7 +482,7 @@ export class ComputeScene implements Scene {
     // HUD, bottom right (like the office).
     const gpus = Math.round(fleet.totalGpus);
     g.save();
-    g.font = '10px IBM Plex Mono, monospace';
+    g.font = '10px JetBrains Mono, monospace';
     g.textAlign = 'right';
     g.textBaseline = 'alphabetic';
     g.fillStyle = C.textDim;

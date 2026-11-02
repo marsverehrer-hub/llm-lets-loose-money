@@ -80,6 +80,7 @@
   height: 9px;
   background: var(--bg-1);
   border: 1px solid var(--line-2);
+  border-radius: 4px;
 }
 .mpg-tl-step.is-done { border-top-color: var(--amber-2); }
 .mpg-tl-step.is-done .mpg-tl-dot {
@@ -225,6 +226,7 @@ p.mpg-desc {
   border: 1px solid var(--line);
   background: var(--bg);
   min-width: 0;
+  border-radius: var(--r-md);
 }
 
 /* ---------- playground ----------------------------------------------------- */
@@ -257,6 +259,7 @@ p.mpg-desc {
   line-height: 1.35;
   text-align: left;
   cursor: pointer;
+  border-radius: var(--r-md);
 }
 .mpg-chip:hover {
   border-color: var(--amber);
@@ -278,6 +281,7 @@ p.mpg-desc {
   line-height: 1.55;
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
+  border-radius: var(--r-md);
 }
 .mpg-term-empty { color: var(--fg-3); }
 .mpg-term-ex {
@@ -329,6 +333,7 @@ p.mpg-desc {
   padding: 10px 12px;
   background: var(--bg);
   border: 1px solid var(--line-2);
+  border-radius: var(--r-md);
 }
 .mpg-tile.is-off { border-color: var(--line); }
 .mpg-tile.is-off .mpg-label { color: var(--fg-3); }

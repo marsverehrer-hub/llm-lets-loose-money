@@ -1,23 +1,26 @@
 import type { ComponentChildren } from 'preact';
+import { useContext } from 'preact/hooks';
+import { HubContext } from '../shell/hubs';
 
 export interface PanelHeaderProps {
   title: ComponentChildren;
-  /** Function code block, e.g. "MDL" renders as [MDL <GO>]. */
+  /** Legacy function code (e.g. "MDL"). Kept as a hook; the eyebrow shows the hub instead. */
   code?: string;
-  /** One terse dim line. */
+  /** One short line under the title. */
   subtitle?: ComponentChildren;
-  /** @deprecated Terminal theme renders no icons. */
+  /** @deprecated No icons in panel headers. */
   icon?: string;
   /** Right-aligned buttons or readouts. */
   actions?: ComponentChildren;
 }
 
-/** Top-of-page strip: [CODE <GO>] TITLE  sub ............ actions, amber rule underneath. */
-export function PanelHeader({ title, code, subtitle, actions }: PanelHeaderProps) {
+/** Top of a screen: the hub as a coloured eyebrow, a big title, one line of context, actions on the right. */
+export function PanelHeader({ title, subtitle, actions }: PanelHeaderProps) {
+  const hub = useContext(HubContext);
   return (
     <header class="panel-header">
       <div class="panel-header-main">
-        {code && <span class="ph-code">{code}</span>}
+        {hub && <span class="panel-eyebrow">{hub.label}</span>}
         <h1 class="panel-title">{title}</h1>
         {subtitle != null && <span class="panel-sub">{subtitle}</span>}
       </div>
