@@ -1,4 +1,4 @@
-// Enforces the hard rules from DESIGN.md ("Blueprint" design system). Usage: node scripts/lint-style.mjs
+// Enforces the hard rules from DESIGN.md ("Pit Wall" design system). Usage: node scripts/lint-style.mjs
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 

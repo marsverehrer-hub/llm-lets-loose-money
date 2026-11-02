@@ -1,50 +1,45 @@
-# LLM: Lets Loose Money: UI design rules ("Blueprint", v5)
+# LLM: Lets Loose Money: UI design rules ("Pit Wall", v6)
 
-The UI is the **lab's own drafting table**: the plans for a company that builds intelligence, drawn at night on a graphite
-drafting table under a desk lamp (dark) or on graph paper by day (light). Sheets are crisp and crop-marked; headlines and money are set in a serif
-like a financial broadsheet; every small label is a mono **drafting annotation**; what matters is **highlighted** in
-marker yellow; status tags are **rubber stamps**; buttons are chunky and tactile, with a hard offset shadow you press
-into. It must stay easy to read for hours and easy to learn: every screen says what it is for, the home screen says
-what to do next, and jargon gets a plain-language tip.
+The UI is a **team principal's screens**, in the spirit of motorsport management games: deep slate panels with header
+strips, crisp white type, the team colour on every edge, big condensed figures, slanted buttons and tags, tables that
+read like a timing tower, and the timing-screen colours for meaning. It must stay easy to read for hours and easy to
+learn: every screen says what it is for, the home screen says what to do next, and jargon gets a plain-language tip.
 
-The satire lives in the **content** (names, news, events, descriptions, advisor copy). The chrome is the joke's
-straight man: a serious engineering drawing of a deeply unserious company.
+The satire lives in the **content** (names, news, events, descriptions, advisor copy). The chrome is played straight,
+like a broadcast graphics package for a deeply unserious sport.
 
 `scripts/lint-style.mjs` enforces the hard rules. Run `node scripts/lint-style.mjs`; it must print `style lint: OK`.
 
 ## Hard rules (lint-enforced)
-1. **No emoji** anywhere in UI source (`src/ui`, `src/office`, `src/scenes`). Simple glyphs such as `▲ ▼ ● › × §` are
+1. **No emoji** anywhere in UI source (`src/ui`, `src/office`, `src/scenes`). Simple glyphs such as `▲ ▼ ● › ×` are
    fine; icons are inline SVG line drawings (see `shell/hubs.tsx`). The sim's `icon` fields are never rendered.
 2. **Colours, gradients and textures are tokens.** No raw hex in CSS outside `src/ui/theme.css`. No `gradient()`
-   outside `theme.css`: the drafting textures are tokens there (`--tex-grid`, `--tex-hatch`, `--tex-ruler`,
-   `--tex-marker`, `--tex-dash`). Every `box-shadow` references a token (`--shadow-hard/2/3`, `--ring`, or a `var()`
-   colour). Data-driven colours (lab colours) come in through `--c`.
-3. **No glow or glass:** no `text-shadow`, `backdrop-filter`, blur or `drop-shadow`. Depth is a hard offset shadow.
-4. **Radii are small:** `--r-sm` (3), `--r-md` (5), `--r-lg` (6), `--r-xl` (10) or `--r-pill`. Literal radii up to 12px.
-5. **Motion** is short and functional: hover lift (`translate(-1px,-1px)` plus the hard shadow), press
-   (`translate(1px,1px)`, shadow gone), panel/modal/toast entrances (`--t-med`), the news crawl and the tutorial pulse.
-   `prefers-reduced-motion` switches all of it off.
+   outside `theme.css`: surfaces are tokens there (`--tex-app`, `--tex-panel`, `--tex-head`, `--tex-hatch` for
+   segmented bars, `--tex-stripe` for table rows). Every `box-shadow` references a token or a `var()` colour (accent
+   edges are `inset 4px 0 0 var(--accent)`). Data-driven colours (lab colours) come in through `--c`.
+3. **No glow or glass:** no `text-shadow`, `backdrop-filter`, blur or `drop-shadow`.
+4. **Radii are near zero:** `--r-sm` (2), `--r-md` (3), `--r-lg` (4), `--r-xl` (6), `--r-pill` for dots. Shapes get
+   their character from the slant (`clip-path` parallelograms, `--slant` 9px), not from rounding.
+5. **Motion** is short and functional: hover colour changes, a 1px press, panel/modal/toast entrances, the news crawl,
+   the tutorial pulse. `prefers-reduced-motion` switches it off.
 6. Inline styles in TSX follow the same rules.
 
 ## Tokens (`src/ui/theme.css`)
-| token | dark (graphite) | light (graph paper) | use |
+| token | dark | light | use |
 |---|---|---|---|
-| `--bg` / `--bg-1..3` | warm graphite #141311 up to #2f2b26 | paper #f1ede2, sheets #fbf9f3 | paper, sheets, raised rows, tracks |
-| `--grid` / `--grid-major` | warm bone at 4.5% / 9% | blue at 7% / 14% | the 24px / 120px drafting grid behind everything |
-| `--line` / `--line-2` | | | dashed rules and hairlines / control borders and crop marks |
-| `--ink-shadow` | near-black | ink | the hard offset shadow colour |
-| `--hl` / `--hl-soft` / `--on-hl` | marker yellow | marker yellow | primary buttons, active tabs, highlights, the selected row |
-| `--accent` (`--amber` legacy) | yellow | blueprint blue | accent **text** (readable on its paper) |
-| `--up` / `--down` / `--warn` / `--blue` | | | money in / out, caution, info |
-| `--hub-*` | | | one index colour per binder section |
+| `--bg` / `--bg-1..3` | slate #080a10 up to #222838 | #e9ecf2, panels white | app, panels, raised rows, buttons |
+| `--accent` (`--hl`, `--amber` aliases) | team teal #00e0c6 | #00a896 | primary buttons, active tabs and nav, edges, bars |
+| `--sota` | purple | | best in the world (milestones, records), as on a timing screen |
+| `--up` / `--warn` / `--down` | green / yellow / red | | improved / caution / bad, money in / out |
+| `--blue` | | | info, research |
+| `--hub-*` | teal, blue, papaya, gold, magenta | | each department's livery: nav underline, eyebrow, panel edges |
 
 **Type:**
-- `Instrument Serif` (`--display`) for screen titles, card titles, modal titles, the HUD readouts and every big figure.
-  Screen titles carry the marker (`--tex-marker`): a stroke under the words in the dark, a broad highlight on paper.
-- `JetBrains Mono` (`--code`) for annotations: eyebrows (prefixed `§`), stat and KPI labels, table headings, buttons,
-  tabs, tags and the news wire. Always uppercase with 0.06–0.1em tracking, set by CSS.
-- `Figtree` (`--font`) for reading: body copy, descriptions and advisor reasons. Base 15px, minimum 12px.
-- Sentence case in JSX strings; CSS uppercases annotations.
+- `Titillium Web` (`--display`): titles (900 italic caps), card and panel headers (700 caps, 0.06em), labels and tabs
+  (600–700 caps, 0.08–0.1em), buttons.
+- `Barlow Condensed` (`--figure`): every number: stats, KPIs, the HUD, table figures. Tabular numerals.
+- `Barlow` (`--font`): reading text. Base 15px, minimum 12px.
+- Sentence case in JSX strings; CSS uppercases titles and labels.
 
 ## Navigation (information architecture)
 The ~15 panels are grouped into five **hubs** (`src/ui/shell/hubs.tsx`). PanelId values never change, and
@@ -52,14 +47,14 @@ The ~15 panels are grouped into five **hubs** (`src/ui/shell/hubs.tsx`). PanelId
 
 | Hub | Colour | Panels (tabs) |
 |---|---|---|
-| Headquarters | yellow | Overview (`dashboard`), Versus (`vs`, only during a match) |
-| Lab | cyan | Models, Research, Data, Benchmarks |
-| Infrastructure | orange | Compute, Staff |
-| Business | mint | Products, Market, Marketing, Contracts, Finance |
-| Company | violet | Level & perks (`lab`), Trophies (`achievements`) |
+| Headquarters | teal | Overview (`dashboard`), Versus (`vs`, only during a match) |
+| Lab | blue | Models, Research, Data, Benchmarks |
+| Infrastructure | papaya | Compute, Staff |
+| Business | gold | Products, Market, Marketing, Contracts, Finance |
+| Company | magenta | Level & perks (`lab`), Trophies (`achievements`) |
 
-- **Desktop:** a sidebar of five hub buttons (a binder divider: thick edge and stamped icon in the hub colour, serif name,
-  mono blurb, a diamond when something inside needs attention). Under 1100px it folds to an icon rail. The hub's panels are tabs pinned at the top of
+- **Desktop:** the five hubs are the main nav bar across the top, under the HUD (livery icon, caps label, an underline
+  when active, a diamond when something inside needs attention). The hub's panels are tabs pinned at the top of
   the main area (`HubTabs`); a hub reopens on the panel last visited there.
 - **Phones (<= 760px):** the same five hubs as a bottom tab bar; the same hub tabs at the top.
 - Locked panels (progressive disclosure, `ui/unlocks.ts`) are simply absent from their hub's tabs until they open.
@@ -84,25 +79,24 @@ It answers "what is going on, and what should I do next":
    a four-week change, a HelpTip, and a link to the screen where you change it.
 4. The live run with its tempo, the lab level, money flows, products, the rival race, the office camera and charts.
 
-## Components (the Blueprint layer at the end of `theme.css`)
-- **Sheet** (`Card`): `--bg-1` at 94% over the grid, 1px `--line`, `--r-sm`, crop marks top-left and bottom-right
-  (`::before` / `::after`), a dashed rule under the header. `hot` turns the border and crop marks yellow and lifts it
-  on the hard shadow. Clickable cards lift on hover.
-- **Panel header:** `§ HUB` eyebrow in the hub colour, a 46px serif title with the marker, one line of context.
-- **Button:** mono uppercase, 1.5px border, `--r-sm`. Hover lifts onto `--shadow-hard`; press sinks. Primary is marker
-  yellow with ink text and an ink border, always on the hard shadow.
-- **Pill:** a rubber stamp: mono uppercase, 1.5px currentColor border, rotated -2deg.
-- **Stat / KPI:** mono annotation label, serif figure.
-- **Tabs:** binder index tabs (top-rounded, the active one joins the sheet with a top bar in the hub colour). Hub tabs
-  and segmented switches fill the active choice with marker yellow.
-- **Tables:** a ledger: mono headings over a heavy rule, dashed row rules, `tr.sel` and `tr.me` highlighted.
-- **Progress:** a ruler (tick every 10%) filled with hatched marker.
-- **Modal:** a drawing with a yellow title block, `--shadow-3`.
-- **PanelIntro:** a sticky note with a yellow edge and a dashed border.
-- **Sidebar:** binder dividers with a thick left edge in the hub colour; the active one pulls out to the right.
-- **HUD:** a title block: a stamped seal for the company, serif readouts split by dashed rules, cash underlined.
-- **Toasts:** notes pinned to the sheet (hard shadow); milestones get a yellow border.
-- **Charts:** 1.5–2px lines, series colours in `SERIES_ORDER`. Camera feeds keep their own art in a ruled frame.
+## Components (the Pit Wall layer at the end of `theme.css`)
+- **Panel** (`Card`): `--bg-1` with a soft top sheen, a header strip (`--tex-head`) with a 3px bar in the department
+  colour on its left edge, uppercase title, small caps subtitle. `hot` adds an accent top edge.
+- **Panel header:** a slanted dash and the department in its colour, a 40px heavy italic caps title, one line of context.
+- **Button:** slanted parallelogram (`clip-path`), solid fill, caps. Default `--bg-3`; primary the team colour with dark
+  text; danger and success tinted. Ghost and icon buttons are square.
+- **Pill:** a solid slanted chip in its tone (18% fill, full-colour text). Milestones are purple.
+- **Stat / KPI:** small caps label, big condensed figure, coloured delta.
+- **Tabs:** caps text with a 3px underline in the department colour. Segmented switches fill the active choice.
+- **Tables:** a timing tower: striped rows, caps headings, `tr.me` / `tr.sel` tinted with a 4px accent edge.
+- **Bars:** square, segmented like a gauge (`--tex-hatch`).
+- **Modal:** slate panel, header strip with an accent edge, 900 italic caps title.
+- **Main nav:** the five departments across the top under the HUD (icon in livery colour, caps label, underline when
+  active). Phones keep the bottom tab bar.
+- **HUD:** a slanted team badge, the company in italic caps, the date, then readouts split by hairlines.
+- **Run dock:** telemetry cells with an accent edge. **News:** a broadcast ticker with a slanted NEWS block.
+- **Toasts:** team radio: dark panels with a coloured edge (accent, green, red, purple for milestones).
+- **Charts:** 1.5–2px lines, series colours in `SERIES_ORDER`. Camera feeds keep their own art in a hairline frame.
 
 ## Copy
 - Plain and friendly in the chrome: "Runway 3.1 years", "Start training", "Your next moves".

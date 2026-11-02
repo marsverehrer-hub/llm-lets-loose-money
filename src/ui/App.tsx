@@ -183,9 +183,10 @@ export function App() {
   return (
     <div class={`app hub-${hub.id}`}>
       <TopBar />
+      {/* v17 Pit Wall: the hubs are the main nav bar across the top, like a team principal's menu. */}
+      {!isPhone && <SideNav items={navItems} active={tab} onHub={openHub} badges={navBadges} highlight={highlight} />}
       <RunDock />
       <div class="app-body">
-        {!isPhone && <SideNav items={navItems} active={tab} onHub={openHub} badges={navBadges} highlight={highlight} />}
         <main class="app-main" ref={mainRef}>
           <HubTabs items={navItems} active={tab} onSelect={select} badges={navBadges} highlight={highlight} />
           {/* keyed so each tab change remounts the panel (resets panel-local state) */}
