@@ -42,6 +42,7 @@
   padding: 6px 10px;
   border: 1px solid var(--amber-2);
   color: var(--fg);
+  border-radius: var(--r-md);
 }
 .pa-next-tag {
   color: var(--amber);
@@ -82,6 +83,7 @@
   border: 1px solid var(--amber-2);
   color: var(--fg);
   font-size: var(--fs-sm);
+  border-radius: var(--r-md);
 }
 .pa-banner-bad {
   border-color: var(--down);

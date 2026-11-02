@@ -66,7 +66,7 @@ const SCRIBBLE_ROWS = 4;
 const SCRIBBLE_CELLS = SCRIBBLE_COLS * SCRIBBLE_ROWS;
 const STICKY = [C.amber, C.blue, C.green, C.yellow, C.red];
 const SKY = '#0b0a08';
-const FONT = 'IBM Plex Mono, monospace';
+const FONT = 'JetBrains Mono, monospace';
 const LEAN = 0.12;
 // Whiteboards are dimmed so they read as lab furniture, not as the brightest thing in the room.
 const BOARD_FACE = mix(C.whiteboard, '#000000', 0.4);

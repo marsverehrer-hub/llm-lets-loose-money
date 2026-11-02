@@ -125,7 +125,7 @@ Use these class names so the phone rules apply without extra code:
 | `.stack-cards` / `.stack-card` | a list | stacked cards |
 | `.tb-desk` | top-bar items | hidden (moved into the MENU) |
 
-Tokens only. No raw colours, no gradients, no shadows, no radius over 2px (see `scripts/lint-style.mjs`).
+Tokens only: no raw colours; radii, shadows and motion come from the theme tokens (see `DESIGN.md` and `scripts/lint-style.mjs`). Phone navigation is the bottom hub bar (`shell/MobileNav.tsx`) plus the hub tabs strip at the top of the main area.
 
 ## Store helpers (src/ui/store.ts)
 

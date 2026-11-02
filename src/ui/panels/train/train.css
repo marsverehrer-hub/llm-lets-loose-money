@@ -107,6 +107,7 @@
   color: var(--down);
   padding: 6px 8px;
   font-size: var(--fs-sm);
+  border-radius: var(--r-md);
 }
 .tw-toolbar {
   display: flex;
@@ -168,7 +169,7 @@
   padding: 0 9px;
   background: transparent;
   border: 1px solid var(--line-2);
-  border-radius: 0;
+  border-radius: var(--r-sm);
   color: var(--fg-2);
   font-size: var(--fs-xs);
   white-space: nowrap;
@@ -203,6 +204,7 @@
   border: 1px solid var(--line);
   background: var(--bg-2);
   min-width: 0;
+  border-radius: var(--r-md);
 }
 .tw-dial-head {
   display: flex;
@@ -231,6 +233,7 @@
   padding: 10px 12px;
   border: 1px solid var(--line);
   min-width: 0;
+  border-radius: var(--r-md);
 }
 .tw-ratio-main {
   display: flex;
@@ -259,6 +262,7 @@
   padding: 10px 12px;
   border: 1px solid var(--line);
   min-width: 0;
+  border-radius: var(--r-md);
 }
 .tw-scale-head {
   display: flex;
@@ -379,6 +383,7 @@
   border-left: 2px solid var(--line);
   cursor: pointer;
   outline: none;
+  border-radius: var(--r-md);
 }
 .tw-tile:hover { border-color: var(--line-2); }
 .tw-tile:focus-visible { border-color: var(--fg-3); }
@@ -609,6 +614,7 @@
   padding: 10px 12px;
   border: 1px solid var(--line);
   min-width: 0;
+  border-radius: var(--r-md);
 }
 .tw-action {
   display: flex;
@@ -649,6 +655,7 @@
   border: 1px solid var(--line);
   background: var(--bg-1);
   min-width: 0;
+  border-radius: var(--r-md);
 }
 .tw-stats {
   display: grid;
@@ -707,6 +714,7 @@
   color: var(--down);
   font-size: var(--fs-sm);
   line-height: 1.5;
+  border-radius: var(--r-md);
 }
 .tw-summary {
   display: flex;

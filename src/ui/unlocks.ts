@@ -16,7 +16,7 @@ export type GatedPanel = Exclude<PanelId, 'vs'>;
 
 export const PANEL_INFO: Record<PanelId, { label: string; tagline: string }> = {
   dashboard: { label: 'Headquarters', tagline: '' },
-  lab: { label: 'Lab & perks', tagline: 'Level up the lab, spend perk points and chase board goals.' },
+  lab: { label: 'Level & perks', tagline: 'Level up the lab, spend perk points and chase board goals.' },
   models: { label: 'Models', tagline: '' },
   products: { label: 'Products', tagline: 'Turn your models into products people pay for.' },
   compute: { label: 'Compute', tagline: '' },

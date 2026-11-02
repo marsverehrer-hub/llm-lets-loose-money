@@ -13,8 +13,9 @@
   right: 8px;
   bottom: 8px;
   z-index: 3;
-  height: 24px;
-  padding: 0 10px;
+  height: 26px;
+  padding: 0 12px;
+  border-radius: var(--r-pill);
   background: var(--bg-1);
   border: 1px solid var(--line-2);
   color: var(--fg-2);

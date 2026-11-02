@@ -61,7 +61,7 @@ export function LabPanel() {
   const p = progressOf(s);
   return (
     <div class="panel lab-panel">
-      <PanelHeader code="LAB" title="Lab" subtitle={`Level ${p.level} · ${p.perkPoints} perk point${p.perkPoints === 1 ? '' : 's'}`} />
+      <PanelHeader code="LAB" title="Level & perks" subtitle={`Level ${p.level} · ${p.perkPoints} perk point${p.perkPoints === 1 ? '' : 's'}`} />
       <PanelIntro id="lab">
         Everything you do earns lab XP. Levels give perk points: spend them to shape the kind of lab you run. The board sets three goals each quarter, and each pays the day you hit it.
       </PanelIntro>

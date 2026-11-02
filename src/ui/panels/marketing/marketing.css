@@ -31,6 +31,7 @@
   text-align: center;
   color: var(--fg-2);
   border: 1px dashed var(--line-2);
+  border-radius: var(--r-md);
 }
 .mk-nohist-sub { color: var(--fg-3); font-size: var(--fs-xs); }
 
@@ -56,6 +57,7 @@
   background: var(--bg-2);
   border: 1px solid var(--line);
   min-width: 0;
+  border-radius: var(--r-sm);
 }
 .mk-tl-track-head {
   height: 22px;
@@ -85,6 +87,7 @@
   background: color-mix(in srgb, var(--amber) 22%, transparent);
   border: 1px solid var(--amber);
   overflow: hidden;
+  border-radius: var(--r-md);
 }
 .mk-tl-done { position: absolute; top: 0; bottom: 0; left: 0; background: var(--amber); }
 .mk-tl-now {
@@ -113,6 +116,7 @@
   min-width: 0;
   border: 1px solid var(--line);
   background: var(--bg-1);
+  border-radius: var(--r-md);
 }
 .mk-camp.is-running { border-color: var(--amber); }
 .mk-camp-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; min-width: 0; }

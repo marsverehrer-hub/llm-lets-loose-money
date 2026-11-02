@@ -9,7 +9,9 @@ import { openShortcuts } from './Shortcuts';
 import { readTheme, setTheme, type Theme } from './theme';
 import { CAMERA_MODE_LABEL, NEXT_CAMERA_MODE, setCameraMode, useCameraMode } from '../cameraPref'; // v13
 import { InterfaceSizeRow } from './InterfaceSize';
-import { bareMoney, tdate } from './fmt';
+import { runwayLabel, tdate } from './fmt';
+import { runwayDays } from '../../sim/systems/finance';
+import { formatMoney } from '../../sim/util';
 import { requestMatchSpeed, useSession, type NetStatus } from '../../net/session';
 import { openLobby } from '../mp/lobbyState';
 import { AUTOPAUSE_TRIGGERS, setAutoPause, useAutoPause } from '../autopause';
@@ -50,6 +52,37 @@ function cycleSpeed(): void {
 function toggleSound(): void {
   toggleMuted();
   playSfx('click');
+}
+
+const G = { fill: 'none', stroke: 'currentColor', 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' } as const;
+function PauseGlyph({ paused }: { paused: boolean }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+      {paused ? <path d="M8 5.5v13l10.5-6.5z" fill="currentColor" /> : <path d="M8.5 5.5v13M15.5 5.5v13" {...G} stroke-width={3} />}
+    </svg>
+  );
+}
+function BellGlyph() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+      <path {...G} d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15zM10 21h4" />
+    </svg>
+  );
+}
+function SoundGlyph({ muted }: { muted: boolean }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+      <path {...G} d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" />
+      {muted ? <path {...G} d="m16 9.5 5 5M21 9.5l-5 5" /> : <path {...G} d="M16 9a4.5 4.5 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11" />}
+    </svg>
+  );
+}
+function MenuGlyph() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+      <path {...G} d="M4.5 7h15M4.5 12h15M4.5 17h15" />
+    </svg>
+  );
 }
 
 /** Words for the multiplayer room chip (title and aria). */
@@ -182,10 +215,22 @@ export function TopBar() {
   const valLabel = s.company.isPublic ? 'Mkt cap' : 'Valuation';
   const statusTag = s.gameOver ? 'Game over' : eventPending ? 'Decision pending' : paused ? 'Paused' : '';
 
+  const runway = runwayDays(s);
+  const runwayTone = !isFinite(runway) ? 'good' : runway < 180 ? 'bad' : runway < 540 ? 'warn' : 'good';
+  const broke = s.finance.negativeCashDays > 0;
+  const initials = s.company.name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0].toUpperCase())
+    .join('');
+
   return (
     <header class="topbar">
       <div class="brand">
-        <div class="brand-mark">{'LLM <GO>'}</div>
+        <div class="brand-mark" aria-hidden="true">
+          {initials || 'L'}
+        </div>
         <div class="brand-text">
           {editing ? (
             <input
@@ -207,52 +252,53 @@ export function TopBar() {
             </button>
           )}
           <div class="brand-date">
-            {tdate(s.day)}
+            <span class="num">{tdate(s.day)}</span>
             {statusTag && <span class={`pause-tag ${s.gameOver ? 'bad' : ''}`}>{statusTag}</span>}
           </div>
         </div>
       </div>
 
       <div class="topbar-stats">
-        <div class="topbar-stat ts-cash cash" title="Cash on hand. Delta is today's net (revenue minus expenses).">
+        <div class="topbar-stat ts-cash cash" title="Cash on hand. The change is today's net: revenue minus expenses.">
           <span class="topbar-label">Cash</span>
           <span class="topbar-value">
-            <AnimatedNumber value={s.finance.cash} format={(v) => bareMoney(v, 2)} />
+            <AnimatedNumber value={s.finance.cash} format={(v) => formatMoney(v, 2)} />
           </span>
           <span class={`topbar-delta ${net >= 0 ? 'good' : 'bad'}`}>
-            {net >= 0 ? '▲+' : '▼-'}
-            {bareMoney(Math.abs(net), 0)}
+            {net >= 0 ? '▲ ' : '▼ '}
+            {formatMoney(Math.abs(net), 0)}/day
           </span>
+        </div>
+        <div
+          class={`topbar-stat ts-runway ${runwayTone}`}
+          title={broke ? `${s.finance.negativeCashDays} days in the red. Bankruptcy at 30.` : 'How long the cash lasts at today\'s burn'}
+        >
+          <span class="topbar-label">Runway</span>
+          <span class="topbar-value">{broke ? `${s.finance.negativeCashDays}d in the red` : runwayLabel(runway)}</span>
         </div>
         <div class="topbar-stat ts-rev" title="Revenue booked today">
-          <span class="topbar-label">Rev/day</span>
-          <span class="topbar-value good">
-            <AnimatedNumber value={s.finance.dailyRevenue} format={(v) => bareMoney(v, 1)} />
-          </span>
-        </div>
-        <div class="topbar-stat ts-burn" title="Expenses booked today">
-          <span class="topbar-label">Burn/day</span>
+          <span class="topbar-label">Revenue</span>
           <span class="topbar-value">
-            <AnimatedNumber value={s.finance.dailyExpenses} format={(v) => bareMoney(v, 1)} />
+            <AnimatedNumber value={s.finance.dailyRevenue} format={(v) => `${formatMoney(v, 1)}/d`} />
           </span>
         </div>
         <div class="topbar-stat ts-val" title={s.company.isPublic ? 'Public market capitalisation' : 'Private valuation'}>
           <span class="topbar-label">{valLabel}</span>
           <span class="topbar-value">
-            <AnimatedNumber value={s.finance.valuation} format={(v) => bareMoney(v, 0)} />
+            <AnimatedNumber value={s.finance.valuation} format={(v) => formatMoney(v, 0)} />
           </span>
         </div>
         <Tooltip
           class="ts-hype"
           content={
             <>
-              AI hype is the global mood about AI. Your company hype is <b>{Math.round(s.company.hype)}</b>, brand awareness{' '}
-              <b>{Math.round(s.company.brand)}</b>.
+              AI hype is the world's mood about AI: high hype means bigger funding rounds and more users. Your own hype is{' '}
+              <b>{Math.round(s.company.hype)}</b>, brand awareness <b>{Math.round(s.company.brand)}</b>.
             </>
           }
         >
           <div class="topbar-stat">
-            <span class="topbar-label">Hype</span>
+            <span class="topbar-label">AI hype</span>
             <span class="topbar-value">{Math.round(aiHype)}</span>
           </div>
         </Tooltip>
@@ -280,7 +326,7 @@ export function TopBar() {
             aria-pressed={paused}
             onClick={togglePause}
           >
-            II
+            <PauseGlyph paused={paused} />
           </button>
           {SPEEDS.map((sp) => (
             <button
@@ -313,7 +359,8 @@ export function TopBar() {
           aria-pressed={logOpen}
           onClick={toggleNoticeLog}
         >
-          Log
+          <BellGlyph />
+          <span class="tb-text">Inbox</span>
           {unread > 0 && <span class="nl-badge">{unread > 99 ? '99+' : unread}</span>}
         </button>
         <button
@@ -324,7 +371,7 @@ export function TopBar() {
           aria-pressed={muted}
           onClick={toggleSound}
         >
-          {muted ? 'Muted' : 'Sound'}
+          <SoundGlyph muted={muted} />
         </button>
         <button
           type="button"
@@ -335,7 +382,8 @@ export function TopBar() {
           aria-expanded={menuOpen}
           onClick={() => setMenuOpen((o) => !o)}
         >
-          Menu
+          <MenuGlyph />
+          <span class="tb-text">Menu</span>
         </button>
         {menuOpen && (
           <>

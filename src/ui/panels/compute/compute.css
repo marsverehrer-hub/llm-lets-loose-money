@@ -34,6 +34,7 @@
   font: inherit;
   text-align: left;
   cursor: pointer;
+  border-radius: var(--r-md);
 }
 .cc-block:hover,
 .cc-block:focus-visible {
@@ -145,14 +146,17 @@
 .cc-swatch.cc-idle {
   background: none;
   border: 1px solid var(--fg-3);
+  border-radius: var(--r-md);
 }
 .cc-swatch.cc-empty {
   background: var(--bg-2);
   border: 1px solid var(--line-2);
+  border-radius: var(--r-md);
 }
 .cc-swatch.cc-burst {
   background: none;
   border: 1px dashed var(--blue);
+  border-radius: var(--r-md);
 }
 
 .cc-tip-body {
@@ -198,6 +202,7 @@
   font: inherit;
   text-align: left;
   cursor: pointer;
+  border-radius: var(--r-md);
 }
 .cc-get-btn:hover,
 .cc-get-btn:focus-visible {
@@ -234,6 +239,7 @@
   font: inherit;
   text-align: left;
   cursor: pointer;
+  border-radius: var(--r-md);
 }
 .cc-opt:hover,
 .cc-opt:focus-visible,
@@ -322,6 +328,7 @@
   min-width: 0;
   padding: 8px 10px;
   border: 1px solid var(--line);
+  border-radius: var(--r-md);
 }
 .cc-fact-k {
   font-size: var(--fs-xs);

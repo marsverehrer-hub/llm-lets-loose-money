@@ -11,7 +11,7 @@ const MIN_SHARE = 0.006;
 const HEAD = 20;
 const CHIP_H = 18;
 
-/** Shorten a label to what fits in `px` at the given font size (IBM Plex Sans is roughly 0.56em per character). */
+/** Shorten a label to what fits in `px` at the given font size (Figtree is roughly 0.56em per character). */
 function fit(text: string, px: number, size = 12): string {
   const max = Math.floor((px - 10) / (size * 0.56));
   if (max <= 0) return '';

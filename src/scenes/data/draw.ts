@@ -51,7 +51,7 @@ const PIPE_END = CRAWLER_BOX.x0 - 0.15;
 /** Pill in screen space, same look as the office labels. */
 export function drawPill(g: CanvasRenderingContext2D, x: number, y: number, text: string, color: string, alpha = 1): void {
   g.save();
-  g.font = '600 11px IBM Plex Mono, monospace';
+  g.font = '600 11px JetBrains Mono, monospace';
   const w = Math.ceil(g.measureText(text).width) + 16;
   const h = 20;
   const px = Math.round(x - w / 2);
@@ -88,7 +88,7 @@ function drawCrate(c: Ctx, x: number, y: number, z0: number, w: number, d: numbe
     if (p.scale >= 0.5) {
       const [sx, sy] = project(p, x + (0.24 + w - 0.06) / 2, front, z0 + 6.2);
       g.save();
-      g.font = `600 ${Math.max(5, 6 * p.scale)}px IBM Plex Mono, monospace`;
+      g.font = `600 ${Math.max(5, 6 * p.scale)}px JetBrains Mono, monospace`;
       g.textAlign = 'center';
       g.textBaseline = 'middle';
       g.fillStyle = C.fg;
@@ -129,7 +129,7 @@ function drawAisle(c: Ctx, a: AisleView): void {
   if (p.scale >= 0.45) {
     const [tx, ty] = project(p, x + 0.05, y + RACK_D + 0.3, 0);
     g.save();
-    g.font = `600 ${Math.max(7, 8 * p.scale)}px IBM Plex Mono, monospace`;
+    g.font = `600 ${Math.max(7, 8 * p.scale)}px JetBrains Mono, monospace`;
     g.textAlign = 'left';
     g.textBaseline = 'alphabetic';
     g.fillStyle = a.total > 0 ? C.fgDim : C.textDim;

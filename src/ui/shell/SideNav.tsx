@@ -1,92 +1,73 @@
 import type { PanelId } from '../App';
-import { runwayDays } from '../../sim/systems/finance';
-import { useGame } from '../store';
-import { runwayLabel } from './fmt';
+import { HUBS, HubIcon, hubBadge, hubOf, type Badge, type Hub } from './hubs';
 
 export interface NavItemDef {
   id: PanelId;
   label: string;
-  /** 2-3 letter function code, e.g. MDL. */
+  /** Legacy function code (e.g. MDL). Not shown; kept for callers. */
   code: string;
 }
 
 export interface SideNavProps {
   items: NavItemDef[];
   active: PanelId;
-  onSelect: (id: PanelId) => void;
-  /** Trailing marker on a nav item: 'dot' = something new (*), 'warn' = needs attention (!). */
-  badges?: Partial<Record<PanelId, 'dot' | 'warn'>>;
-  /** Item to pulse, used by the tutorial to point at the panel for the current step. */
+  /** Opens a hub (App picks the panel: the last one visited there, or the first). */
+  onHub: (hub: Hub) => void;
+  /** 'dot' = something new, 'warn' = needs attention. */
+  badges?: Partial<Record<PanelId, Badge>>;
+  /** Panel the tutorial points at: its hub pulses. */
   highlight?: PanelId | null;
 }
 
-/** Display grouping. Ids not listed here land in "More". */
-export const GROUPS: { title: string; ids: PanelId[] }[] = [
-  { title: 'Company', ids: ['dashboard', 'lab', 'finance', 'market', 'marketing', 'contracts', 'vs'] },
-  { title: 'Lab', ids: ['models', 'products', 'research', 'benchmarks', 'data', 'compute', 'staff'] },
-  { title: 'Meta', ids: ['achievements'] },
-];
+/** Hubs that have at least one visible panel, in order. */
+export function visibleHubs(items: NavItemDef[]): Hub[] {
+  const ids = new Set(items.map((i) => i.id));
+  return HUBS.filter((h) => h.ids.some((id) => ids.has(id)));
+}
 
-/**
- * Left navigation: `CODE  Label` rows grouped under tiny headers. Under 1100px
- * only the code column remains; the full label stays in the title and aria-label.
- */
-export function SideNav({ items, active, onSelect, badges = {}, highlight = null }: SideNavProps) {
-  const s = useGame();
-  const byId = new Map(items.map((i) => [i.id, i] as const));
-  const used = new Set<PanelId>();
-  const groups = GROUPS.map((g) => ({
-    title: g.title,
-    items: g.ids.map((id) => byId.get(id)).filter((x): x is NavItemDef => !!x),
-  }));
-  for (const g of groups) for (const i of g.items) used.add(i.id);
-  const rest = items.filter((i) => !used.has(i.id));
-  if (rest.length) groups.push({ title: 'More', items: rest });
-
-  const runway = runwayDays(s);
-  const broke = s.finance.negativeCashDays > 0;
-  const runwayTone = !isFinite(runway) ? 'good' : runway < 180 ? 'bad' : runway < 540 ? 'warn' : 'good';
-
+/** Desktop sidebar: the game's mark, then one large button per hub. Under 1100px it folds to an icon rail. */
+export function SideNav({ items, active, onHub, badges = {}, highlight = null }: SideNavProps) {
+  const activeHub = hubOf(active).id;
+  const tutHub = highlight ? hubOf(highlight).id : null;
   return (
     <nav class="sidenav" aria-label="Main">
-      {groups.map((g) =>
-        g.items.length === 0 ? null : (
-          <div key={g.title}>
-            <div class="nav-section">{g.title}</div>
-            {g.items.map((item) => {
-              const badge = badges[item.id];
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  class={`nav-item ${active === item.id ? 'active' : ''} ${highlight === item.id ? 'tut-pulse' : ''}`}
-                  title={item.label}
-                  aria-label={item.label}
-                  aria-current={active === item.id ? 'page' : undefined}
-                  onClick={() => onSelect(item.id)}
-                >
-                  <span class="nav-icon">{item.code}</span>
-                  <span class="nav-label">{item.label}</span>
-                  {badge && (
-                    <span class={`nav-badge ${badge === 'warn' ? 'warn' : ''}`} aria-label={badge === 'warn' ? 'Needs attention' : 'New'}>
-                      {badge === 'warn' ? '!' : '*'}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        ),
-      )}
-
-      <div class="sidenav-foot" title={broke ? `${s.finance.negativeCashDays} days in the red. Bankruptcy at 30.` : 'Time until cash runs out at the current burn'}>
-        <div class="sf-label">Runway</div>
-        <div class={`sf-value ${runwayTone}`}>{runwayLabel(runway)}</div>
-        {broke ? (
-          <div class="sf-text bad">{s.finance.negativeCashDays} days in the red. Bankruptcy at 30.</div>
-        ) : (
-          <div class="sf-text">Keep an eye on the burn.</div>
-        )}
+      <div class="sn-brand" aria-hidden="true">
+        <span class="sn-logo">LLM</span>
+        <span class="sn-brand-text">
+          <span class="sn-brand-name">Lets Loose Money</span>
+          <span class="sn-brand-tag">AI lab tycoon</span>
+        </span>
+      </div>
+      <div class="sn-hubs">
+        {visibleHubs(items).map((hub) => {
+          const badge = hubBadge(hub, badges);
+          const on = activeHub === hub.id;
+          return (
+            <button
+              key={hub.id}
+              type="button"
+              class={`hub-item hub-${hub.id} ${on ? 'active' : ''} ${tutHub === hub.id ? 'tut-pulse' : ''}`}
+              title={hub.label}
+              aria-label={hub.label}
+              aria-current={on ? 'page' : undefined}
+              onClick={() => onHub(hub)}
+            >
+              <span class="hub-chip">
+                <HubIcon hub={hub.id} />
+              </span>
+              <span class="hub-text">
+                <span class="hub-label">{hub.label}</span>
+                <span class="hub-blurb">{hub.blurb}</span>
+              </span>
+              {badge && <span class={`hub-badge ${badge}`} aria-label={badge === 'warn' ? 'Needs attention' : 'New'} />}
+            </button>
+          );
+        })}
+      </div>
+      <div class="sn-foot">
+        <span class="kbd">Space</span> pause <span class="kbd">1</span>
+        <span class="kbd">2</span>
+        <span class="kbd">3</span> speed <span class="kbd">?</span> help
       </div>
     </nav>
   );

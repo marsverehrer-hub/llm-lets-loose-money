@@ -1,7 +1,7 @@
 import type { ComponentChildren } from 'preact';
 
 export interface ButtonProps {
-  /** primary = violet-cyan gradient, ghost = text-only, danger = red, success = green. */
+  /** primary = solid accent, ghost = text-only, danger = red, success = green. */
   variant?: 'default' | 'primary' | 'ghost' | 'danger' | 'success';
   size?: 'sm' | 'md' | 'lg';
   block?: boolean;

@@ -33,6 +33,7 @@
   font-size: var(--fs-sm);
   padding: 8px 12px;
   border: 1px solid var(--line-2);
+  border-radius: var(--r-md);
 }
 
 /* ---------- lobby --------------------------------------------------------- */
@@ -48,6 +49,7 @@
   border: 1px solid var(--line-2);
   background: var(--c);
   cursor: pointer;
+  border-radius: var(--r-sm);
 }
 .mp-swatch:hover {
   border-color: var(--fg-2);
@@ -87,6 +89,7 @@
   font-size: var(--fs-sm);
   border: 1px solid var(--down);
   padding: 6px 10px;
+  border-radius: var(--r-md);
 }
 .mp-room-block {
   display: flex;
@@ -96,6 +99,7 @@
   padding: 14px;
   border: 1px solid var(--line-2);
   background: var(--bg);
+  border-radius: var(--r-md);
 }
 .mp-code {
   font-family: var(--mono);
@@ -139,6 +143,7 @@
   font-size: var(--fs-xs);
   white-space: nowrap;
   cursor: pointer;
+  border-radius: var(--r-sm);
 }
 .mp-room:hover {
   border-color: var(--amber);
@@ -259,6 +264,7 @@
   color: var(--fg);
   text-align: left;
   cursor: pointer;
+  border-radius: var(--r-md);
 }
 .mp-attack:hover:not(:disabled) {
   border-color: var(--amber);
@@ -312,6 +318,7 @@
   background: var(--bg);
   border: 1px solid var(--line);
   padding: 6px 0;
+  border-radius: var(--r-md);
 }
 .mp-feed-empty {
   margin: auto;
@@ -473,6 +480,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  border-radius: var(--r-md);
 }
 .mps-live {
   border-color: var(--amber-3);
@@ -517,6 +525,7 @@
   padding: 12px;
   background: var(--bg-2);
   border: 1px solid var(--line);
+  border-radius: var(--r-md);
 }
 .mps-plate {
   display: flex;
@@ -609,6 +618,7 @@
   font-size: 24px;
   font-weight: 700;
   color: var(--fg);
+  border-radius: var(--r-md);
 }
 .mps-tile.is-blank {
   border-style: dashed;
@@ -683,6 +693,7 @@
   padding: 10px 12px 10px 0;
   background: var(--bg-2);
   border: 1px solid var(--line);
+  border-radius: var(--r-md);
 }
 .mps-save.is-live {
   border-color: var(--up-3);
@@ -755,6 +766,7 @@
   border: 1px dashed var(--line-2);
   color: var(--fg-3);
   font-size: var(--fs-sm);
+  border-radius: var(--r-md);
 }
 .mps-empty-seats {
   display: flex;
@@ -862,6 +874,7 @@
   background: var(--bg-1);
   border: 1px solid var(--line-2);
   font-size: var(--fs-sm);
+  border-radius: var(--r-md);
 }
 .mp-vote.is-ask,
 .mp-vote.is-count {
@@ -915,6 +928,7 @@
   padding: 2px 8px;
   border: 1px solid var(--line-2);
   color: var(--fg-3);
+  border-radius: var(--r-md);
 }
 .mp-ready-chip::before {
   content: '';

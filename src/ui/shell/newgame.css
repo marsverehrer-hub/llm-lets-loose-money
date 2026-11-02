@@ -28,8 +28,9 @@
 }
 .ng-title {
   margin: 0;
-  font-size: 18px;
-  font-weight: 600;
+  font-family: var(--display);
+  font-size: 26px;
+  font-weight: 800;
   color: var(--fg);
 }
 .ng-sub {
@@ -47,6 +48,7 @@
   font-size: 20px;
   line-height: 1;
   cursor: pointer;
+  border-radius: var(--r-md);
 }
 .ng-close:hover {
   border-color: var(--amber);
@@ -70,9 +72,10 @@
 }
 .ng-h {
   margin: 0;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--fg-2);
+  font-family: var(--display);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--fg);
 }
 .ng-h2 {
   margin: 0 0 6px;
@@ -115,14 +118,20 @@
   color: var(--fg);
   font: inherit;
   cursor: pointer;
+  border-radius: var(--r-md);
 }
 .ng-tile:hover {
   border-color: var(--line-2);
   background: var(--bg-2);
 }
+.ng-tile {
+  transition: border-color var(--t-fast) linear, background var(--t-fast) linear, transform var(--t-fast) var(--ease);
+}
+.ng-tile:hover { transform: translateY(-1px); }
 .ng-tile.is-on {
-  border-color: var(--amber);
-  background: var(--bg-2);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-1));
+  box-shadow: 0 0 0 1px var(--accent), var(--shadow-2);
 }
 .ng-tile:focus-visible,
 .ng-check input:focus-visible,
@@ -140,8 +149,9 @@
   min-width: 0;
 }
 .ng-tile-name {
-  font-size: 15px;
-  font-weight: 600;
+  font-family: var(--display);
+  font-size: 17px;
+  font-weight: 700;
   color: var(--fg);
   min-width: 0;
 }
@@ -203,6 +213,7 @@
   font-size: 14px;
   line-height: 1.6;
   color: var(--fg);
+  border-radius: var(--r-md);
 }
 .ng-briefing p {
   margin: 0;

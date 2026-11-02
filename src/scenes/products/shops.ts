@@ -61,7 +61,7 @@ export interface DcSnap {
 
 type Quad = number[];
 
-const FONT = 'IBM Plex Mono, monospace';
+const FONT = 'JetBrains Mono, monospace';
 
 /** Point on a screen quad given as [TL, TR, BR, BL] (from planeY). u runs left to right, v top to bottom. */
 function qp(q: Quad, u: number, v: number): [number, number] {

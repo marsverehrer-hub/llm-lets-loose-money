@@ -280,7 +280,7 @@ function drawScaffold(c: Ctx, x: number, y: number, days: number): void {
   }
   const [cx, cy] = project(p, x + w / 2, y + d / 2, H + 8);
   g.save();
-  g.font = `600 ${Math.max(7, 8 * p.scale)}px IBM Plex Mono, monospace`;
+  g.font = `600 ${Math.max(7, 8 * p.scale)}px JetBrains Mono, monospace`;
   g.textAlign = 'center';
   g.fillStyle = C.amber;
   g.fillText(`building · ${Math.ceil(days)}d left`, cx, cy);
@@ -469,7 +469,7 @@ export class OfficeScene {
     // HUD, bottom-right (top corners belong to the camera overlay in OfficeView)
     const gpus = L.gpus;
     g.save();
-    g.font = '10px IBM Plex Mono, monospace';
+    g.font = '10px JetBrains Mono, monospace';
     g.textAlign = 'right';
     g.textBaseline = 'alphabetic';
     g.fillStyle = C.textDim;
@@ -478,7 +478,7 @@ export class OfficeScene {
       const blink = Math.sin(t * 6) > 0 ? 1 : 0.35;
       g.globalAlpha = blink;
       g.fillStyle = C.red;
-      g.font = '600 11px IBM Plex Mono, monospace';
+      g.font = '600 11px JetBrains Mono, monospace';
       g.fillText('CASH NEGATIVE', this.cssW - 10, this.cssH - 24);
     }
     g.restore();
@@ -553,7 +553,7 @@ function drawWingFloor(c: Ctx, x0: number, W: number, D: number, cell: number): 
 /** Square terminal label in screen space: black box, amber hairline, optional solid progress rule. */
 function drawPill(g: CanvasRenderingContext2D, x: number, y: number, text: string, color: string, progress?: number, t = 0): void {
   g.save();
-  g.font = '600 11px IBM Plex Mono, monospace';
+  g.font = '600 11px JetBrains Mono, monospace';
   const w = Math.ceil(g.measureText(text).width) + 16;
   const h = 20;
   const px = Math.round(x - w / 2);

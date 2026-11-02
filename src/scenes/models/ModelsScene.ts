@@ -167,7 +167,7 @@ function bboxOf(p: Projector, x0: number, y0: number, x1: number, y1: number, z0
 /** Office pill: black box, hairline in colour, optional progress rule. Same as the HQ training label. */
 function drawPill(g: CanvasRenderingContext2D, x: number, y: number, text: string, color: string, progress?: number, t = 0): void {
   g.save();
-  g.font = '600 11px IBM Plex Mono, monospace';
+  g.font = '600 11px JetBrains Mono, monospace';
   const w = Math.ceil(g.measureText(text).width) + 16;
   const h = 20;
   const px = Math.round(x - w / 2);
