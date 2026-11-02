@@ -13,6 +13,7 @@ import { navigate } from '../nav';
 import { useGame } from '../store';
 import { TempoControl } from '../panels/lab/TempoControl';
 import { nextStep } from '../panels/hq/nextStep';
+import { etaOf as mediaEta } from '../panels/model/MediaStudio';
 import './rundock.css';
 import '../panels/lab/lab.css';
 
@@ -29,6 +30,23 @@ function Bar({ frac, tone }: { frac: number; tone?: string }) {
 function TrainCell({ s, phone }: { s: GameState; phone: boolean }) {
   const run = s.training;
   const st = trainingStatus(s);
+  // v17.2: an image or video run fills the slot while no language model trains.
+  const media = s.media?.run;
+  if ((!run || !st) && media) {
+    const frac = media.totalFlops > 0 ? media.doneFlops / media.totalFlops : 0;
+    const eta = mediaEta(s);
+    return (
+      <div class="dock-cell dock-train" role="group" aria-label="Media training run">
+        <button type="button" class="dock-link" onClick={() => navigate('models', { open: 'run' })} title="Open the run in Models">
+          <span class="dock-k">{media.config.kind === 'video' ? 'Video' : 'Image'}</span>
+          <span class="dock-name">{media.name}</span>
+          <Bar frac={frac} />
+          <span class="dock-v num">{Math.floor(frac * 100)}%</span>
+          <span class="dock-v muted num">{Number.isFinite(eta) ? formatDays(eta) : 'Stalled'}</span>
+        </button>
+      </div>
+    );
+  }
   if (!run || !st) {
     const queued = (s.trainingQueue ?? []).length;
     return (

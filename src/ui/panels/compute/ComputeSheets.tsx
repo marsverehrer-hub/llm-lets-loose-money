@@ -8,7 +8,7 @@ import { DATACENTER_TIERS } from '../../../sim/data/gpus';
 import { RESEARCH } from '../../../sim/data/research';
 import type { GameState, Id } from '../../../sim/types';
 import { HelpTip, Sheet, FlowBar } from '../../components';
-import { Empty, fmtDays, fmtRate } from '../panelKit';
+import { ConfirmButton, Empty, fmtDays, fmtRate } from '../panelKit';
 import type { RoomBlock, ServerRoom } from './roomModel';
 
 const STEPS = [1, 8, 64];
@@ -371,15 +371,15 @@ export function BuildBody() {
                   </details>
                 </div>
                 <div class="cc-row-actions">
-                  <button
-                    type="button"
-                    class="btn btn-sm"
+                  {/* v17.2: a datacenter spends a big share of the cash, so it takes a second click. */}
+                  <ConfirmButton
+                    class="btn-sm cc-build"
+                    label="Build"
+                    confirmLabel={`Spend ${formatMoney(t.buildCost)}${s.finance.cash > 0 ? ` (${Math.round((t.buildCost / s.finance.cash) * 100)}% of cash)` : ''}?`}
                     disabled={!can}
                     title={!isOpen ? 'Not available yet' : !afford ? 'Not enough cash' : trimmed ? `Build ${t.name}` : 'Name it first'}
-                    onClick={() => dispatch({ type: 'buildDatacenter', tierId: t.id, name: trimmed })}
-                  >
-                    Build
-                  </button>
+                    onConfirm={() => dispatch({ type: 'buildDatacenter', tierId: t.id, name: trimmed })}
+                  />
                 </div>
               </li>
             );

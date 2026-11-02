@@ -22,7 +22,6 @@ export function ProductsCard({ s }: { s: GameState }) {
   return (
     <Card
       title="Products"
-      code="PRD"
       subtitle={live.length ? `${live.length} live` : 'Nothing shipped'}
       actions={
         <Button variant="ghost" size="sm" onClick={() => navigate('products')}>

@@ -6,7 +6,7 @@
 // the model page (src/ui/panels/model/) for the selected model, and the lab notebook.
 import { NetView, netSpecOfText } from '../components';
 import { useState } from 'preact/hooks';
-import { dispatch, useGame } from '../store';
+import { dispatch, getState, useGame } from '../store';
 import { formatFlops, formatParams } from '../../sim/util';
 import { emergenceById } from '../../sim/data/emergences';
 import { currentRunBand, emergenceJournal, labStats, provisionalElo } from '../../sim/systems/lab';
@@ -61,7 +61,9 @@ export function ModelsPanel() {
     if (i.open === 'release') return setView({ kind: 'release', modelId: i.modelId });
     setView({ kind: 'list' });
     if (i.open === 'model') setSelId(i.modelId);
-    scrollToSoon(i.open === 'model' ? 'md-detail' : 'md-run');
+    // With only an image or video run live, "the run" is the one in the studio.
+    const g = getState();
+    scrollToSoon(i.open === 'model' ? 'md-detail' : !g.training && g.media?.run ? 'md-media' : 'md-run');
   });
 
   // A model awaiting its eval-day reveal stays off the list so the scores aren't spoiled behind the modal.
@@ -147,7 +149,9 @@ export function ModelsPanel() {
         </div>
       )}
       <LabNotebook s={s} />
-      <MediaStudio s={s} />
+      <div id="md-media">
+        <MediaStudio s={s} />
+      </div>
     </div>
   );
 }

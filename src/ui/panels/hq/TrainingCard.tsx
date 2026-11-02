@@ -13,7 +13,7 @@ export function TrainingCard({ s }: { s: GameState }) {
 
   if (!run || !training) {
     return (
-      <Card title="Training" code="MDL" subtitle="Slot idle" hot>
+      <Card title="Training" subtitle="Slot idle" hot>
         <EmptyState
           title="Not training"
           text="Every idle day is a day the rivals train and you don't."
@@ -30,7 +30,7 @@ export function TrainingCard({ s }: { s: GameState }) {
   const cp = training.checkpoints?.[training.checkpoints.length - 1];
   const loss: LineSeries[] = [{ name: 'Loss', color: SERIES.blue, points: (training.lossHistory ?? []).map((y, i) => ({ x: i, y })) }];
   return (
-    <Card title="Training" code="MDL" subtitle={`${formatParams(training.paramsB)} params · ${formatNumber(training.tokensB, 1)}B tokens`}>
+    <Card title="Training" subtitle={`${formatParams(training.paramsB)} params · ${formatNumber(training.tokensB, 1)}B tokens`}>
       <div class="hq-train">
         <div class="hq-train-head">
           <span class="hq-train-name">{training.name}</span>

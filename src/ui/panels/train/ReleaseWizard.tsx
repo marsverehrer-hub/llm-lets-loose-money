@@ -1,4 +1,5 @@
-// OWNER: Agent UI-FLOWS. Release wizard: How, Name, Review. Each step is visited on purpose; nothing is pre-chosen.
+// OWNER: Agent UI-FLOWS. Release: one screen, pre-filled with the usual choice (full release, house-style name or the
+// codename), so Release is one click. Other modes and naming sit behind Options. After release: launch a product.
 // Reads the sim through its APIs only. Overall is shown only after eval day, as the Models panel already does.
 // Never reads model.vibes, model.latentQuirks or run.hidden.
 import { useState } from 'preact/hooks';
@@ -9,6 +10,8 @@ import { teaseOptions } from '../../../sim/systems/vault';
 import { NAMING_SCHEMES, suggestPublicName } from '../../../sim/data/names';
 import type { ReleaseMode } from '../../../sim/types';
 import { plain } from '../../shell/fmt';
+import { navigate } from '../../nav';
+import { scenarioRule } from '../../../sim/systems/scenario';
 import { uiRng } from '../panelKit';
 import { r0 } from './model';
 import { Ack, Chip, Delta, FlowFrame, Kv, Stat, Stats, Tile } from './flowKit';
@@ -22,18 +25,52 @@ const MODES: { id: ReleaseMode; name: string; line: string }[] = [
 ];
 const MODE_NAME: Record<ReleaseMode, string> = { full: 'Full release', preview: 'Limited preview', open: 'Open weights' };
 const TEASE_NAME: Record<string, string> = { vague: 'Vague teaser', benchmarks: 'Benchmarks teaser', hype: 'Hype teaser' };
-const STEPS = ['How', 'Name', 'Review'];
-const QUESTIONS = ['How do you ship it?', 'What is it called?', 'Ready to release?'];
 
 export function ReleaseWizard({ modelId, onClose }: { modelId: string; onClose: () => void }) {
   const s = useGame();
   const m = s.models.find((x) => x.id === modelId);
-  const [step, setStep] = useState(0);
-  const [mode, setMode] = useState<ReleaseMode | null>(null);
-  const [scheme, setScheme] = useState<string | null>(null);
-  const [naming, setNaming] = useState<Naming | null>(null);
-  const [nameDraft, setNameDraft] = useState<string | null>(null);
+  // Pre-filled: open weights only where the scenario forces them; the house naming style if the lab has one.
+  const [mode, setMode] = useState<ReleaseMode>(() => (scenarioRule(s, 'openOnly') ? 'open' : 'full'));
+  const [scheme, setScheme] = useState<string | null>(() => s.company.namingScheme ?? null);
+  const [naming, setNaming] = useState<Naming>(() => (m && s.company.namingScheme ? 'public' : 'codename'));
+  const [nameDraft, setNameDraft] = useState<string | null>(() => (m && s.company.namingScheme ? suggestPublicName(s, m, s.company.namingScheme, uiRng()) : null));
   const [openAck, setOpenAck] = useState(false);
+  const [shipped, setShipped] = useState<string | null>(null);
+
+  if (shipped) {
+    return (
+      <div class="tf-root">
+        <header class="tf-head">
+          <span class="tf-kicker">Released</span>
+          <span class="tf-parent">{shipped}</span>
+        </header>
+        <section class="tf-body" aria-labelledby="tf-question">
+          <h2 class="tf-q" id="tf-question">
+            {`${shipped} is out. Now sell it.`}
+          </h2>
+          <span class="tf-muted">A model earns nothing until a product serves it: an API for developers, a chat app, or enterprise seats.</span>
+        </section>
+        <footer class="tf-foot">
+          <div class="tf-foot-info" />
+          <div class="tf-foot-btns">
+            <button type="button" class="btn btn-ghost" onClick={onClose}>
+              Back to models
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary"
+              onClick={() => {
+                onClose();
+                navigate('products', { open: 'launch' });
+              }}
+            >
+              Launch a product
+            </button>
+          </div>
+        </footer>
+      </div>
+    );
+  }
 
   if (!m) {
     return (
@@ -52,8 +89,8 @@ export function ReleaseWizard({ modelId, onClose }: { modelId: string; onClose: 
   const publicName = (nameDraft ?? '').trim();
   const released = m.releasedDay !== null;
   const previews = MODES.map((md) => releasePreview(s, m, md.id));
-  const picked = mode ? previews[MODES.findIndex((md) => md.id === mode)] : null;
-  const nameOk = naming === 'codename' || (naming === 'public' && scheme !== null && publicName.length > 0);
+  const picked = previews[MODES.findIndex((md) => md.id === mode)];
+  const nameOk = naming === 'codename' || (scheme !== null && publicName.length > 0);
   const openOk = mode !== 'open' || openAck;
 
   const promised = m.teased ?? null;
@@ -62,16 +99,15 @@ export function ReleaseWizard({ modelId, onClose }: { modelId: string; onClose: 
     : '';
   const gap = promised ? promised.expected - m.overall : 0;
 
-  const cur = Math.min(step, STEPS.length - 1);
-  let stepBlock = '';
-  if (cur === 0 && !mode) stepBlock = 'Pick a release mode.';
-  else if (cur === 1 && !nameOk) {
-    if (naming === null) stepBlock = 'Pick a name option.';
-    else if (naming === 'public' && scheme === null) stepBlock = 'Pick a naming scheme.';
-    else stepBlock = 'Name it, or keep the codename.';
-  } else if (cur === 2 && !openOk) stepBlock = 'Acknowledge that open weights can’t be taken back.';
-  const blocker = released ? `${plain(m.name)} is already out.` : stepBlock;
-  const nextDisabled = (cur === 0 && !mode) || (cur === 1 && !nameOk);
+  const blocker = released
+    ? `${plain(m.name)} is already out.`
+    : !nameOk
+      ? scheme === null
+        ? 'Pick a naming scheme under Options.'
+        : 'Name it, or keep the codename.'
+      : !openOk
+        ? 'Acknowledge that open weights can’t be taken back.'
+        : '';
 
   const pickScheme = (id: string) => {
     setScheme(id);
@@ -83,13 +119,13 @@ export function ReleaseWizard({ modelId, onClose }: { modelId: string; onClose: 
   };
 
   const release = () => {
-    if (!mode || released || !nameOk || !openOk) return;
+    if (released || !nameOk || !openOk) return;
     const before = { releasedDay: m.releasedDay, releaseMode: m.releaseMode, previewUntil: m.previewUntil };
     dispatch({ type: 'releaseModel', modelId: m.id, mode, ...(naming === 'public' ? { publicName } : {}) });
     // The sim refuses a release with a toast. The wizard closes only when the model actually changed.
     const after = getState().models.find((x) => x.id === modelId);
     if (after && (after.releasedDay !== before.releasedDay || after.releaseMode !== before.releaseMode || after.previewUntil !== before.previewUntil)) {
-      onClose();
+      setShipped(plain(after.name));
     }
   };
 
@@ -97,7 +133,7 @@ export function ReleaseWizard({ modelId, onClose }: { modelId: string; onClose: 
   const houseStyle = s.company.namingScheme ? schemeName(s.company.namingScheme) : '';
   const renameLine = naming === 'public' && publicName ? `${codename} → ${plain(publicName)}` : '';
 
-  // ---- step bodies ------------------------------------------------------------
+  // ---- bodies: the summary leads, mode and naming sit behind Options ------------
 
   const howBody = (
     <div class="tf-grid3" role="radiogroup" aria-label="Release mode">
@@ -182,38 +218,15 @@ export function ReleaseWizard({ modelId, onClose }: { modelId: string; onClose: 
 
   const reviewBody = (
     <div class="tf-review">
-      <section class="tf-panel" aria-label="Promise">
-        <span class="tf-label">Promise</span>
-        {promised ? (
-          <>
-            <span class="tf-big">
-              You promised <span class="num">{`~${r0(promised.expected)}`}</span>
-            </span>
-            <span class="tf-muted">{`${promisedLabel}, ${formatDate(promised.day)}.`}</span>
-            <Kv rows={[['Overall', <span class="num">{r0(m.overall)}</span>]]} />
-            {gap > 0.05 ? (
-              <span class="tf-warn">{`Lands ${gap.toFixed(1)} below the promise. Expect backlash.`}</span>
-            ) : (
-              <span class="tf-ok">{gap < -0.05 ? `Lands ${(-gap).toFixed(1)} above the promise.` : 'Lands on the promise.'}</span>
-            )}
-          </>
-        ) : (
-          <span class="tf-muted">No teaser. Nothing was promised, so nothing to break.</span>
-        )}
-      </section>
-
       <section class="tf-panel" aria-label="Release">
         <span class="tf-label">Release</span>
         <Kv
           rows={[
-            ['Mode', mode ? MODE_NAME[mode] : '—'],
-            ['Name', naming === 'public' && publicName ? plain(publicName) : naming === 'codename' ? `${codename} (codename)` : '—'],
-            ['Hype', picked ? <Delta v={picked.hype} /> : <span class="num">—</span>],
-            ['Brand', picked ? <Delta v={picked.brand} /> : <span class="num">—</span>],
-            ['Reputation', picked ? <Delta v={picked.reputation} /> : <span class="num">—</span>],
+            ['Mode', MODE_NAME[mode]],
+            ['Name', naming === 'public' ? (publicName ? plain(publicName) : '—') : `${codename} (codename)`],
           ]}
         />
-        {picked && picked.notes.length > 0 && (
+        {picked.notes.length > 0 && (
           <ul class="tf-notes">
             {picked.notes.map((n, k) => (
               <li key={k}>{plain(n)}</li>
@@ -229,49 +242,71 @@ export function ReleaseWizard({ modelId, onClose }: { modelId: string; onClose: 
           </Ack>
         )}
       </section>
+
+      {promised && (
+        <section class="tf-panel" aria-label="Promise">
+          <span class="tf-label">Promise</span>
+          <span class="tf-big">
+            You promised <span class="num">{`~${r0(promised.expected)}`}</span>
+          </span>
+          <span class="tf-muted">{`${promisedLabel}, ${formatDate(promised.day)}.`}</span>
+          <Kv rows={[['Overall', <span class="num">{r0(m.overall)}</span>]]} />
+          {gap > 0.05 ? (
+            <span class="tf-warn">{`Lands ${gap.toFixed(1)} below the promise. Expect backlash.`}</span>
+          ) : (
+            <span class="tf-ok">{gap < -0.05 ? `Lands ${(-gap).toFixed(1)} above the promise.` : 'Lands on the promise.'}</span>
+          )}
+        </section>
+      )}
     </div>
   );
 
-  const body = cur === 0 ? howBody : cur === 1 ? nameBody : reviewBody;
+  const body = (
+    <>
+      {reviewBody}
+      <details class="disclosure">
+        <summary>Options: release mode and name</summary>
+        <div class="tf-field">
+          <span class="tf-label">How do you ship it?</span>
+          {howBody}
+        </div>
+        {nameBody}
+      </details>
+    </>
+  );
   const finalLabel = mode === 'preview' ? 'Start preview' : 'Release';
 
   return (
     <FlowFrame
       kicker="Release"
       parent={plain(m.name)}
-      steps={STEPS}
-      cur={cur}
-      question={QUESTIONS[cur]}
+      steps={[]}
+      cur={0}
+      question={`Release ${plain(m.name)}?`}
       blocker={blocker}
-      nextDisabled={nextDisabled}
+      nextDisabled
       info={
-        picked ? (
-          <Stats>
-            <Stat label="Hype">
-              <Delta v={picked.hype} />
-            </Stat>
-            <Stat label="Brand">
-              <Delta v={picked.brand} />
-            </Stat>
-            <Stat label="Rep">
-              <Delta v={picked.reputation} />
-            </Stat>
-          </Stats>
-        ) : null
+        <Stats>
+          <Stat label="Hype">
+            <Delta v={picked.hype} />
+          </Stat>
+          <Stat label="Brand">
+            <Delta v={picked.brand} />
+          </Stat>
+          <Stat label="Rep">
+            <Delta v={picked.reputation} />
+          </Stat>
+        </Stats>
       }
       action={{
         label: finalLabel,
-        disabled: released || !mode || !nameOk || !openOk,
+        disabled: released || !nameOk || !openOk,
         title: blocker || finalLabel,
         onClick: release,
       }}
-      onStep={(i) => {
-        if (i <= cur) setStep(i);
-      }}
-      onBack={() => setStep(Math.max(0, cur - 1))}
-      onNext={() => {
-        if (!nextDisabled) setStep(Math.min(STEPS.length - 1, cur + 1));
-      }}
+      onStep={() => {}}
+      onBack={() => {}}
+      onNext={() => {}}
       onCancel={onClose}
     >
       {body}

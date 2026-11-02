@@ -4,8 +4,6 @@ export interface CardProps {
   title?: ComponentChildren;
   /** Terse dim note shown in the title strip after the title. Keep it short. */
   subtitle?: ComponentChildren;
-  /** @deprecated Terminal-era function code. Ignored; drop it from callers. */
-  code?: string;
   /** @deprecated Terminal theme renders no icons. */
   icon?: string;
   /** Right-aligned strip content: buttons, segmented controls. */

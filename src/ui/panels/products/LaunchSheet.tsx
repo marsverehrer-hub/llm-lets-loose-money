@@ -42,7 +42,7 @@ export function LaunchSheet({ kind, onClose }: { kind: ProductKind | null; onClo
   return (
     <Sheet
       open={!!kind}
-      title={info ? (first ? `Second ${info.label} line` : `Launch a ${info.label} product`) : 'Launch'}
+      title={info ? (first ? `Second ${info.label} line` : `Launch ${/^[AEIOU]/.test(info.label) ? 'an' : 'a'} ${info.label} product`) : 'Launch'}
       subtitle={info ? `Launch fee ${formatMoney(kind ? launchFee(s, kind) : 0)}` : undefined}
       onClose={onClose}
       width={560}

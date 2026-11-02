@@ -48,7 +48,6 @@ export function QuickStart() {
 
   return (
     <Card
-      code="NEW"
       title="New model"
       class="tw-card"
       actions={

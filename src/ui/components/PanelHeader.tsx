@@ -4,8 +4,6 @@ import { HubContext } from '../shell/hubs';
 
 export interface PanelHeaderProps {
   title: ComponentChildren;
-  /** @deprecated Terminal-era function code. Ignored; drop it from callers. */
-  code?: string;
   /** One short line under the title. */
   subtitle?: ComponentChildren;
   /** @deprecated No icons in panel headers. */

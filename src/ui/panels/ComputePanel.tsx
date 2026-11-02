@@ -10,6 +10,8 @@ import { DailyCost } from './compute/DailyCost';
 import { BlockSheet, BuildBody, RentBody } from './compute/ComputeSheets';
 import { CloudMarket } from './compute/CloudMarket'; // v16 cloud providers
 import { NeocloudTab } from './compute/NeocloudTab'; // v16 neocloud
+import { HallList } from './compute/HallList';
+import { useIntent } from '../nav';
 import './panels.css';
 import './compute/compute.css';
 
@@ -23,11 +25,16 @@ export function ComputePanel() {
   const [sheet, setSheet] = useState<OpenSheet>(null);
   const close = () => setSheet(null);
   const [get, setGet] = useState<'rent' | 'market' | 'build' | 'neocloud'>('rent');
+  // v17.2: "Rent GPUs", "Build a datacenter" and the like land on that tab of Get more GPUs.
+  useIntent('compute', (i) => {
+    if (!('tab' in i)) return;
+    setGet(i.tab === 'cloud' ? 'market' : i.tab);
+    requestAnimationFrame(() => document.querySelector('.cc-get')?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
+  });
 
   return (
     <div class="panel pn pn-compute cc">
       <PanelHeader
-        code="CMP"
         title="Compute"
         subtitle="Your GPUs, where they work, and what they cost"
         actions={
@@ -44,6 +51,7 @@ export function ComputePanel() {
       </PanelIntro>
 
       <Card
+        class="cc-get"
         title="Get more GPUs"
         subtitle={get === 'rent' ? 'No upfront cost, billed daily' : undefined}
         actions={
@@ -60,7 +68,18 @@ export function ComputePanel() {
           />
         }
       >
-        {get === 'rent' ? <RentBody /> : get === 'market' ? <CloudMarket /> : get === 'build' ? <BuildBody /> : <NeocloudTab />}
+        {get === 'rent' ? (
+          <RentBody />
+        ) : get === 'market' ? (
+          <CloudMarket />
+        ) : get === 'build' ? (
+          <>
+            <HallList room={room} onManage={(key) => setSheet({ kind: 'block', key })} />
+            <BuildBody key={s.compute.datacenters.length} />
+          </>
+        ) : (
+          <NeocloudTab />
+        )}
       </Card>
 
       <SceneView
