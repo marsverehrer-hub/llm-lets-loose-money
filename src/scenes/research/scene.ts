@@ -1,54 +1,58 @@
-// Research lab scene: an isometric lab with one desk pod per research branch, a central projector for the current topic,
-// a "next up" board for the queue, a star bay, and a coffee lounge that fills up when research is idle.
+// Research lab scene: one lab island per research branch (a whiteboard that fills up as the branch is completed, an
+// experiment rig that runs while the branch holds the current topic, benches with researchers), the projector with the
+// current topic, the "next up" board, the star bay, and a coffee lounge that fills up when research is idle.
+// Islands sit on the kit's lattice and the camera fits them to the canvas. Pieces are depth-sorted every frame.
 import type { GameState } from '../../sim/types';
 import { RESEARCH_BRANCHES } from '../../sim/types';
 import { RESEARCH } from '../../sim/data/research';
 import { effectiveResearchCost } from '../../sim/systems/research';
 import { formatNumber } from '../../sim/util';
 import { BRANCH_LABEL, NODE_BY_ID, branchOf, etaText } from '../../ui/panels/research/model';
-import { TILE_H, TILE_W, project, prand, type Projector } from '../../office/iso';
-import { C, mix, shade } from '../../office/palette';
-import { Ctx, floorLine, floorTile, glow, isoBlock, planeX, planeY, poly, withAlpha } from '../../office/draw/prims';
-import { drawCoffee, drawPlant } from '../../office/draw/furniture';
-import { drawPerson } from '../../office/draw/person';
-import { drawFloor, drawNeonStrip, drawWalls } from '../../office/draw/room';
 import type { Scene, SceneHit } from '../types';
+import {
+  Tags,
+  alpha,
+  background,
+  box,
+  faceY,
+  fitIso,
+  flat,
+  frac,
+  hitBox,
+  hud,
+  iso,
+  line3,
+  mix,
+  outline,
+  palette,
+  person,
+  prand,
+  slab,
+  tri,
+  TAG_FONT,
+  type Box3,
+  type Ctx,
+  type Pal,
+  type Proj,
+  type Tri,
+} from '../kit';
 import {
   allocateResearchers,
   BOARD_Z0,
   BOARD_Z1,
-  COFFEE,
-  convexHull,
+  buildRoom,
   DESK_D,
   DESK_TOP,
   DESK_W,
   deskXY,
-  inHull,
-  LOUNGE,
+  ISLE,
   LOUNGE_SHOW,
   loungeSpot,
-  PLANT,
   type Pod,
-  POD_D,
-  POD_W,
-  PODS,
-  PROJ_X0,
-  PROJ_X1,
-  PROJ_Z0,
-  PROJ_Z1,
-  QUEUE_Y0,
-  QUEUE_Y1,
-  QUEUE_Z0,
-  QUEUE_Z1,
-  ROOM_D,
-  ROOM_W,
+  type Room,
   seatXY,
   SLOTS,
-  STAR_BAY_X1,
   STAR_MAX,
-  STAR_STEP,
-  STAR_X0,
-  STAR_Y,
   starDeskXY,
   starSeatXY,
   TOPICS_PER_BRANCH,
@@ -58,27 +62,27 @@ import {
 const BRANCH_INDEX = new Map<string, number>(RESEARCH_BRANCHES.map((b, i) => [b, i] as const));
 const NODE_BRANCH = new Map<string, number>(RESEARCH.map((n) => [n.id, BRANCH_INDEX.get(branchOf(n)) ?? 0] as const));
 const TOTAL_TOPICS = RESEARCH.length;
-const POD_ACTORS = PODS.length * SLOTS;
+const POD_ACTORS = RESEARCH_BRANCHES.length * SLOTS;
 const ACTOR_MAX = POD_ACTORS + STAR_MAX;
 const QUEUE_SHOW = 6;
-const SCRIBBLE_COLS = 9;
+const SCRIBBLE_COLS = 8;
 const SCRIBBLE_ROWS = 4;
 const SCRIBBLE_CELLS = SCRIBBLE_COLS * SCRIBBLE_ROWS;
-const STICKY = [C.amber, C.blue, C.green, C.yellow, C.red];
-const SKY = '#0b0a08';
-const FONT = 'JetBrains Mono, monospace';
 const LEAN = 0.12;
-// Whiteboards are dimmed so they read as lab furniture, not as the brightest thing in the room.
-const BOARD_FACE = mix(C.whiteboard, '#000000', 0.4);
+const SCREEN_Z0 = 8;
+const SCREEN_Z1 = 34;
 
-const K_BOARD = 0;
-const K_DESK = 1;
-const K_CHAIR = 2;
-const K_ACTOR = 3;
-const K_COFFEE = 4;
-const K_PLANT = 5;
-const K_SDESK = 6;
-const K_SCHAIR = 7;
+const K_WALL = 0;
+const K_RIG = 1;
+const K_DESK = 2;
+const K_CHAIR = 3;
+const K_ACTOR = 4;
+const K_SDESK = 5;
+const K_SCHAIR = 6;
+const K_PROJ = 7;
+const K_QUEUE = 8;
+const K_LOUNGE = 9;
+const K_COFFEE = 10;
 
 interface Item {
   d: number;
@@ -88,13 +92,10 @@ interface Item {
 }
 
 interface Actor {
-  /** Where the person is drawn now. */
   x: number;
   y: number;
-  /** Where they are heading: a chair, or a spot in the lounge. */
   tx: number;
   ty: number;
-  /** The chair itself (for seated people). */
   sx: number;
   sy: number;
   vis: boolean;
@@ -102,7 +103,7 @@ interface Actor {
   star: boolean;
   /** Pod index of a researcher, -1 for a star. */
   pod: number;
-  /** Set on the first frame after appearing: snap to the target instead of walking in. */
+  /** Snap to the target on the next frame instead of walking in. */
   spawn: boolean;
   walkPhase: number;
   moving: boolean;
@@ -118,75 +119,56 @@ const SCRIBBLE_RANK: number[] = (() => {
   return rank;
 })();
 
-/** Set the largest font (down from maxPx, not below minPx) at which `text` fits in maxW. Leaves the font set on g. */
+/** Set the largest font (down from maxPx, not below minPx) at which `text` fits in maxW. */
 function fitFont(g: CanvasRenderingContext2D, text: string, maxW: number, maxPx: number, minPx: number, weight = 600): void {
   let px = maxPx;
-  g.font = `${weight} ${px.toFixed(1)}px ${FONT}`;
+  g.font = `${weight} ${px.toFixed(1)}px ${TAG_FONT}`;
   while (px > minPx && g.measureText(text).width > maxW) {
     px -= 0.5;
-    g.font = `${weight} ${px.toFixed(1)}px ${FONT}`;
+    g.font = `${weight} ${px.toFixed(1)}px ${TAG_FONT}`;
   }
 }
 
-/** Terminal label in the office style: black box, hairline border. */
-function drawPill(g: CanvasRenderingContext2D, x: number, y: number, text: string, color: string): void {
+/** Text lying on a +y face: sheared to the face's slope (half a pixel down per pixel right). */
+function faceText(g: CanvasRenderingContext2D, x: number, y: number, text: string): void {
   g.save();
-  g.font = `600 11px ${FONT}`;
-  const w = Math.ceil(g.measureText(text).width) + 16;
-  const h = 20;
-  const px = Math.round(x - w / 2);
-  const py = Math.round(y - h);
-  g.fillStyle = '#000000';
-  g.fillRect(px, py, w, h);
-  g.strokeStyle = withAlpha(color, 0.9);
-  g.lineWidth = 1;
-  g.strokeRect(px + 0.5, py + 0.5, w - 1, h - 1);
-  g.fillStyle = C.fg;
-  g.textAlign = 'center';
-  g.textBaseline = 'middle';
-  g.fillText(text, px + w / 2, py + h / 2 - 0.5);
+  g.translate(x, y);
+  g.transform(1, 0.5, 0, 1, 0, 0);
+  g.fillText(text, 0, 0);
   g.restore();
 }
 
-/** Office chair: seat and back, kept to two blocks so a full room stays cheap to draw. */
-function drawChairLite(c: Ctx, dx: number, dy: number): void {
-  const cx = dx + 0.4;
-  const cy = dy + 0.78;
-  isoBlock(c, cx, cy, 0.4, 0.4, 5, 9, C.chairSeat, shade(C.chairSeat, 0.7), shade(C.chairSeat, 0.85));
-  planeY(c, cx + 0.04, cx + 0.36, cy - 0.06, 9, 19, C.chairBack);
+interface Looks {
+  desk: Tri;
+  board: string;
+  chair: Tri;
+  rug: string;
 }
 
-/** One desk: a slab on one front leg, keyboard and a monitor. `on` is screen brightness 0..1, `flick` a 0..1 ripple. */
-function drawDesk(c: Ctx, dx: number, dy: number, on: number, flick: number, star: boolean): void {
-  const { g } = c;
-  isoBlock(c, dx + DESK_W - 0.12, dy + DESK_D - 0.12, 0.07, 0.07, 0, DESK_TOP - 3, C.deskLeg);
-  isoBlock(c, dx, dy, DESK_W, DESK_D, DESK_TOP - 3, DESK_TOP, star ? mix(C.deskTop, C.amber, 0.4) : C.deskTop, C.deskSide, shade(C.deskSide, 0.85));
-  floorTile(c, dx + 0.35, dy + 0.42, 0.42, 0.14, C.keyboard, DESK_TOP);
-  planeY(c, dx + 0.3, dx + 0.9, dy + 0.12, DESK_TOP, DESK_TOP + 14, C.monitorBezel);
-  const pts = planeY(c, dx + 0.33, dx + 0.87, dy + 0.12, DESK_TOP + 3.5, DESK_TOP + 12.5, C.monitorScreen);
-  if (on > 0.02) {
-    const w = Math.abs(pts[2] - pts[0]);
-    const h = Math.abs(pts[5] - pts[1]);
-    g.save();
-    g.fillStyle = star ? C.yellow : C.amber;
-    g.globalAlpha = on * (0.35 + 0.45 * flick);
-    for (let k = 0; k < 4; k++) {
-      const ly = pts[1] + ((k + 1) / 5) * (pts[5] - pts[1]);
-      const lw = w * (0.35 + 0.5 * (((k * 37 + Math.floor(flick * 7)) % 7) / 7));
-      g.fillRect(pts[0] + w * 0.08, ly - h * 0.05, lw, Math.max(1, h * 0.06));
-    }
-    g.restore();
-  }
+let looksFor: Pal | null = null;
+let looks: Looks | null = null;
+function looksOf(pal: Pal): Looks {
+  if (looks && looksFor === pal) return looks;
+  looksFor = pal;
+  looks = {
+    desk: pal.light ? tri('#d2d5db', 0.86, 0.72) : tri('#5a5e67', 0.78, 0.6),
+    board: pal.light ? '#fbfbfc' : mix('#e8eaee', '#000000', 0.22),
+    chair: tri(pal.light ? '#3a3c42' : '#2c2e33'),
+    rug: alpha(pal.hl, pal.light ? 0.16 : 0.08),
+  };
+  return looks;
 }
 
 export class ResearchScene implements Scene {
   private cssW = 1;
   private cssH = 1;
-  private proj: Projector = { ox: 0, oy: 0, scale: 1 };
-  private ctx: Ctx = { g: null as unknown as CanvasRenderingContext2D, p: this.proj };
+  private proj: Proj = { ox: 0, oy: 0, s: 1 };
   private time = 0;
+  private room: Room = buildRoom(800, 320);
+  private roomKey = '';
+  private hover: string | null = null;
+  private readonly tags = new Tags();
 
-  /** Latest state, set every frame; tips read it on hover. */
   private st: GameState | null = null;
   private idle = true;
   private cur = -1;
@@ -194,95 +176,60 @@ export class ResearchScene implements Scene {
   private researchers = 0;
   private stars: { name: string; title: string }[] = [];
   private done = new Array<number>(RESEARCH_BRANCHES.length).fill(0);
+  private queued = new Array<number>(RESEARCH_BRANCHES.length).fill(0);
   private doneAll = 0;
 
-  /** Researchers per pod, and how many of them get a chair (the rest are only counted). */
-  private podN: number[] = new Array(PODS.length).fill(0);
-  private podSeated: number[] = new Array(PODS.length).fill(0);
+  private podN: number[] = new Array(RESEARCH_BRANCHES.length).fill(0);
+  private podSeated: number[] = new Array(RESEARCH_BRANCHES.length).fill(0);
   private starSeated = 0;
-  /** While idle: how many people are in the lounge in total (drawn or not). */
   private loungeTotal = 0;
   private seatKey = -1;
   private actors: Actor[] = [];
 
   private pool: Item[] = [];
   private order: Item[] = [];
-  private baseCanvas: HTMLCanvasElement | null = null;
-  private baseKey = '';
-
-  private hitPods: { i: number; hull: number[] }[] = [];
-  private hitProj: number[] = [];
-  private hitQueue: number[] = [];
-  private hitStars: number[] = [];
+  private hits: { id: string; box: Box3 }[] = [];
+  /** Which pass the draw helpers are in: the static layer (cached while nobody walks) or the live parts over it. */
+  private live = false;
+  private staticCv: HTMLCanvasElement | null = null;
+  private staticKey = '';
 
   constructor() {
-    for (let i = 0; i < 256; i++) this.pool.push({ d: 0, kind: 0, a: 0, b: 0 });
+    for (let i = 0; i < 320; i++) this.pool.push({ d: 0, kind: 0, a: 0, b: 0 });
     for (let i = 0; i < ACTOR_MAX; i++) {
-      this.actors.push({
-        x: LOUNGE.x,
-        y: LOUNGE.y,
-        tx: LOUNGE.x,
-        ty: LOUNGE.y,
-        sx: LOUNGE.x,
-        sy: LOUNGE.y,
-        vis: false,
-        seated: false,
-        star: i >= POD_ACTORS,
-        pod: -1,
-        spawn: false,
-        walkPhase: 0,
-        moving: false,
-        seed: i * 7 + 3,
-      });
+      this.actors.push({ x: 0, y: 0, tx: 0, ty: 0, sx: 0, sy: 0, vis: false, seated: false, star: i >= POD_ACTORS, pod: -1, spawn: false, walkPhase: 0, moving: false, seed: i * 7 + 3 });
     }
   }
 
   resize(cssW: number, cssH: number): void {
     this.cssW = cssW;
     this.cssH = cssH;
-    this.fit();
-    this.buildHits();
-    this.baseKey = '';
+    const key = `${cssW}x${cssH}`;
+    if (key === this.roomKey) return;
+    this.roomKey = key;
+    this.room = buildRoom(cssW, cssH);
+    const R = this.room;
+    const boxes: Box3[] = [];
+    const isle = (x: number, y: number, z1: number): Box3 => ({ x0: x, y0: y, x1: x + ISLE, y1: y + ISLE, z0: -2, z1 });
+    for (const p of R.pods) boxes.push(isle(p.px, p.py, WALL_H + 10));
+    boxes.push(isle(R.proj.x, R.proj.y, SCREEN_Z1 + 10), isle(R.queue.x, R.queue.y, WALL_H + 10), isle(R.stars.x, R.stars.y, 30), isle(R.lounge.x, R.lounge.y, 30));
+    fitIso(this.proj, boxes, cssW, cssH);
+    const hits: { id: string; box: Box3; line: number }[] = [];
+    hits.push({ id: 'current', box: { x0: R.proj.x, y0: R.proj.y, x1: R.proj.x + ISLE, y1: R.proj.y + ISLE, z0: 0, z1: SCREEN_Z1 + 2 }, line: R.proj.line });
+    hits.push({ id: 'queue', box: { x0: R.queue.x, y0: R.queue.y, x1: R.queue.x + ISLE, y1: R.queue.y + ISLE, z0: 0, z1: WALL_H }, line: R.queue.line });
+    hits.push({ id: 'stars', box: { x0: R.stars.x, y0: R.stars.y, x1: R.stars.x + ISLE, y1: R.stars.y + ISLE, z0: 0, z1: 24 }, line: R.stars.line });
+    for (const p of R.pods) hits.push({ id: `branch:${p.branch}`, box: { x0: p.px, y0: p.py, x1: p.px + ISLE, y1: p.py + ISLE, z0: 0, z1: WALL_H }, line: p.line });
+    hits.sort((a, b) => a.line - b.line);
+    this.hits = hits;
+    // New desks: everyone snaps to their new seat.
+    this.seatKey = -1;
+    for (const a of this.actors) a.vis = false;
   }
 
-  /** Fit the room footprint into the canvas, the same way the HQ office does. */
-  private fit(): void {
-    const pad = 14;
-    const availW = Math.max(40, this.cssW - pad * 2);
-    const availH = Math.max(40, this.cssH - pad * 2);
-    const X = ROOM_W;
-    const Y = ROOM_D;
-    const s = Math.min(availW / (((X + Y) * TILE_W) / 2), availH / (((X + Y) * TILE_H) / 2 + WALL_H), 2.6);
-    const sc = Math.max(0.35, s);
-    this.proj.scale = sc;
-    this.proj.ox = this.cssW / 2 - (((X - Y) * TILE_W) / 4) * sc;
-    this.proj.oy = this.cssH / 2 - (((X + Y) * TILE_H) / 4 - WALL_H / 2) * sc;
+  setHover(id: string | null): void {
+    this.hover = id;
   }
 
-  private screen(x: number, y: number, z: number): [number, number] {
-    return project(this.proj, x, y, z);
-  }
-
-  /** Convex screen-space hull of a floor box from z 0 up to z1. */
-  private hullOf(x0: number, x1: number, y0: number, y1: number, z0: number, z1: number): number[] {
-    const flat: number[] = [];
-    for (const x of [x0, x1])
-      for (const y of [y0, y1])
-        for (const z of [z0, z1]) {
-          const [sx, sy] = this.screen(x, y, z);
-          flat.push(sx, sy);
-        }
-    return convexHull(flat);
-  }
-
-  private buildHits(): void {
-    this.hitPods = PODS.map((p) => ({ i: p.i, hull: this.hullOf(p.px, p.px + POD_W, p.py - 0.1, p.py + POD_D, 0, BOARD_Z1 + 8) }));
-    this.hitProj = this.hullOf(PROJ_X0, PROJ_X1, 0, 0.1, PROJ_Z0 - 2, PROJ_Z1 + 2);
-    this.hitQueue = this.hullOf(0, 0.1, QUEUE_Y0, QUEUE_Y1, QUEUE_Z0 - 2, QUEUE_Z1 + 2);
-    this.hitStars = this.hullOf(STAR_X0 - 0.2, STAR_BAY_X1, STAR_Y - 0.3, STAR_Y + 1.8, 0, 30);
-  }
-
-  /** Read the state into plain numbers. Runs every frame. */
   private snapshot(s: GameState): void {
     this.st = s;
     this.researchers = Math.max(0, Math.floor(s.staff.roles.researcher?.count ?? 0));
@@ -299,6 +246,11 @@ export class ResearchScene implements Scene {
       if (b !== undefined) this.done[b]++;
       this.doneAll++;
     }
+    this.queued.fill(0);
+    for (const id of s.research.queue ?? []) {
+      const b = NODE_BRANCH.get(id);
+      if (b !== undefined) this.queued[b]++;
+    }
   }
 
   private seatKeyOf(): number {
@@ -310,7 +262,7 @@ export class ResearchScene implements Scene {
   private reseat(): void {
     const podN = allocateResearchers(this.researchers);
     let a = 0;
-    for (const pod of PODS) {
+    for (const pod of this.room.pods) {
       this.podN[pod.i] = podN[pod.i];
       const seated = Math.min(SLOTS, podN[pod.i]);
       this.podSeated[pod.i] = seated;
@@ -321,10 +273,10 @@ export class ResearchScene implements Scene {
           continue;
         }
         const [sx, sy] = seatXY(pod, k);
-        this.show(act);
+        if (!act.vis) act.spawn = true;
+        act.vis = true;
         act.pod = pod.i;
         act.star = false;
-        act.seated = true;
         act.sx = sx;
         act.sy = sy;
       }
@@ -336,33 +288,22 @@ export class ResearchScene implements Scene {
         act.vis = false;
         continue;
       }
-      const [sx, sy] = starSeatXY(j);
-      this.show(act);
+      const [sx, sy] = starSeatXY(this.room, j);
+      if (!act.vis) act.spawn = true;
+      act.vis = true;
       act.pod = -1;
       act.star = true;
-      act.seated = true;
       act.sx = sx;
       act.sy = sy;
     }
-    this.placeTargets();
-  }
-
-  private show(act: Actor): void {
-    if (!act.vis) act.spawn = true;
-    act.vis = true;
-  }
-
-  /** Targets for the current mode: chairs while research runs (the active branch leans in), the lounge while idle. */
-  private placeTargets(): void {
+    // Targets: chairs while research runs (the active branch leans in), the lounge while idle.
     let lounge = 0;
-    // Everyone counts as chatting while idle, including researchers past the desks and stars past the bay.
     this.loungeTotal = this.idle ? this.researchers + this.stars.length : 0;
     for (const act of this.actors) {
       if (!act.vis) continue;
       if (this.idle) {
-        // Everyone is in the lounge; only the first few are drawn, the rest are counted in a pill.
         if (lounge < LOUNGE_SHOW) {
-          [act.tx, act.ty] = loungeSpot(lounge);
+          [act.tx, act.ty] = loungeSpot(this.room, lounge);
           act.seated = false;
         } else {
           act.vis = false;
@@ -377,7 +318,6 @@ export class ResearchScene implements Scene {
     }
   }
 
-  /** Walk everyone toward their targets. */
   private update(dt: number): void {
     const k = 1 - Math.exp(-dt * 2.2);
     for (const act of this.actors) {
@@ -407,74 +347,104 @@ export class ResearchScene implements Scene {
       this.reseat();
     }
     this.update(dt);
+    const pal = palette();
+    const L = looksOf(pal);
+    const c: Ctx = { g, p: this.proj, pal };
 
-    // Static shell: cached as a bitmap per canvas size.
-    const dpr = this.cssW > 0 ? g.canvas.width / this.cssW : 1;
-    const key2 = `${this.cssW}|${this.cssH}|${dpr}`;
-    if (!this.baseCanvas || this.baseKey !== key2) this.buildBase(dpr);
-    g.save();
-    g.setTransform(1, 0, 0, 1, 0, 0);
-    g.drawImage(this.baseCanvas as HTMLCanvasElement, 0, 0);
-    g.restore();
-
-    const c = this.ctx;
-    c.g = g;
-    c.p = this.proj;
-    const s1 = this.proj.scale;
-
-    // Things on the walls and floor under the people: queue board, projector, the topic beam, the active pod's glow.
-    this.drawQueue(c, s);
-    this.drawProjector(c, s, t);
-    if (this.cur >= 0 && !this.idle) {
-      const pod = PODS[this.cur];
-      const [cx, cy] = this.screen(pod.px + POD_W / 2, pod.py + POD_D / 2, 0);
-      glow(g, cx, cy, 70 * s1, C.amber, 0.12 + 0.04 * Math.sin(t * 2.4));
-      const [u0, z0] = this.screen(PROJ_X0 + 0.6, 0.05, PROJ_Z0);
-      const [u1] = this.screen(PROJ_X1 - 0.6, 0.05, PROJ_Z0);
-      const [tx, ty] = this.screen(pod.px + POD_W / 2, pod.py, BOARD_Z1 + 4);
+    // Static layer: drawn straight to the canvas while people walk; cached as a bitmap once everyone has arrived.
+    const walking = this.actors.some((a) => a.vis && a.moving);
+    const dpr = g.getTransform().a || 1;
+    if (walking) {
+      this.staticKey = '';
+      this.pieces(c, L, s, t, false);
+    } else {
+      const key = `${this.roomKey}@${dpr}|${pal.bg}|${this.seatKey}|${this.done.join(',')}|${this.queued.join(',')}|${(s.research.queue ?? []).join(',')}`;
+      if (!this.staticCv || key !== this.staticKey) {
+        const cv = this.staticCv ?? document.createElement('canvas');
+        cv.width = Math.max(1, Math.round(this.cssW * dpr));
+        cv.height = Math.max(1, Math.round(this.cssH * dpr));
+        const sg = cv.getContext('2d');
+        if (sg) {
+          sg.setTransform(dpr, 0, 0, dpr, 0, 0);
+          this.pieces({ g: sg, p: this.proj, pal }, L, s, t, false);
+        }
+        this.staticCv = cv;
+        this.staticKey = key;
+      }
       g.save();
-      g.globalCompositeOperation = 'lighter';
-      g.fillStyle = withAlpha(C.amber, 0.05 + 0.015 * Math.sin(t * 3));
-      g.beginPath();
-      g.moveTo(u0, z0);
-      g.lineTo(u1, z0);
-      g.lineTo(tx, ty);
-      g.closePath();
-      g.fill();
+      g.setTransform(1, 0, 0, 1, 0, 0);
+      g.drawImage(this.staticCv, 0, 0);
       g.restore();
     }
+    this.pieces(c, L, s, t, true);
+    this.overlays(c, s, t);
+  }
 
+  /** Floors and the depth-sorted pieces, in one pass: static (furniture, people) or live (screens, rigs, steam). */
+  private pieces(c: Ctx, L: Looks, s: GameState, t: number, live: boolean): void {
+    this.live = live;
+    if (!live) {
+      background(c, this.cssW, this.cssH);
+      this.floors(c, L);
+    }
+    this.sorted(c, L, s, t);
+  }
+
+  private floors(c: Ctx, L: Looks): void {
+    const { pal } = c;
+    const R = this.room;
+    // Floors first.
+    for (let line = 0; line < R.lines; line++) {
+      for (const pod of R.pods) {
+        if (pod.line !== line) continue;
+        slab(c, pod.px, pod.py, ISLE, ISLE, 2, 0.5);
+        if (pod.i === this.cur && !this.idle) flat(c, pod.px + 0.1, pod.py + 0.2, ISLE - 0.2, ISLE - 0.3, 0.02, alpha(pal.hl, 0.08));
+      }
+      for (const sp of [R.proj, R.queue, R.stars, R.lounge]) if (sp.line === line) slab(c, sp.x, sp.y, ISLE, ISLE, 2, 0.5);
+    }
+    flat(c, R.stars.x + 0.2, R.stars.y + 0.6, ISLE - 0.4, ISLE - 0.8, 0.02, L.rug);
+    flat(c, R.lounge.x + 0.9, R.lounge.y + 0.9, ISLE - 1.8, ISLE - 1.8, 0.02, alpha(pal.blue, pal.light ? 0.18 : 0.1));
+  }
+
+  private sorted(c: Ctx, L: Looks, s: GameState, t: number): void {
+    const { pal } = c;
+    const R = this.room;
+    const live = this.live;
     // Depth-sorted pieces.
     const items = this.pool;
     let n = 0;
     const push = (d: number, kind: number, a: number, b: number) => {
+      if (n >= items.length) items.push({ d: 0, kind: 0, a: 0, b: 0 });
       const it = items[n++];
       it.d = d;
       it.kind = kind;
       it.a = a;
       it.b = b;
     };
-    for (const pod of PODS) {
-      push(pod.px + POD_W / 2 + pod.py, K_BOARD, pod.i, 0);
+    for (const pod of R.pods) {
+      push(pod.px + pod.py, K_WALL, pod.i, 0);
+      push(pod.px + 3.3 + pod.py + 0.8, K_RIG, pod.i, 0);
       const desks = Math.max(1, Math.min(SLOTS, this.podN[pod.i]));
       for (let k = 0; k < desks; k++) {
         const [dx, dy] = deskXY(pod, k);
-        push(dx + dy + 0.95, K_DESK, pod.i, k);
-        push(dx + dy + 1.3, K_CHAIR, pod.i, k);
+        push(dx + dy + DESK_D, K_DESK, pod.i, k);
+        push(dx + dy + DESK_D + 0.75, K_CHAIR, pod.i, k);
       }
     }
     const starDesks = Math.max(2, this.starSeated);
     for (let j = 0; j < Math.min(STAR_MAX, starDesks); j++) {
-      const [dx, dy] = starDeskXY(j);
-      push(dx + dy + 0.95, K_SDESK, j, 0);
-      push(dx + dy + 1.3, K_SCHAIR, j, 0);
+      const [dx, dy] = starDeskXY(R, j);
+      push(dx + dy + DESK_D, K_SDESK, j, 0);
+      push(dx + dy + DESK_D + 0.75, K_SCHAIR, j, 0);
     }
     for (let i = 0; i < this.actors.length; i++) {
       const act = this.actors[i];
       if (act.vis) push(act.x + act.y + 0.02, K_ACTOR, i, 0);
     }
-    push(COFFEE.x + COFFEE.y + 0.9, K_COFFEE, 0, 0);
-    push(PLANT.x + PLANT.y + 0.5, K_PLANT, 0, 0);
+    push(R.proj.x + R.proj.y + 0.6, K_PROJ, 0, 0);
+    push(R.queue.x + R.queue.y + 0.6, K_QUEUE, 0, 0);
+    push(R.lounge.x + R.lounge.y + 0.8, K_LOUNGE, 0, 0);
+    push(R.lounge.x + R.lounge.y + 1.4, K_COFFEE, 0, 0);
 
     const order = this.order;
     order.length = 0;
@@ -483,339 +453,413 @@ export class ResearchScene implements Scene {
 
     for (const it of order) {
       switch (it.kind) {
-        case K_BOARD:
-          this.drawBoard(c, PODS[it.a], t);
+        case K_WALL:
+          this.drawWall(c, L, R.pods[it.a], t);
+          break;
+        case K_RIG:
+          this.drawRig(c, R.pods[it.a], t);
           break;
         case K_DESK: {
-          const pod = PODS[it.a];
+          const pod = R.pods[it.a];
           const [dx, dy] = deskXY(pod, it.b);
           const occupied = it.b < this.podSeated[pod.i];
           const on = this.idle || !occupied ? 0 : pod.i === this.cur ? 1 : 0.55;
-          drawDesk(c, dx, dy, on, 0.5 + 0.5 * Math.sin(t * (3 + it.b) + pod.i * 1.7), false);
+          this.drawDesk(c, L, dx, dy, on, frac(t * (0.5 + it.b * 0.13) + pod.i * 0.37), false);
           break;
         }
         case K_CHAIR: {
-          const [dx, dy] = deskXY(PODS[it.a], it.b);
-          drawChairLite(c, dx, dy);
+          if (live) break;
+          const [dx, dy] = deskXY(R.pods[it.a], it.b);
+          this.drawChair(c, L, dx, dy);
           break;
         }
         case K_SDESK: {
-          const [dx, dy] = starDeskXY(it.a);
+          const [dx, dy] = starDeskXY(R, it.a);
           const occupied = it.a < this.starSeated;
-          const on = this.idle || !occupied ? 0 : 1;
-          drawDesk(c, dx, dy, on, 0.5 + 0.5 * Math.sin(t * 4 + it.a), true);
-          const [mx, my] = this.screen(dx + 0.6, dy + 0.3, DESK_TOP + 18);
-          const r = 3.2 * s1 + 0.6;
-          g.save();
-          g.fillStyle = occupied ? C.amber : withAlpha(C.amber, 0.35);
-          g.beginPath();
-          g.moveTo(mx, my - r);
-          g.lineTo(mx + r * 0.7, my);
-          g.lineTo(mx, my + r);
-          g.lineTo(mx - r * 0.7, my);
-          g.closePath();
-          g.fill();
-          g.restore();
-          if (occupied && !this.idle) {
-            const [gx, gy] = this.screen(dx + 0.6, dy + 0.35, 0);
-            glow(g, gx, gy, 22 * s1, C.amber, 0.14 + 0.05 * Math.sin(t * 2 + it.a));
-          }
+          this.drawDesk(c, L, dx, dy, this.idle || !occupied ? 0 : 1, frac(t * 0.7 + it.a * 0.3), true);
           break;
         }
         case K_SCHAIR: {
-          const [dx, dy] = starDeskXY(it.a);
-          drawChairLite(c, dx, dy);
+          if (live) break;
+          const [dx, dy] = starDeskXY(R, it.a);
+          this.drawChair(c, L, dx, dy);
           break;
         }
-        case K_ACTOR:
-          this.drawActor(c, this.actors[it.a], t);
+        case K_ACTOR: {
+          if (live) break;
+          const act = this.actors[it.a];
+          const sitting = act.seated && !act.moving && !this.idle;
+          person(c, act.x, act.y, act.star ? pal.hl : pal.silver, act.walkPhase, act.moving, act.star ? undefined : pal.fg3, sitting);
+          break;
+        }
+        case K_PROJ:
+          this.drawProjector(c, s, t);
+          break;
+        case K_QUEUE:
+          if (!live) this.drawQueue(c, L, s);
+          break;
+        case K_LOUNGE:
+          if (!live) this.drawLounge(c);
           break;
         case K_COFFEE:
-          drawCoffee(c, COFFEE.x, COFFEE.y, t);
-          break;
-        case K_PLANT:
-          drawPlant(c, PLANT.x, PLANT.y, 1.1);
+          this.drawCoffee(c, t);
           break;
       }
     }
 
-    // Overlays: crowd counts, idle chat, and the HUD line.
-    for (const pod of PODS) {
+  }
+
+  /** Star markers, chat, hover outline, tags and the HUD, over everything. */
+  private overlays(c: Ctx, s: GameState, t: number): void {
+    const { g, pal } = c;
+    const R = this.room;
+    // Star markers over occupied star desks.
+    for (let j = 0; j < this.starSeated; j++) {
+      const [dx, dy] = starDeskXY(R, j);
+      const [mx, my] = iso(this.proj, dx + DESK_W / 2, dy + 0.3, DESK_TOP + 20);
+      const r = 2.8 * this.proj.s + 1;
+      g.fillStyle = pal.hl;
+      g.beginPath();
+      g.moveTo(mx, my - r);
+      g.lineTo(mx + r * 0.7, my);
+      g.lineTo(mx, my + r);
+      g.lineTo(mx - r * 0.7, my);
+      g.closePath();
+      g.fill();
+    }
+    this.drawChat(c, t);
+
+    if (this.hover) {
+      const h = this.hits.find((x) => x.id === this.hover);
+      if (h) outline(c, h.box);
+    }
+
+    // Tags.
+    const p = this.proj;
+    const small = p.s < 0.42;
+    const tags = this.tags;
+    {
+      const a = iso(p, R.proj.x + 0.3, R.proj.y + 0.5, SCREEN_Z1);
+      const b = iso(p, R.proj.x + ISLE - 0.3, R.proj.y + 0.5, SCREEN_Z0);
+      tags.reserve(a[0], a[1], b[0], b[1]);
+    }
+    for (const pod of R.pods) {
+      const [x, y] = iso(p, pod.px + 0.3, pod.py + 0.2, WALL_H + 2);
+      const active = pod.i === this.cur && !this.idle;
       const nP = this.podN[pod.i];
-      if (!this.idle && nP > SLOTS) {
-        const [px, py] = this.screen(pod.px + POD_W / 2, pod.py + 0.2, BOARD_Z1 + 8);
-        drawPill(g, px, py, `×${formatNumber(nP, 0)}`, C.amber);
-      }
+      const sub = `${this.done[pod.i]}/${TOPICS_PER_BRANCH[pod.i]}${!this.idle && nP > SLOTS ? ` · ×${formatNumber(nP, 0)}` : ''}`;
+      tags.add(x, y, BRANCH_LABEL[pod.branch], active ? { solid: true, sub, small, leader: 4 } : { tone: pal.blue, sub, small, leader: 4 }, active ? 12 : this.hover === `branch:${pod.branch}` ? 20 : 3);
     }
-    if (this.stars.length > STAR_MAX) {
-      const [sx, sy] = this.screen(STAR_X0 + 1.5 * STAR_STEP, STAR_Y, 36);
-      drawPill(g, sx, sy, `+${this.stars.length - STAR_MAX} stars`, C.amber);
+    {
+      const [x, y] = iso(p, R.queue.x + 0.4, R.queue.y + 0.3, WALL_H + 2);
+      const q = s.research.queue?.length ?? 0;
+      tags.add(x, y, 'Next up', { tone: pal.fg2, sub: q ? `${q} queued` : 'empty', small, leader: 4 }, 6);
     }
-    if (this.idle && this.loungeTotal > LOUNGE_SHOW) {
-      const [lx, ly] = this.screen(LOUNGE.x, LOUNGE.y, 40);
-      drawPill(g, lx, ly, `×${formatNumber(this.loungeTotal, 0)} chatting`, C.amberDim);
+    if (this.stars.length > 0) {
+      const [x, y] = iso(p, R.stars.x + 0.4, R.stars.y + 0.4, 26);
+      tags.add(x, y, 'Stars', { tone: pal.hl, sub: `${this.stars.length}`, small, leader: 4 }, 4);
     }
-    this.drawChat(g, t);
+    if (this.idle) {
+      const [x, y] = iso(p, R.lounge.x + 2.2, R.lounge.y + 2.2, 30);
+      tags.add(x, y, 'Lounge', { tone: pal.warn, sub: `×${formatNumber(this.loungeTotal, 0)} chatting`, small }, 8);
+    }
+    tags.flush(g, pal, this.cssW, this.cssH);
 
-    g.save();
-    g.font = `10px ${FONT}`;
-    g.textAlign = 'right';
-    g.textBaseline = 'alphabetic';
-    g.fillStyle = C.textDim;
-    g.fillText(`${formatNumber(this.researchers)} RESEARCHERS · ${this.doneAll}/${TOTAL_TOPICS} TOPICS DONE`.toUpperCase(), this.cssW - 10, this.cssH - 8);
-    g.restore();
+    hud(g, pal, this.cssW, this.cssH, `${formatNumber(this.researchers)} researchers · ${this.doneAll}/${TOTAL_TOPICS} topics done`);
   }
 
-  /** Static room shell: floor, walls, pod mats, lounge rug, star bay, and the empty projector and board frames. */
-  private buildBase(dpr: number): void {
-    const cv = this.baseCanvas ?? document.createElement('canvas');
-    cv.width = Math.max(1, Math.round(this.cssW * dpr));
-    cv.height = Math.max(1, Math.round(this.cssH * dpr));
-    this.baseCanvas = cv;
-    this.baseKey = `${this.cssW}|${this.cssH}|${dpr}`;
-    const g = cv.getContext('2d');
-    if (!g) return;
-    g.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const bg = g.createLinearGradient(0, 0, 0, this.cssH);
-    bg.addColorStop(0, C.bgTop);
-    bg.addColorStop(1, C.bgBottom);
-    g.fillStyle = bg;
-    g.fillRect(0, 0, this.cssW, this.cssH);
-
-    const c: Ctx = { g, p: this.proj };
-    drawFloor(c, ROOM_W, ROOM_D, 1, '#2b2824', '#26231f');
-    drawWalls(c, ROOM_W, ROOM_D, WALL_H, '#34312c');
-    drawNeonStrip(c, ROOM_W, ROOM_D, WALL_H, 0);
-
-    for (const pod of PODS) {
-      const x0 = pod.px - 0.12;
-      const x1 = pod.px + POD_W + 0.12;
-      const y0 = pod.py - 0.2;
-      const y1 = pod.py + POD_D + 0.1;
-      floorTile(c, x0, y0, x1 - x0, y1 - y0, '#24211d');
-      floorLine(c, x0, y0, x1, y0, 0.2, 'rgba(110,106,99,0.35)', 1);
-      floorLine(c, x1, y0, x1, y1, 0.2, 'rgba(110,106,99,0.2)', 1);
+  /** Back wall of a branch island: livery stripe, whiteboard with scribbles (completed share) and queued stickies. */
+  private drawWall(c: Ctx, L: Looks, pod: Pod, t: number): void {
+    const { g, p, pal } = c;
+    const { px, py } = pod;
+    if (this.live) {
+      if (pod.i === this.cur && !this.idle) faceY(c, px + 0.3, px + 2.75, py + 0.145, BOARD_Z1 + 1, BOARD_Z1 + 1.8, alpha(pal.hl, 0.6 + 0.35 * Math.sin(t * 5)));
+      return;
     }
-    floorTile(c, LOUNGE.x - 2.3, LOUNGE.y - 2.0, 4.6, 4.0, '#2d2a25', 0.05);
-    floorTile(c, STAR_X0 - 0.25, STAR_Y - 0.35, STAR_BAY_X1 - STAR_X0 + 0.3, 2.1, '#2a241b', 0.05);
-    floorLine(c, STAR_X0 - 0.25, STAR_Y - 0.35, STAR_BAY_X1 + 0.05, STAR_Y - 0.35, 0.2, withAlpha(C.amberDim, 0.6), 1);
-
-    planeY(c, PROJ_X0 - 0.3, PROJ_X1 + 0.3, 0.04, PROJ_Z0 - 2, PROJ_Z1 + 2, C.windowFrame);
-    planeY(c, PROJ_X0, PROJ_X1, 0.05, PROJ_Z0, PROJ_Z1, SKY);
-    planeX(c, 0.04, QUEUE_Y0 - 0.2, QUEUE_Y1 + 0.2, QUEUE_Z0 - 2, QUEUE_Z1 + 2, C.windowFrame);
-    planeX(c, 0.05, QUEUE_Y0, QUEUE_Y1, QUEUE_Z0, QUEUE_Z1, '#1b1915');
-  }
-
-  /** Projector: topic, branch, progress bar, rate and ETA. Dark when idle. */
-  private drawProjector(c: Ctx, s: GameState, t: number): void {
-    const { g } = c;
-    if (this.idle || !this.curId) return;
-    const node = NODE_BY_ID.get(this.curId);
-    if (!node) return;
-    const cost = Math.max(1, effectiveResearchCost(s, node));
-    const progress = s.research.progress;
-    const frac = Math.min(1, progress / cost);
-    const remaining = Math.max(0, cost - progress);
-    const perDay = s.research.pointsPerDay;
-    const s1 = this.proj.scale;
-    const screenW = (PROJ_X1 - PROJ_X0) * (TILE_W / 2) * s1;
-    const mid = (PROJ_X0 + PROJ_X1) / 2;
-    const branchName = BRANCH_LABEL[branchOf(node)].toUpperCase();
-
-    g.save();
-    g.textAlign = 'center';
-    g.textBaseline = 'middle';
-    let [tx, ty] = this.screen(mid, 0.06, PROJ_Z1 - 4);
-    g.fillStyle = C.textDim;
-    fitFont(g, branchName, screenW * 0.9, Math.max(6, 8 * s1), 5, 500);
-    g.fillText(branchName, tx, ty);
-
-    [tx, ty] = this.screen(mid, 0.06, PROJ_Z1 - 12);
-    g.fillStyle = C.amber;
-    fitFont(g, node.name, screenW * 0.9, Math.max(7, 13 * s1), 5, 600);
-    g.fillText(node.name, tx, ty);
-
-    const bz0 = PROJ_Z0 + 8;
-    const bz1 = bz0 + 2.6;
-    const u0 = PROJ_X0 + 1.1;
-    const u1 = PROJ_X1 - 1.1;
-    const bar = (ua: number, ub: number): number[] => {
-      const a = this.screen(ua, 0.06, bz0);
-      const b = this.screen(ub, 0.06, bz0);
-      const cc = this.screen(ub, 0.06, bz1);
-      const d = this.screen(ua, 0.06, bz1);
-      return [a[0], a[1], b[0], b[1], cc[0], cc[1], d[0], d[1]];
-    };
-    poly(g, bar(u0, u1), '#2a2622');
-    if (frac > 0) poly(g, bar(u0, u0 + (u1 - u0) * frac), C.amber);
-
-    const readout = `${Math.round(frac * 100)}%  ·  +${formatNumber(perDay)} RP/day  ·  ${etaText(remaining, perDay)}`;
-    [tx, ty] = this.screen(mid, 0.06, PROJ_Z0 + 3.5);
-    g.fillStyle = C.fgDim;
-    fitFont(g, readout, screenW * 0.92, Math.max(6, 8 * s1), 4.5, 500);
-    g.fillText(readout, tx, ty);
-
-    // A small live dot in the corner while the topic runs.
-    g.globalAlpha = 0.5 + 0.5 * Math.sin(t * 3);
-    const [ex, ey] = this.screen(PROJ_X1 - 0.5, 0.06, PROJ_Z1 - 1.5);
-    g.fillStyle = C.amber;
-    g.beginPath();
-    g.arc(ex, ey, 1.6 * s1 + 0.6, 0, Math.PI * 2);
-    g.fill();
-    g.restore();
-  }
-
-  /** "Next up" board: the queue as sticky notes, the first one brightest. */
-  private drawQueue(c: Ctx, s: GameState): void {
-    const { g } = c;
-    const queue = s.research.queue ?? [];
-    const s1 = this.proj.scale;
-    const boardPx = (QUEUE_Y1 - QUEUE_Y0) * (TILE_H / 2) * s1 * 2;
-    g.save();
-    g.textAlign = 'center';
-    g.textBaseline = 'middle';
-    const [hx, hy] = this.screen(0.06, (QUEUE_Y0 + QUEUE_Y1) / 2, QUEUE_Z1 - 3);
-    g.fillStyle = C.fgDim;
-    fitFont(g, 'NEXT UP', boardPx * 0.9, Math.max(6, 8 * s1), 5, 600);
-    g.fillText('NEXT UP', hx, hy);
-    g.restore();
-
-    const shown = Math.min(QUEUE_SHOW, queue.length);
-    for (let i = 0; i < shown; i++) {
-      const node = NODE_BY_ID.get(queue[i]);
-      if (!node) continue;
-      const col = i % 2;
-      const row = Math.floor(i / 2);
-      const ya = QUEUE_Y0 + 0.3 + col * 2.8;
-      const yb = ya + 2.4;
-      const zt = QUEUE_Z1 - 6 - row * 9;
-      const zb = zt - 7;
-      const base = STICKY[(NODE_BRANCH.get(node.id) ?? 0) % STICKY.length];
-      const fill = i === 0 ? base : mix(base, '#000000', 0.35);
-      planeX(c, 0.08, ya, yb, zb, zt, fill);
-      const code = BRANCH_LABEL[branchOf(node)].slice(0, 5).toUpperCase();
-      const [cx, cy] = this.screen(0.1, (ya + yb) / 2, (zt + zb) / 2);
-      g.save();
-      g.textAlign = 'center';
-      g.textBaseline = 'middle';
-      g.fillStyle = '#0a0a0a';
-      fitFont(g, code, (yb - ya) * (TILE_H / 2) * s1 * 1.6, Math.max(6, 7 * s1), 5, 700);
-      g.fillText(code, cx, cy);
-      g.restore();
-    }
-    if (queue.length > QUEUE_SHOW) {
-      const [mx, my] = this.screen(0.1, (QUEUE_Y0 + QUEUE_Y1) / 2, QUEUE_Z0 + 3);
-      g.save();
-      g.textAlign = 'center';
-      g.textBaseline = 'middle';
-      g.fillStyle = C.fgDim;
-      g.font = `500 ${Math.max(6, 7 * s1)}px ${FONT}`;
-      g.fillText(`+${queue.length - QUEUE_SHOW} more`, mx, my);
-      g.restore();
-    }
-  }
-
-  /** Whiteboard for one branch. Scribbles fill in step with the share of that branch completed. */
-  private drawBoard(c: Ctx, pod: Pod, t: number): void {
-    const { g, p } = c;
-    const x0 = pod.px + 0.3;
-    const x1 = pod.px + POD_W - 0.3;
-    const y = pod.py;
+    box(c, px, py, ISLE, 0.14, 0, WALL_H, pal.wall);
+    line3(c, px, py, WALL_H, px + ISLE, py, WALL_H, alpha(pal.silver, 0.6), 1, 0.6);
+    const active = pod.i === this.cur && !this.idle;
+    faceY(c, px, px + ISLE, py + 0.14, 2.2, 3.4, active ? pal.hl : alpha(pal.blue, 0.8));
+    const x0 = px + 0.3;
+    const x1 = px + 2.75;
+    const y = py + 0.141;
+    faceY(c, x0 - 0.06, x1 + 0.06, y, BOARD_Z0 - 0.8, BOARD_Z1 + 0.8, alpha(pal.silver, 0.9));
+    faceY(c, x0, x1, y + 0.001, BOARD_Z0, BOARD_Z1, L.board);
     const total = TOPICS_PER_BRANCH[pod.i] || 1;
-    const done = this.done[pod.i];
-    const frac = Math.min(1, done / total);
-    planeY(c, x0, x1, y, BOARD_Z0, BOARD_Z1, C.whiteboardFrame);
-    planeY(c, x0 + 0.05, x1 - 0.05, y, BOARD_Z0 + 1.5, BOARD_Z1 - 1.5, BOARD_FACE);
-
-    const lit = Math.round(frac * SCRIBBLE_CELLS);
-    if (lit > 0) {
-      const cw = (x1 - x0 - 0.1) / SCRIBBLE_COLS;
-      const ch = (BOARD_Z1 - BOARD_Z0 - 3) / SCRIBBLE_ROWS;
-      g.save();
-      g.lineWidth = Math.max(1, p.scale);
-      g.globalAlpha = 0.85;
+    const lit = Math.round(Math.min(1, this.done[pod.i] / total) * SCRIBBLE_CELLS);
+    if (lit > 0 && p.s > 0.3) {
+      const cw = (x1 - x0) / SCRIBBLE_COLS;
+      const ch = (BOARD_Z1 - BOARD_Z0 - 2) / SCRIBBLE_ROWS;
+      g.lineWidth = Math.max(0.8, 0.9 * p.s);
       for (let cell = 0; cell < SCRIBBLE_CELLS; cell++) {
         if (SCRIBBLE_RANK[cell] >= lit) continue;
         const cc = cell % SCRIBBLE_COLS;
         const cr = Math.floor(cell / SCRIBBLE_COLS);
-        const u0 = x0 + 0.05 + cc * cw + cw * 0.12;
-        const u1 = u0 + cw * 0.76;
-        const zc = BOARD_Z0 + 3 + cr * ch + ch * 0.5;
+        const u0 = x0 + cc * cw + cw * 0.15;
+        const u1 = u0 + cw * 0.7;
+        const zc = BOARD_Z0 + 1 + cr * ch + ch * 0.5;
         const wob = (prand(cell * 3.1 + pod.i) - 0.5) * ch * 0.5;
-        g.strokeStyle = cell % 3 === 0 ? C.blue : C.amber;
+        g.strokeStyle = cell % 4 === 0 ? (pal.light ? '#c0392b' : '#d64545') : pal.light ? '#2b2d33' : '#3a3d45';
         g.beginPath();
         for (let k = 0; k <= 3; k++) {
           const u = u0 + ((u1 - u0) * k) / 3;
-          const z = zc + (k % 2 ? wob : -wob);
-          const [sx, sy] = project(p, u, y + 0.01, z);
+          const [sx, sy] = iso(p, u, y + 0.002, zc + (k % 2 ? wob : -wob));
           if (k === 0) g.moveTo(sx, sy);
           else g.lineTo(sx, sy);
         }
         g.stroke();
       }
-      g.restore();
     }
+    // Queued topics in this branch: yellow stickies on the board's right edge.
+    for (let k = 0; k < Math.min(3, this.queued[pod.i]); k++) {
+      const z = BOARD_Z1 - 2.5 - k * 4.5;
+      faceY(c, x1 - 0.42, x1 - 0.12, y + 0.003, z - 3.2, z, pal.hl);
+    }
+  }
 
-    const [lx, ly] = project(p, pod.px + POD_W / 2, y + 0.02, BOARD_Z0 - 2);
+  /** Experiment rig in the back right corner: a cabinet with a test chamber; it hums while its branch is researched. */
+  private drawRig(c: Ctx, pod: Pod, t: number): void {
+    const { g, p, pal } = c;
+    const x = pod.px + 3.0;
+    const y = pod.py + 0.35;
+    const active = pod.i === this.cur && !this.idle;
+    if (!this.live) {
+      box(c, x, y, 0.75, 0.6, 0, 12, pal.metal, alpha(pal.silver, 0.5));
+      // Glass chamber on top.
+      const glass = active ? alpha(pal.hl, 0.4) : alpha(pal.blue, pal.light ? 0.3 : 0.18);
+      box(c, x + 0.08, y + 0.08, 0.6, 0.45, 12, 20, { t: glass, l: glass, r: glass });
+      line3(c, x + 0.08, y + 0.53, 20, x + 0.68, y + 0.53, 20, alpha(pal.silver, 0.8), 1, 0.6);
+      return;
+    }
+    const [cx, cy] = iso(p, x + 0.38, y + 0.3, 16);
+    const r = 5 * p.s;
+    if (r > 1.5) {
+      g.strokeStyle = active ? pal.hl : alpha(pal.fg3, 0.7);
+      g.lineWidth = Math.max(1, 1.2 * p.s);
+      g.beginPath();
+      g.ellipse(cx, cy, r * Math.abs(Math.cos(active ? t * 2.2 : 0.6)) + 0.5, r * 0.55, 0, 0, Math.PI * 2);
+      g.stroke();
+    }
+    // Status lights on the cabinet front.
+    for (let k = 0; k < 3; k++) {
+      const [lx, ly] = iso(p, x + 0.15 + k * 0.18, y + 0.6, 8);
+      g.fillStyle = active ? (frac(t * 3 + k * 0.3) < 0.6 ? pal.hl : alpha(pal.hl, 0.3)) : alpha(pal.up, 0.6);
+      g.fillRect(lx, ly, Math.max(1.2, 1.6 * p.s), Math.max(1.2, 1.6 * p.s));
+    }
+  }
+
+  /** A bench desk with a monitor; `on` is screen brightness 0..1. */
+  private drawDesk(c: Ctx, L: Looks, dx: number, dy: number, on: number, flick: number, star: boolean): void {
+    const { g, p, pal } = c;
+    if (this.live) {
+      if (on > 0.02 && p.s > 0.3) {
+        const col = star || on >= 1 ? pal.hl : pal.blue;
+        g.globalAlpha = on * 0.8;
+        for (let k = 0; k < 3; k++) {
+          const w = 0.25 + 0.25 * prand(k * 7 + Math.floor(flick * 6));
+          faceY(c, dx + 0.25, dx + 0.25 + w, dy + 0.132, DESK_TOP + 8.6 - k * 1.8, DESK_TOP + 9.2 - k * 1.8, col);
+        }
+        g.globalAlpha = 1;
+      }
+      return;
+    }
+    box(c, dx + 0.05, dy + DESK_D - 0.1, 0.06, 0.06, 0, DESK_TOP - 1, pal.metal);
+    box(c, dx + DESK_W - 0.11, dy + DESK_D - 0.1, 0.06, 0.06, 0, DESK_TOP - 1, pal.metal);
+    box(c, dx, dy, DESK_W, DESK_D, DESK_TOP - 1, DESK_TOP, L.desk);
+    if (star) faceY(c, dx, dx + DESK_W, dy + DESK_D, DESK_TOP - 1, DESK_TOP, pal.hl);
+    // Monitor facing the chair (toward +y).
+    box(c, dx + 0.42, dy + 0.12, 0.1, 0.06, DESK_TOP, DESK_TOP + 3, pal.metal);
+    box(c, dx + 0.15, dy + 0.08, 0.65, 0.05, DESK_TOP + 3, DESK_TOP + 11, pal.metal);
+    faceY(c, dx + 0.19, dx + 0.76, dy + 0.131, DESK_TOP + 3.8, DESK_TOP + 10.2, pal.light ? '#1b1c20' : '#0d0e10');
+  }
+
+  private drawChair(c: Ctx, L: Looks, dx: number, dy: number): void {
+    const cx = dx + DESK_W / 2 - 0.18;
+    const cy = dy + DESK_D + 0.2;
+    box(c, cx, cy, 0.36, 0.36, 4, 6, L.chair);
+    box(c, cx + 0.02, cy + 0.3, 0.32, 0.06, 6, 13, L.chair);
+  }
+
+  /** Projector island: a big screen on two legs with the topic, branch, progress, rate and ETA. Dark when idle. */
+  private drawProjector(c: Ctx, s: GameState, t: number): void {
+    const R = this.room.proj;
+    const x0 = R.x + 0.3;
+    const x1 = R.x + ISLE - 0.3;
+    const sy = R.y + 0.5;
+    if (!this.live) {
+      this.projectorFrame(c, x0, x1, sy);
+      return;
+    }
+    this.projectorText(c, s, t, x0, x1, sy);
+  }
+
+  private projectorFrame(c: Ctx, x0: number, x1: number, sy: number): void {
+    const { pal } = c;
+    const R = this.room.proj;
+    box(c, x0 + 0.2, sy - 0.05, 0.1, 0.1, 0, SCREEN_Z0, pal.metal);
+    box(c, x1 - 0.3, sy - 0.05, 0.1, 0.1, 0, SCREEN_Z0, pal.metal);
+    box(c, x0, sy - 0.12, x1 - x0, 0.12, SCREEN_Z0, SCREEN_Z1, pal.metal, alpha(pal.silver, 0.7));
+    faceY(c, x0 + 0.1, x1 - 0.1, sy + 0.001, SCREEN_Z0 + 1, SCREEN_Z1 - 1, pal.light ? '#16171a' : '#060607');
+    // Stage edge and a lectern.
+    flat(c, R.x + 0.2, R.y + 1.2, ISLE - 0.4, 0.06, 0.02, alpha(pal.hl, 0.6));
+    box(c, R.x + 3.0, R.y + 2.4, 0.4, 0.35, 0, 9, pal.metal, alpha(pal.silver, 0.5));
+  }
+
+  private projectorText(c: Ctx, s: GameState, t: number, x0: number, x1: number, sy: number): void {
+    const { g, p, pal } = c;
+    const node = !this.idle && this.curId ? NODE_BY_ID.get(this.curId) : undefined;
+    const mid = (x0 + x1) / 2;
+    const w = (x1 - x0) * 20 * p.s * 0.86;
     g.save();
     g.textAlign = 'center';
-    g.textBaseline = 'top';
-    g.fillStyle = C.textDim;
-    g.font = `500 ${Math.max(6, 7 * p.scale)}px ${FONT}`;
-    g.fillText(`${BRANCH_LABEL[pod.branch].slice(0, 6).toUpperCase()} ${done}/${total}`, lx, ly);
+    g.textBaseline = 'middle';
+    if (!node) {
+      const [tx, ty] = iso(p, mid, sy + 0.01, (SCREEN_Z0 + SCREEN_Z1) / 2);
+      g.fillStyle = pal.fg4;
+      fitFont(g, 'NO TOPIC RUNNING', w, Math.max(6, 10 * p.s), 5, 700);
+      faceText(g, tx, ty, 'NO TOPIC RUNNING');
+      g.restore();
+      return;
+    }
+    const cost = Math.max(1, effectiveResearchCost(s, node));
+    const progress = s.research.progress;
+    const fr = Math.min(1, progress / cost);
+    const perDay = s.research.pointsPerDay;
+    const branchName = BRANCH_LABEL[branchOf(node)].toUpperCase();
+    let [tx, ty] = iso(p, mid, sy + 0.01, SCREEN_Z1 - 5);
+    g.fillStyle = pal.fg3;
+    fitFont(g, branchName, w, Math.max(6, 8.5 * p.s), 5, 600);
+    faceText(g, tx, ty, branchName);
+    [tx, ty] = iso(p, mid, sy + 0.01, SCREEN_Z1 - 12);
+    g.fillStyle = pal.hl;
+    fitFont(g, node.name.toUpperCase(), w, Math.max(7, 13 * p.s), 5, 700);
+    faceText(g, tx, ty, node.name.toUpperCase());
     g.restore();
+    const u0 = x0 + 0.5;
+    const u1 = x1 - 0.5;
+    faceY(c, u0, u1, sy + 0.002, SCREEN_Z0 + 8, SCREEN_Z0 + 10, alpha(pal.fg4, 0.7));
+    if (fr > 0) faceY(c, u0, u0 + (u1 - u0) * fr, sy + 0.003, SCREEN_Z0 + 8, SCREEN_Z0 + 10, pal.hl);
+    const readout = `${Math.round(fr * 100)}%  ·  +${formatNumber(perDay)} RP/DAY  ·  ${etaText(Math.max(0, cost - progress), perDay).toUpperCase()}`;
+    g.save();
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    [tx, ty] = iso(p, mid, sy + 0.01, SCREEN_Z0 + 4.5);
+    g.fillStyle = pal.fg2;
+    fitFont(g, readout, w, Math.max(6, 8.5 * p.s), 4.5, 600);
+    faceText(g, tx, ty, readout);
+    const [ex, ey] = iso(p, x1 - 0.45, sy + 0.01, SCREEN_Z1 - 3);
+    g.fillStyle = alpha(pal.down, 0.5 + 0.5 * Math.sin(t * 3));
+    g.beginPath();
+    g.arc(ex, ey, 1.4 * p.s + 0.8, 0, Math.PI * 2);
+    g.fill();
+    g.restore();
+  }
 
-    if (pod.i === this.cur && !this.idle) {
-      planeY(c, x0, x1, y - 0.01, BOARD_Z1 + 0.5, BOARD_Z1 + 2.2, withAlpha(C.amber, 0.55 + 0.35 * Math.sin(t * 5)));
+  /** "Next up" board: the queue as stickies in branch order, the first one in the team colour. */
+  private drawQueue(c: Ctx, L: Looks, s: GameState): void {
+    const { g, p, pal } = c;
+    const R = this.room.queue;
+    const x0 = R.x + 0.4;
+    const x1 = R.x + ISLE - 0.4;
+    const y = R.y + 0.5;
+    box(c, R.x + 0.3, y - 0.14, ISLE - 0.6, 0.14, 0, WALL_H, pal.wall);
+    faceY(c, x0, x1, y + 0.001, 6, WALL_H - 2, L.board);
+    const queue = s.research.queue ?? [];
+    const shown = Math.min(QUEUE_SHOW, queue.length);
+    const cw = (x1 - x0 - 0.3) / 2;
+    for (let i = 0; i < shown; i++) {
+      const node = NODE_BY_ID.get(queue[i]);
+      if (!node) continue;
+      const col = i % 2;
+      const row = Math.floor(i / 2);
+      const u0 = x0 + 0.1 + col * (cw + 0.1);
+      const zt = WALL_H - 4 - row * 7.5;
+      faceY(c, u0, u0 + cw, y + 0.002, zt - 6, zt, i === 0 ? pal.hl : pal.light ? '#e8e2c4' : '#bdb59a');
+      if (p.s > 0.45) {
+        const code = BRANCH_LABEL[branchOf(node)].slice(0, 6).toUpperCase();
+        const [cx, cy] = iso(p, u0 + cw / 2, y + 0.003, zt - 3);
+        g.save();
+        g.textAlign = 'center';
+        g.textBaseline = 'middle';
+        g.fillStyle = '#111111';
+        fitFont(g, code, cw * 20 * p.s * 0.85, Math.max(6, 8 * p.s), 5, 700);
+        faceText(g, cx, cy, code);
+        g.restore();
+      }
+    }
+    if (queue.length > QUEUE_SHOW && p.s > 0.35) {
+      const [mx, my] = iso(p, (x0 + x1) / 2, y + 0.003, 8.5);
+      g.save();
+      g.textAlign = 'center';
+      g.textBaseline = 'middle';
+      g.fillStyle = '#3a3d45';
+      g.font = `700 ${Math.max(6, 8 * p.s)}px ${TAG_FONT}`;
+      faceText(g, mx, my, `+${queue.length - QUEUE_SHOW} MORE`);
+      g.restore();
     }
   }
 
-  private drawActor(c: Ctx, act: Actor, t: number): void {
-    const sitting = act.seated && !act.moving && !this.idle;
-    drawPerson(c, {
-      x: act.x,
-      y: act.y,
-      role: 'researcher',
-      seed: act.seed,
-      sitting,
-      typing: sitting,
-      walkPhase: act.moving ? act.walkPhase : 0,
-      highlight: act.star,
-      t,
-    });
+  /** Lounge furniture: a sofa along the back and a plant. */
+  private drawLounge(c: Ctx): void {
+    const { pal } = c;
+    const R = this.room.lounge;
+    const sofa = pal.light ? tri('#5b636f') : tri('#3c4048');
+    box(c, R.x + 1.0, R.y + 0.3, 2.4, 0.7, 0, 6, sofa);
+    box(c, R.x + 1.0, R.y + 0.3, 2.4, 0.22, 6, 12, sofa);
+    box(c, R.x + 3.6, R.y + 0.4, 0.3, 0.3, 0, 5, tri('#7a5a3a'));
+    box(c, R.x + 3.5, R.y + 0.3, 0.5, 0.5, 5, 14, tri(pal.light ? '#3f8a55' : '#2f6a42'));
   }
 
-  /** Idle lounge: small chat bubbles over some of the standing people. */
-  private drawChat(g: CanvasRenderingContext2D, t: number): void {
+  private drawCoffee(c: Ctx, t: number): void {
+    const { g, p, pal } = c;
+    const R = this.room.lounge;
+    const x = R.x + 0.25;
+    const y = R.y + 0.4;
+    if (!this.live) {
+      box(c, x, y, 0.6, 1.2, 0, 10, pal.metal);
+      box(c, x + 0.05, y + 0.1, 0.5, 0.5, 10, 18, pal.steel, alpha(pal.silver, 0.6));
+      faceY(c, x + 0.1, x + 0.5, y + 0.6, 12, 16, alpha(pal.hl, 0.7));
+      return;
+    }
+    for (let k = 0; k < 3; k++) {
+      const u = frac(t * 0.4 + k / 3);
+      const [sx, sy] = iso(p, x + 0.3, y + 0.35, 19 + u * 10);
+      g.fillStyle = alpha(pal.fg2, 0.3 * (1 - u));
+      g.beginPath();
+      g.arc(sx + Math.sin(t * 2 + k) * 1.5 * p.s, sy, (1.5 + u * 2.5) * p.s, 0, Math.PI * 2);
+      g.fill();
+    }
+  }
+
+  /** Idle lounge: small chat dots over some of the standing people. */
+  private drawChat(c: Ctx, t: number): void {
     if (!this.idle) return;
-    const s1 = this.proj.scale;
+    const { g, p, pal } = c;
     for (let i = 0; i < this.actors.length; i++) {
       const act = this.actors[i];
       if (!act.vis || i % 3 !== 0) continue;
-      const [bx, by] = this.screen(act.x, act.y, 32);
+      const [bx, by] = iso(p, act.x, act.y, 22);
       const ph = (t * 1.6 + act.seed) % 3;
-      g.save();
-      g.fillStyle = C.fgDim;
+      g.fillStyle = pal.fg2;
       for (let k = 0; k < 3; k++) {
         g.globalAlpha = k <= ph ? 0.85 : 0.2;
         g.beginPath();
-        g.arc(bx + (k - 1) * 3 * s1, by - 2 * s1, 1.1 * s1 + 0.4, 0, Math.PI * 2);
+        g.arc(bx + (k - 1) * 3 * p.s, by - 2 * p.s, 1.1 * p.s + 0.4, 0, Math.PI * 2);
         g.fill();
       }
-      g.restore();
+      g.globalAlpha = 1;
     }
   }
 
   hitTest(x: number, y: number): SceneHit | null {
-    if (inHull(this.hitProj, x, y)) return { id: 'current', label: this.currentTip() };
-    if (inHull(this.hitQueue, x, y)) return { id: 'queue', label: this.queueTip() };
-    if (inHull(this.hitStars, x, y)) return { id: 'stars', label: this.starsTip() };
-    for (let k = this.hitPods.length - 1; k >= 0; k--) {
-      const hp = this.hitPods[k];
-      if (inHull(hp.hull, x, y)) {
-        const pod = PODS[hp.i];
-        return { id: `branch:${pod.branch}`, label: this.branchTip(pod.i) };
-      }
+    for (let k = this.hits.length - 1; k >= 0; k--) {
+      const h = this.hits[k];
+      if (!hitBox(this.proj, h.box, x, y)) continue;
+      if (h.id === 'current') return { id: 'current', label: this.currentTip() };
+      if (h.id === 'queue') return { id: 'queue', label: this.queueTip() };
+      if (h.id === 'stars') return { id: 'stars', label: this.starsTip() };
+      const i = BRANCH_INDEX.get(h.id.slice('branch:'.length)) ?? 0;
+      return { id: h.id, label: this.branchTip(i) };
     }
     return null;
   }
@@ -867,11 +911,7 @@ export class ResearchScene implements Scene {
     } else {
       lines.push('Not researching here right now');
     }
-    const queued = (st?.research.queue ?? []).filter((id) => {
-      const n = NODE_BY_ID.get(id);
-      return !!n && branchOf(n) === branch;
-    }).length;
-    if (queued > 0) lines.push(`${queued} queued`);
+    if (this.queued[i] > 0) lines.push(`${this.queued[i]} queued (yellow stickies)`);
     const people = this.podN[i];
     lines.push(`${formatNumber(people, 0)} researcher${people === 1 ? '' : 's'} at these desks`);
     return lines.join('\n');
