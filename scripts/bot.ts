@@ -10,6 +10,7 @@
 //               vertical and grant bids, and the enterprise line.
 //   open        doctrine open. Medium and large models, every release in open mode, api and enterprise lines.
 // `idle` is not a strategy: botDay(st, true) only answers prompts and incidents (see balance.ts).
+import { gpuAllocationLeft, memoryWall } from '../src/sim/systems/scaleLimits';
 import { dispatch } from '../src/sim/engine';
 import { makeRng } from '../src/sim/rng';
 import type { DoctrineId, EventDef, FleetPriority, GameState, Id, Model, Product, ProductKind, RoleId, Rng, TrainingConfig, WeightClass } from '../src/sim/types';
@@ -259,7 +260,7 @@ export function sizeBotRun(
   }
   if (opts.maxActiveB !== undefined) N = Math.min(N, opts.maxActiveB / activeParamsFor(1, cfg));
   // The sim rejects runs outside its parameter range (10T at most), so a bigger plan would fail every week after it.
-  N = Math.min(Math.max(N, TRAINING_TUNING.MIN_PARAMS_B), TRAINING_TUNING.MAX_PARAMS_B);
+  N = Math.min(Math.max(N, TRAINING_TUNING.MIN_PARAMS_B), TRAINING_TUNING.MAX_PARAMS_B, memoryWall(st).maxParamsB * 0.999); // v16 memory wall
   return { paramsB: N, tokensB: tokensFor(N) };
 }
 
@@ -708,7 +709,7 @@ function computeStep(st: GameState, cash: number): void {
     const tier = tiers.find((x) => x.id === dc.tierId);
     const used = Object.values(dc.gpus).reduce((a, b) => a + b, 0);
     const free = (tier?.maxGpus ?? 0) - used;
-    const n = Math.min(free, Math.floor((cash * 0.2) / newest.buyPrice));
+    const n = Math.min(free, Math.floor((cash * 0.2) / newest.buyPrice), gpuAllocationLeft(st, newest.id)); // v16 allocation
     if (n > 0) dispatch(st, { type: 'buyGpus', datacenterId: dc.id, gpuId: newest.id, count: n });
   }
 }

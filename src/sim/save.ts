@@ -190,6 +190,8 @@ function toState(saved: unknown): GameState | null {
     const out = merge(base, migrate(saved), '') as GameState;
     backfillCapabilities(out); // v1 saves: caps, lineage, context window and benchmark results from scores
     backfillTraining(out); // v2 saves: run sheets, active params, quirks, run incident fields
+    // v16: labs added since the save was made join the world (inactive until their founding year).
+    for (const c of base.competitors) if (!out.competitors.some((x) => x.id === c.id)) out.competitors.push(c);
     return out;
   } catch {
     return null;

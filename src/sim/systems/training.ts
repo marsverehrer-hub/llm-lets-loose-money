@@ -1,3 +1,4 @@
+import { memoryWallError } from './scaleLimits';
 import type { ActionHandlers, Capabilities, DatasetDef, EvalReveal, GameState, Id, Model, ResearchNode, Rng, RunHidden, Scores, TrainingConfig, TrainingRun, Forecast } from '../types';
 import { CAP_IDS } from '../types';
 import { CAP_TUNING } from '../balance';
@@ -553,6 +554,8 @@ function validateSpec(
     return `Parameters must be between ${MIN_PARAMS_B * 1000}M and ${(MAX_PARAMS_B / 1000).toFixed(0)}T.`;
   }
   if (!Number.isFinite(tokensB) || tokensB < MIN_TOKENS_B) return `Train on at least ${MIN_TOKENS_B}B tokens.`;
+  const oom = memoryWallError(s, paramsB); // v16: the model has to fit in the cluster
+  if (oom) return oom;
   const ids = [...new Set(datasetIds)];
   if (ids.length === 0) return 'Pick at least one dataset.';
   for (const id of ids) {

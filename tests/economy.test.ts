@@ -1,3 +1,4 @@
+import { CHAT_MOMENT_MIN_OVERALL } from '../src/sim/systems/market';
 import { describe, it, expect, vi } from 'vitest';
 
 // Compute is owned by another agent and may still return 0 capacity. Give the fleet plenty of headroom here
@@ -54,8 +55,15 @@ describe('products and market', () => {
     expect('chatMoment' in s.flags).toBe(false);
 
     s.research.completed.push('instruction_tuning');
+    // v16: a weak chatbot is a hobbyist toy and does not start the mass market...
+    s.models[0].overall = CHAT_MOMENT_MIN_OVERALL - 1;
     dispatch(s, { type: 'launchProduct', kind: 'chat', name: 'Chat', modelId: 'm1', price: 20 });
     expect(s.products).toHaveLength(1);
+    expect('chatMoment' in s.flags).toBe(false);
+    // ...a good one does.
+    dispatch(s, { type: 'shutdownProduct', productId: s.products[0].id });
+    s.models[0].overall = CHAT_MOMENT_MIN_OVERALL;
+    dispatch(s, { type: 'launchProduct', kind: 'chat', name: 'Chat', modelId: 'm1', price: 20 });
     expect('chatMoment' in s.flags).toBe(true);
   });
 

@@ -109,6 +109,7 @@ export interface GpuDef {
   buyPrice: number;        // $ per GPU (capex, goes into a datacenter)
   rentPerDay: number;      // $ per GPU per day in the cloud
   powerKw: number;         // kW per GPU (drives datacenter power bill)
+  memGB?: number;          // v16: HBM per GPU; caps trainable model size (systems/scaleLimits.ts)
   flavor: string;
 }
 
@@ -281,6 +282,10 @@ export interface CompetitorDef {
    */
   naming?: { sequence: string[]; reasoning?: string[]; coder?: string[]; after: (k: number) => string };
   tagline: string;
+  /** v16: home region (flavour, and shown in the market). */
+  region?: 'us' | 'eu' | 'uk' | 'cn' | 'il';
+  /** v16: attractiveness multiplier per segment (enterprise compliance, consumer reach). Missing = 1. */
+  segmentAppeal?: Partial<Record<Segment, number>>;
 }
 
 /** A tangible change shown after a decision (cash, GPUs, staff, datasets, models, training days). Never a hidden stat. */

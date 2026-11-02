@@ -8,7 +8,7 @@ import { getBonuses } from '../bonuses';
 import { addRevenue, clamp, newId, notify, pushNews, trySpend, yearOf } from '../util';
 import { RUN_TUNING } from '../data/trainingOptions';
 import { isResearched } from './research';
-import { frontierQuality, modelById, mtokPerUserDay, refPriceFor, segQuality, setProductUsers, triggerChatMoment } from './market';
+import { frontierQuality, modelById, mtokPerUserDay, refPriceFor, segQuality, setProductUsers, triggerChatMoment, CHAT_MOMENT_MIN_OVERALL } from './market';
 import { openUserMult, previewDemandCap } from './release';
 
 /** One-off launch fee per product kind. */
@@ -163,7 +163,11 @@ export const handlers: ActionHandlers = {
     const bonuses = getBonuses(s);
     s.company.hype = clamp(s.company.hype + 12, 0, 100);
     s.company.brand = clamp(s.company.brand + 1.5 * bonuses.brand, 0, 100);
-    if (kind === 'chat') triggerChatMoment(s, s.company.name);
+    // v16: a chatbot only starts the mass market when it is good enough to be useful. Before that it is a toy.
+    if (kind === 'chat') {
+      if (model.overall >= CHAT_MOMENT_MIN_OVERALL) triggerChatMoment(s, s.company.name);
+      else if (!('chatMoment' in s.flags)) notify(s, `Hobbyists only: the public will not care about chatbots until one reaches overall ${CHAT_MOMENT_MIN_OVERALL}.`, 'info');
+    }
     notify(s, second ? `${name} is live as your second ${KIND_LABEL[kind]} line. Now you compete with yourself.` : `${name} is live. Try not to break it.`, 'good');
     pushNews(s, `${s.company.name} launches ${name}, a ${KIND_LABEL[kind]} product built on ${model.name}.`, 'milestone');
   },

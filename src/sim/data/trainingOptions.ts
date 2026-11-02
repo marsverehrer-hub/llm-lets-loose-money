@@ -50,10 +50,10 @@ export const TRAINING_OPTIONS: TrainingOption[] = [
 
   // ---- precision ----------------------------------------------------------------------------
   { id: 'fp32', group: 'precision', name: 'FP32', description: 'Full precision. Slow, boring, and the numbers are all there.', instability: -0.1 },
-  { id: 'fp16', group: 'precision', name: 'FP16', description: 'Half precision with a loss scaler and a prayer.', requiresResearch: 'mixed_precision', speedMult: 2, instability: 0.3 },
-  { id: 'bf16', group: 'precision', name: 'BF16', description: 'Brain floats. Same range as FP32, half the bits, none of the drama.', requiresResearch: 'bf16_training', speedMult: 2 },
-  { id: 'fp8', group: 'precision', name: 'FP8', description: 'Eight bits per weight. Very fast, very opinionated about outliers.', requiresResearch: 'fp8_training', speedMult: 3.5, instability: 0.5, qualityMult: 0.985 },
-  { id: 'fp4', group: 'precision', name: 'FP4', description: 'Four bits. The weights are fine. The weights are fine.', requiresResearch: 'fp4_training', speedMult: 6, instability: 1.2, qualityMult: 0.95 },
+  { id: 'fp16', group: 'precision', name: 'FP16', description: 'Half precision with a loss scaler and a prayer.', requiresResearch: 'mixed_precision', speedMult: 1.7, instability: 0.3 },
+  { id: 'bf16', group: 'precision', name: 'BF16', description: 'Brain floats. Same range as FP32, half the bits, none of the drama.', requiresResearch: 'bf16_training', speedMult: 1.8 },
+  { id: 'fp8', group: 'precision', name: 'FP8', description: 'Eight bits per weight. Very fast, very opinionated about outliers.', requiresResearch: 'fp8_training', speedMult: 2.6, instability: 0.5, qualityMult: 0.985 },
+  { id: 'fp4', group: 'precision', name: 'FP4', description: 'Four bits. The weights are fine. The weights are fine.', requiresResearch: 'fp4_training', speedMult: 3.6, instability: 1.2, qualityMult: 0.95 },
 
   // ---- schedule -----------------------------------------------------------------------------
   { id: 'cosine', group: 'schedule', name: 'Cosine', description: 'Decay the learning rate along a cosine. Best if you run to the end; stopping early wastes the tail.', qualityMult: 1.02 },

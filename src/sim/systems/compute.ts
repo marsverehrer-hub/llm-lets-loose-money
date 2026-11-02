@@ -10,6 +10,7 @@ import { getBonuses } from '../bonuses';
 import { isResearched } from './research';
 import { roleStrength } from './staff';
 import { productPflopsNeed } from './modelLife'; // v15 routers
+import { consumeGpuAllocation, gpuAllocationLeft } from './scaleLimits'; // v16 supply
 
 export interface Capacity { total: number; training: number; inference: number }
 
@@ -590,7 +591,13 @@ export const handlers: ActionHandlers = {
       notify(s, `Only ${Math.max(0, free).toLocaleString('en-US')} free slot${free === 1 ? '' : 's'} in ${dc.name}.`, 'bad');
       return;
     }
+    const alloc = gpuAllocationLeft(s, gpu.id); // v16: new generations are rationed
+    if (a.count > alloc) {
+      notify(s, `The vendor allocates you ${alloc.toLocaleString('en-US')} more ${gpu.name} this quarter. Older generations ship in bulk; brand gets you more.`, 'bad');
+      return;
+    }
     if (!trySpend(s, 'capex', a.count * gpu.buyPrice, `${a.count} × ${gpu.name}`)) return;
+    consumeGpuAllocation(s, gpu.id, a.count);
     // v14: track the batch's age as a count-weighted average purchase day.
     const had = dc.gpus[gpu.id] ?? 0;
     dc.bought ??= {};

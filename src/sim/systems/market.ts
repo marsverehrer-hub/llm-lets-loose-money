@@ -4,6 +4,7 @@ import type { ActionHandlers, BenchmarkCategory, BuyerTier, Competitor, GameStat
 import { BUYER_TIERS, KIND_OF, SEGMENT_OF } from '../types';
 import { BALANCE } from '../balance';
 import { CAMPAIGNS } from '../data/campaigns';
+import { COMPETITORS } from '../data/competitors';
 import { classThresholds } from '../data/weightClasses';
 import { getBonuses } from '../bonuses';
 import type { Bonuses } from '../types';
@@ -21,6 +22,10 @@ export const SEGMENTS: Segment[] = ['consumer', 'developer', 'enterprise'];
 export const PLAYER_COLOR = '#7c5cff';
 /** Calendar year from which rival labs can ship consumer chat. */
 export const CHAT_WORLD_YEAR = 2022;
+/** v16: a player chatbot starts the chat moment only with a model at least this good (overall). */
+export const CHAT_MOMENT_MIN_OVERALL = 75;
+/** v16: before the chat moment, consumer chat is a hobbyist toy with this share of the usual adoption. */
+const PRE_CHAT_CONSUMER_SHARE = 0.01;
 
 const CHAT_MOMENT_HYPE = 15;
 const BRAND_DECAY_PER_DAY = 0.0006;
@@ -64,10 +69,12 @@ const PRICE_POINTS: Record<Segment, [number, number][]> = {
   enterprise: [[2017, 60], [2030, 30], [2040, 30]],
 };
 /** Share of TAM paying for any LLM product, before the hype/quality/campaign multipliers. */
+// v16: nobody paid for language models in 2017. Developer and enterprise adoption starts near zero and only takes off
+// after the chat moment; before v16 a fifth of all developers paid from day one and a small lab was profitable in 2018.
 const ADOPTION_CEILING: Record<Segment, [number, number][]> = {
-  consumer: [[2017, 0.0005], [2022, 0.02], [2026, 0.2], [2030, 0.3], [2040, 0.4]],
-  developer: [[2017, 0.18], [2023, 0.3], [2030, 0.5], [2040, 0.6]],
-  enterprise: [[2017, 0.01], [2023, 0.08], [2030, 0.35], [2040, 0.45]],
+  consumer: [[2017, 0.0002], [2022, 0.004], [2024, 0.02], [2026, 0.05], [2030, 0.12], [2040, 0.25]],
+  developer: [[2017, 0.005], [2020, 0.015], [2022, 0.05], [2024, 0.2], [2027, 0.4], [2030, 0.5], [2040, 0.6]],
+  enterprise: [[2017, 0.001], [2020, 0.005], [2023, 0.04], [2026, 0.15], [2030, 0.35], [2040, 0.45]],
 };
 /** Base AI hype cycle: rises to ~90 in 2024, trough ~55 in 2027, then climbs again. */
 const HYPE_BASE: [number, number][] = [
@@ -391,6 +398,7 @@ function tierEntrants(s: GameState, ctx: TierCtx, seg: Segment, tier: BuyerTier,
         model = line.name;
       }
     }
+    extra *= COMPETITORS.find((d) => d.id === c.id)?.segmentAppeal?.[seg] ?? 1; // v16: regional and focus appeal
     const a = tierAttractiveness(tier, { quality, price, refPrice: st.refPrice, brand: c.brand, hype, extra, activeB }, ctx.year, ctx.frontier);
     out.push({ entity: c.id, id: c.id, name: info.name, model, color: info.color, isPlayer: false, quality, price, a, users: c.users[seg], product: null, comp: c });
   }
@@ -598,7 +606,7 @@ export function marketTick(s: GameState, rng: Rng): void {
     const targeted = s.market.campaigns.filter((c) => campaignDef(c.defId)?.segment === seg).length;
     const campaignF = 1 + Math.min(MAX_TARGETED_CAMPAIGN_BOOST, TARGETED_CAMPAIGN_BOOST * targeted);
     let target = interp(ADOPTION_CEILING[seg], year) * hypeF * qualityF * campaignF;
-    if (seg === 'consumer' && !chatOpen) target = 0;
+    if (seg === 'consumer' && !chatOpen) target *= PRE_CHAT_CONSUMER_SHARE;
     st.adoption = clamp(st.adoption + (target - st.adoption) * ADOPTION_RELAX_PER_DAY, 0, 1);
   }
 
@@ -623,7 +631,9 @@ export function marketTick(s: GameState, rng: Rng): void {
     }
     let playerUsers = 0;
     for (const { entrant, total, tiers } of owners.values()) {
-      const users = entrant.users + (total - entrant.users) * BALANCE.USER_MIGRATION_PER_DAY;
+      // v16: users arrive slowly (word of mouth, procurement) and leave faster than they came.
+      const rate = total > entrant.users ? BALANCE.USER_GROWTH_PER_DAY : BALANCE.USER_MIGRATION_PER_DAY;
+      const users = entrant.users + (total - entrant.users) * rate;
       if (entrant.product) {
         entrant.product.users = users;
         entrant.product.tierUsers = {};
