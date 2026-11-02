@@ -41,3 +41,14 @@ describe('chapters', () => {
     expect(chapterIndex(s)).toBeLessThanOrEqual(CHAPTERS.length);
   }, 60_000);
 });
+
+describe('the next move', () => {
+  it('leads with the chapter, but a concrete move on the same screen wins', async () => {
+    const { nextStep } = await import('../src/ui/panels/hq/nextStep');
+    const s = createInitialState(1, 'Next');
+    expect(nextStep(s).text).toBe('Start your first training run');
+    s.models.push({ id: 'm', name: 'Alpha', releasedDay: null } as any);
+    s.flags.chapter = 1;
+    expect(nextStep(s).text).toBe('Release Alpha');
+  });
+});

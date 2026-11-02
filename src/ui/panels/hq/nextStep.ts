@@ -134,8 +134,11 @@ export function nextSteps(s: GameState): Step[] {
       cta: 'Add compute',
     });
 
-  // Only urgent and next moves are in the list so far, so the chapter lands after them and before the ideas.
-  if (chapterStep && !out.some((st) => st.priority === 'next' && st.panel === chapterStep.panel)) add(chapterStep);
+  // The chapter leads the 'next' moves (after anything urgent), unless a more specific move already points at its screen.
+  if (chapterStep && !out.some((st) => st.priority === 'next' && st.panel === chapterStep.panel)) {
+    const firstNext = out.findIndex((st) => st.priority !== 'urgent');
+    out.splice(firstNext < 0 ? out.length : firstNext, 0, chapterStep);
+  }
 
   // Ideas: growth and progression.
   const pts = s.progress?.perkPoints ?? 0;
