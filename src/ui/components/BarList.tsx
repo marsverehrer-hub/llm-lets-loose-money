@@ -33,6 +33,8 @@ export interface BarListProps {
 export function BarList({ rows, format = (v) => String(Math.round(v)), max, onSelect, selected = null, sort = true, class: cls }: BarListProps) {
   const list = sort ? [...rows].sort((a, b) => b.value - a.value) : rows;
   const top = Math.max(max ?? 0, ...list.map((r) => r.value), 1e-9);
+  // Every row keeps the extra column once one row has it, so the bars line up.
+  const anyExtra = list.some((r) => r.extra !== undefined);
   return (
     <div class={`barlist ${onSelect ? 'clickable' : ''} ${cls ?? ''}`}>
       {list.map((r) => (
@@ -56,7 +58,7 @@ export function BarList({ rows, format = (v) => String(Math.round(v)), max, onSe
             />
           </div>
           <div class="barlist-val num">{format(r.value)}</div>
-          {r.extra !== undefined && <div class="barlist-extra">{r.extra}</div>}
+          {anyExtra && <div class="barlist-extra">{r.extra}</div>}
         </div>
       ))}
     </div>

@@ -114,7 +114,7 @@ export function ModelsPanel() {
   return (
     <div class="panel md-panel">
       {header}
-      <PanelIntro id="models">Train models on the data you own, then release the ones that hold up. Pick a model to see its profile.</PanelIntro>
+      <PanelIntro id="models">Pick a model to see its profile. New model starts a training run; release the ones that hold up.</PanelIntro>
       <SceneView
         state={s}
         make={createVault}
@@ -406,7 +406,7 @@ function MiniBar({ label, value, hidden, tone }: { label: string; value: number;
 function MoreMenu({ m }: { m: Model }) {
   return (
     <span title="Takes it out of the lineup. It stops counting as a live model.">
-      <ConfirmButton class="pn-btn--sm" label="Retire" confirmLabel="Retire it?" onConfirm={() => dispatch({ type: 'deprecateModel', modelId: m.id })} />
+      <ConfirmButton class="btn-sm" label="Retire" confirmLabel="Retire it?" onConfirm={() => dispatch({ type: 'deprecateModel', modelId: m.id })} />
     </span>
   );
 }

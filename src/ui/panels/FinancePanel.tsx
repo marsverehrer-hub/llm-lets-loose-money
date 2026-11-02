@@ -202,7 +202,7 @@ function roundDay(s: GameState, round: string): number | null {
   return null;
 }
 
-/** Funding rounds as a timeline, oldest first. A round with no date left in the news log shows a dash. */
+/** Funding rounds as a timeline, oldest first. A round with no date left in the news log shows no date. */
 function RoundsTimeline({ s }: { s: GameState }) {
   const rounds = s.finance.roundsRaised;
   if (rounds.length === 0) {
@@ -218,7 +218,7 @@ function RoundsTimeline({ s }: { s: GameState }) {
           <li key={`${r}-${i}`} class={`fin-tl-node ${r === 'IPO' ? 'ipo' : ''}`} title={logged ? `${formatMoney(logged.amount)} raised at ${formatMoney(logged.postMoney)} post-money` : undefined}>
             <span class="fin-tl-dot" aria-hidden="true" />
             <span class="fin-tl-name">{r}</span>
-            <span class="fin-tl-date num">{day !== null ? dateTag(day) : '—'}</span>
+            {day !== null && <span class="fin-tl-date num">{dateTag(day)}</span>}
             {logged && <span class="fin-tl-date num">{formatMoney(logged.amount)}</span>}
           </li>
         );
@@ -314,17 +314,20 @@ function dailyWaterfall(s: GameState): { steps: WaterfallStep[]; profit: number 
   const steps: WaterfallStep[] = [];
   for (const k of REV_ORDER) {
     const v = fin.revenueBreakdown[k] ?? 0;
+    // Lines that earned or cost nothing today are left out; the totals are unchanged.
+    if (Math.abs(v) < 0.5) continue;
     steps.push({ id: `rev-${k}`, label: REV_LABEL[k], value: v, detail: `${REV_LABEL[k]} revenue today` });
   }
   steps.push({ id: 'revenue', label: 'Revenue', value: 0, kind: 'subtotal' });
   for (const g of COST_GROUPS) {
     const v = g.keys.reduce((a, k) => a + (fin.expenseBreakdown[k] ?? 0), 0);
+    if (Math.abs(v) < 0.5) continue;
     steps.push({ id: `cost-${g.id}`, label: expenseName(g.keys[0], g.help), value: -v, detail: g.help });
   }
   const other = Object.keys(fin.expenseBreakdown)
     .filter((k) => !GROUPED_KEYS.has(k))
     .reduce((a, k) => a + (fin.expenseBreakdown[k] ?? 0), 0);
-  steps.push({ id: 'cost-other', label: 'Other', value: -other, detail: 'Data, research, marketing, legal, interest, capex and events.' });
+  if (Math.abs(other) >= 0.5) steps.push({ id: 'cost-other', label: 'Other', value: -other, detail: 'Data, research, marketing, legal, interest, capex and events.' });
   const revenue = REV_ORDER.reduce((a, k) => a + (fin.revenueBreakdown[k] ?? 0), 0);
   const costs = COST_GROUPS.reduce((a, g) => a + g.keys.reduce((b, k) => b + (fin.expenseBreakdown[k] ?? 0), 0), 0) + other;
   return { steps, profit: revenue - costs };

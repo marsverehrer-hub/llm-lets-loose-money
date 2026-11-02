@@ -3,10 +3,11 @@ import { useGame } from '../store';
 import { dayToDate, formatMoney } from '../../sim/util';
 import { ACHIEVEMENTS } from '../../sim/data/achievements';
 import type { AchievementDef, GameState } from '../../sim/types';
-import { Card, EmptyState, PanelHeader, Pill, ProgressBar, Stat, formatInt, formatPct } from '../components';
+import { Card, EmptyState, PanelHeader, Pill, ProgressBar, Stat, Tabs, formatInt, formatPct } from '../components';
 import './panels-a.css';
 
 type Entry = { def: AchievementDef; unlockedDay: number | null };
+type Filter = 'unlocked' | 'locked' | 'all';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -38,6 +39,9 @@ export function AchievementsPanel() {
   const total = entries.length;
   const unlocked = entries.filter((e) => e.unlockedDay !== null).length;
   const pct = total > 0 ? unlocked / total : 0;
+  // The case opens on what you have won; the long locked list is one tap away.
+  const [filter, setFilter] = useState<Filter>(unlocked > 0 ? 'unlocked' : 'all');
+  const shown = entries.filter((e) => filter === 'all' || (filter === 'unlocked') === (e.unlockedDay !== null));
   const st = s.stats;
   const money = (v: number) => formatMoney(v, 1);
 
@@ -46,13 +50,7 @@ export function AchievementsPanel() {
       <PanelHeader code="TRO" title="Trophies" subtitle={`${unlocked} of ${total} unlocked · ${formatPct(pct)} complete`} />
 
       <Card flush>
-        <div class="pa-strip pa-strip--8">
-          <div class="pa-cell">
-            <Stat label="Unlocked" value={`${unlocked}/${total}`} tone={unlocked > 0 ? 'good' : 'muted'} />
-          </div>
-          <div class="pa-cell">
-            <Stat label="Complete" value={formatPct(pct)} />
-          </div>
+        <div class="pa-strip pa-strip--6">
           <div class="pa-cell">
             <Stat label="Total revenue" value={st.totalRevenue} format={money} tone="good" />
           </div>
@@ -74,7 +72,24 @@ export function AchievementsPanel() {
         </div>
       </Card>
 
-      <Card class={`tro-list ${allOpen ? 'is-open' : ''}`} title="Achievements" subtitle="Unlocked first, newest first" flush>
+      <Card
+        class={`tro-list ${allOpen ? 'is-open' : ''}`}
+        title="Achievements"
+        subtitle="Newest first"
+        flush
+        actions={
+          <Tabs<Filter>
+            variant="segmented"
+            value={filter}
+            onChange={setFilter}
+            tabs={[
+              { id: 'unlocked', label: 'Unlocked', count: unlocked },
+              { id: 'locked', label: 'Locked', count: total - unlocked },
+              { id: 'all', label: 'All', count: total },
+            ]}
+          />
+        }
+      >
         <div class="pa-pad">
           <ProgressBar label="Collection" value={unlocked} max={Math.max(1, total)} tone={pct >= 1 ? 'good' : 'accent'} right={`${unlocked} / ${total}`} height={6} />
         </div>
@@ -92,7 +107,7 @@ export function AchievementsPanel() {
                 </tr>
               </thead>
               <tbody>
-                {entries.map(({ def, unlockedDay }) => {
+                {shown.map(({ def, unlockedDay }) => {
                   const isUnlocked = unlockedDay !== null;
                   const hidden = !!def.hidden && !isUnlocked;
                   return (
@@ -110,9 +125,9 @@ export function AchievementsPanel() {
                 })}
               </tbody>
             </table>
-            {total > 6 && (
+            {shown.length > 6 && (
               <button type="button" class="btn tro-more" aria-expanded={allOpen} onClick={() => setAllOpen(!allOpen)}>
-                {allOpen ? 'Show fewer trophies' : `Show all ${total} trophies`}
+                {allOpen ? 'Show fewer trophies' : `Show all ${shown.length}`}
               </button>
             )}
           </div>

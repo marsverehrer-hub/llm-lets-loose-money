@@ -118,6 +118,19 @@
   }
   .card-header {
     padding: 12px 14px 0;
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+  /* The title keeps its width; controls that do not fit beside it drop to their own line. */
+  .card-heading {
+    flex: 1 0 auto;
+    max-width: 100%;
+  }
+  .card-actions {
+    flex-shrink: 1;
+    min-width: 0;
+    max-width: 100%;
+    flex-wrap: wrap;
   }
   .card-body {
     padding: 12px 14px 14px;
@@ -634,16 +647,7 @@
    do nothing above 760px.
    ========================================================================== */
 @media (max-width: 760px) {
-  /* Touch targets: panel-kit buttons, inputs and checkbox rows are at least 40px tall. */
-  .pn-btn,
-  .pn-btn--sm,
-  .pn-btn--big {
-    height: 40px;
-  }
-  .pn-btn--sm {
-    padding: 0 10px;
-    font-size: var(--fs-sm);
-  }
+  /* Touch targets: panel-kit inputs and checkbox rows are at least 40px tall. */
   .pn-input,
   .pn-select {
     height: 40px;
@@ -689,12 +693,60 @@
     width: 100%;
   }
 
-  /* Stacked tables: each row is a card. mb-head is the card heading, mb-block is a full-width cell. */
+  /* Stacked tables: each row is a card, its figures a two-column spec sheet (label over value).
+     The first cell, mb-head, mb-block and the actions cell span the card. */
   .table-stack tr {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 16px;
+  }
+  .table-stack td {
     flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 1px;
+    min-width: 0;
+    text-align: left;
+  }
+  .table-stack td:first-child:not([data-label]),
+  .table-stack td.mb-block,
+  .table-stack td.actions {
+    grid-column: 1 / -1;
+  }
+  .table-stack td.actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .table-stack td.actions::before {
+    content: none;
+  }
+  /* Card rows carry no zebra stripe: the stripe would show as a box inside the card. */
+  :root .table-stack tbody tr:nth-child(n) td:nth-child(n) {
+    background: transparent;
+    box-shadow: none;
+  }
+  /* Leaderboards stay one line per row: rank, name, score. */
+  .table-stack :is(.bmk-board, .wc-arena-table) tr {
+    grid-template-columns: 2.2em minmax(0, 1fr) minmax(96px, 38%);
+    align-items: center;
+    padding: 6px 12px;
+  }
+  .table-stack :is(.bmk-board, .wc-arena-table) td {
+    display: block;
+    grid-column: auto;
+    padding: 0;
+  }
+  .table-stack :is(.bmk-board, .wc-arena-table) td::before {
+    content: none;
+  }
+  :root .table-stack tbody tr.me,
+  :root .table-stack tbody tr.sel {
+    background: var(--accent-3);
+    box-shadow: inset 4px 0 0 var(--accent);
   }
   .table-stack td.mb-head {
+    grid-column: 1 / -1;
     display: block;
     order: -1;
     padding: 0 0 4px;
@@ -737,10 +789,10 @@
     padding-bottom: 9px;
   }
 
-  /* Readout strips in a panel header: two per row (the 3 and 4 readouts wrap). */
+  /* Readout strips in a panel header: up to four in a row. */
   .panel-header > .row-wrap:has(> .stat, > .pn-stat) {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
     gap: 8px 12px;
     width: 100%;
   }

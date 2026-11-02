@@ -5,7 +5,7 @@ import { useGame } from '../store';
 import { calendarYear } from '../../sim/util';
 import { DATA_TUNING, availableDatasetsV2, collapsePenalty, dataStats, syntheticShare, type DatasetRow } from '../../sim/systems/data';
 import type { GameState, Id } from '../../sim/types';
-import { Card, HelpTip, PanelHeader, PanelIntro, Tabs, useIsMobile } from '../components';
+import { Card, HelpTip, PanelHeader, PanelIntro, Tabs } from '../components';
 import './panels.css';
 import './data.css';
 import { GetDataArea } from './DataOpsArea';
@@ -31,24 +31,16 @@ export function DataPanel() {
     setTool(t);
     document.getElementById('dt-make')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
-  const phone = useIsMobile();
   const selRow = selId ? rows.find((r) => r.def.id === selId) : undefined;
   const patch = (p: Partial<CatalogueView>) => setView((v) => ({ ...v, ...p }));
 
   return (
     <div class="panel pn pn-data">
       <div class="dt">
-        <PanelIntro
-          id="data"
-          steps={phone ? undefined : [
-            'Pick a block in the map, or a row in the catalogue, to open a set.',
-            'Audit a set to learn its real quality. Until then it is the seller\'s claim.',
-            'Train on the sets you own in the Train wizard.',
-          ]}
-        >
-          Models learn from data. Buy, licence, crawl or make it, then train on what you own.
-        </PanelIntro>
         <PanelHeader code="DAT" title="Data" subtitle="What models learn from. Buy it, crawl it or make it." />
+        <PanelIntro id="data">
+          Pick a block in the map or a row in the catalogue to open a set. Audit a set to learn its real quality: until then it is the seller's claim.
+        </PanelIntro>
 
         <SceneView
           state={s}

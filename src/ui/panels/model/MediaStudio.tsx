@@ -61,109 +61,115 @@ export function MediaStudio({ s }: { s: GameState }) {
         )}
 
         {models.length > 0 && (
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Model</th>
-                <th>Type</th>
-                <th class="num">Overall</th>
-                <th class="num">Elo</th>
-                <th>Status</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {models.map((m) => (
-                <tr key={m.id} class={m.id === sel?.id ? 'sel' : ''} onClick={() => setSelId(m.id)}>
-                  <td>{m.name}</td>
-                  <td>{`${KIND_LABEL[m.kind]} · ${mediaArchById(m.config.arch)?.name ?? m.config.arch}`}</td>
-                  <td class="num">{Math.round(m.overall)}</td>
-                  <td class="num">{Math.round(m.elo)}</td>
-                  <td>{m.releasedDay === null ? <Pill tone="warn">Secret</Pill> : <Pill tone="good">{m.openWeights ? 'Open' : 'Live'}</Pill>}</td>
-                  <td>
-                    <ModelActions s={s} m={m} />
-                  </td>
+          <div class="table-wrap table-scroll">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Model</th>
+                  <th>Type</th>
+                  <th class="num">Overall</th>
+                  <th class="num">Elo</th>
+                  <th>Status</th>
+                  <th />
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {models.map((m) => (
+                  <tr key={m.id} class={m.id === sel?.id ? 'sel' : ''} onClick={() => setSelId(m.id)}>
+                    <td>{m.name}</td>
+                    <td>{`${KIND_LABEL[m.kind]} · ${mediaArchById(m.config.arch)?.name ?? m.config.arch}`}</td>
+                    <td class="num">{Math.round(m.overall)}</td>
+                    <td class="num">{Math.round(m.elo)}</td>
+                    <td>{m.releasedDay === null ? <Pill tone="warn">Secret</Pill> : <Pill tone="good">{m.openWeights ? 'Open' : 'Live'}</Pill>}</td>
+                    <td>
+                      <ModelActions s={s} m={m} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
 
         {sel && <Notebook s={s} m={sel} />}
 
         {products.length > 0 && (
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Product</th>
-                <th>Model</th>
-                <th class="num">Price</th>
-                <th class="num">Users</th>
-                <th class="num">Revenue / day</th>
-                <th class="num">Serving / day</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {products.map((p) => {
-                const ref = mediaRefPrice(s, p.kind, p.channel);
-                const choices = models.filter((m) => m.kind === p.kind && m.releasedDay !== null);
-                return (
-                  <tr key={p.id}>
-                    <td>{p.name}</td>
-                    <td>
-                      <select class="input" value={p.modelId} onChange={(e) => dispatch({ type: 'updateMediaProduct', productId: p.id, modelId: (e.currentTarget as HTMLSelectElement).value })}>
-                        {choices.map((m) => (
-                          <option key={m.id} value={m.id}>
-                            {m.name}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td class="num">
-                      <span class="tw-chips">
-                        <button type="button" class="btn btn-sm" title="Cut the price 10%" onClick={() => dispatch({ type: 'updateMediaProduct', productId: p.id, price: Math.max(ref * 0.2, p.price * 0.9) })}>
-                          −
+          <div class="table-wrap table-scroll">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Model</th>
+                  <th class="num">Price</th>
+                  <th class="num">Users</th>
+                  <th class="num">Revenue / day</th>
+                  <th class="num">Serving / day</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {products.map((p) => {
+                  const ref = mediaRefPrice(s, p.kind, p.channel);
+                  const choices = models.filter((m) => m.kind === p.kind && m.releasedDay !== null);
+                  return (
+                    <tr key={p.id}>
+                      <td>{p.name}</td>
+                      <td>
+                        <select class="input" value={p.modelId} onChange={(e) => dispatch({ type: 'updateMediaProduct', productId: p.id, modelId: (e.currentTarget as HTMLSelectElement).value })}>
+                          {choices.map((m) => (
+                            <option key={m.id} value={m.id}>
+                              {m.name}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td class="num">
+                        <span class="tw-chips">
+                          <button type="button" class="btn btn-sm" title="Cut the price 10%" onClick={() => dispatch({ type: 'updateMediaProduct', productId: p.id, price: Math.max(ref * 0.2, p.price * 0.9) })}>
+                            −
+                          </button>
+                          {`${price(p.price)}${p.channel === 'app' ? '/mo' : ''}`}
+                          <button type="button" class="btn btn-sm" title="Raise the price 10%" onClick={() => dispatch({ type: 'updateMediaProduct', productId: p.id, price: Math.min(ref * 5, p.price * 1.1) })}>
+                            +
+                          </button>
+                        </span>
+                      </td>
+                      <td class="num">{p.channel === 'app' ? Math.round(p.users).toLocaleString() : `${Math.round(p.users).toLocaleString()}/day`}</td>
+                      <td class="num">{formatMoney(p.revenuePerDay)}</td>
+                      <td class="num">{formatMoney(p.costPerDay)}</td>
+                      <td>
+                        <button type="button" class="btn btn-sm" onClick={() => dispatch({ type: 'shutdownMediaProduct', productId: p.id })}>
+                          Shut down
                         </button>
-                        {`${price(p.price)}${p.channel === 'app' ? '/mo' : ''}`}
-                        <button type="button" class="btn btn-sm" title="Raise the price 10%" onClick={() => dispatch({ type: 'updateMediaProduct', productId: p.id, price: Math.min(ref * 5, p.price * 1.1) })}>
-                          +
-                        </button>
-                      </span>
-                    </td>
-                    <td class="num">{p.channel === 'app' ? Math.round(p.users).toLocaleString() : `${Math.round(p.users).toLocaleString()}/day`}</td>
-                    <td class="num">{formatMoney(p.revenuePerDay)}</td>
-                    <td class="num">{formatMoney(p.costPerDay)}</td>
-                    <td>
-                      <button type="button" class="btn btn-sm" onClick={() => dispatch({ type: 'shutdownMediaProduct', productId: p.id })}>
-                        Shut down
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
 
-        <div class="md-grid">
+        <div class="md-arenas">
           {KINDS.filter((k) => !mediaKindLock(s, k) || mediaArena(s, k).length > 0).map((k) => (
             <div key={k}>
               <div class="md-section-title">{`${KIND_LABEL[k]} arena`}</div>
-              <table class="table">
-                <tbody>
-                  {mediaArena(s, k)
-                    .slice(0, 6)
-                    .map((r, i) => (
-                      <tr key={`${r.lab}-${r.name}`} class={r.mine ? 'me' : ''}>
-                        <td class="num">{i + 1}</td>
-                        <td>{r.name}</td>
-                        <td>{r.lab}</td>
-                        <td class="num">{Math.round(r.elo)}</td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
+              <div class="table-wrap">
+                <table class="table">
+                  <tbody>
+                    {mediaArena(s, k)
+                      .slice(0, 6)
+                      .map((r, i) => (
+                        <tr key={`${r.lab}-${r.name}`} class={r.mine ? 'me' : ''}>
+                          <td class="num faint md-rank">{i + 1}</td>
+                          <td>{r.name}</td>
+                          <td>{r.lab}</td>
+                          <td class="num">{Math.round(r.elo)}</td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
               {mediaArena(s, k).length === 0 && <div class="tw-faint tw-small">Nobody ships one yet.</div>}
             </div>
           ))}
@@ -180,40 +186,42 @@ export function MediaStudio({ s }: { s: GameState }) {
               ))}
             </span>
           </div>
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Dataset</th>
-                <th class="num">Samples</th>
-                <th class="num">Quality</th>
-                <th class="num">Legal risk</th>
-                <th class="num">Price</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {mediaDatasetsFor(s, shopKind)
-                .filter((x) => x.available || x.owned)
-                .map(({ def, owned }) => (
-                  <tr key={def.id} title={def.description}>
-                    <td>{def.name}</td>
-                    <td class="num">{`${def.samplesM >= 1 ? Math.round(def.samplesM) : def.samplesM}M`}</td>
-                    <td class="num">{def.quality.toFixed(2)}</td>
-                    <td class={`num ${def.legalRisk >= 0.5 ? 'tone-bad' : ''}`}>{`${Math.round(def.legalRisk * 100)}%`}</td>
-                    <td class="num">{def.price > 0 ? formatMoney(def.price) : 'Free'}</td>
-                    <td>
-                      {owned ? (
-                        <Pill tone="good">Owned</Pill>
-                      ) : (
-                        <button type="button" class="btn btn-sm" onClick={() => dispatch({ type: 'buyMediaDataset', datasetId: def.id })}>
-                          Buy
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
+          <div class="table-wrap table-scroll">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Dataset</th>
+                  <th class="num">Samples</th>
+                  <th class="num">Quality</th>
+                  <th class="num">Legal risk</th>
+                  <th class="num">Price</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {mediaDatasetsFor(s, shopKind)
+                  .filter((x) => x.available || x.owned)
+                  .map(({ def, owned }) => (
+                    <tr key={def.id} title={def.description}>
+                      <td>{def.name}</td>
+                      <td class="num">{`${def.samplesM >= 1 ? Math.round(def.samplesM) : def.samplesM}M`}</td>
+                      <td class="num">{def.quality.toFixed(2)}</td>
+                      <td class={`num ${def.legalRisk >= 0.5 ? 'tone-bad' : ''}`}>{`${Math.round(def.legalRisk * 100)}%`}</td>
+                      <td class="num">{def.price > 0 ? formatMoney(def.price) : 'Free'}</td>
+                      <td>
+                        {owned ? (
+                          <Pill tone="good">Owned</Pill>
+                        ) : (
+                          <button type="button" class="btn btn-sm" onClick={() => dispatch({ type: 'buyMediaDataset', datasetId: def.id })}>
+                            Buy
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </Card>

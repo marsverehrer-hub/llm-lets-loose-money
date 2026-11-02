@@ -807,6 +807,7 @@
     min-width: 0;
   }
   .dt .table-stack td.dt-set-col {
+    grid-column: 1 / -1;
     display: block;
     text-align: left;
   }
@@ -840,7 +841,7 @@
 }
 .dt-details-inline { display: flex; flex-direction: column; gap: 8px; }
 .dt-make { margin-top: 12px; }
-.dt-make-body { margin-top: 12px; }
+.dt-make-body { margin-top: 12px; max-width: 760px; }
 .dt-filter-inline .dt-filter-fields { flex-direction: row; align-items: center; }
 .dt-filter-inline .dt-field { flex-direction: row; flex: none; }
 .dt-filter-inline .dt-field-label { text-align: left; margin: 0; }
@@ -859,4 +860,6 @@
   /* Commission and synthetic quotes: two cells a row, the last one spans the width. */
   .dt-quote { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .dt-quote-cell:last-child { grid-column: 1 / -1; }
+  /* The four make-data tools sit two to a row instead of pushing the page wide. */
+  .do-area .dt-make .segmented { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

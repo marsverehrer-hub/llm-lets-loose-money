@@ -182,7 +182,7 @@ function draw(canvas: HTMLCanvasElement, w: number, h: number, series0: LineSeri
   const bottom = PAD.t + ph;
 
   // grid + y labels
-  ctx.font = '12px Figtree, system-ui, sans-serif';
+  ctx.font = '13px "Barlow Condensed", Barlow, system-ui, sans-serif';
   ctx.textBaseline = 'middle';
   ctx.textAlign = 'right';
   ctx.lineWidth = 1;
@@ -204,10 +204,15 @@ function draw(canvas: HTMLCanvasElement, w: number, h: number, series0: LineSeri
   const nx = Math.max(2, Math.min(6, Math.floor(pw / 110)));
   ctx.textBaseline = 'top';
   ctx.fillStyle = tok('--fg-3', '#8a909c');
+  let prevLabel = '';
   for (let i = 0; i <= nx; i++) {
     const xv = xmin + ((xmax - xmin) * i) / nx;
+    const label = xFmt(xv);
+    // Short spans can land two ticks in the same year or month; print each label once.
+    if (label === prevLabel) continue;
+    prevLabel = label;
     ctx.textAlign = i === 0 ? 'left' : i === nx ? 'right' : 'center';
-    ctx.fillText(xFmt(xv), X(xv), bottom + 9);
+    ctx.fillText(label, X(xv), bottom + 9);
   }
 
   // reference line
