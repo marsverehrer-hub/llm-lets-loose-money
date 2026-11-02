@@ -10,6 +10,8 @@ export interface DeskSlot {
   y: number;
   role: Role;
   index: number;
+  /** Where people at this desk go when they get up (their own room's coffee point, corridor and boards). */
+  stops: Stops;
 }
 
 export interface Stops {
@@ -32,6 +34,8 @@ export interface Person {
   state: 'sit' | 'walk' | 'idle';
   timer: number;
   walkPhase: number;
+  /** Walking toward the back of the room (seen from behind). */
+  away: boolean;
   /** Last projected screen position (set by renderer; used for hover). */
   sx: number;
   sy: number;
@@ -57,12 +61,8 @@ function outbound(seat: { x: number; y: number }, d: DeskSlot, stop: { x: number
 
 export class Crowd {
   people: Person[] = [];
-  private sig = '';
-  private stops: Stops | null = null;
-
   /** Reconcile people with the desk list. Keeps existing people when their desk survives. */
-  sync(desks: DeskSlot[], stops: Stops): void {
-    this.stops = stops;
+  sync(desks: DeskSlot[]): void {
     const n = Math.min(desks.length, MAX_PEOPLE);
     const next: Person[] = [];
     for (let i = 0; i < n; i++) {
@@ -71,9 +71,13 @@ export class Crowd {
       const prev = this.people[i];
       if (prev && prev.role === d.role) {
         prev.desk = d;
-        if (prev.goal === 'seat' && prev.state === 'sit') {
+        if (prev.desk.stops !== d.stops || (prev.goal === 'seat' && prev.state === 'sit')) {
+          // A move to another room: sit straight down at the new desk.
           prev.x = seat.x;
           prev.y = seat.y;
+          prev.state = 'sit';
+          prev.goal = 'seat';
+          prev.path = [];
         }
         next.push(prev);
       } else {
@@ -89,19 +93,18 @@ export class Crowd {
           state: 'sit',
           timer: rand(2, 12),
           walkPhase: 0,
+          away: false,
           sx: 0,
           sy: 0,
         });
       }
     }
     this.people = next;
-    this.sig = desks.length + ':' + n;
   }
 
   update(dt: number): void {
-    const stops = this.stops;
-    if (!stops) return;
     for (const p of this.people) {
+      const stops = p.desk.stops;
       if (p.state === 'sit') {
         p.timer -= dt;
         if (p.timer <= 0) {
@@ -155,6 +158,7 @@ export class Crowd {
       const dx = tx - p.x;
       const dy = ty - p.y;
       const d = Math.hypot(dx, dy);
+      if (d > 1e-6) p.away = dx + dy < 0;
       if (d <= budget) {
         p.x = tx;
         p.y = ty;

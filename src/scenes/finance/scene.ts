@@ -2,12 +2,14 @@
 // only when the layout signature changes, and paints one frame at a time.
 import type { GameState } from '../../sim/types';
 import { formatMoney, formatNumber } from '../../sim/util';
-import { project, TILE_H, TILE_W, type Projector } from '../../office/iso';
-import { C } from '../../office/palette';
-import { glow, type Ctx } from '../../office/draw/prims';
-import { drawFloor, drawWalls, WALL_H } from '../../office/draw/room';
-import { drawPerson } from '../../office/draw/person';
-import { drawPlant } from '../../office/draw/furniture';
+import { project, type Projector } from '../../office/iso';
+import { TC as C, T, syncTheme, tone } from '../../office/kit/theme';
+import { glow, planeY, type Ctx } from '../../office/draw/prims';
+import { block, plant as drawPlant, room as kitRoom } from '../../office/kit/props';
+import { person } from '../../office/kit/person';
+import { addWorldBox, arrangePods, drawGround, emptyBox, feedMargins, fitTo, hud, tag } from '../../office/kit/frame';
+import { runwayDays } from '../../sim/systems/finance';
+import { runwayLabel } from '../../ui/shell/fmt';
 import type { Scene, SceneHit } from '../types';
 import { EXP_LABEL, logCount, tipFor, VAULT_FULL } from './model';
 import type { Lane } from './plan';
@@ -39,6 +41,13 @@ import * as parts from './parts';
 import { TREAS } from './parts';
 
 const FLOW_SPEED = 0.035; // belt cycles per second
+/** Back wall height: the stock ticker hangs on it. */
+const WALL_H = 60;
+/** Loading dock and money board pods beside the room. */
+const DOCK_W = 7.5;
+const DOCK_D = 5.4;
+const BOARD_W = 9;
+const BOARD_D = 4;
 const TAU = Math.PI * 2;
 const COIN_MAX = 40;
 const HISTORY_SHOWN = 80;
@@ -186,6 +195,9 @@ export class TreasuryScene implements Scene {
   private laneOrder: Lane[] = [];
   /** Label rectangles placed this frame, flat [x0, y0, x1, y1, ...]. */
   private placed: number[] = [];
+  private dock = { x: -8, y: 0, row: 0 };
+  private board = { x: 18, y: 0, row: 0 };
+  private roomRow = 0;
 
   resize(cssW: number, cssH: number): void {
     this.cssW = cssW;
@@ -194,17 +206,94 @@ export class TreasuryScene implements Scene {
     this.layoutHits();
   }
 
-  /** Fit the room into the canvas (CSS px). Same framing as the HQ office. */
+  /**
+   * The treasury room with a loading dock (income) on one side and the money board (cash, runway, valuation) on the
+   * other, laid out as a pod row so wide frames fill up, then the auto-fit camera. The room stays at the origin.
+   */
   private fit(): void {
-    const pad = 14;
-    const availW = Math.max(40, this.cssW - pad * 2);
-    const availH = Math.max(40, this.cssH - pad * 2);
-    const X = W + 0.5;
-    const Y = D + 0.5;
-    const sc = Math.max(0.35, Math.min(availW / (((X + Y) * TILE_W) / 2), availH / (((X + Y) * TILE_H) / 2 + WALL_H), 2.6));
-    this.proj.scale = sc;
-    this.proj.ox = this.cssW / 2 - (((X - Y) * TILE_W) / 4) * sc;
-    this.proj.oy = this.cssH / 2 - (((X + Y) * TILE_H) / 4 - WALL_H / 2) * sc;
+    const m = feedMargins(this.cssW, this.cssH);
+    const plan = arrangePods(
+      [
+        { w: DOCK_W, d: DOCK_D, h: 30 },
+        { w: W, d: D, h: WALL_H },
+        { w: BOARD_W, d: BOARD_D, h: 100 },
+      ],
+      Math.max(40, this.cssW - m.l - m.r),
+      Math.max(40, this.cssH - m.t - m.b),
+      1.4,
+      1.4,
+      2,
+    );
+    const rx = plan.x[1];
+    const ry = plan.y[1];
+    this.roomRow = plan.row[1];
+    this.dock = { x: plan.x[0] - rx, y: plan.y[0] - ry, row: plan.row[0] };
+    this.board = { x: plan.x[2] - rx, y: plan.y[2] - ry, row: plan.row[2] };
+    const box = addWorldBox(emptyBox(), -0.2, -0.2, W + 0.2, D + 0.2, -3, WALL_H);
+    addWorldBox(box, this.dock.x, this.dock.y, DOCK_W, DOCK_D, 0, 30);
+    addWorldBox(box, this.board.x, this.board.y, BOARD_W, BOARD_D, 0, 100);
+    fitTo(this.proj, box, this.cssW, this.cssH);
+  }
+
+  /** Loading dock: today's income arriving as cash pallets, one per revenue stream. */
+  private drawDock(c: Ctx, s: GameState): void {
+    const { x, y } = this.dock;
+    kitRoom(c, x, y, DOCK_W, DOCK_D, { wallH: 22, cell: 1 });
+    // roll-up door on the back wall
+    planeY(c, x + 1.6, x + 4.4, y + 0.02, 0, 16, T.metalDark);
+    for (let z = 2; z < 16; z += 2) planeY(c, x + 1.6, x + 4.4, y + 0.03, z, z + 0.5, T.metal);
+    const rows = Object.keys(s.finance.revenueBreakdown)
+      .map((k) => ({ k, v: s.finance.revenueBreakdown[k] ?? 0 }))
+      .filter((r) => r.v > 0)
+      .sort((a, b) => b.v - a.v)
+      .slice(0, 4);
+    rows.forEach((r, i) => {
+      const px = x + 0.8 + (i % 2) * 3.2;
+      const py = y + 1.6 + Math.floor(i / 2) * 1.8;
+      block(c, px, py, 1.1, 0.9, 0, 1.4, TREAS.wood, false);
+      const layers = Math.max(1, Math.min(7, Math.round(Math.log10(Math.max(1, r.v)) - 1)));
+      parts.drawCashStack(c, px + 0.05, py + 0.05, layers);
+      if (layers > 2) parts.drawCashStack(c, px + 0.55, py + 0.3, layers - 2);
+    });
+  }
+
+  /** The money board: a standing timing board with cash, runway and valuation. */
+  private drawMoneyBoard(c: Ctx, s: GameState): void {
+    const { g } = c;
+    const { x, y } = this.board;
+    const fy = y + BOARD_D - 0.8;
+    block(c, x + 0.1, y + 0.1, BOARD_W - 0.2, BOARD_D - 0.2, -2, 0.6, T.floor, false);
+    for (const lx of [x + 1.2, x + BOARD_W - 1.4]) block(c, lx, fy - 0.3, 0.16, 0.16, 0, 40, T.metal, false);
+    block(c, x + 0.3, fy - 0.16, BOARD_W - 0.6, 0.16, 36, 98, T.dark ? '#16181c' : '#2a2d33', false);
+    const q = planeY(c, x + 0.36, x + BOARD_W - 0.36, fy + 0.005, 37, 97, '#0d0e10');
+    planeY(c, x + 0.36, x + BOARD_W - 0.36, fy + 0.008, 95.5, 97, T.hl);
+    const f = s.finance;
+    const runway = runwayDays(s);
+    const rows: [string, string, string][] = [
+      ['CASH', formatMoney(f.cash), f.cash < 0 ? T.down : T.fg],
+      ['RUNWAY', runwayLabel(runway).toUpperCase(), !isFinite(runway) ? T.up : runway < 180 ? T.down : runway < 540 ? T.warn : T.up],
+      ['VALUE', formatMoney(f.valuation), T.fg],
+    ];
+    // Text in the board's own plane: skewed with its top edge, so rows read level on the board.
+    const wq = q[2] - q[0];
+    const h = q[7] - q[1];
+    const fs = Math.max(7, Math.min(16, h / 4.4));
+    g.save();
+    g.translate(q[0], q[1]);
+    g.transform(1, (q[3] - q[1]) / Math.max(1, wq), 0, 1, 0, 0);
+    g.textBaseline = 'middle';
+    rows.forEach(([k, v, col], i) => {
+      const yy = h * (0.25 + i * 0.28);
+      g.font = `600 ${fs * 0.78}px ${T.figure}`;
+      g.textAlign = 'left';
+      g.fillStyle = T.fg3;
+      g.fillText(k, wq * 0.07, yy);
+      g.font = `700 ${fs}px ${T.figure}`;
+      g.textAlign = 'right';
+      g.fillStyle = col;
+      g.fillText(v, wq * 0.93, yy);
+    });
+    g.restore();
   }
 
   private rebuild(L: Layout): void {
@@ -233,9 +322,12 @@ export class TreasuryScene implements Scene {
     for (const lane of L.lanes) add(`expense:${lane.key}`, boxCorners(BUS.x, lane.y0, BIN.x1, lane.y1, 0, BIN.h + 2));
     add('revenue', [...boxCorners(-0.1, 5.7, 5.9, 6.7, 0, 4), ...boxCorners(5.1, 3.8, 6.1, 6.7, 0, 4)]);
     add('cash', [...boxCorners(VAULT.x0 - 0.2, -0.1, VAULT.x1 + 0.2, VAULT.y1 + 0.05, 0, VAULT.h + 2), ...boxCorners(6.3, 4.4, 7.8, 6.5, 0, 14)]);
+    add('revenue', boxCorners(this.dock.x, this.dock.y, this.dock.x + DOCK_W, this.dock.y + DOCK_D, 0, 22));
+    add('cash', boxCorners(this.board.x, this.board.y, this.board.x + BOARD_W, this.board.y + BOARD_D, 0, 98));
   }
 
-  draw(g: CanvasRenderingContext2D, s: GameState, dt: number): void {
+  draw(g: CanvasRenderingContext2D, s: GameState, dt: number, nowMs = Date.now()): void {
+    syncTheme(nowMs);
     this.time += dt;
     this.flow = (this.flow + dt * FLOW_SPEED) % 1;
     this.s = s;
@@ -251,17 +343,12 @@ export class TreasuryScene implements Scene {
     const sc = this.proj.scale;
     const p = this.proj;
 
-    // background
-    const bg = g.createLinearGradient(0, 0, 0, this.cssH);
-    bg.addColorStop(0, C.bgTop);
-    bg.addColorStop(1, C.bgBottom);
-    g.fillStyle = bg;
-    g.fillRect(0, 0, this.cssW, this.cssH);
-
+    drawGround(g, p, this.cssW, this.cssH);
     const c: Ctx = { g, p };
-    drawFloor(c, W, D, 1, TREAS.carpetA, TREAS.carpetB);
+    if (this.dock.row <= this.roomRow) this.drawDock(c, s);
+    if (this.board.row <= this.roomRow) this.drawMoneyBoard(c, s);
+    kitRoom(c, 0, 0, W, D, { wallH: WALL_H, floor: TREAS.carpetA, floorAlt: TREAS.carpetB, livery: true });
     parts.drawVaultFloor(c);
-    drawWalls(c, W, D, WALL_H, TREAS.trim);
     parts.drawShell(c);
     this.vals = this.chartValues(s);
     parts.drawBoard(c, s, t, this.vals);
@@ -282,17 +369,7 @@ export class TreasuryScene implements Scene {
         st[si].fn(c, t);
         si++;
       }
-      drawPerson(c, {
-        x: pe.x,
-        y: pe.y,
-        role: pe.role,
-        seed: pe.seed,
-        sitting: pe.sitting,
-        typing: false,
-        walkPhase: 0,
-        highlight: false,
-        t,
-      });
+      person(c, { x: pe.x, y: pe.y, role: pe.role, seed: pe.seed, sitting: pe.sitting, t });
       if (pe.kind === 'offer') this.drawTermSheet(g, pe, t, sc, p);
       if (pe.kind === 'collector') this.drawBriefcase(g, pe, sc, p);
     }
@@ -319,7 +396,7 @@ export class TreasuryScene implements Scene {
         const [lx, ly] = project(p, x, VAULT.y1, VAULT.h + 1);
         g.beginPath();
         g.arc(lx, ly, 2 * sc, 0, TAU);
-        g.fillStyle = Math.sin(t * 6) > 0 ? C.red : '#5a2a25';
+        g.fillStyle = Math.sin(t * 6) > 0 ? C.red : tone(0.203);
         g.fill();
       }
     }
@@ -337,18 +414,17 @@ export class TreasuryScene implements Scene {
       parts.drawPill(g, mx, my, `+${L.moreSeats} more`, C.amber);
     }
 
-    // HUD, bottom right
-    g.save();
-    g.font = '10px JetBrains Mono, monospace';
-    g.textAlign = 'right';
-    g.textBaseline = 'alphabetic';
-    g.fillStyle = C.textDim;
-    g.fillText(
-      `IN ${formatMoney(s.finance.dailyRevenue)}/DAY  ·  OUT ${formatMoney(s.finance.dailyExpenses)}/DAY`,
-      this.cssW - 10,
-      this.cssH - 8,
-    );
-    g.restore();
+    if (this.dock.row > this.roomRow) this.drawDock(c, s);
+    if (this.board.row > this.roomRow) this.drawMoneyBoard(c, s);
+    const small = this.cssW < 520;
+    const [dx, dy] = project(p, this.dock.x, this.dock.y + DOCK_D, 0);
+    tag(g, dx + 2, dy, 'Income', T.up, { value: `${formatMoney(s.finance.dailyRevenue)}/day`, size: small ? 9.5 : 10.5, align: 'left', anchor: 'center' });
+    const net = s.finance.dailyRevenue - s.finance.dailyExpenses;
+    hud(g, this.cssW, this.cssH, [
+      [`In ${formatMoney(s.finance.dailyRevenue)}/day`, T.up],
+      [`Out ${formatMoney(s.finance.dailyExpenses)}/day`, T.down],
+      [`Net ${net >= 0 ? '+' : ''}${formatMoney(net)}`, net >= 0 ? T.fg : T.down],
+    ]);
   }
 
   /**
@@ -359,7 +435,7 @@ export class TreasuryScene implements Scene {
     if (!L.lanes.length) return;
     const fs = Math.max(7, 8 * p.scale);
     g.save();
-    g.font = `600 ${fs}px JetBrains Mono, monospace`;
+    g.font = `600 ${fs}px ${T.figure}`;
     g.textAlign = 'center';
     g.textBaseline = 'middle';
     g.fillStyle = C.fgDim;
@@ -461,9 +537,9 @@ export class TreasuryScene implements Scene {
   /** The collector's briefcase, by the hand. */
   private drawBriefcase(g: CanvasRenderingContext2D, pe: Person, sc: number, p: Projector): void {
     const [bx, by] = project(p, pe.x, pe.y, 0);
-    g.fillStyle = '#4a2f22';
+    g.fillStyle = tone(0.203);
     g.fillRect(bx - 11 * sc, by - 10 * sc, 6 * sc, 4.5 * sc);
-    g.strokeStyle = '#2a1a12';
+    g.strokeStyle = tone(0.113);
     g.lineWidth = 1 * sc;
     g.strokeRect(bx - 11 * sc, by - 10 * sc, 6 * sc, 4.5 * sc);
   }

@@ -1,37 +1,34 @@
 // Market scene: the AI market as an isometric town. Three districts (Consumers: houses and cafes; Developers:
 // lofts and garages; Enterprise: glass towers). Each lot takes the colour of the lab that serves it, in proportion
-// to that segment's user share. Every lab has an HQ tower on the rim, taller with valuation. Hype sets the sky.
+// to that segment's user share; your lots are racing yellow. Every lab has an HQ tower, taller with valuation, in a
+// row after the districts (the kit's pod row lays it all out across the frame). Hype sets the sky.
 import type { GameState, Segment } from '../../sim/types';
 import { TILE_H, TILE_W, hashStr, prand, project, type Projector } from '../../office/iso';
-import { C, mix, shade } from '../../office/palette';
-import { type Ctx, floorLine, floorTile, glow, isoBlock, isoBox, planeX, planeY, poly, withAlpha } from '../../office/draw/prims';
+import { type Ctx, floorTile, isoBlock, isoBox, planeX, planeY, poly, withAlpha } from '../../office/draw/prims';
+import { T, TC as C, alpha, mix, shade, syncTheme } from '../../office/kit/theme';
+import { type Box2, type PodSpec, arrangePods, drawGround, feedMargins, fitTo, hud, tag } from '../../office/kit/frame';
 import { clamp, formatMoney, formatNumber } from '../../sim/util';
 import type { Scene, SceneHit } from '../types';
 import { COLS, PLAYER_KEY, SEGMENTS, SEG_NAME, buildView, type LabRec, type MarketView } from './view';
 
 const REFRESH_S = 0.25;
-/** Ground slab and the town proper (roads and districts live in 0..ROAD_MAX). */
-const SLAB_MIN = -2;
-const SLAB_MAX = 18;
-const ROAD_MAX = 16;
-/** Top-left lot of each district. Enterprise at the back, Consumers left, Developers right. */
-const ORIGIN: Record<Segment, [number, number]> = { enterprise: [0, 0], developer: [9, 0], consumer: [0, 9] };
-/** HQ slots on the rim, clockwise from the front corner (slot 0 is you). */
-const RING: [number, number][] = [[17, 17], [8, 17], [-1, 17], [-1, 8], [-1, -1], [8, -1], [17, -1], [17, 8]];
-/** Height above the ground that the fit leaves room for (the tallest HQ). */
-const TOWN_H = 130;
-const UNCLAIMED = '#4a463f';
-const ROAD = '#1b1917';
-const ROAD_LINE = '#2e2a25';
-const WINDOW_LIT = '#ffc66b';
-const FLOOR: Record<Segment, [string, string]> = {
-  consumer: ['#2b2824', '#26231f'],
-  developer: ['#2a2c2f', '#25272a'],
-  enterprise: ['#2d3133', '#282b2d'],
-};
-const SKY_TOP: [string, string] = ['#202225', '#2a1a0c'];
-const SKY_BOTTOM: [string, string] = ['#34373b', '#6e4215'];
-const BALLOON_COLORS = [C.amber, C.blue, C.green, C.red, C.yellow, C.fgDim];
+/** An HQ pod: a plaza around the tower. */
+const HQ_POD = 2.6;
+
+function unclaimed(): string {
+  return T.dark ? mix(T.bg3, T.fg4, 0.5) : mix(T.bg3, T.fg4, 0.6);
+}
+function road(): string {
+  return T.dark ? '#141518' : '#c4c7cd';
+}
+function floorOf(seg: Segment): [string, string] {
+  const tint = seg === 'consumer' ? '#5a4a3a' : seg === 'developer' ? '#3a4a5a' : '#4a4a52';
+  return [mix(T.floor, tint, 0.12), mix(T.floorAlt, tint, 0.12)];
+}
+/** Lab colour on the map: you are racing yellow, the team colour. */
+function colorOf(lab: LabRec): string {
+  return lab.isPlayer ? T.hl : lab.color;
+}
 
 /** Lab HQ height in z units: about 48 at $10M valuation, 120 at $100B. */
 function hqHeight(valuation: number): number {
@@ -41,6 +38,10 @@ function hqHeight(valuation: number): number {
 
 function pct(v: number): string {
   return `${(v * 100).toFixed(v >= 0.1 ? 0 : 1)}%`;
+}
+
+function roleBlue(): string {
+  return T.dark ? '#5b9bff' : '#2f6fdc';
 }
 
 function hypeWord(v: number): string {
@@ -98,26 +99,6 @@ interface DrawItem {
   fn: (c: Ctx) => void;
 }
 
-/** Small label in the office's terminal style: black box, hairline frame, mono text. */
-function pill(g: CanvasRenderingContext2D, x: number, y: number, text: string, color: string): void {
-  g.save();
-  g.font = '600 10px JetBrains Mono, monospace';
-  const w = Math.ceil(g.measureText(text).width) + 12;
-  const h = 16;
-  const px = Math.round(x - w / 2);
-  const py = Math.round(y - h);
-  g.fillStyle = '#000000';
-  g.fillRect(px, py, w, h);
-  g.strokeStyle = withAlpha(color, 0.9);
-  g.lineWidth = 1;
-  g.strokeRect(px + 0.5, py + 0.5, w - 1, h - 1);
-  g.fillStyle = C.fg;
-  g.textAlign = 'center';
-  g.textBaseline = 'middle';
-  g.fillText(text, px + w / 2, py + h / 2 + 0.5);
-  g.restore();
-}
-
 export class MarketScene implements Scene {
   private view: MarketView | null = null;
   private sig = '';
@@ -132,32 +113,47 @@ export class MarketScene implements Scene {
   private leds: Led[] = [];
   private flags: Flag[] = [];
   private you: [number, number] | null = null;
+  private theme = 0;
+  /** Placed district origins (back corner of the lots) and their size in lots, and each lab's HQ centre. */
+  private origin: Partial<Record<Segment, [number, number, number, number]>> = {};
+  private hqAt = new Map<string, [number, number]>();
+  private box: Box2 = { x0: 0, y0: 0, x1: 1, y1: 1 };
 
   resize(cssW: number, cssH: number): void {
     this.cssW = cssW;
     this.cssH = cssH;
-    this.fit();
     // Rebuild the cached town at the new size on the next frame.
     this.sigTimer = 0;
   }
 
-  /** Fit the town into the canvas (CSS px). The rim sits at -2..18 on the floor grid. */
-  private fit(): void {
-    const pad = 10;
-    const availW = Math.max(40, this.cssW - pad * 2);
-    const availH = Math.max(40, this.cssH - pad * 2);
-    // Horizontal: x - y spans -20..20 on the slab. Vertical: x + y spans -4..36, plus the tallest HQ above it.
-    const sW = availW / (40 * (TILE_W / 2));
-    const sH = availH / (40 * (TILE_H / 2) + TOWN_H);
-    const s = clamp(Math.min(sW, sH, 2.4), 0.3, 2.4);
-    const spare = availH - (40 * (TILE_H / 2) + TOWN_H) * s;
-    this.proj.scale = s;
-    this.proj.ox = this.cssW / 2;
-    // The back corner (x + y = -4) sits TOWN_H below the top pad, so the tallest HQ clears it.
-    this.proj.oy = pad + spare / 2 + (TOWN_H + 4 * (TILE_H / 2)) * s;
+  /** Lay the districts and HQs out as pods across the frame, then fit the camera on them. */
+  private place(v: MarketView): void {
+    const m = feedMargins(this.cssW, this.cssH);
+    const specs: PodSpec[] = [];
+    for (const seg of SEGMENTS) {
+      const n = v.segs[seg].n;
+      const cols = Math.min(COLS, n);
+      const rows = Math.max(1, Math.ceil(n / COLS));
+      const h = seg === 'enterprise' ? (34 + 58) * v.segs[seg].scale + 3 : seg === 'developer' ? 36 : 26;
+      specs.push({ w: cols + 1, d: rows + 1, h });
+    }
+    for (const lab of v.labs) specs.push({ w: HQ_POD, d: HQ_POD, h: hqHeight(lab.valuation) + 18 });
+    const plan = arrangePods(specs, Math.max(40, this.cssW - m.l - m.r), Math.max(40, this.cssH - m.t - m.b), 1.2, 1.2, 3);
+    SEGMENTS.forEach((seg, i) => {
+      const n = v.segs[seg].n;
+      this.origin[seg] = [plan.x[i] + 0.5, plan.y[i] + 0.5, Math.min(COLS, n), Math.max(1, Math.ceil(n / COLS))];
+    });
+    this.hqAt.clear();
+    v.labs.forEach((lab, k) => {
+      const i = SEGMENTS.length + k;
+      this.hqAt.set(lab.key, [plan.x[i] + HQ_POD / 2, plan.y[i] + HQ_POD / 2]);
+    });
+    this.box = plan.box;
+    fitTo(this.proj, this.box, this.cssW, this.cssH);
   }
 
-  draw(g: CanvasRenderingContext2D, s: GameState, dt: number, _nowMs: number): void {
+  draw(g: CanvasRenderingContext2D, s: GameState, dt: number, nowMs: number): void {
+    this.theme = syncTheme(nowMs);
     this.time += dt;
     const t = this.time;
     const dpr = g.getTransform().a || 1;
@@ -170,6 +166,7 @@ export class MarketScene implements Scene {
       const sig = this.signature(v, dpr);
       if (sig !== this.sig) {
         this.sig = sig;
+        this.place(v);
         this.buildCache(v, dpr);
       }
     }
@@ -178,19 +175,16 @@ export class MarketScene implements Scene {
     const H = this.cssH;
     const tH = v.hype / 100;
 
-    // Sky: grey and flat in a winter, warm dusk when hype runs hot.
-    const sky = g.createLinearGradient(0, 0, 0, H);
-    sky.addColorStop(0, mix(SKY_TOP[0], SKY_TOP[1], tH));
-    sky.addColorStop(1, mix(SKY_BOTTOM[0], SKY_BOTTOM[1], tH));
+    // Ground, then the sky band: grey and flat in a winter, a warm dusk when hype runs hot.
+    drawGround(g, this.proj, W, H);
+    const sky = g.createLinearGradient(0, 0, 0, H * 0.55);
+    sky.addColorStop(0, alpha(mix(T.bg, T.warn, 0.35 * tH), T.dark ? 0.9 : 0.5));
+    sky.addColorStop(1, alpha(T.bg, 0));
     g.fillStyle = sky;
-    g.fillRect(0, 0, W, H);
-    g.save();
-    g.globalCompositeOperation = 'lighter';
-    glow(g, W / 2, H * 0.12, W * 0.5, C.amber, 0.12 * tH);
-    g.restore();
+    g.fillRect(0, 0, W, H * 0.55);
     const fog = clamp(1 - v.hype / 35, 0, 1);
     if (fog > 0) {
-      g.fillStyle = `rgba(200,200,200,${(0.05 * fog).toFixed(3)})`;
+      g.fillStyle = alpha(T.fg, 0.035 * fog);
       for (let k = 0; k < 3; k++) {
         const y = H * (0.12 + 0.12 * k) + Math.sin(t * 0.08 + k * 2) * 5;
         g.fillRect(0, y, W, H * 0.06);
@@ -206,7 +200,7 @@ export class MarketScene implements Scene {
       const r = 3.5 + 2 * prand(seed + 9);
       g.beginPath();
       g.ellipse(bx, by, r, r * 1.2, 0, 0, Math.PI * 2);
-      g.fillStyle = BALLOON_COLORS[i % BALLOON_COLORS.length];
+      g.fillStyle = [T.hl, roleBlue(), T.up, T.down, T.warn, T.fg2][i % 6];
       g.globalAlpha = 0.85;
       g.fill();
       g.globalAlpha = 1;
@@ -238,22 +232,33 @@ export class MarketScene implements Scene {
       const fh = 5 * sc;
       poly(g, [f.x, f.y, f.x + fw, f.y + wv, f.x + fw, f.y + fh + wv, f.x, f.y + fh], f.color);
     }
-    // Your HQ is highlighted.
-    if (this.you) {
-      glow(g, this.you[0], this.you[1], 40 * sc, C.fg, 0.1 + 0.05 * Math.sin(t * 2));
-    }
-
-    // Walkers on the roads: more of them as hype rises.
-    const nW = Math.round(1 + 14 * tH);
-    g.fillStyle = C.fgDim;
+    // Walkers on each district's front road: more of them as hype rises.
+    const nW = Math.round(2 + 16 * tH);
+    g.fillStyle = T.fg2;
     for (let i = 0; i < nW; i++) {
+      const o = this.origin[SEGMENTS[i % 3]];
+      if (!o) continue;
       const seed = i * 0.618 + 0.13;
       const p = (t * (0.02 + 0.03 * prand(seed * 91.7)) + prand(seed * 13.1)) % 1;
-      const along = -0.5 + 17 * p;
-      const [wx, wy] = i % 2 === 0 ? [along, 8] : [8, along];
-      const [sx, sy] = project(this.proj, wx, wy, 1);
-      g.fillRect(sx - 1, sy - 1, 2, 2);
+      const [sx, sy] = project(this.proj, o[0] - 0.4 + (o[2] + 0.8) * p, o[1] + o[3] + 0.25, 1);
+      g.fillRect(sx - 1, sy - 2, 2, 3);
     }
+
+    // District tags (with your share) and the YOU tag over your HQ.
+    const small = W < 520;
+    for (const seg of SEGMENTS) {
+      const o = this.origin[seg];
+      if (!o) continue;
+      const [lx, ly] = project(this.proj, o[0] - 0.5, o[1] + o[3] + 0.5, 0);
+      const share = v.segs[seg].playerShare;
+      tag(g, lx + 2, ly, SEG_NAME[seg], share > 0 ? T.hl : T.fg3, { value: pct(share), size: small ? 9.5 : 10.5, align: 'left', anchor: 'center' });
+    }
+    if (this.you) tag(g, this.you[0], this.you[1] - 4, 'You', T.hl, { solid: true, size: small ? 9.5 : 10.5, alpha: 0.8 + 0.2 * Math.sin(t * 2) });
+    hud(g, W, H, [
+      [`AI hype ${Math.round(v.hype)}`, T.fg],
+      [hypeWord(v.hype), v.hype >= 60 ? T.warn : v.hype < 20 ? T.blue : T.fg2],
+      [`${v.labs.length - 1} rival labs`, T.fg3],
+    ]);
   }
 
   hitTest(x: number, y: number): SceneHit | null {
@@ -303,7 +308,7 @@ export class MarketScene implements Scene {
   }
 
   private signature(v: MarketView, dpr: number): string {
-    const parts: (string | number)[] = [this.cssW, this.cssH, dpr, Math.round(v.hype / 10)];
+    const parts: (string | number)[] = [this.cssW, this.cssH, dpr, Math.round(v.hype / 10), this.theme];
     for (const seg of SEGMENTS) {
       const sr = v.segs[seg];
       parts.push(seg, sr.n, sr.owner.map((k) => k ?? '-').join(','), Math.round(sr.scale * 20));
@@ -332,21 +337,27 @@ export class MarketScene implements Scene {
     const litP = 0.12 + 0.55 * (v.hype / 100);
     const items: DrawItem[] = [];
 
-    // Slab and roads.
-    isoBlock(c, SLAB_MIN, SLAB_MIN, SLAB_MAX - SLAB_MIN, SLAB_MAX - SLAB_MIN, -4, 0, C.floorEdge, '#131110', '#0f0d0c');
-    floorTile(c, 0, 0, ROAD_MAX, ROAD_MAX, ROAD);
-    floorLine(c, 8, -0.5, 8, 16.5, 0.02, ROAD_LINE, 2);
-    floorLine(c, -0.5, 8, 16.5, 8, 0.02, ROAD_LINE, 2);
-
-    // Your HQ plinth belongs on the ground, so it goes in before any building.
-    const [ys, yt] = RING[0];
-    floorTile(c, ys - 1.1, yt - 1.1, 2.2, 2.2, withAlpha(C.fg, 0.12));
+    // District slabs (their rim is the ring road) and HQ plazas.
+    for (const seg of SEGMENTS) {
+      const o = this.origin[seg];
+      if (!o) continue;
+      isoBlock(c, o[0] - 0.5, o[1] - 0.5, o[2] + 1, o[3] + 1, -3, 0, road(), shade(T.slab, 0.9), T.slab);
+      for (let k = 0; k <= o[2]; k += 1) floorTile(c, o[0] - 0.45 + k, o[1] + o[3] + 0.23, 0.4, 0.04, alpha(T.hl, 0.45));
+    }
+    for (const lab of v.labs) {
+      const at = this.hqAt.get(lab.key);
+      if (!at) continue;
+      const h = HQ_POD / 2;
+      isoBlock(c, at[0] - h, at[1] - h, HQ_POD, HQ_POD, -3, 0, lab.isPlayer ? mix(T.floor, T.hl, 0.18) : T.floor, shade(T.slab, 0.9), T.slab);
+    }
 
     // Lots: ground first, then the buildings, depth-sorted with the HQs.
     for (const seg of SEGMENTS) {
       const sr = v.segs[seg];
-      const [ox, oy] = ORIGIN[seg];
-      const [f0, f1] = FLOOR[seg];
+      const o = this.origin[seg];
+      if (!o) continue;
+      const [ox, oy] = o;
+      const [f0, f1] = floorOf(seg);
       this.rects[seg] = { x0: ox, y0: oy, x1: ox + Math.min(COLS, sr.n), y1: oy + Math.max(1, Math.ceil(sr.n / COLS)) };
       for (let i = 0; i < sr.n; i++) {
         const col = i % COLS;
@@ -355,9 +366,9 @@ export class MarketScene implements Scene {
         const wy = oy + row;
         const owner = sr.owner[i];
         const lab = owner ? v.byKey.get(owner) : undefined;
-        const L = lab ? lab.color : UNCLAIMED;
+        const L = lab ? colorOf(lab) : unclaimed();
         floorTile(c, wx, wy, 1, 1, (col + row) % 2 ? f1 : f0);
-        if (lab) floorTile(c, wx, wy, 1, 1, withAlpha(lab.color, 0.22));
+        if (lab) floorTile(c, wx, wy, 1, 1, withAlpha(colorOf(lab), 0.22));
         const hash = hashStr(`${seg}:${i}`);
         const h2 = hashStr(`${seg}:${i}:h`);
         const key = lab?.key;
@@ -380,7 +391,9 @@ export class MarketScene implements Scene {
 
     // HQ towers on the rim.
     for (const lab of v.labs) {
-      const [sx, sy] = RING[lab.slot] ?? RING[0];
+      const at = this.hqAt.get(lab.key);
+      if (!at) continue;
+      const [sx, sy] = at;
       const h = hqHeight(lab.valuation);
       items.push({ d: sx + sy + 0.5, fn: (cc) => this.hq(cc, lab, sx, sy, h, litP) });
     }
@@ -388,17 +401,6 @@ export class MarketScene implements Scene {
     items.sort((a, b) => a.d - b.d);
     for (const it of items) it.fn(c);
 
-    // District names, in the roads beside each district.
-    // On the sidewalks at the outer edge, clear of the towers.
-    const names: [Segment, number, number][] = [
-      ['enterprise', -1.6, 3.5],
-      ['developer', 17.6, 3.5],
-      ['consumer', -1.6, 12.5],
-    ];
-    for (const [seg, x, y] of names) {
-      const [px, py] = project(this.proj, x, y, 0);
-      pill(g, px, py, SEG_NAME[seg].toUpperCase(), C.fgDim);
-    }
   }
 
   private led(p: Projector, x: number, y: number, z: number, color: string, rate: number, seed: string): void {
@@ -415,8 +417,8 @@ export class MarketScene implements Scene {
         const bx = x0 + ((x1 - x0) * (k + 0.78)) / cols;
         const az = z0 + ((z1 - z0) * (r + 0.25)) / rows;
         const bz = z0 + ((z1 - z0) * (r + 0.7)) / rows;
-        planeY(c, ax, bx, y, az, bz, WINDOW_LIT);
-        if (hashStr(`${seed}|L|${r}|${k}`) < 0.1) this.led(c.p, (ax + bx) / 2, y, (az + bz) / 2, WINDOW_LIT, 1.2, `${seed}${r}${k}`);
+        planeY(c, ax, bx, y, az, bz, T.lamp);
+        if (hashStr(`${seed}|L|${r}|${k}`) < 0.1) this.led(c.p, (ax + bx) / 2, y, (az + bz) / 2, T.lamp, 1.2, `${seed}${r}${k}`);
       }
     }
   }
@@ -430,7 +432,7 @@ export class MarketScene implements Scene {
         const by = y0 + ((y1 - y0) * (k + 0.78)) / cols;
         const az = z0 + ((z1 - z0) * (r + 0.25)) / rows;
         const bz = z0 + ((z1 - z0) * (r + 0.7)) / rows;
-        planeX(c, x, ay, by, az, bz, WINDOW_LIT);
+        planeX(c, x, ay, by, az, bz, shade(T.lamp, 0.85));
       }
     }
   }
@@ -462,12 +464,12 @@ export class MarketScene implements Scene {
     // Striped awning over the front, warm windows below it.
     const az = h * 0.38;
     for (let k = 0; k < 4; k++) {
-      planeY(c, ox + 0.06 + k * 0.15, ox + 0.06 + (k + 1) * 0.15, oy + w + 0.01, az, az + 2, k % 2 ? '#efe6d2' : L);
+      planeY(c, ox + 0.06 + k * 0.15, ox + 0.06 + (k + 1) * 0.15, oy + w + 0.01, az, az + 2, k % 2 ? T.fg : L);
     }
-    planeY(c, ox + 0.08, ox + w - 0.08, oy + w + 0.01, 1.2, az - 0.6, '#f0a040');
-    planeX(c, ox + w + 0.01, oy + 0.08, oy + w - 0.08, 1.2, az - 0.6, '#f0a040');
+    planeY(c, ox + 0.08, ox + w - 0.08, oy + w + 0.01, 1.2, az - 0.6, T.lamp);
+    planeX(c, ox + w + 0.01, oy + 0.08, oy + w - 0.08, 1.2, az - 0.6, shade(T.lamp, 0.8));
     // Sign on the roof, lit in the lab colour.
-    isoBlock(c, ox + 0.2, oy + 0.2, 0.3, 0.3, h, h + 2.4, C.fg, '#3a3733', '#2e2c29');
+    isoBlock(c, ox + 0.2, oy + 0.2, 0.3, 0.3, h, h + 2.4, T.fg2, shade(T.fg2, 0.5), shade(T.fg2, 0.7));
     this.led(c.p, ox + 0.35, oy + 0.35, h + 1.2, L, 1.5, `${ox}${oy}cafe`);
     return bboxOf(c.p, ox, oy, w, w, h + 2.4);
   }
@@ -481,7 +483,7 @@ export class MarketScene implements Scene {
     this.winY(c, ox + 0.06, ox + w - 0.06, oy + w, 3, h - 2, 3, Math.max(1, Math.floor((h - 5) / 4)), `${seed}y`, litP);
     this.winX(c, ox + w, oy + 0.06, oy + w - 0.06, 3, h - 2, 3, Math.max(1, Math.floor((h - 5) / 4)), `${seed}x`, litP);
     // Rooftop: a dark cap with a green strip LED, the co-working tell.
-    isoBlock(c, ox + 0.12, oy + 0.12, w - 0.24, w - 0.24, h, h + 1.4, '#2b2b2b', '#1f1f1f', '#262626');
+    isoBlock(c, ox + 0.12, oy + 0.12, w - 0.24, w - 0.24, h, h + 1.4, T.metalDark, shade(T.metalDark, 0.7), shade(T.metalDark, 0.85));
     this.led(c.p, ox + w / 2, oy + w / 2, h + 1.4, C.green, 1 + hype / 60, `${seed}roof`);
     return bboxOf(c.p, ox, oy, w, w, h + 1.4);
   }
@@ -492,7 +494,7 @@ export class MarketScene implements Scene {
     const w = 0.7;
     isoBox(c, ox, oy, w, w, h, L, shade(L, 0.4), shade(L, 0.62));
     // Roll-up door, and a screen glowing green inside the front.
-    planeY(c, ox + 0.14, ox + w - 0.14, oy + w + 0.01, 0.6, h * 0.55, '#0e0d0c');
+    planeY(c, ox + 0.14, ox + w - 0.14, oy + w + 0.01, 0.6, h * 0.55, T.screen);
     this.led(c.p, ox + w / 2, oy + w + 0.02, h * 0.8, C.green, 4, `${ox}${oy}garage`);
     return bboxOf(c.p, ox, oy, w, w, h);
   }
@@ -517,21 +519,17 @@ export class MarketScene implements Scene {
     const x0 = sx - 0.7;
     const y0 = sy - 0.7;
     const w = 1.4;
-    const L = lab.color;
+    const L = colorOf(lab);
     isoBox(c, x0, y0, w, w, h, L, shade(L, 0.42), shade(L, 0.62));
     this.bands(c, x0, y0, w, w, h, 5, L);
     const rows = Math.max(1, Math.floor((h - 8) / 5));
     this.winY(c, x0 + 0.1, x0 + w - 0.1, y0 + w, 4, h - 4, 3, rows, `hq${lab.key}y`, litP + 0.2);
     this.winX(c, x0 + w, y0 + 0.1, y0 + w - 0.1, 4, h - 4, 3, rows, `hq${lab.key}x`, litP + 0.2);
     isoBlock(c, x0 + 0.25, y0 + 0.25, w - 0.5, w - 0.5, h, h + 6, L, shade(L, 0.6), shade(L, 0.8));
-    isoBlock(c, sx - 0.03, sy - 0.03, 0.06, 0.06, h + 6, h + 18, '#8a847a', '#5a554e', '#6a655e');
+    isoBlock(c, sx - 0.03, sy - 0.03, 0.06, 0.06, h + 6, h + 18, T.metal, shade(T.metal, 0.6), shade(T.metal, 0.8));
     const [fx, fy] = project(c.p, sx, sy, h + 18);
     this.flags.push({ x: fx, y: fy, color: L, seed: lab.slot * 1.7 });
-    if (lab.isPlayer) {
-      this.you = [fx, fy];
-      // The label sits above the flag.
-      pill(c.g, fx, fy - 8, 'YOU', C.fg);
-    }
+    if (lab.isPlayer) this.you = [fx, fy];
     const box = bboxOf(c.p, x0, y0, w, w, h + 18);
     box[2] += 14 * this.proj.scale; // the flag flies to the right
     this.hits.push({ kind: 'lab', key: lab.key, box });
