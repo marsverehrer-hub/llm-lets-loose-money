@@ -68,7 +68,6 @@ export function PerkTree({ s }: { s: GameState }) {
   return (
     <Card
       title="Perks"
-      code="PRK"
       subtitle={`${p.perkPoints} point${p.perkPoints === 1 ? '' : 's'} to spend · one capstone per lab`}
       actions={
         p.perks.length > 0 && (

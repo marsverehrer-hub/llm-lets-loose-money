@@ -16,13 +16,12 @@ export function ProductsCard({ s }: { s: GameState }) {
     sub: `${KIND_LABEL[p.kind] ?? p.kind} · ${formatNumber(p.users, 1)} users`,
     value: p.revenuePerDay,
     color: KIND_COLOR[p.kind],
-    extra: p.servedFraction < 1 ? <Pill tone="bad" title="Some users are not being served. Buy compute.">Short</Pill> : undefined,
+    extra: p.servedFraction < 1 ? <Pill tone="bad" title="Some users are not being served: its model is off sale or an incident took it down. More GPUs will not fix it; see Products.">Outage</Pill> : undefined,
   }));
 
   return (
     <Card
       title="Products"
-      code="PRD"
       subtitle={live.length ? `${live.length} live` : 'Nothing shipped'}
       actions={
         <Button variant="ghost" size="sm" onClick={() => navigate('products')}>

@@ -858,3 +858,5 @@
   .tw-wiz .tw-stepper { margin: 12px 0 0; }
   .tw-wiz .tw-q { margin: 16px 0 4px; }
 }
+/* v17.2: the "before you train" tip in the quick start. */
+.tw-tip { padding: 10px 12px; border: 1px solid var(--line); box-shadow: inset 4px 0 0 var(--hl); background: var(--bg-2); }

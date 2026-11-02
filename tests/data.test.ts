@@ -273,7 +273,7 @@ describe('buying and licences', () => {
     expect(st.owned).toBe(3);
     expect(st.licences).toBe(1);
     expect(st.licenceCostPerYear).toBe(1_000_000);
-    expect(st.totalTokensB).toBeCloseTo(5 + 30 + 3, 6);
+    expect(st.totalTokensB).toBeCloseTo(15 + 30 + 3, 6); // v17.2: the free web sample is 15B
   });
 });
 
@@ -384,7 +384,7 @@ describe('synthetic generation', () => {
 
   it('penalises training that is mostly synthetic, more when the synthetic sets are collapse-prone', () => {
     const s = fresh(dayOf(2025));
-    expect(syntheticShare(['scrawl_sample', 'textbooks_synth'], s)).toBeCloseTo(50 / 55, 6);
+    expect(syntheticShare(['scrawl_sample', 'textbooks_synth'], s)).toBeCloseTo(50 / 65, 6); // 50B synthetic of 65B
     expect(collapsePenalty(s, ['scrawl_sample'])).toBe(1);
     expect(collapsePenalty(s, ['textbooks_synth'])).toBeLessThan(1);
     s.data.custom = [{

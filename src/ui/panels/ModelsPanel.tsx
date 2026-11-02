@@ -6,7 +6,7 @@
 // the model page (src/ui/panels/model/) for the selected model, and the lab notebook.
 import { NetView, netSpecOfText } from '../components';
 import { useState } from 'preact/hooks';
-import { dispatch, useGame } from '../store';
+import { dispatch, getState, useGame } from '../store';
 import { formatFlops, formatParams } from '../../sim/util';
 import { emergenceById } from '../../sim/data/emergences';
 import { currentRunBand, emergenceJournal, labStats, provisionalElo } from '../../sim/systems/lab';
@@ -30,10 +30,10 @@ import { DistillWizard } from './train/DistillWizard';
 import { MergeWizard } from './train/MergeWizard';
 import { TrainingQueue } from './train/TrainingQueue';
 import { getView, setView, useDraftStore } from './train/draft';
+import { useIntent } from '../nav';
 import { arenaTop, bandText, fmtCtx, lineageRows, optionName, pct, r0, tokensShort } from './train/model';
-import { ArmButton } from './model/parts';
 import { CLASS_NAME, ModelPage } from './model/ModelPage';
-import { statusPills } from './model/status';
+import { OFF_SALE_TIP, statusPills } from './model/status';
 import { MediaStudio } from './model/MediaStudio'; // v16 image and video models
 import './models.css';
 import { ConfirmButton } from './panelKit';
@@ -44,11 +44,27 @@ import './models-rows.css';
 // panel
 // ---------------------------------------------------------------------------
 
+/** Scrolls an element into view once the next render has placed it. */
+function scrollToSoon(id: string): void {
+  requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
+}
+
 export function ModelsPanel() {
   const s = useGame();
   useDraftStore();
   const view = getView();
   const [selId, setSelId] = useState<Id | null>(null);
+  // v17.2: buttons elsewhere land here on the thing they name (train sheet, release wizard, a model, the live run).
+  useIntent('models', (i) => {
+    if (!('open' in i)) return;
+    if (i.open === 'train') return setView({ kind: 'train' });
+    if (i.open === 'release') return setView({ kind: 'release', modelId: i.modelId });
+    setView({ kind: 'list' });
+    if (i.open === 'model') setSelId(i.modelId);
+    // With only an image or video run live, "the run" is the one in the studio.
+    const g = getState();
+    scrollToSoon(i.open === 'model' ? 'md-detail' : !g.training && g.media?.run ? 'md-media' : 'md-run');
+  });
 
   // A model awaiting its eval-day reveal stays off the list so the scores aren't spoiled behind the modal.
   const hiddenId = s.pendingReveal?.modelId;
@@ -58,7 +74,6 @@ export function ModelsPanel() {
   const detail = models.find((m) => m.id === selId) ?? models[0] ?? null;
   const header = (
     <PanelHeader
-      code="MDL"
       title="Models"
       subtitle="Train on data you own, then release the models that survive."
       actions={
@@ -115,6 +130,9 @@ export function ModelsPanel() {
     <div class="panel md-panel">
       {header}
       <PanelIntro id="models">Pick a model to see its profile. New model starts a training run; release the ones that hold up.</PanelIntro>
+      <div id="md-run">{s.training ? <LiveRun s={s} run={s.training} /> : <StartCard s={s} />}</div>
+      <TrainingQueue />
+      <ModelList s={s} models={models} selId={detail?.id ?? null} onSelect={setSelId} />
       <SceneView
         state={s}
         make={createVault}
@@ -125,12 +143,15 @@ export function ModelsPanel() {
           if (hit.id.startsWith('model:')) setSelId(hit.id.slice(6));
         }}
       />
-      {s.training ? <LiveRun s={s} run={s.training} /> : <StartCard s={s} />}
-      <TrainingQueue />
-      <ModelList s={s} models={models} selId={detail?.id ?? null} onSelect={setSelId} />
-      {detail && <ModelPage key={detail.id} s={s} m={detail} />}
+      {detail && (
+        <div id="md-detail">
+          <ModelPage key={detail.id} s={s} m={detail} />
+        </div>
+      )}
       <LabNotebook s={s} />
-      <MediaStudio s={s} />
+      <div id="md-media">
+        <MediaStudio s={s} />
+      </div>
     </div>
   );
 }
@@ -144,7 +165,7 @@ function StartCard({ s }: { s: GameState }) {
       ? 'No runs yet. Your first forecast is a guess.'
       : `Forecast accuracy ±${stats.forecastError.toFixed(1)} over recent runs · ${runs} run${runs === 1 ? '' : 's'} · ${stats.verified} verified set${stats.verified === 1 ? '' : 's'}`;
   return (
-    <Card code="NEW" title="Start a new model">
+    <Card title="Start a new model">
       <div class="md-action">
         <div>
           <div class="md-desc">{line}</div>
@@ -206,11 +227,10 @@ function LiveRun({ s, run }: { s: GameState; run: TrainingRun }) {
 
   return (
     <Card
-      code={isFt ? 'FT' : 'RUN'}
       title={isFt ? 'Fine-tuning' : 'Training'}
       subtitle={run.name}
       glow
-      actions={<ArmButton label="Cancel run" confirmLabel="Discard progress?" onConfirm={() => dispatch({ type: 'cancelTraining' })} />}
+      actions={<ConfirmButton class="btn-sm" label="Cancel run" confirmLabel="Discard progress?" onConfirm={() => dispatch({ type: 'cancelTraining' })} />}
     >
       <div class="md-stack">
         <ProgressBar
@@ -318,15 +338,13 @@ function LiveRun({ s, run }: { s: GameState; run: TrainingRun }) {
                   Finishes now at {pct(progress)} and keeps {pct(keepNow)} of full-run quality. Saves about {formatDays(eta)}.
                 </div>
               </div>
-              <button
-                type="button"
-                class="btn"
+              <ConfirmButton
+                label="Stop early"
+                confirmLabel="Stop it now?"
                 disabled={progress <= 0 || pending}
                 title={progress <= 0 ? 'Nothing trained yet. Cancel instead.' : undefined}
-                onClick={() => dispatch({ type: 'earlyStopTraining' })}
-              >
-                Stop early
-              </button>
+                onConfirm={() => dispatch({ type: 'earlyStopTraining' })}
+              />
             </div>
             {[0.25, 0.5].map((f) => {
               const ext = extendPreview(s, run, cfg, f);
@@ -402,12 +420,10 @@ function MiniBar({ label, value, hidden, tone }: { label: string; value: number;
   );
 }
 
-/** Retire a released model: one small button with a confirm step (v10.1: no "More" menu). */
+/** Take a released model off sale: one small button with a confirm step (v10.1: no "More" menu). */
 function MoreMenu({ m }: { m: Model }) {
   return (
-    <span title="Takes it out of the lineup. It stops counting as a live model.">
-      <ConfirmButton class="btn-sm" label="Retire" confirmLabel="Retire it?" onConfirm={() => dispatch({ type: 'deprecateModel', modelId: m.id })} />
-    </span>
+    <ConfirmButton class="btn-sm" label="Take off sale" confirmLabel="Take it off sale?" title={OFF_SALE_TIP} onConfirm={() => dispatch({ type: 'deprecateModel', modelId: m.id })} />
   );
 }
 
@@ -541,7 +557,6 @@ function ModelList({ s, models, selId, onSelect }: { s: GameState; models: Model
   const showTable = !isPhone && mode === 'table';
   return (
     <Card
-      code="LST"
       title="Models"
       subtitle={`${models.length} trained`}
       flush
@@ -592,7 +607,6 @@ function LabNotebook({ s }: { s: GameState }) {
 
   return (
     <Card
-      code="LAB"
       title="Lab notebook"
       subtitle={stats.undiscovered > 0 ? `${stats.undiscovered} still undiscovered` : 'Nothing left to find'}
       actions={

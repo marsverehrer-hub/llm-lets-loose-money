@@ -118,3 +118,21 @@ describe('frontier curve', () => {
     expect(frontierQuality(2017.5)).toBe(50);
   });
 });
+
+describe('v17.2 pitching investors', () => {
+  it('brings a term sheet forward, then waits out the cooldown', async () => {
+    const { PITCH_TUNING, pitchReadiness } = await import('../src/sim/systems/finance');
+    const s = createInitialState(9, 'Pitch');
+    expect(pitchReadiness(s).ok).toBe(true);
+    dispatch(s, { type: 'pitchInvestors' });
+    expect(s.finance.pendingOffer).not.toBeNull();
+    expect(pitchReadiness(s).ok).toBe(false); // an offer is on the table
+    dispatch(s, { type: 'declineOffer' });
+    expect(pitchReadiness(s).daysLeft).toBe(PITCH_TUNING.COOLDOWN_DAYS);
+    dispatch(s, { type: 'pitchInvestors' });
+    expect(s.finance.pendingOffer).toBeNull();
+    s.day += PITCH_TUNING.COOLDOWN_DAYS;
+    dispatch(s, { type: 'pitchInvestors' });
+    expect(s.finance.pendingOffer).not.toBeNull();
+  });
+});

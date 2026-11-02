@@ -143,8 +143,43 @@ function sumValues(o: Record<string, number>): number {
   for (const k of Object.keys(o)) t += o[k];
   return t;
 }
-function nextOfferGap(rng: Rng): number {
-  return Math.round(rng.range(OFFER_GAP_MIN_DAYS, OFFER_GAP_MAX_DAYS));
+function nextOfferGap(s: GameState, rng: Rng): number {
+  // v17.2: before Series A investors circle faster; a young lab lives on its next round.
+  const early = (s.finance.roundLog?.length ?? 0) < 2;
+  return Math.round(early ? rng.range(PITCH_TUNING.EARLY_GAP_MIN_DAYS, PITCH_TUNING.EARLY_GAP_MAX_DAYS) : rng.range(OFFER_GAP_MIN_DAYS, OFFER_GAP_MAX_DAYS));
+}
+
+/**
+ * v17.2 (GAME_DESIGN §30): raising money is something the player can do, not only wait for. A pitch brings the next
+ * term sheet forward (priced as usual from the valuation); a strong release (valuation at twice the last round) also
+ * brings investors calling.
+ */
+export const PITCH_TUNING = {
+  COOLDOWN_DAYS: 90,
+  EARLY_GAP_MIN_DAYS: 90,
+  EARLY_GAP_MAX_DAYS: 180,
+  /** Valuation over the last post-money that makes investors call on their own. */
+  HOT_MULT: 2,
+};
+
+export interface PitchReadiness {
+  ok: boolean;
+  /** Why not, or what the pitch will do. */
+  reason: string;
+  /** Days until the cooldown ends (0 when ready). */
+  daysLeft: number;
+}
+
+/** Can the lab pitch investors today? */
+export function pitchReadiness(s: GameState): PitchReadiness {
+  const no = (reason: string, daysLeft = 0) => ({ ok: false, reason, daysLeft });
+  if (s.gameOver) return no('The company no longer exists.');
+  if (s.company.isPublic) return no('A public company sells stock instead. See the secondary offering.');
+  if (scenarioRule(s, 'noVc')) return no('This scenario takes no venture money. Loans still work.');
+  if (s.finance.pendingOffer) return no('A term sheet is already on the table. Answer it first.');
+  const left = Math.max(0, Math.ceil((s.flags.lastPitchDay ?? -1e9) + PITCH_TUNING.COOLDOWN_DAYS - s.day));
+  if (left > 0) return no(`Investors heard your pitch recently. Try again in ${left} days, ideally with a better model.`, left);
+  return { ok: true, reason: 'A better released model and more revenue raise the price. Expect 15 to 25% of the valuation.', daysLeft: 0 };
 }
 function raisedRoundCount(s: GameState): number {
   return s.finance.roundsRaised.filter((r) => ROUND_LADDER.includes(r)).length;
@@ -229,13 +264,14 @@ export function financeTick(s: GameState, rng: Rng): void {
     const offer = s.finance.pendingOffer;
     if (offer && s.day >= offer.expiresDay) {
       s.finance.pendingOffer = null;
-      s.finance.nextOfferDay = s.day + nextOfferGap(rng);
+      s.finance.nextOfferDay = s.day + nextOfferGap(s, rng);
       pushNews(s, `${offer.investor} loses interest in ${s.company.name}'s ${offer.roundName}.`, 'info');
     }
     // Desperate companies (under ~3 months of runway) get a discounted lifeline every 45 days.
     const desperate = runwayDays(s) < 90 && s.day >= (s.flags.lastOfferDay ?? -1e9) + 45;
     if (!s.finance.pendingOffer && (s.day >= s.finance.nextOfferDay || desperate)) {
-      if (desperate || runwayDays(s) < RUNWAY_TRIGGER_DAYS || growingFast(s)) {
+      const hot = s.finance.valuation >= PITCH_TUNING.HOT_MULT * s.finance.lastPostMoney; // a strong release
+      if (desperate || runwayDays(s) < RUNWAY_TRIGGER_DAYS || growingFast(s) || hot) {
         const made = makeOffer(s, rng);
         if (desperate) {
           made.preMoney = Math.round(made.preMoney * 0.7);
@@ -303,6 +339,19 @@ export const handlers: ActionHandlers = {
     pushNews(s, `${s.company.name} sells ${(SHARE_FRACTION * 100).toFixed(0)}% more stock at a discount. Existing shareholders are "diluted, but not sad".`, 'info');
   },
 
+  pitchInvestors: (s, _a, rng) => {
+    const ready = pitchReadiness(s);
+    if (!ready.ok) {
+      notify(s, ready.reason, 'bad');
+      return;
+    }
+    s.flags.lastPitchDay = s.day;
+    s.flags.lastOfferDay = s.day;
+    const made = makeOffer(s, rng);
+    s.finance.pendingOffer = made;
+    notify(s, `${made.investor} liked the pitch: ${formatMoney(made.amount)} for a ${made.roundName}. Expires in ${OFFER_TTL_DAYS} days.`, 'good');
+  },
+
   acceptOffer: (s, _a, rng) => {
     const offer = s.finance.pendingOffer;
     if (!offer) {
@@ -323,7 +372,7 @@ export const handlers: ActionHandlers = {
     s.finance.lastPostMoney = post;
     markRound(s);
     s.finance.pendingOffer = null;
-    s.finance.nextOfferDay = s.day + nextOfferGap(rng);
+    s.finance.nextOfferDay = s.day + nextOfferGap(s, rng);
     notify(s, `Closed the ${offer.roundName} with ${offer.investor}: ${formatMoney(offer.amount)} in the bank.`, 'good');
     pushNews(s, `${s.company.name} raises ${formatMoney(offer.amount)} in a ${offer.roundName} led by ${offer.investor} at ${formatMoney(post)} post-money.`, 'milestone');
   },
@@ -331,7 +380,7 @@ export const handlers: ActionHandlers = {
   declineOffer: (s, _a, rng) => {
     if (!s.finance.pendingOffer) return;
     s.finance.pendingOffer = null;
-    s.finance.nextOfferDay = s.day + nextOfferGap(rng);
+    s.finance.nextOfferDay = s.day + nextOfferGap(s, rng);
     notify(s, 'Offer declined. Your investors are shocked, but they will recover.', 'info');
   },
 

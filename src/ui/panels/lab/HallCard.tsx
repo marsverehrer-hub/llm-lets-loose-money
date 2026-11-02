@@ -11,7 +11,6 @@ export function HallCard({ s }: { s: GameState }) {
   return (
     <Card
       title="Hall of Fame"
-      code="HOF"
       subtitle={all.length ? `${all.length} model${all.length === 1 ? '' : 's'} · brand x${(b.brand ?? 1).toFixed(2)} · valuation x${(b.valuation ?? 1).toFixed(2)}` : undefined}
     >
       {all.length === 0 ? (

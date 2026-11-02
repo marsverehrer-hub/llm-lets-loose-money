@@ -4,8 +4,6 @@ export interface CardProps {
   title?: ComponentChildren;
   /** Terse dim note shown in the title strip after the title. Keep it short. */
   subtitle?: ComponentChildren;
-  /** Function code shown dim at the left of the title strip, e.g. "MDL". */
-  code?: string;
   /** @deprecated Terminal theme renders no icons. */
   icon?: string;
   /** Right-aligned strip content: buttons, segmented controls. */
@@ -24,8 +22,8 @@ export interface CardProps {
   children?: ComponentChildren;
 }
 
-/** Terminal window: optional title strip (code, TITLE, note, actions) over a body. */
-export function Card({ title, subtitle, code, actions, glow, hot, flush, link, onClick, class: cls, style, children }: CardProps) {
+/** Panel: optional title strip (title, note, actions) over a body. */
+export function Card({ title, subtitle, actions, glow, hot, flush, link, onClick, class: cls, style, children }: CardProps) {
   const hasHeader = title != null || actions != null;
   const classes = ['card', glow || hot ? 'card-hot' : '', flush ? 'card-flush' : '', link || onClick ? 'card-link' : '', cls ?? '']
     .filter(Boolean)
@@ -35,7 +33,6 @@ export function Card({ title, subtitle, code, actions, glow, hot, flush, link, o
       {hasHeader && (
         <header class="card-header">
           <div class="card-heading">
-            {code && <span class="card-code">{code}</span>}
             {title != null && <h3 class="card-title">{title}</h3>}
             {subtitle != null && <span class="card-subtitle">{subtitle}</span>}
           </div>

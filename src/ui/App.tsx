@@ -56,22 +56,22 @@ applyTheme(readTheme());
 
 export type PanelId = 'dashboard' | 'lab' | 'models' | 'products' | 'compute' | 'data' | 'research' | 'benchmarks' | 'staff' | 'market' | 'contracts' | 'finance' | 'vs' | 'achievements' | 'marketing';
 
-export const PANELS: { id: PanelId; label: string; code: string; Component: () => any }[] = [
-  { id: 'dashboard', label: 'Headquarters', code: 'HQ', Component: DashboardPanel },
-  { id: 'lab', label: 'Level & perks', code: 'LAB', Component: LabPanel }, // v13 progression
-  { id: 'models', label: 'Models', code: 'MDL', Component: ModelsPanel },
-  { id: 'products', label: 'Products', code: 'PRD', Component: ProductsPanel },
-  { id: 'compute', label: 'Compute', code: 'CMP', Component: ComputePanel },
-  { id: 'data', label: 'Data', code: 'DAT', Component: DataPanel },
-  { id: 'research', label: 'Research', code: 'RES', Component: ResearchPanel },
-  { id: 'benchmarks', label: 'Benchmarks', code: 'BMK', Component: BenchmarksPanel },
-  { id: 'staff', label: 'Staff', code: 'STF', Component: StaffPanel },
-  { id: 'market', label: 'Market', code: 'MKT', Component: MarketPanel },
-  { id: 'marketing', label: 'Marketing', code: 'MKG', Component: MarketingPanel },
-  { id: 'contracts', label: 'Contracts', code: 'CON', Component: ContractsPanel },
-  { id: 'finance', label: 'Finance', code: 'FIN', Component: FinancePanel },
-  { id: 'vs', label: 'Versus', code: 'VS', Component: VsPanel },
-  { id: 'achievements', label: 'Trophies', code: 'TRO', Component: AchievementsPanel },
+export const PANELS: { id: PanelId; label: string; Component: () => any }[] = [
+  { id: 'dashboard', label: 'Headquarters', Component: DashboardPanel },
+  { id: 'lab', label: 'Level & perks', Component: LabPanel }, // v13 progression
+  { id: 'models', label: 'Models', Component: ModelsPanel },
+  { id: 'products', label: 'Products', Component: ProductsPanel },
+  { id: 'compute', label: 'Compute', Component: ComputePanel },
+  { id: 'data', label: 'Data', Component: DataPanel },
+  { id: 'research', label: 'Research', Component: ResearchPanel },
+  { id: 'benchmarks', label: 'Benchmarks', Component: BenchmarksPanel },
+  { id: 'staff', label: 'Staff', Component: StaffPanel },
+  { id: 'market', label: 'Market', Component: MarketPanel },
+  { id: 'marketing', label: 'Marketing', Component: MarketingPanel },
+  { id: 'contracts', label: 'Contracts', Component: ContractsPanel },
+  { id: 'finance', label: 'Finance', Component: FinancePanel },
+  { id: 'vs', label: 'Versus', Component: VsPanel },
+  { id: 'achievements', label: 'Trophies', Component: AchievementsPanel },
 ];
 
 /** Little dots on side-nav items that need the player's eye. */
@@ -174,7 +174,7 @@ export function App() {
   const Active = PANELS.find((p) => p.id === tab)!.Component;
   // Read at render: the unlock tick above re-renders this component whenever the visible set changes.
   const live = getState();
-  const navItems = PANELS.filter((p) => (p.id === 'vs' ? inMatch : isPanelVisible(live, p.id))).map(({ id, label, code }) => ({ id, label, code }));
+  const navItems = PANELS.filter((p) => (p.id === 'vs' ? inMatch : isPanelVisible(live, p.id))).map(({ id, label }) => ({ id, label }));
   const navBadges = withUnseen(badges, unseenPanels(live));
 
   const hub = hubOf(tab);

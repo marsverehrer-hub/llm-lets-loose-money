@@ -1,4 +1,4 @@
-// Compute screen (GAME_DESIGN §21.1, §21.5). Leads with the server room; renting and building sit right below it.
+// Compute screen (GAME_DESIGN §21.1, §21.5). Leads with renting and building; the server room camera sits below.
 import { useState } from 'preact/hooks';
 import { useGame } from '../store';
 import { Card, PanelHeader, PanelIntro, Stat, Tabs } from '../components';
@@ -10,6 +10,8 @@ import { DailyCost } from './compute/DailyCost';
 import { BlockSheet, BuildBody, RentBody } from './compute/ComputeSheets';
 import { CloudMarket } from './compute/CloudMarket'; // v16 cloud providers
 import { NeocloudTab } from './compute/NeocloudTab'; // v16 neocloud
+import { HallList } from './compute/HallList';
+import { useIntent } from '../nav';
 import './panels.css';
 import './compute/compute.css';
 
@@ -23,11 +25,16 @@ export function ComputePanel() {
   const [sheet, setSheet] = useState<OpenSheet>(null);
   const close = () => setSheet(null);
   const [get, setGet] = useState<'rent' | 'market' | 'build' | 'neocloud'>('rent');
+  // v17.2: "Rent GPUs", "Build a datacenter" and the like land on that tab of Get more GPUs.
+  useIntent('compute', (i) => {
+    if (!('tab' in i)) return;
+    setGet(i.tab === 'cloud' ? 'market' : i.tab);
+    requestAnimationFrame(() => document.querySelector('.cc-get')?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
+  });
 
   return (
     <div class="panel pn pn-compute cc">
       <PanelHeader
-        code="CMP"
         title="Compute"
         subtitle="Your GPUs, where they work, and what they cost"
         actions={
@@ -42,6 +49,38 @@ export function ComputePanel() {
       <PanelIntro id="compute">
         Compute is the hardware your models train and serve on. Products run on your own GPUs first. Anything more is bought from the cloud.
       </PanelIntro>
+
+      <Card
+        class="cc-get"
+        title="Get more GPUs"
+        subtitle={get === 'rent' ? 'No upfront cost, billed daily' : undefined}
+        actions={
+          <Tabs
+            variant="segmented"
+            value={get}
+            onChange={setGet}
+            tabs={[
+              { id: 'rent', label: 'Rent' },
+              { id: 'market', label: 'Cloud providers' },
+              { id: 'build', label: 'Build a datacenter' },
+              { id: 'neocloud', label: 'Neocloud', count: s.neocloud?.offers.length || undefined },
+            ]}
+          />
+        }
+      >
+        {get === 'rent' ? (
+          <RentBody />
+        ) : get === 'market' ? (
+          <CloudMarket />
+        ) : get === 'build' ? (
+          <>
+            <HallList room={room} onManage={(key) => setSheet({ kind: 'block', key })} />
+            <BuildBody key={s.compute.datacenters.length} />
+          </>
+        ) : (
+          <NeocloudTab />
+        )}
+      </Card>
 
       <SceneView
         state={s}
@@ -60,26 +99,6 @@ export function ComputePanel() {
           <i class="cc-swatch cc-training" /> training <i class="cc-swatch cc-serving" /> serving <i class="cc-swatch cc-idle" /> idle · click a hall to manage it
         </span>
       </p>
-
-      <Card
-        title="Get more GPUs"
-        subtitle={get === 'rent' ? 'No upfront cost, billed daily' : undefined}
-        actions={
-          <Tabs
-            variant="segmented"
-            value={get}
-            onChange={setGet}
-            tabs={[
-              { id: 'rent', label: 'Rent' },
-              { id: 'market', label: 'Cloud providers' },
-              { id: 'build', label: 'Build a datacenter' },
-              { id: 'neocloud', label: 'Neocloud', count: s.neocloud?.offers.length || undefined },
-            ]}
-          />
-        }
-      >
-        {get === 'rent' ? <RentBody /> : get === 'market' ? <CloudMarket /> : get === 'build' ? <BuildBody /> : <NeocloudTab />}
-      </Card>
 
       <div class="cc-two">
         <FleetPicker s={s} />

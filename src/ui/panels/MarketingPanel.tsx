@@ -43,20 +43,8 @@ export function MarketingPanel() {
 
   return (
     <div class="panel mk">
-      <PanelHeader code="MKG" title="Marketing" subtitle={`${monthYear(s.day)} · ${running} of ${MAX_RUNNING_CAMPAIGNS} campaigns running`} />
+      <PanelHeader title="Marketing" subtitle={`${monthYear(s.day)} · ${running} of ${MAX_RUNNING_CAMPAIGNS} campaigns running`} />
       <PanelIntro id="marketing">Campaigns buy brand and hype. Brand and hype help you win customers in every market.</PanelIntro>
-      <SceneView
-        state={s}
-        make={createCity}
-        cam={CITY_CAM}
-        camId="CAM-07"
-        label="Downtown: your campaigns on billboards, your name on storefronts as brand grows, crowds as hype rises, and rival ads on the rest"
-        onSelect={(hit) => {
-          if (hit.id === 'team') navigate('staff');
-          else if (hit.id.startsWith('campaign:') || hit.id === 'brand' || hit.id === 'hype')
-            document.querySelector('.mk-camp-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }}
-      />
 
       <Card class="mk-hero-card" title="Brand and hype" subtitle="Your company, not the whole market">
         <div class="mk-hero">
@@ -96,6 +84,19 @@ export function MarketingPanel() {
       <Card class="mk-shop-card" title="Start a campaign" subtitle={`${MAX_RUNNING_CAMPAIGNS - running} slot${MAX_RUNNING_CAMPAIGNS - running === 1 ? '' : 's'} free · cash ${formatMoney(s.finance.cash, 1)}`}>
         <CampaignShop s={s} />
       </Card>
+
+      <SceneView
+        state={s}
+        make={createCity}
+        cam={CITY_CAM}
+        camId="CAM-07"
+        label="Downtown: your campaigns on billboards, your name on storefronts as brand grows, crowds as hype rises, and rival ads on the rest"
+        onSelect={(hit) => {
+          if (hit.id === 'team') navigate('staff');
+          else if (hit.id.startsWith('campaign:') || hit.id === 'brand' || hit.id === 'hype')
+            document.querySelector('.mk-camp-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }}
+      />
 
       <div class="mk-lower">
         <Card title="Funnel" subtitle="Market size to your users, per segment">

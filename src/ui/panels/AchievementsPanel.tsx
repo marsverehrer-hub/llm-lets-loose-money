@@ -47,7 +47,7 @@ export function AchievementsPanel() {
 
   return (
     <div class="panel">
-      <PanelHeader code="TRO" title="Trophies" subtitle={`${unlocked} of ${total} unlocked · ${formatPct(pct)} complete`} />
+      <PanelHeader title="Trophies" subtitle={`${unlocked} of ${total} unlocked · ${formatPct(pct)} complete`} />
 
       <Card flush>
         <div class="pa-strip pa-strip--6">

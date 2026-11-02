@@ -46,7 +46,7 @@ export function DailyCost({ s, burstCost }: { s: GameState; burstCost: number })
   const total = rows.reduce((a, r) => a + (r.value > 0 ? r.value : 0), 0);
   const shown = rows.filter((r) => r.value > 0);
   return (
-    <Card code="COST" title="Daily cost" subtitle={`${formatMoney(total)}/day`}>
+    <Card title="Daily cost" subtitle={`${formatMoney(total)}/day`}>
       {total > 0 ? (
         <>
           <FlowBar

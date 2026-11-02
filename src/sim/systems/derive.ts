@@ -187,7 +187,7 @@ export function distillQuote(s: GameState, teacherId: Id, paramsB: number): Deri
     return fail(`A student can have at most half of ${teacher.name}'s active parameters (${formatParams(teacherActive * DERIVE_TUNING.DISTILL_MAX_RATIO)}).`);
   }
   const plan = planDistill(s, teacher, paramsB);
-  if (!(plan.rate > 0)) return fail('No compute is allocated to training. Rent GPUs or raise the training share.');
+  if (!(plan.rate > 0)) return fail('No compute is allocated to training. Rent GPUs or set Fleet priority in Compute to favour training.');
   return {
     ok: true,
     forecast: distillForecast(s, teacher, plan),
@@ -264,7 +264,7 @@ export function mergeQuote(s: GameState, aId: Id, bId: Id, method: MergeMethod):
     if (familyRoot(s, a) !== familyRoot(s, b)) return fail(`${a.name} and ${b.name} come from different base models. Only a frankenmerge would try.`);
   }
   const cfg = a.config ?? legacyConfig(s, a.datasetIds, a.contextK);
-  if (!(trainingRatePerDay(s, cfg) > 0)) return fail('No compute is allocated to training. Rent GPUs or raise the training share.');
+  if (!(trainingRatePerDay(s, cfg) > 0)) return fail('No compute is allocated to training. Rent GPUs or set Fleet priority in Compute to favour training.');
   return {
     ok: true,
     forecast: mergeForecast(s, a, b, method),

@@ -1254,6 +1254,7 @@ export type GameAction =
   | { type: 'repayLoan'; amount: number }
   | { type: 'ipo' }
   | { type: 'secondaryOffering' }
+  | { type: 'pitchInvestors' } // v17.2: bring the next term sheet forward
   // events / ui
   | { type: 'resolveEvent'; choice: number }
   | { type: 'clearEventResult' }

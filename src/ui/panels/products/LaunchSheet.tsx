@@ -42,7 +42,7 @@ export function LaunchSheet({ kind, onClose }: { kind: ProductKind | null; onClo
   return (
     <Sheet
       open={!!kind}
-      title={info ? (first ? `Second ${info.label} line` : `Launch a ${info.label} product`) : 'Launch'}
+      title={info ? (first ? `Second ${info.label} line` : `Launch ${/^[AEIOU]/.test(info.label) ? 'an' : 'a'} ${info.label} product`) : 'Launch'}
       subtitle={info ? `Launch fee ${formatMoney(kind ? launchFee(s, kind) : 0)}` : undefined}
       onClose={onClose}
       width={560}
@@ -72,7 +72,7 @@ function LaunchForm({ s, kind, first, onDone }: { s: GameState; kind: ProductKin
   const cannotAfford = s.finance.cash < fee;
 
   let blocker = '';
-  if (models.length === 0) blocker = 'Release a model first (MDL).';
+  if (models.length === 0) blocker = 'Release a model first in Models.';
   else if (!name.trim()) blocker = 'Name the product.';
   else if (cannotAfford) blocker = `Launch fee ${formatMoney(fee)}. Not enough cash.`;
 

@@ -23,10 +23,10 @@ const TIER_LABEL: Record<BuyerTier, string> = { premium: 'Premium', mainstream: 
 const TIER_SUB: Record<BuyerTier, string> = { premium: 'Wants the best', mainstream: 'Balanced', budget: 'Cheapest that works' };
 const TIERS: BuyerTier[] = ['premium', 'mainstream', 'budget'];
 
-const SEGMENTS: { id: Segment; code: string; unit: string }[] = [
-  { id: 'consumer', code: 'CHAT', unit: '/mo' },
-  { id: 'developer', code: 'API', unit: '/Mtok' },
-  { id: 'enterprise', code: 'ENT', unit: '/seat/mo' },
+const SEGMENTS: { id: Segment; unit: string }[] = [
+  { id: 'consumer', unit: '/mo' },
+  { id: 'developer', unit: '/Mtok' },
+  { id: 'enterprise', unit: '/seat/mo' },
 ];
 
 /** The id a row uses for "you", in both the share bars and the arena, so one selection highlights both. */
@@ -132,19 +132,8 @@ export function MarketPanel() {
 
   return (
     <div class="panel mkt">
-      <PanelHeader code="MKT" title="Market" subtitle={`${monthYear(s.day)} · AI hype ${Math.round(hype)} (${hypeLabel(hype)})`} />
+      <PanelHeader title="Market" subtitle={`${monthYear(s.day)} · AI hype ${Math.round(hype)} (${hypeLabel(hype)})`} />
       <PanelIntro id="market">Who holds what share of each market, and where you win or lose by buyer tier. Campaigns to grow your share live in Marketing.</PanelIntro>
-      <SceneView
-        state={s}
-        make={createTown}
-        cam={TOWN_CAM}
-        camId="CAM-05"
-        height={360}
-        label="The market as a town: consumer, developer and enterprise districts coloured by which lab serves them, and each lab's tower"
-        onSelect={(hit) => {
-          if (hit.id.startsWith('lab:')) setSel(hit.id.slice(4) === 'player' ? null : hit.id.slice(4));
-        }}
-      />
 
       <div class="grid-split-rev">
         <Card title={<>AI hype <HelpTip>The whole market's buzz. Higher hype means more customers adopt AI, for every lab, you included.</HelpTip></>} subtitle="Whole market">
@@ -178,7 +167,6 @@ export function MarketPanel() {
               key={seg.id}
               class={i === SEGMENTS.length - 1 ? 'pa-wide-when-narrow' : ''}
               title={SEGMENT_NAME[seg.id]}
-              code={seg.code}
               subtitle={`Market ${formatNumber(st?.tam ?? 0, 1)}`}
             >
               <div class="stack">
@@ -216,6 +204,18 @@ export function MarketPanel() {
         </div>
       )}
 
+      <SceneView
+        state={s}
+        make={createTown}
+        cam={TOWN_CAM}
+        camId="CAM-05"
+        height={360}
+        label="The market as a town: consumer, developer and enterprise districts coloured by which lab serves them, and each lab's tower"
+        onSelect={(hit) => {
+          if (hit.id.startsWith('lab:')) setSel(hit.id.slice(4) === 'player' ? null : hit.id.slice(4));
+        }}
+      />
+
       <Card
         class="mkt-tiers"
         title={<>Your share by buyer tier <HelpTip>Buyers split into three tiers. Premium buyers want the best model, budget buyers want the cheapest one that works. Hover a cell for the top rival there.</HelpTip></>}
@@ -227,7 +227,7 @@ export function MarketPanel() {
 
       <Card class="mkt-arena" title="LLM Arena" subtitle={`Best released model per lab · ${arena.length} ranked`}>
         {arenaRows.length === 0 ? (
-          <EmptyState title="No models ranked" text="Release one from MDL to enter the board." />
+          <EmptyState title="No models ranked" text="Release one from Models to enter the board." />
         ) : (
           <>
             <BarList rows={arenaRows} format={(v) => formatInt(v + base)} sort onSelect={toggle} selected={sel} class="nt-arena" />

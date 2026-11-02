@@ -458,6 +458,9 @@
   scrollbar-width: none;
 }
 .hubtabs::-webkit-scrollbar { display: none; }
+/* v17.2: deep links scroll cards to the top; they stop under the sticky hub tabs, not behind them. */
+.panel [id],
+.panel .card { scroll-margin-top: 64px; }
 .hubtab {
   position: relative;
   display: inline-flex;

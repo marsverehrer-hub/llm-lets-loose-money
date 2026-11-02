@@ -8,7 +8,7 @@ import { DATACENTER_TIERS } from '../../../sim/data/gpus';
 import { RESEARCH } from '../../../sim/data/research';
 import type { GameState, Id } from '../../../sim/types';
 import { HelpTip, Sheet, FlowBar } from '../../components';
-import { Empty, fmtDays, fmtRate } from '../panelKit';
+import { ConfirmButton, Empty, fmtDays, fmtRate } from '../panelKit';
 import type { RoomBlock, ServerRoom } from './roomModel';
 
 const STEPS = [1, 8, 64];
@@ -285,16 +285,8 @@ function BuyGpus({ s, b }: { s: GameState; b: RoomBlock }) {
 }
 
 // ---------------------------------------------------------------------------
-// Rent sheet: every GPU you can rent this year, with +/- buttons.
+// Rent: every GPU you can rent this year, with +/- buttons (the Rent tab of "Get more GPUs").
 // ---------------------------------------------------------------------------
-
-export function RentSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
-  return (
-    <Sheet open={open} title="Rent GPUs" subtitle="No upfront cost. Billed every day." onClose={onClose} width={620}>
-      {open && <RentBody />}
-    </Sheet>
-  );
-}
 
 export function RentBody() {
   const s = useGame();
@@ -341,16 +333,8 @@ export function RentBody() {
 }
 
 // ---------------------------------------------------------------------------
-// Build sheet: the datacenter tiers, with cost, time to build and upkeep. Power price is behind Details.
+// Build: the datacenter tiers, with cost, time to build and upkeep (the Build tab). Power price is behind Details.
 // ---------------------------------------------------------------------------
-
-export function BuildSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
-  return (
-    <Sheet open={open} title="Build a datacenter" subtitle="Takes days to build, then upkeep every day." onClose={onClose} width={680}>
-      {open && <BuildBody />}
-    </Sheet>
-  );
-}
 
 export function BuildBody() {
   const s = useGame();
@@ -387,15 +371,15 @@ export function BuildBody() {
                   </details>
                 </div>
                 <div class="cc-row-actions">
-                  <button
-                    type="button"
-                    class="btn btn-sm"
+                  {/* v17.2: a datacenter spends a big share of the cash, so it takes a second click. */}
+                  <ConfirmButton
+                    class="btn-sm cc-build"
+                    label="Build"
+                    confirmLabel={`Spend ${formatMoney(t.buildCost)}${s.finance.cash > 0 ? ` (${Math.round((t.buildCost / s.finance.cash) * 100)}% of cash)` : ''}?`}
                     disabled={!can}
                     title={!isOpen ? 'Not available yet' : !afford ? 'Not enough cash' : trimmed ? `Build ${t.name}` : 'Name it first'}
-                    onClick={() => dispatch({ type: 'buildDatacenter', tierId: t.id, name: trimmed })}
-                  >
-                    Build
-                  </button>
+                    onConfirm={() => dispatch({ type: 'buildDatacenter', tierId: t.id, name: trimmed })}
+                  />
                 </div>
               </li>
             );

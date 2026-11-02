@@ -12,9 +12,9 @@ export const DATASETS: DatasetDef[] = [
   // ======================================================================================
   {
     id: 'scrawl_sample', name: 'Common Scrawl Sample', kind: 'web', acquisition: 'open', domain: 'general',
-    tokensB: 5, quality: 0.45, cost: 0, legalRisk: 0.1, unlockYear: 2017, freshnessYear: 2017,
+    tokensB: 15, quality: 0.45, cost: 0, legalRisk: 0.1, unlockYear: 2017, freshnessYear: 2017, // v17.2: 5B -> 15B, a first model worth releasing
     capBonus: { multilingual: 1 },
-    flavor: 'A random 5% of the internet. The other 95% is mostly cat pictures and SEO.',
+    flavor: 'A random slice of the internet. The rest is mostly cat pictures and SEO.',
   },
   {
     id: 'wikipediaish', name: 'Wikipedia-ish', kind: 'web', acquisition: 'purchase', domain: 'general',

@@ -185,14 +185,14 @@
   .barlist.nt-arena .barlist-extra { grid-area: extra; }
   .barlist.nt-arena .barlist-track { grid-area: track; }
 
-  /* Phone order, top to bottom: title, camera feed, your position and the AI hype (the numbers), the three segment
-     cards, the selection note, the buyer-tier heat table, the arena board, then the intro. */
+  /* Phone order, top to bottom: title, your position and the AI hype (the numbers), the three segment cards, the
+     selection note, camera feed, the buyer-tier heat table, the arena board, then the intro. */
   .mkt > .panel-header { order: 0; }
-  .mkt > .scene-view { order: 1; }
-  .mkt > .office-toggle { order: 2; }
-  .mkt > .grid-split-rev { order: 3; }
-  .mkt > .grid-3 { order: 4; }
-  .mkt > .nt-sel-note { order: 5; }
+  .mkt > .grid-split-rev { order: 1; }
+  .mkt > .grid-3 { order: 2; }
+  .mkt > .nt-sel-note { order: 3; }
+  .mkt > .scene-view { order: 4; }
+  .mkt > .office-toggle { order: 5; }
   .mkt > .mkt-tiers { order: 6; }
   .mkt > .mkt-arena { order: 7; }
   .mkt > .panel-intro { order: 8; }

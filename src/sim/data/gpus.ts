@@ -1,5 +1,6 @@
 import type { GpuDef, DatacenterTier } from '../types';
-// OWNER: Agent A. Parody GPU generations 2017 -> 2034. Sold by "Nvidiot".
+// OWNER: Agent A. Parody GPUs 2017 -> 2034: Nvidiot's flagship line, its refreshes and budget cards, plus rival vendors
+// (AMDeez, Gaudy, Ascend-ish) that trade software pain for price and memory. Kept in unlock order.
 // Order matters: the first GPU unlocked in 2017 is the starter fleet (see state.ts).
 // pflops are effective PFLOP/s per GPU (MFU already folded in).
 // v14 (GAME_DESIGN §24): buyPrice is 300 days of rent for every generation. With power, cooling, hardware ops and
@@ -8,11 +9,21 @@ import type { GpuDef, DatacenterTier } from '../types';
 // memGB (v16) is HBM per GPU: it caps how big a model a cluster can hold (systems/scaleLimits.ts).
 export const GPUS: GpuDef[] = [
   { id: 'p100', memGB: 16, name: 'Pascal P-100ish', unlockYear: 2017, pflops: 0.012, buyPrice: 9_000, rentPerDay: 30, powerKw: 0.3, flavor: 'It can render Doom. Mostly.' },
+  { id: 'gtx1080', memGB: 11, name: 'GeForce 1O80 Tie', unlockYear: 2017, pflops: 0.006, buyPrice: 4_500, rentPerDay: 15, powerKw: 0.25, flavor: 'A gaming card in a lab coat. Loud, cheap, and short on memory.' },
   { id: 'v1000', memGB: 32, name: 'Volta V-1000', unlockYear: 2018, pflops: 0.03, buyPrice: 16_500, rentPerDay: 55, powerKw: 0.3, flavor: '40% more tensor cores, 0% more fan noise.' },
+  { id: 't4', memGB: 16, name: 'Turing T-4ish', unlockYear: 2019, pflops: 0.02, buyPrice: 9_000, rentPerDay: 30, powerKw: 0.07, flavor: 'Sips seventy watts and apologises for it. Built for serving, not for heroics.' },
   { id: 'a100', memGB: 80, name: 'Ampere A-1OO', unlockYear: 2020, pflops: 0.09, buyPrice: 27_000, rentPerDay: 90, powerKw: 0.4, flavor: 'The one everyone quietly rented in 2020.' },
+  { id: 'mi250', memGB: 128, name: 'AMDeez MI-250X', unlockYear: 2021, pflops: 0.07, buyPrice: 18_000, rentPerDay: 60, powerKw: 0.5, flavor: 'Twice the memory, half the software. The drivers are a choose-your-own-adventure.' },
   { id: 'h100', memGB: 80, name: 'Hopper H-1OO', unlockYear: 2022, pflops: 0.3, buyPrice: 60_000, rentPerDay: 200, powerKw: 0.7, flavor: 'Sold out until 2027. Also sold out in 2026.' },
+  { id: 'ascend', memGB: 64, name: 'Ascend-ish 910B', unlockYear: 2023, pflops: 0.2, buyPrice: 33_000, rentPerDay: 110, powerKw: 0.4, flavor: 'Made at home. Available exactly where the other one is not.' },
+  { id: 'mi300', memGB: 192, name: 'AMDeez MI-300X', unlockYear: 2023, pflops: 0.28, buyPrice: 51_000, rentPerDay: 170, powerKw: 0.75, flavor: 'More memory than anything else on sale, for less. You will write some kernels yourself.' },
+  { id: 'h200', memGB: 141, name: 'Hopper H-2OO', unlockYear: 2023, pflops: 0.33, buyPrice: 72_000, rentPerDay: 240, powerKw: 0.7, flavor: 'An H-1OO that went to the memory gym.' },
   { id: 'b200', memGB: 192, name: 'Blackwell B-2OO', unlockYear: 2024, pflops: 0.7, buyPrice: 105_000, rentPerDay: 350, powerKw: 1.0, flavor: 'Heats the office. Doubles as a space heater.' },
+  { id: 'gaudy3', memGB: 128, name: 'Gaudy 3', unlockYear: 2024, pflops: 0.4, buyPrice: 60_000, rentPerDay: 200, powerKw: 0.9, flavor: 'Great price per FLOP, if you can find the FLOPs.' },
+  { id: 'b300', memGB: 288, name: 'Blackwell Ultra B-3OO', unlockYear: 2025, pflops: 1.0, buyPrice: 135_000, rentPerDay: 450, powerKw: 1.2, flavor: 'A B-2OO with more of everything, including the electricity bill.' },
+  { id: 'mi400', memGB: 432, name: 'AMDeez MI-400', unlockYear: 2026, pflops: 1.4, buyPrice: 144_000, rentPerDay: 480, powerKw: 1.4, flavor: 'Finally, a software stack. It is mostly a compatibility layer for the other one.' },
   { id: 'r300', memGB: 288, name: 'Rubin R-3OO', unlockYear: 2026, pflops: 1.6, buyPrice: 180_000, rentPerDay: 600, powerKw: 1.4, flavor: 'Comes with a 4-page liquid cooling manual.' },
+  { id: 'r300u', memGB: 576, name: 'Rubin Ultra R-3OO-U', unlockYear: 2027, pflops: 2.6, buyPrice: 255_000, rentPerDay: 850, powerKw: 1.8, flavor: 'Four dies, one rack, and a cooling loop with its own maintenance team.' },
   { id: 'f500', memGB: 432, name: 'Feynman F-5OO', unlockYear: 2028, pflops: 4, buyPrice: 300_000, rentPerDay: 1_000, powerKw: 1.8, flavor: 'Named after a physicist. Nobody asked his opinion.' },
   { id: 'h1000', memGB: 768, name: 'H1000 Hypernova', unlockYear: 2031, pflops: 12, buyPrice: 600_000, rentPerDay: 2_000, powerKw: 2.5, flavor: 'Needs its own zip code and a small utility company.' },
   { id: 'd1', memGB: 1536, name: 'Dyson D-1', unlockYear: 2034, pflops: 40, buyPrice: 1_200_000, rentPerDay: 4_000, powerKw: 3.5, flavor: 'Surrounds the star. Lowers the electricity bill for everyone else.' },

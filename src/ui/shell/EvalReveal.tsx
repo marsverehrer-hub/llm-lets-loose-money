@@ -8,6 +8,7 @@ import type { EmergenceDef, EvalReveal as Reveal, Forecast, GameState, Id } from
 import { Pill, clamp } from '../components';
 import { dispatch, useGame, useGameSelect } from '../store';
 import { plain } from './fmt';
+import { navigate } from '../nav';
 import { streakXpMult } from '../../sim/systems/progression'; // v13
 import './evalreveal.css';
 
@@ -74,6 +75,7 @@ function RevealBody({ r }: { r: Reveal }) {
   const rowsShown = Math.min(shown, n);
   const delta = r.actual - f.mid;
   const verdict = VERDICT_LABEL[r.verdict];
+  const canRelease = !!model && model.releasedDay === null && !model.deprecated;
 
   return (
     <div class="modal-backdrop" role="alertdialog" aria-modal="true" aria-labelledby="ev-title">
@@ -181,8 +183,21 @@ function RevealBody({ r }: { r: Reveal }) {
             </button>
           )}
           {done && (
-            <button type="button" class="btn btn-primary" onClick={() => dispatch({ type: 'dismissReveal' })}>
-              Continue
+            <button type="button" class={`btn ${canRelease ? '' : 'btn-primary'}`} onClick={() => dispatch({ type: 'dismissReveal' })}>
+              {canRelease ? 'Later' : 'Continue'}
+            </button>
+          )}
+          {/* v17.2: every kind of run ships through the same release wizard, so each result can go straight to it. */}
+          {done && canRelease && (
+            <button
+              type="button"
+              class="btn btn-primary"
+              onClick={() => {
+                dispatch({ type: 'dismissReveal' });
+                navigate('models', { open: 'release', modelId: r.modelId });
+              }}
+            >
+              Release now
             </button>
           )}
         </div>

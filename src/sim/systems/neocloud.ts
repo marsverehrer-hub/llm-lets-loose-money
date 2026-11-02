@@ -113,7 +113,8 @@ export function demandIndex(s: GameState): number {
 export function ageFactor(gpuId: Id, year: number): number {
   const g = gpuById(gpuId);
   if (!g) return 0;
-  const newer = GPUS.find((x) => x.unlockYear > g.unlockYear && x.unlockYear <= year);
+  // Only a later and faster card makes this one old news (a budget or rival card does not).
+  const newer = GPUS.find((x) => x.unlockYear > g.unlockYear && x.unlockYear <= year && x.pflops > g.pflops);
   return newer ? T.NEWER_GEN_DROP * Math.max(T.AGE_FLOOR, T.AGE_DECAY ** (year - newer.unlockYear)) : 1;
 }
 

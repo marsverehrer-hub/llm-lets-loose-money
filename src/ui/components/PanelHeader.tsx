@@ -4,8 +4,6 @@ import { HubContext } from '../shell/hubs';
 
 export interface PanelHeaderProps {
   title: ComponentChildren;
-  /** Legacy function code (e.g. "MDL"). Kept as a hook; the eyebrow shows the hub instead. */
-  code?: string;
   /** One short line under the title. */
   subtitle?: ComponentChildren;
   /** @deprecated No icons in panel headers. */

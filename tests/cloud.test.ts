@@ -193,6 +193,7 @@ function neoLab(year = 2021, n = 400, gpuId = 'a100'): GameState {
 describe('neocloud market price', () => {
   it('old GPUs lose price as new generations ship', () => {
     expect(ageFactor('a100', 2021)).toBe(1);
+    expect(ageFactor('a100', 2021.9)).toBe(1); // the slower MI-250X (2021) is no successor
     expect(ageFactor('a100', 2022.5)).toBeLessThan(1);
     expect(ageFactor('a100', 2026)).toBeLessThan(ageFactor('a100', 2023));
     const s21 = at(2021);

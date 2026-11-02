@@ -29,7 +29,6 @@ import {
   overallScore,
   personaCapAdd,
   personaInferenceMult,
-  releaseSota,
   scoresFromCaps,
   specById,
   takesPersona,
@@ -212,15 +211,6 @@ function lossCurve(finalLoss: number, progress: number): number {
   const f = clamp(progress, 0, 1);
   const h = (1 / (1 + k * f) - 1 / (1 + k)) / (1 - 1 / (1 + k));
   return finalLoss + (start - finalLoss) * h;
-}
-
-function arenaLeaderElo(s: GameState): number | null {
-  let best: number | null = null;
-  for (const c of s.competitors) {
-    const elo = c.model?.elo;
-    if (elo !== undefined && (best === null || elo > best)) best = elo;
-  }
-  return best;
 }
 
 function eloFor(overall: number): number {
@@ -678,7 +668,7 @@ export const handlers: ActionHandlers = {
       return;
     }
     if (trainingRatePerDay(s, cfg) <= 0) {
-      notify(s, 'No compute is allocated to training. Rent GPUs or raise the training share.', 'bad');
+      notify(s, 'No compute is allocated to training. Rent GPUs or set Fleet priority in Compute to favour training.', 'bad');
       return;
     }
     // The run itself uses the true world; the forecast the player sees uses the lab's belief.
@@ -758,7 +748,7 @@ export const handlers: ActionHandlers = {
     }
     const cfg = parent.config ?? legacyConfig(s, parent.datasetIds, parent.contextK);
     if (trainingRatePerDay(s, cfg) <= 0) {
-      notify(s, 'No compute is allocated to training. Rent GPUs or raise the training share.', 'bad');
+      notify(s, 'No compute is allocated to training. Rent GPUs or set Fleet priority in Compute to favour training.', 'bad');
       return;
     }
     if (a.removeQuirk !== undefined) {
@@ -959,52 +949,6 @@ export const handlers: ActionHandlers = {
     notify(s, `Ablation started for ${describeConfig(a.config)}: ${formatMoney(cost)} of cloud time, results in ${RUN_TUNING.ABLATION_DAYS} days.`, 'info');
   },
 
-  releaseModel: (s, a) => {
-    const m = s.models.find((x) => x.id === a.modelId);
-    if (!m) {
-      notify(s, 'That model no longer exists.', 'bad');
-      return;
-    }
-    if (m.releasedDay !== null) {
-      notify(s, `${m.name} is already public.`, 'info');
-      return;
-    }
-    if (m.deprecated) {
-      notify(s, `${m.name} is deprecated and can't be released.`, 'bad');
-      return;
-    }
-    const arena = arenaLeaderElo(s);
-    const beatsArena = arena === null || m.elo > arena;
-    let prevBest = -1;
-    for (const x of s.models) if (x.releasedDay !== null) prevBest = Math.max(prevBest, x.overall);
-    const beatsOwn = m.overall > prevBest;
-
-    const arenaF = beatsArena ? 1 : 0.4;
-    const ownF = beatsOwn ? 1 : 0.5;
-    const brandGain = (2 + 4 * arenaF) * ownF * getBonuses(s).brand;
-    const hypeGain = (5 + 15 * arenaF) * ownF + (specById(m.specId)?.releaseHype ?? 0);
-    s.company.brand = clamp(s.company.brand + brandGain, 0, 100);
-    s.company.hype = clamp(s.company.hype + hypeGain, 0, 100);
-    s.market.aiHype = clamp(s.market.aiHype + (beatsArena ? 1.5 : 0.3) * ownF, 0, 100);
-
-    m.releasedDay = s.day;
-    m.eloSettlesDay = s.day + LAB_TUNING.ELO_SETTLE_DAYS;
-    s.stats.modelsReleased += 1;
-    s.stats.bestElo = Math.max(s.stats.bestElo, m.elo);
-
-    const elo = Math.round(m.elo);
-    const label = m.specId ? `${m.name} (${specById(m.specId)?.name ?? 'fine-tune'})` : m.name;
-    if (beatsArena) {
-      pushNews(s, `${s.company.name} releases ${label} and takes the top spot on the arena (Elo ${elo}).`, 'milestone');
-    } else if (beatsOwn) {
-      pushNews(s, `${s.company.name} releases ${label}. Good model, not the arena leader (Elo ${elo}).`, 'good');
-    } else {
-      pushNews(s, `${s.company.name} releases ${label}. A step back from the last flagship (Elo ${elo}).`, 'info');
-    }
-    const sota = releaseSota(s, m);
-    notify(s, `Released ${m.name}: brand +${brandGain.toFixed(1)}, hype +${hypeGain.toFixed(1)}${sota ? `, ${sota} headline SOTA${sota > 1 ? 's' : ''}` : ''}.`, 'good');
-  },
-
   deprecateModel: (s, a) => {
     const m = s.models.find((x) => x.id === a.modelId);
     if (!m) {
@@ -1012,10 +956,10 @@ export const handlers: ActionHandlers = {
       return;
     }
     if (m.deprecated) {
-      notify(s, `${m.name} is already deprecated.`, 'info');
+      notify(s, `${m.name} is already off sale.`, 'info');
       return;
     }
     m.deprecated = true;
-    notify(s, `${m.name} is deprecated. Nobody will miss it. Probably.`, 'info');
+    notify(s, `${m.name} is off sale. Nobody will miss it. Probably.`, 'info');
   },
 };

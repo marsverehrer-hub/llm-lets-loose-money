@@ -176,7 +176,7 @@ export function StepRecipe({ ctx }: { ctx: Ctx }) {
       <div class="tw-group">
         <div class="tw-label">Techniques</div>
         {techs.length === 0 ? (
-          <div class="tw-faint tw-small">None researched yet. See RES.</div>
+          <div class="tw-faint tw-small">None researched yet. See Research.</div>
         ) : (
           <div class="tw-chips">
             {techs.map((t) => {
@@ -214,7 +214,7 @@ export function StepRecipe({ ctx }: { ctx: Ctx }) {
 function ToggleTiles({ label, rows, isOn, onToggle }: { label: string; rows: OptionRow[]; isOn: (id: string) => boolean; onToggle: (id: string) => void }) {
   const open = rows.filter((r) => r.unlocked);
   const locked = rows.length - open.length;
-  if (open.length === 0) return <div class="tw-faint tw-small">{`None researched yet${locked ? ` (${locked} locked)` : ''}. See RES.`}</div>;
+  if (open.length === 0) return <div class="tw-faint tw-small">{`None researched yet${locked ? ` (${locked} locked)` : ''}. See Research.`}</div>;
   return (
     <div class="tw-opts">
       <div class="tw-tiles" role="group" aria-label={label}>

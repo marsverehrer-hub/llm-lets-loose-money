@@ -158,7 +158,8 @@ export function FlowFrame({
   onCancel: () => void;
   children: ComponentChildren;
 }) {
-  const last = cur === steps.length - 1;
+  // No steps: a one-screen flow (the release), which shows its action straight away.
+  const last = cur >= steps.length - 1;
   return (
     <div class="tf-root">
       <header class="tf-head">
@@ -166,22 +167,24 @@ export function FlowFrame({
         <span class="tf-parent">{parent}</span>
       </header>
 
-      <ol class="tf-steps">
-        {steps.map((label, i) => (
-          <li key={label}>
-            <button
-              type="button"
-              class={`tf-step${i === cur ? ' tf-step-on' : i < cur ? ' tf-step-done' : ''}`}
-              aria-current={i === cur ? 'step' : undefined}
-              disabled={i > cur}
-              onClick={() => onStep(i)}
-            >
-              <span class="num tf-step-n">{i + 1}</span>
-              {label}
-            </button>
-          </li>
-        ))}
-      </ol>
+      {steps.length > 0 && (
+        <ol class="tf-steps">
+          {steps.map((label, i) => (
+            <li key={label}>
+              <button
+                type="button"
+                class={`tf-step${i === cur ? ' tf-step-on' : i < cur ? ' tf-step-done' : ''}`}
+                aria-current={i === cur ? 'step' : undefined}
+                disabled={i > cur}
+                onClick={() => onStep(i)}
+              >
+                <span class="num tf-step-n">{i + 1}</span>
+                {label}
+              </button>
+            </li>
+          ))}
+        </ol>
+      )}
 
       <section class="tf-body" aria-labelledby="tf-question">
         <h2 class="tf-q" id="tf-question">

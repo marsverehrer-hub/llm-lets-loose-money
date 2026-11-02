@@ -1686,15 +1686,16 @@ The bots never use stages, anneals, recipes or media, and none of those draw fro
 Players found it unclear what the game wanted from them next, and the default Garage start had no goals at all.
 `systems/chapters.ts` gives every scenario a career of 13 chapters, completed strictly in order the day each condition
 holds (several on one day if already met). Each pays XP (40 to 600, times the era multiplier) and posts a milestone
-toast naming the next chapter. Progress is `s.flags.chapter`.
+toast naming the next chapter. Progress is `s.flags.chapter`. v17.2 reordered them to teach the real early path
+(train, release, raise, then sell) and replaced the unreachable "$10K a day" with "$1K a day".
 
 | # | Chapter | Done when |
 |---|---|---|
 | 1 | Start your first training run | a run is live or any model exists |
 | 2 | Release a model | any model is released |
-| 3 | Launch your first product | a live LLM or media product |
-| 4 | Earn $10K a day | daily revenue ≥ $10K |
-| 5 | Raise a funding round | a round is raised, or public, or the scenario forbids VC |
+| 3 | Raise a funding round | a round is closed (the starting pre-seed does not count), or public, or the scenario forbids VC |
+| 4 | Launch your first product | a live LLM or media product |
+| 5 | First paying customers: $1K a day | daily revenue ≥ $1K |
 | 6 | Own your GPUs: build a datacenter | a finished datacenter holds GPUs |
 | 7 | Reach the top 3 on the Arena | arena rank 1–3 |
 | 8 | Earn $100K a day | |

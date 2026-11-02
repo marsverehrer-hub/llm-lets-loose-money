@@ -18,7 +18,7 @@ export function CupCard({ s }: { s: GameState }) {
   const top = open ? rivalField(s, open.theme)[0] : undefined;
   const paid = open ? s.flags[`cup.paid.${open.edition}`] !== undefined : false;
   return (
-    <Card title="Arena Cup" code="CUP" subtitle={open ? `${cupThemeLabel(open.theme)} #${open.edition} · ${formatDays(Math.max(0, open.playDay - s.day))} to play` : cs ? `Next in ${formatDays(Math.max(0, cs.nextAnnounceDay - s.day))}` : undefined}>
+    <Card title="Arena Cup" subtitle={open ? `${cupThemeLabel(open.theme)} #${open.edition} · ${formatDays(Math.max(0, open.playDay - s.day))} to play` : cs ? `Next in ${formatDays(Math.max(0, cs.nextAnnounceDay - s.day))}` : undefined}>
       {open ? (
         <div class="cup-open">
           <div class="cup-line">

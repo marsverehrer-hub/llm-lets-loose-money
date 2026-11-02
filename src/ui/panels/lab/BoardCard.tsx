@@ -42,7 +42,7 @@ export function BoardCard({ s }: { s: GameState }) {
   const b = s.board;
   if (!b || b.objectives.length === 0) {
     return (
-      <Card title="Board goals" code="BRD">
+      <Card title="Board goals">
         <p class="muted small">The board sets this quarter's goals tomorrow morning.</p>
       </Card>
     );
@@ -52,7 +52,6 @@ export function BoardCard({ s }: { s: GameState }) {
   return (
     <Card
       title="Board goals"
-      code="BRD"
       class="board-card"
       subtitle={`${quarterLabel(b.quarterStart)} · ${formatDays(left)} left · ${done}/${b.objectives.length}`}
       actions={

@@ -18,10 +18,20 @@ describe('chapters', () => {
     s.models.push({ id: 'm1', name: 'M', releasedDay: 0 } as any);
     const xp0 = progressOf(s).xp;
     chaptersTick(s);
-    expect(chapterIndex(s)).toBe(2); // first run (a model exists) and first release, not the product
-    expect(currentChapter(s)?.id).toBe('first_product');
+    expect(chapterIndex(s)).toBe(2); // first run (a model exists) and first release, not the round
+    expect(currentChapter(s)?.id).toBe('first_round');
     expect(progressOf(s).xp).toBeGreaterThan(xp0);
-    expect(s.notifications.some((n) => n.text.includes('Next: Launch your first product'))).toBe(true);
+    expect(s.notifications.some((n) => n.text.includes('Next: Raise a funding round'))).toBe(true);
+  });
+
+  it('the starting pre-seed does not count as raising a round; a closed round does', () => {
+    const s = createInitialState(4, 'Ch');
+    s.flags.chapter = 2;
+    chaptersTick(s);
+    expect(currentChapter(s)?.id).toBe('first_round');
+    s.finance.roundLog = [{ name: 'Seed+', day: 1, amount: 1e6, postMoney: 9e6 }];
+    chaptersTick(s);
+    expect(chapterIndex(s)).toBeGreaterThan(2);
   });
 
   it('a later condition does not skip an unmet earlier chapter', () => {

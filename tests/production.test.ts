@@ -41,9 +41,12 @@ describe('data tables', () => {
     expect(free.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('has nine GPU generations with the starter GPU first, and four datacenter tiers', () => {
-    expect(GPUS.length).toBe(9);
-    expect(GPUS[0].unlockYear).toBe(2017);
+  it('has a GPU catalogue in unlock order with the starter GPU first, and four datacenter tiers', () => {
+    expect(GPUS.length).toBeGreaterThanOrEqual(19);
+    expect(GPUS[0].id).toBe('p100');
+    expect(new Set(GPUS.map((g) => g.id)).size).toBe(GPUS.length);
+    for (let i = 1; i < GPUS.length; i++) expect(GPUS[i].unlockYear).toBeGreaterThanOrEqual(GPUS[i - 1].unlockYear);
+    for (const g of GPUS) expect(g.buyPrice, g.id).toBe(300 * g.rentPerDay); // v14: a purchase is 300 days of rent
     expect(DATACENTER_TIERS.length).toBe(4);
     expect(ROLES.map((r) => r.id).sort()).toEqual(['engineer', 'marketing', 'researcher', 'safety', 'sales']);
     expect(OFFICE_TIERS[0].name).toBe("Mom's Garage");
@@ -114,10 +117,10 @@ describe('training', () => {
 
   it('cancelling discards progress', () => {
     const s = createInitialState(42);
-    dispatch(s, { type: 'startTraining', name: 'Big', paramsB: 1.5, tokensB: 30, datasetIds: ['scrawl_sample'], techniques: [] });
-    expect(s.training).toBeNull(); // only 5B unique, 30B needs 7.5B: rejected
+    dispatch(s, { type: 'startTraining', name: 'Big', paramsB: 1.5, tokensB: 70, datasetIds: ['scrawl_sample'], techniques: [] });
+    expect(s.training).toBeNull(); // only 15B unique, 70B at four epochs needs 17.5B: rejected
     dispatch(s, { type: 'buyDataset', datasetId: 'wikipediaish' });
-    dispatch(s, { type: 'startTraining', name: 'Big', paramsB: 1.5, tokensB: 30, datasetIds: ['scrawl_sample', 'wikipediaish'], techniques: [] });
+    dispatch(s, { type: 'startTraining', name: 'Big', paramsB: 1.5, tokensB: 70, datasetIds: ['scrawl_sample', 'wikipediaish'], techniques: [] });
     expect(s.training).not.toBeNull();
     days(s, 3);
     dispatch(s, { type: 'cancelTraining' });

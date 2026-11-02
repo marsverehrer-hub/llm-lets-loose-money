@@ -1,4 +1,4 @@
-// OWNER: UI-PAGE. Lifecycle tab: release (opens ReleaseWizard), preview, internal use, build-on actions, deprecate.
+// OWNER: UI-PAGE. Lifecycle tab: release (opens ReleaseWizard), preview, internal use, build-on actions, take off sale.
 // Wizards open as views in the Models panel (train/draft.ts). Previews come from releasePreview.
 import { dispatch } from '../../store';
 import { formatMoney } from '../../../sim/util';
@@ -9,7 +9,9 @@ import { Pill, Stat, formatDays } from '../../components';
 import { tdate } from '../../shell/fmt';
 import { arenaTop, flagshipOf } from '../train/model';
 import { setView } from '../train/draft';
-import { ArmButton, Section, signed } from './parts';
+import { Section, signed } from './parts';
+import { OFF_SALE_TIP } from './status';
+import { ConfirmButton } from '../panelKit';
 
 const MODES: { mode: ReleaseMode; label: string }[] = [
   { mode: 'full', label: 'Full release' },
@@ -23,7 +25,7 @@ export function LifecycleTab({ s, m }: { s: GameState; m: Model }) {
   return (
     <div class="mpg-cols">
       <div class="mpg-col">
-        <Section title="Release" aside={released ? <Pill tone={m.deprecated ? 'muted' : 'good'}>{m.deprecated ? 'Deprecated' : 'Released'}</Pill> : undefined}>
+        <Section title="Release" aside={released ? <Pill tone={m.deprecated ? 'muted' : 'good'}>{m.retiredDay !== undefined ? 'Retired' : m.deprecated ? 'Off sale' : 'Released'}</Pill> : undefined}>
           {released ? <ReleasedNote m={m} /> : <ReleaseOptions s={s} m={m} />}
         </Section>
 
@@ -65,15 +67,17 @@ export function LifecycleTab({ s, m }: { s: GameState; m: Model }) {
           </div>
         </Section>
 
-        <Section title="Deprecate">
+        <Section title="Take off sale">
           {m.deprecated ? (
-            <span class="mpg-desc">Deprecated. It has left the lineup.</span>
+            <span class="mpg-desc">{m.retiredDay !== undefined ? 'Retired. See its Career tab.' : 'Off sale. It has left the lineup.'}</span>
           ) : (
             <div class="mpg-row-between mpg-wrap">
-              <span class="mpg-desc">Takes the model out of the lineup. It stops counting as a live model.</span>
-              <ArmButton
-                label="Deprecate"
-                confirmLabel="Confirm deprecate"
+              <span class="mpg-desc">{OFF_SALE_TIP}</span>
+              <ConfirmButton
+                class="btn-sm"
+                label="Take off sale"
+                confirmLabel="Take it off sale?"
+                title={OFF_SALE_TIP}
                 onConfirm={() => dispatch({ type: 'deprecateModel', modelId: m.id })}
               />
             </div>

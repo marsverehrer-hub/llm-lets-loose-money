@@ -1,13 +1,15 @@
 import type { ComponentChildren } from 'preact';
 import { useState } from 'preact/hooks';
 import { BALANCE } from '../../sim/balance';
-import { SECONDARY_TUNING, canIpo, canSecondary, computeValuation, maxLoan, runwayDays } from '../../sim/systems/finance';
+import { SECONDARY_TUNING, canIpo, canSecondary, computeValuation, maxLoan, pitchReadiness, runwayDays } from '../../sim/systems/finance';
 import type { FinanceSample, GameState } from '../../sim/types';
 import { dayToDate, formatMoney } from '../../sim/util';
-import { Button, Card, Donut, EmptyState, HelpTip, LineChart, Modal, PanelHeader, PanelIntro, Pill, ProgressBar, SERIES, Slider, Stat, Tabs, Waterfall, clamp, formatDays, formatPct, signedMoney } from '../components';
+import { Button, Card, Donut, HelpTip, LineChart, Modal, PanelHeader, PanelIntro, Pill, ProgressBar, SERIES, Slider, Stat, Tabs, Waterfall, clamp, formatDays, formatPct, signedMoney } from '../components';
 import type { LineSeries, WaterfallStep } from '../components';
 import { liveHistory } from '../components/derive';
-import { dispatch, useGame } from '../store';
+import { dispatch, getState, useGame } from '../store';
+import { useIntent } from '../nav';
+import { ConfirmButton } from './panelKit';
 import './panels-a.css';
 import './finance.css';
 import { SceneView } from '../../scenes/SceneView';
@@ -160,7 +162,7 @@ function StockCard({ s, hist }: { s: GameState; hist: FinanceSample[] }) {
   const ticker = tickerOf(s.company.name);
   const points = hist.filter((h) => h.stockPrice > 0).map((h) => ({ x: h.day, y: h.stockPrice }));
   return (
-    <Card title="Stock" code={ticker} subtitle={move ? `${move.days <= 1 ? 'Today' : `Over ${move.days} days`}` : 'No earlier price yet'}>
+    <Card title={`Stock · ${ticker}`} subtitle={move ? `${move.days <= 1 ? 'Today' : `Over ${move.days} days`}` : 'No earlier price yet'}>
       <div class="stack">
         <div class="pa-stock-head">
           <span class="pa-stock-px num" aria-label={`Share price ${price.toFixed(2)} dollars`}>
@@ -340,6 +342,12 @@ export function FinancePanel() {
   const [loanAmt, setLoanAmt] = useState(1_000_000);
   const [confirmIpo, setConfirmIpo] = useState(false);
   const [showBooks, setShowBooks] = useState(false);
+  // v17.2: the advisor's "Answer the term sheet" and "Pitch investors" land on those cards.
+  useIntent('finance', (i) => {
+    if (!('focus' in i)) return;
+    const id = i.focus === 'offer' && getState().finance.pendingOffer ? 'fin-offer' : 'fin-pitch';
+    requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
+  });
 
   const fin = s.finance;
   const hist = liveHistory(s);
@@ -383,14 +391,15 @@ export function FinancePanel() {
   const accept = () => dispatch({ type: 'acceptOffer' });
   const decline = () => dispatch({ type: 'declineOffer' });
 
-  const fundingCard = (
-    <Card
-      title={offer ? `${offer.roundName} term sheet` : 'Funding'}
-      subtitle={offer ? `From ${offer.investor}` : circling ? 'Investors circling' : `Next check-in ~${dateTag(fin.nextOfferDay)}`}
-      glow={!!offer}
-      actions={offer && <Pill tone="warn">Expires {formatDays(offer.expiresDay - s.day)}</Pill>}
-    >
-      {offer ? (
+  // v17.2: a pending term sheet leads the panel; Accept takes a second click that states the price.
+  const offerCard = offer && (
+    <div id="fin-offer">
+      <Card
+        title={`${offer.roundName} term sheet`}
+        subtitle={`From ${offer.investor}`}
+        glow
+        actions={<Pill tone="warn">Expires {formatDays(offer.expiresDay - s.day)}</Pill>}
+      >
         <div class="stack">
           <div class="pa-kv kv">
             <Kv k="Amount" v={formatMoney(offer.amount, 2)} />
@@ -401,31 +410,52 @@ export function FinancePanel() {
             <Kv k="Expires" v={dateTag(offer.expiresDay)} />
           </div>
           <div class="row-wrap">
-            <Button variant="primary" title="Take the cash and the dilution" onClick={accept}>
-              Accept
-            </Button>
-            <Button title="Keep your equity and see who calls next" onClick={decline}>
-              Decline
+            <ConfirmButton
+              class="fin-accept"
+              label="Accept"
+              confirmLabel={`Take ${money(offer.amount)}, stake ${formatPct(founder, 1)} → ${formatPct(founderAfter, 1)}`}
+              title="Take the cash and the dilution"
+              onConfirm={accept}
+            />
+            <ConfirmButton label="Decline" confirmLabel="Turn it down?" title="Keep your equity and see who calls next" onConfirm={decline} />
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+
+  // What a round brings: investors buy 15 to 25% of the post-money (finance.ts makeOffer), so amount = pre × r / (1 − r).
+  const pitch = pitchReadiness(s);
+  const pre = Math.max(1e6, fin.valuation);
+  const pitchCard = (
+    <div id="fin-pitch">
+      <Card
+        title="Pitch investors"
+        subtitle={offer ? 'Term sheet on the table' : circling ? 'Investors circling' : `Next check-in ~${dateTag(fin.nextOfferDay)}`}
+        glow={pitch.ok}
+      >
+        <div class="stack">
+          <div class="pa-kv kv">
+            <Kv k="Valuation" v={money(fin.valuation)} />
+            <Kv k="A round brings" v={`${money((pre * 0.15) / 0.85)} to ${money((pre * 0.25) / 0.75)}`} />
+            <Kv k="You give up" v="15 to 25%" />
+          </div>
+          <div class={`small ${pitch.ok ? '' : 'muted'}`}>{pitch.reason}</div>
+          <div class="row-wrap">
+            <Button variant="primary" disabled={!pitch.ok} title={pitch.reason} onClick={() => dispatch({ type: 'pitchInvestors' })}>
+              Pitch investors
             </Button>
           </div>
         </div>
-      ) : (
-        <EmptyState title={circling ? 'Investors circling' : 'No term sheets'} text="Investors call when runway shrinks or growth gets loud." />
-      )}
-    </Card>
+      </Card>
+    </div>
   );
 
   return (
     <div class="panel fin-panel">
-      <PanelHeader code="FIN" title="Finance" subtitle={`${s.company.isPublic ? 'Public' : 'Private'} · ${dateTag(s.day)}`} />
+      <PanelHeader title="Finance" subtitle={`${s.company.isPublic ? 'Public' : 'Private'} · ${dateTag(s.day)}`} />
+      {offerCard}
       <PanelIntro id="finance">Where the money comes from and goes. Cash and runway tell you how long you can keep going.</PanelIntro>
-      <SceneView
-        state={s}
-        make={createTreasury}
-        cam={TREASURY_CAM}
-        camId="CAM-09"
-        label="The treasury: your cash in the vault, money flowing in and out by category, investors at the table and the stock board"
-      />
 
       <Card flush>
         <div class="pa-strip pa-strip--5">
@@ -460,7 +490,7 @@ export function FinancePanel() {
       </Card>
 
       <div class="grid-split fin-row-funding">
-        {s.company.isPublic ? <StockCard s={s} hist={hist} /> : fundingCard}
+        {s.company.isPublic ? <StockCard s={s} hist={hist} /> : pitchCard}
 
         <Card title="Ownership">
           <div class="stack">
@@ -478,6 +508,14 @@ export function FinancePanel() {
           </div>
         </Card>
       </div>
+
+      <SceneView
+        state={s}
+        make={createTreasury}
+        cam={TREASURY_CAM}
+        camId="CAM-09"
+        label="The treasury: your cash in the vault, money flowing in and out by category, investors at the table and the stock board"
+      />
 
       <div class="grid-split fin-row-chart">
         <Card
