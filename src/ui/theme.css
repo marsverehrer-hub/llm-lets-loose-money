@@ -1,6 +1,6 @@
 /* ==========================================================================
    LLM: Lets Loose Money — "Pit Wall" design system (v6, see DESIGN.md)
-   A team principal's screens, after motorsport management games: deep slate panels
+   A team principal's screens, after motorsport management games: graphite and silver panels
    with header strips, white type, the team colour on every edge, condensed figures,
    slanted buttons and tags, timing-tower tables and sector colours (purple = best in
    the world, green = improved, yellow = caution).
@@ -36,28 +36,28 @@
    ========================================================================== */
 
 :root {
-  /* Pit Wall: a team principal's screens. Deep slate, white type, the team colour on every edge. */
-  --bg: #080a10;
-  --bg-1: #11141d;
-  --bg-2: #181c28;
-  --bg-3: #222838;
-  --line: #222838;
-  --line-2: #343c52;
+  /* Pit Wall: a team principal's screens. Graphite and brushed silver, racing yellow on every edge. */
+  --bg: #0b0b0c;
+  --bg-1: #141416;
+  --bg-2: #1c1c1f;
+  --bg-3: #27272b;
+  --line: #26262a;
+  --line-2: #3c3c42;
   --ink-shadow: #000000;
 
   /* Text */
-  --fg: #ffffff;
-  --fg-2: #c3c9d8;
-  --fg-3: #858ea6;
-  --fg-4: #4b5368;
+  --fg: #f4f5f7;
+  --fg-2: #c4c8cf;
+  --fg-3: #8b9099;
+  --fg-4: #50535a;
 
-  /* The team colour (accent). --hl is its fill alias (sliders, rulers, highlights). */
-  --accent: #00e0c6;
-  --accent-2: #00b8a3;
-  --accent-3: #0b2f30;
-  --on-accent: #041311;
+  /* The team colour: racing yellow. --hl is the fill (buttons, bars); --accent is readable accent text. */
+  --accent: #ffd000;
+  --accent-2: #e6b800;
+  --accent-3: #2c2610;
+  --on-accent: #111111;
   --hl: var(--accent);
-  --hl-soft: rgba(0, 224, 198, 0.16);
+  --hl-soft: rgba(255, 208, 0, 0.16);
   --on-hl: var(--on-accent);
   --amber: var(--accent);
   --amber-2: var(--accent-2);
@@ -70,18 +70,18 @@
   --up-3: #0f2e1d;
   --down: #ff3b4e;
   --down-3: #3a1219;
-  --warn: #ffd21f;
-  --warn-3: #352c0c;
-  --blue: #4da3ff;
-  --blue-3: #12243d;
-  --yellow: #ffd21f;
+  --warn: #ff9f1c;
+  --warn-3: #33240f;
+  --blue: #aeb5c0;
+  --blue-3: #22242a;
+  --yellow: #ffd000;
 
   /* Hubs: each department wears its own livery. */
-  --hub-home: #00e0c6;
-  --hub-lab: #4d8dff;
-  --hub-infra: #ff8a1f;
-  --hub-business: #f5c400;
-  --hub-company: #e34cff;
+  --hub-home: #ffd000;
+  --hub-lab: #d5dae2;
+  --hub-infra: #ff9f1c;
+  --hub-business: #fff0a0;
+  --hub-company: #9aa1ac;
 
   /* Type: a wide technical display face, a condensed face for figures, a clean sans for reading. */
   --font: 'Barlow', system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -112,41 +112,43 @@
   --fade-x: linear-gradient(to right, transparent, #000 24px, #000 calc(100% - 24px), transparent);
 
   /* Surfaces and textures (only this file may hold gradients). */
-  --tex-app:
-    radial-gradient(1200px 500px at 85% -10%, rgba(0, 224, 198, 0.07), transparent 60%),
-    linear-gradient(180deg, #0c0f17 0%, #06070b 100%);
-  --tex-panel: linear-gradient(180deg, rgba(255, 255, 255, 0.025) 0%, rgba(255, 255, 255, 0) 120px);
-  --tex-head: linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
+  --tex-app: radial-gradient(1200px 520px at 85% -10%, rgba(255, 208, 0, 0.06), transparent 60%),
+    radial-gradient(900px 420px at 0% 110%, rgba(200, 205, 214, 0.05), transparent 60%),
+    linear-gradient(180deg, #111113 0%, #070708 100%);
+  --tex-panel: linear-gradient(180deg, rgba(220, 225, 232, 0.045) 0%, rgba(220, 225, 232, 0) 140px);
+  --tex-head: linear-gradient(90deg, rgba(220, 225, 232, 0.08) 0%, rgba(220, 225, 232, 0.015) 100%);
   /* Bars are segmented like an ERS gauge. */
   --tex-hatch: repeating-linear-gradient(90deg, transparent 0 7px, rgba(0, 0, 0, 0.45) 7px 9px);
   --tex-ruler: repeating-linear-gradient(90deg, var(--line-2) 0 1px, transparent 1px 10%);
   --tex-marker: none;
   --tex-dash: repeating-linear-gradient(90deg, var(--line) 0 4px, transparent 4px 8px);
-  --tex-stripe: linear-gradient(rgba(255, 255, 255, 0.022), rgba(255, 255, 255, 0.022));
+  --tex-stripe: linear-gradient(rgba(220, 225, 232, 0.025), rgba(220, 225, 232, 0.025));
 
   color-scheme: dark;
 }
 
 /* Light theme: the same pit wall in daylight. */
 :root[data-theme='light'] {
-  --bg: #e9ecf2;
-  --bg-1: #ffffff;
-  --bg-2: #f2f4f8;
-  --bg-3: #e1e5ed;
-  --line: #dde1ea;
-  --line-2: #c3c9d6;
+  --bg: #e7e8eb;
+  --bg-1: #fbfbfc;
+  --bg-2: #f1f2f4;
+  --bg-3: #dfe1e5;
+  --line: #d9dbe0;
+  --line-2: #b9bdc5;
   --ink-shadow: #0b0e15;
 
-  --fg: #0b0e15;
-  --fg-2: #39415a;
-  --fg-3: #687089;
-  --fg-4: #a7adbd;
+  --fg: #111214;
+  --fg-2: #3d4047;
+  --fg-3: #6b6f78;
+  --fg-4: #a9acb3;
 
-  --accent: #00a896;
-  --accent-2: #008c7d;
-  --accent-3: #d4f4ef;
+  --accent: #8a6d00;
+  --accent-2: #6f5800;
+  --accent-3: #fff3bf;
   --on-accent: #ffffff;
-  --hl-soft: rgba(0, 168, 150, 0.14);
+  --hl: #ffd000;
+  --on-hl: #111111;
+  --hl-soft: rgba(255, 200, 0, 0.22);
 
   --sota: #8a2be2;
   --sota-3: #efe0fc;
@@ -154,24 +156,23 @@
   --up-3: #dbf3e5;
   --down: #d81e34;
   --down-3: #fbdfe3;
-  --warn: #a37800;
-  --warn-3: #fbf0cc;
-  --blue: #1f6fd6;
-  --blue-3: #dce9fa;
-  --yellow: #a37800;
+  --warn: #b35c00;
+  --warn-3: #fde7cc;
+  --blue: #5b636f;
+  --blue-3: #e3e5e9;
+  --yellow: #8a6d00;
 
-  --hub-home: #00a896;
-  --hub-lab: #2563eb;
-  --hub-infra: #e36d00;
-  --hub-business: #b58f00;
-  --hub-company: #b324d1;
+  --hub-home: #a68200;
+  --hub-lab: #5b636f;
+  --hub-infra: #c26a00;
+  --hub-business: #8a6d00;
+  --hub-company: #7a808a;
 
   --shadow-1: 0 1px 2px rgba(11, 14, 21, 0.06), 0 6px 18px rgba(11, 14, 21, 0.06);
   --shadow-2: 0 12px 32px rgba(11, 14, 21, 0.14);
   --shadow-3: 0 24px 64px rgba(11, 14, 21, 0.22);
-  --tex-app:
-    radial-gradient(1200px 500px at 85% -10%, rgba(0, 168, 150, 0.08), transparent 60%),
-    linear-gradient(180deg, #eef1f6 0%, #e4e8ef 100%);
+  --tex-app: radial-gradient(1200px 520px at 85% -10%, rgba(255, 200, 0, 0.1), transparent 60%),
+    linear-gradient(180deg, #eeeff1 0%, #e1e3e7 100%);
   --tex-panel: linear-gradient(180deg, rgba(11, 14, 21, 0.015) 0%, rgba(11, 14, 21, 0) 120px);
   --tex-head: linear-gradient(90deg, rgba(11, 14, 21, 0.045) 0%, rgba(11, 14, 21, 0.01) 100%);
   --tex-hatch: repeating-linear-gradient(90deg, transparent 0 7px, rgba(255, 255, 255, 0.6) 7px 9px);
@@ -1365,8 +1366,8 @@ textarea {
 }
 :root .btn:hover:not(:disabled) { background: var(--line-2); color: var(--fg); box-shadow: none; transform: none; }
 :root .btn:active:not(:disabled) { transform: translateY(1px); }
-:root .btn-primary { background: var(--accent); color: var(--on-accent); }
-:root .btn-primary:hover:not(:disabled) { background: var(--accent-2); color: var(--on-accent); }
+:root .btn-primary { background: var(--hl); color: var(--on-hl); }
+:root .btn-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--hl) 86%, var(--fg)); color: var(--on-hl); }
 :root .btn-primary:disabled { background: var(--bg-3); color: var(--fg-4); }
 :root .btn-danger { background: var(--down-3); color: var(--down); }
 :root .btn-success { background: var(--up-3); color: var(--up); }
@@ -1393,7 +1394,7 @@ textarea {
 
 /* ---- bars: segmented gauges ---- */
 :root .progress { height: 8px; border-radius: 0; background: var(--bg-3); border: 0; }
-:root .progress-bar { border-radius: 0; background: var(--tex-hatch), var(--accent); }
+:root .progress-bar { border-radius: 0; background: var(--tex-hatch), var(--hl); }
 :root .progress-bar.good { background: var(--tex-hatch), var(--up); }
 :root .progress-bar.bad { background: var(--tex-hatch), var(--down); }
 :root .progress-bar.warn { background: var(--tex-hatch), var(--warn); }
@@ -1416,7 +1417,7 @@ textarea {
 :root .tab.active { color: var(--fg); background: transparent; box-shadow: inset 0 -3px 0 var(--hub, var(--accent)); }
 :root .segmented { background: var(--bg); border: 1px solid var(--line); border-radius: 0; padding: 2px; }
 :root .seg { border-radius: 0; font-family: var(--display); font-weight: 700; font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; }
-:root .seg.active { background: var(--accent); color: var(--on-accent); box-shadow: none; }
+:root .seg.active { background: var(--hl); color: var(--on-hl); box-shadow: none; }
 
 /* ---- tables: a timing tower ---- */
 :root .table th { border-bottom: 1px solid var(--line-2); background: transparent; }
@@ -1438,15 +1439,15 @@ textarea {
 
 /* ---- HUD: team badge, the date, the money, sim speed ---- */
 :root .topbar {
-  background: linear-gradient(180deg, var(--bg-2), var(--bg-1));
-  border-bottom: 1px solid var(--line);
+  background: var(--tex-head), linear-gradient(180deg, var(--bg-2), var(--bg-1));
+  border-bottom: 1px solid var(--line-2);
 }
 :root .brand-mark {
   width: 46px;
   height: 40px;
   border-radius: 0;
-  background: var(--accent);
-  color: var(--on-accent);
+  background: var(--hl);
+  color: var(--on-hl);
   box-shadow: none;
   font-family: var(--display);
   font-weight: 900;
@@ -1504,7 +1505,7 @@ textarea {
   :root .hub-label { font-family: var(--display); font-weight: 700; font-size: 14px; letter-spacing: 0.08em; text-transform: uppercase; }
   :root .hub-blurb { display: none; }
   :root .hub-text { justify-content: center; }
-  :root .hub-badge { width: 7px; height: 7px; margin-left: 2px; border-radius: 0; transform: rotate(45deg); background: var(--accent); }
+  :root .hub-badge { width: 7px; height: 7px; margin-left: 2px; border-radius: 0; transform: rotate(45deg); background: var(--hl); }
 }
 
 /* ---- sub-tabs inside a department ---- */
@@ -1532,8 +1533,8 @@ textarea {
 :root .newsticker { background: var(--bg-1); border-top: 1px solid var(--line); font-size: 13px; }
 :root .ticker-label {
   border-radius: 0;
-  background: var(--accent);
-  color: var(--on-accent);
+  background: var(--hl);
+  color: var(--on-hl);
   font-family: var(--display);
   font-weight: 900;
   font-style: italic;
@@ -1563,7 +1564,7 @@ textarea {
   font-size: 20px;
   clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
 }
-:root .adv-top .adv-rank { background: var(--accent); color: var(--on-accent); }
+:root .adv-top .adv-rank { background: var(--hl); color: var(--on-hl); }
 :root .adv-urgent { box-shadow: inset 4px 0 0 var(--down); }
 :root .adv-text { font-size: 15px; }
 :root .kpi { border-radius: 0; }

@@ -1,7 +1,7 @@
 # LLM: Lets Loose Money: UI design rules ("Pit Wall", v6)
 
-The UI is a **team principal's screens**, in the spirit of motorsport management games: deep slate panels with header
-strips, crisp white type, the team colour on every edge, big condensed figures, slanted buttons and tags, tables that
+The UI is a **team principal's screens**, in the spirit of motorsport management games: graphite panels with a
+brushed-silver sheen and header strips, silver-white type, racing yellow (the team colour) on every edge, big condensed figures, slanted buttons and tags, tables that
 read like a timing tower, and the timing-screen colours for meaning. It must stay easy to read for hours and easy to
 learn: every screen says what it is for, the home screen says what to do next, and jargon gets a plain-language tip.
 
@@ -27,12 +27,13 @@ like a broadcast graphics package for a deeply unserious sport.
 ## Tokens (`src/ui/theme.css`)
 | token | dark | light | use |
 |---|---|---|---|
-| `--bg` / `--bg-1..3` | slate #080a10 up to #222838 | #e9ecf2, panels white | app, panels, raised rows, buttons |
-| `--accent` (`--hl`, `--amber` aliases) | team teal #00e0c6 | #00a896 | primary buttons, active tabs and nav, edges, bars |
+| `--bg` / `--bg-1..3` | graphite #0b0b0c up to #27272b | silver #e7e8eb, panels near-white | app, panels, raised rows, buttons |
+| `--hl` / `--on-hl` | racing yellow #ffd000 / near-black | same | fills: primary buttons, active switches, bars, the team badge |
+| `--accent` (`--amber` alias) | yellow | dark gold #8a6d00 | accent text and edges (readable on its background) |
 | `--sota` | purple | | best in the world (milestones, records), as on a timing screen |
 | `--up` / `--warn` / `--down` | green / yellow / red | | improved / caution / bad, money in / out |
-| `--blue` | | | info, research |
-| `--hub-*` | teal, blue, papaya, gold, magenta | | each department's livery: nav underline, eyebrow, panel edges |
+| `--blue` | steel silver | slate grey | info, attention arcs (no blue in the chrome) |
+| `--hub-*` | yellow, silver, amber, pale gold, steel | | each department's livery: nav underline, eyebrow, panel edges |
 
 **Type:**
 - `Titillium Web` (`--display`): titles (900 italic caps), card and panel headers (700 caps, 0.06em), labels and tabs
@@ -47,11 +48,11 @@ The ~15 panels are grouped into five **hubs** (`src/ui/shell/hubs.tsx`). PanelId
 
 | Hub | Colour | Panels (tabs) |
 |---|---|---|
-| Headquarters | teal | Overview (`dashboard`), Versus (`vs`, only during a match) |
-| Lab | blue | Models, Research, Data, Benchmarks |
-| Infrastructure | papaya | Compute, Staff |
-| Business | gold | Products, Market, Marketing, Contracts, Finance |
-| Company | magenta | Level & perks (`lab`), Trophies (`achievements`) |
+| Headquarters | yellow | Overview (`dashboard`), Versus (`vs`, only during a match) |
+| Lab | silver | Models, Research, Data, Benchmarks |
+| Infrastructure | amber | Compute, Staff |
+| Business | pale gold | Products, Market, Marketing, Contracts, Finance |
+| Company | steel | Level & perks (`lab`), Trophies (`achievements`) |
 
 - **Desktop:** the five hubs are the main nav bar across the top, under the HUD (livery icon, caps label, an underline
   when active, a diamond when something inside needs attention). The hub's panels are tabs pinned at the top of
@@ -83,7 +84,7 @@ It answers "what is going on, and what should I do next":
 - **Panel** (`Card`): `--bg-1` with a soft top sheen, a header strip (`--tex-head`) with a 3px bar in the department
   colour on its left edge, uppercase title, small caps subtitle. `hot` adds an accent top edge.
 - **Panel header:** a slanted dash and the department in its colour, a 40px heavy italic caps title, one line of context.
-- **Button:** slanted parallelogram (`clip-path`), solid fill, caps. Default `--bg-3`; primary the team colour with dark
+- **Button:** slanted parallelogram (`clip-path`), solid fill, caps. Default `--bg-3`; primary racing yellow with dark
   text; danger and success tinted. Ghost and icon buttons are square.
 - **Pill:** a solid slanted chip in its tone (18% fill, full-colour text). Milestones are purple.
 - **Stat / KPI:** small caps label, big condensed figure, coloured delta.

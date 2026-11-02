@@ -24,7 +24,7 @@ export const COMPETITORS: CompetitorDef[] = [
   {
     id: 'openaye',
     name: 'OpenAye',
-    color: '#ffb703',
+    color: '#19c37d',
     personality: 'hype',
     foundedYear: 2015,
     qualityOffset: 2,

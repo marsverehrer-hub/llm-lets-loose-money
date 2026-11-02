@@ -19,7 +19,7 @@ import { masteryAppeal, productActiveB, routedQuality, routerModelOf } from './m
 export interface ShareRow { id: string; name: string; color: string; isPlayer: boolean; users: number; share: number; quality: number; price: number }
 
 export const SEGMENTS: Segment[] = ['consumer', 'developer', 'enterprise'];
-export const PLAYER_COLOR = '#7c5cff';
+export const PLAYER_COLOR = '#ffd000'; // v17: the team colour (racing yellow)
 /** Calendar year from which rival labs can ship consumer chat. */
 export const CHAT_WORLD_YEAR = 2022;
 /** v16: a player chatbot starts the chat moment only with a model at least this good (overall). */
