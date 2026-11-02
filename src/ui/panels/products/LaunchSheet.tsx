@@ -196,7 +196,12 @@ export function LaunchTiles({ s, onLaunch }: { s: GameState; onLaunch: (kind: Pr
           <button key={kind} type="button" class="pr-tile" onClick={() => onLaunch(kind)}>
             <b>{lines === 1 ? `Second ${info.label} line` : `Launch ${info.label}`}</b>
             <span class="pr-note">{info.blurb}</span>
-            <span class="pr-fee num">Fee {formatMoney(launchFee(s, kind))}</span>
+            <span class="pr-tile-foot">
+              <span class="pr-fee num">Fee {formatMoney(launchFee(s, kind))}</span>
+              <span class="btn btn-sm btn-primary" aria-hidden="true">
+                Launch
+              </span>
+            </span>
           </button>
         );
       })}

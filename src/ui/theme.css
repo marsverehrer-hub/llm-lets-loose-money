@@ -1266,6 +1266,7 @@ textarea {
 :root .progress-meta,
 :root .dock-k,
 :root .md-section-title,
+:root .mpg-sec-t,
 :root .md-label {
   font-family: var(--display);
   font-weight: 600;
@@ -1275,6 +1276,7 @@ textarea {
   color: var(--fg-3);
 }
 :root .panel-eyebrow { color: var(--hub, var(--accent)); font-weight: 700; }
+:root .mpg-sec-t { color: var(--fg-2); font-weight: 700; }
 :root .panel-eyebrow::before {
   content: '';
   width: 14px;

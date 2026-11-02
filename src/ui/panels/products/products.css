@@ -261,6 +261,14 @@ button.pr-tile:focus-visible {
 .pr-tile.is-full {
   color: var(--fg-3);
 }
+.pr-tile-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  margin-top: auto;
+}
 .pr-fee {
   margin-top: auto;
   font-size: var(--fs-xs);
