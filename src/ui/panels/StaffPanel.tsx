@@ -7,6 +7,7 @@ import type { RoleId } from '../../sim/types';
 import { Button, Card, HelpTip, PanelHeader, PanelIntro, ProgressBar } from '../components';
 import { TeamCard } from './staff/TeamCard';
 import { HireSheet, type HireTab } from './staff/HireSheet';
+import { useIntent } from '../nav';
 import { NextOfficeButton } from './staff/OfficeSheet';
 import { SceneView } from '../../scenes/SceneView';
 import { createScene as createDepartments, CAM as DEPT_CAM } from '../../scenes/staff';
@@ -48,6 +49,9 @@ export function StaffPanel() {
 
   const toggle = (id: RoleId) => setSelected((cur) => (cur === id ? null : id));
   const openHire = (role: RoleId = selected ?? 'researcher', tab: HireTab = 'team') => setSheet({ kind: 'hire', role, tab });
+  useIntent('staff', (i) => {
+    if ('open' in i && i.open === 'hire') setSheet({ kind: 'hire', role: i.role ?? 'researcher', tab: 'team' });
+  });
 
   return (
     <div class="panel sf">

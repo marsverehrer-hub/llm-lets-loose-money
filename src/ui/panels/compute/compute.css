@@ -484,3 +484,7 @@
 .cc-summary-under { margin: 8px 0 12px; }
 .cc-legend-inline { color: var(--fg-3); }
 .cc-legend-inline .cc-swatch { display: inline-block; vertical-align: middle; margin: 0 3px 0 6px; }
+
+/* v17.2: Build takes a second click (ConfirmButton); it reads as a plain button until armed. */
+.btn.cc-build:not(.is-armed) { background: var(--bg-3); border-color: var(--line-2); color: var(--fg); }
+.btn.cc-build:disabled { background: transparent; border-color: var(--line); color: var(--fg-4); }

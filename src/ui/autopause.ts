@@ -150,7 +150,8 @@ export function autoPauseCheck(s: GameState): { text: string; kind: NoticeKind }
   const on = settings;
   const reasons: Reason[] = [];
 
-  if (on.training && prev.trainingId !== null && s.training?.id !== prev.trainingId && s.stats.modelsTrained > prev.modelsTrained) {
+  // The eval reveal already holds the sim until it is dismissed; pausing as well would make the player unpause twice.
+  if (on.training && !s.pendingReveal && prev.trainingId !== null && s.training?.id !== prev.trainingId && s.stats.modelsTrained > prev.modelsTrained) {
     // A cancelled run leaves no new model behind, so the count tells a finish from a cancel.
     const made = s.models[s.models.length - 1];
     reasons.push({ text: `${made ? made.name : 'Training'} finished training`, bad: false });

@@ -17,6 +17,7 @@ import {
 } from '../../../sim/systems/imageGen';
 import type { GameState, Id, MediaChannel, MediaKind, MediaModel } from '../../../sim/types';
 import { setView } from '../train/draft';
+import { ConfirmButton } from '../panelKit';
 
 const KINDS: MediaKind[] = ['image', 'video'];
 const CHANNELS: MediaChannel[] = ['app', 'api'];
@@ -138,9 +139,7 @@ export function MediaStudio({ s }: { s: GameState }) {
                       <td class="num">{formatMoney(p.revenuePerDay)}</td>
                       <td class="num">{formatMoney(p.costPerDay)}</td>
                       <td>
-                        <button type="button" class="btn btn-sm" onClick={() => dispatch({ type: 'shutdownMediaProduct', productId: p.id })}>
-                          Shut down
-                        </button>
+                        <ConfirmButton class="btn-sm" label="Shut down" confirmLabel="Shut it down?" onConfirm={() => dispatch({ type: 'shutdownMediaProduct', productId: p.id })} />
                       </td>
                     </tr>
                   );
@@ -228,7 +227,8 @@ export function MediaStudio({ s }: { s: GameState }) {
   );
 }
 
-function etaOf(s: GameState): number {
+/** Days left on the media run (Infinity when it has no compute). The run dock shows it too. */
+export function etaOf(s: GameState): number {
   const run = s.media?.run;
   const rate = mediaRate(s);
   return run && rate > 0 ? Math.max(0, run.totalFlops - run.doneFlops) / rate : Infinity;
@@ -241,9 +241,13 @@ function ModelActions({ s, m }: { s: GameState; m: MediaModel }) {
         <button type="button" class="btn btn-sm btn-primary" onClick={() => dispatch({ type: 'releaseMediaModel', modelId: m.id })}>
           Release
         </button>
-        <button type="button" class="btn btn-sm" title="Brand and reputation now; anyone can host it, so your own product sells less" onClick={() => dispatch({ type: 'releaseMediaModel', modelId: m.id, openWeights: true })}>
-          Open weights
-        </button>
+        <ConfirmButton
+          class="btn-sm"
+          label="Open weights"
+          confirmLabel="Can't be undone. Open?"
+          title="Brand and reputation now; anyone can host it, so your own product sells less"
+          onConfirm={() => dispatch({ type: 'releaseMediaModel', modelId: m.id, openWeights: true })}
+        />
       </span>
     );
   }

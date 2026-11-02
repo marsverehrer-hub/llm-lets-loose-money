@@ -1,10 +1,12 @@
 // Products screen (GAME_DESIGN §21.5): what you sell, what it earns, what it costs to serve, and the margin.
 import { useState } from 'preact/hooks';
-import { useGame } from '../store';
+import { getState, useGame } from '../store';
 import { formatMoney } from '../../sim/util';
 import { PanelHeader, PanelIntro, Card, Stat } from '../components';
 import type { ProductKind } from '../../sim/types';
 import { Empty } from './panelKit';
+import { liveLines, MAX_LINES_PER_KIND, unlockedProductKinds } from '../../sim/systems/products';
+import { useIntent } from '../nav';
 import { economics } from './products/productsKit';
 import { LaunchSheet, LaunchTiles } from './products/LaunchSheet';
 import { LiveProductCard } from './products/ProductCard';
@@ -20,7 +22,15 @@ export function ProductsPanel() {
   const serving = live.reduce((a, p) => a + economics(p).cost, 0);
   const margin = revenue - serving;
   const [launchKind, setLaunchKind] = useState<ProductKind | null>(null);
-
+  // v17.2: "Launch a product" elsewhere opens the launch sheet for that kind, or the first kind with a free slot.
+  useIntent('products', (i) => {
+    if (!('open' in i) || i.open !== 'launch') return;
+    const now = getState(); // the hook keeps its first closure, so read the live state
+    const open = unlockedProductKinds(now);
+    const kind = i.kind ?? (['api', 'chat', 'enterprise'] as ProductKind[]).find((k) => open.includes(k) && liveLines(now, k).length < MAX_LINES_PER_KIND);
+    if (kind) setLaunchKind(kind);
+    else requestAnimationFrame(() => document.getElementById('pr-launch')?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
+  });
 
   return (
     <div class="panel pn pn-products pr">
@@ -70,9 +80,11 @@ export function ProductsPanel() {
         </>
       )}
 
-      <Card code="NEW" title="Launch" subtitle="Up to two live lines per kind">
-        <LaunchTiles s={s} onLaunch={(k) => setLaunchKind(k)} />
-      </Card>
+      <div id="pr-launch">
+        <Card code="NEW" title="Launch" subtitle="Up to two live lines per kind">
+          <LaunchTiles s={s} onLaunch={(k) => setLaunchKind(k)} />
+        </Card>
+      </div>
 
       <LaunchSheet kind={launchKind} onClose={() => setLaunchKind(null)} />
     </div>
