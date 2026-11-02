@@ -1,16 +1,11 @@
 // Compute UI helpers: the fleet picture the screen draws, made safe to show before the serving system has run.
 import type { FleetBreakdown, FleetPriority, GameState, ServingSlice } from '../../../sim/types';
 import { fleetBreakdown, previewFleet } from '../../../sim/systems/serving';
+import { ownGpuCount as simOwnGpuCount } from '../../../sim/systems/compute';
 
-/** Own GPUs: installed in finished datacenters, plus cloud rentals. Under-construction sites hold none. */
+/** Own GPUs: installed in finished datacenters (not neocloud halls), plus every cloud rental. */
 export function ownGpuCount(s: GameState): number {
-  let n = 0;
-  for (const v of Object.values(s.compute.rented)) n += v ?? 0;
-  for (const dc of s.compute.datacenters) {
-    if (dc.buildDaysLeft > 0) continue;
-    for (const v of Object.values(dc.gpus)) n += v ?? 0;
-  }
-  return n;
+  return simOwnGpuCount(s);
 }
 
 /**

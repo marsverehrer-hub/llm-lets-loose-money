@@ -1518,3 +1518,63 @@ Each product's serving cost now carries its share of cloud **rent** as well as t
 
 ### 25.7 Balance
 `--all --years=20 --seeds=1,2,3`, medians: frontier profitable 2019.7, IPO 2023.0, $1T 2030.9; small and specialist profitable 2018.6; open IPO 2025.0; no bot bankrupt; idle bankrupt in 2.1 years (that check now passes). The bots never patch, enter cups, route or retire, so the only v15 effect on them is mastery's buyer appeal, which brings the frontier IPO forward by about 0.3 years. Profitability before 2020 and $1T before 2032 still fail, as in §23 and §24.
+
+## 26. Clouds and neoclouds (v16)
+Player request: "make cloud providers and servers deeper and make it possible to e.g. be a neocloud/compute provider too, with its own gameloop". Before v16 the cloud was one flat map (`compute.rented`, GPU → count at `rentPerDay`) with no supply limit, so a lab could rent 50,000 GPUs in 2019. Contract: `src/sim/types.ts`, search "v16". Code: `data/clouds.ts`, `systems/cloudMarket.ts`, `systems/neocloud.ts`, plus small hooks in `systems/compute.ts` (lease totals, dedicated halls, upgrades). UI: Compute → "Cloud providers" and "Neocloud" tabs, and Hall options in a datacenter's sheet. No save-version bump: `compute.cloud` and `neocloud` are optional and created on demand.
+
+### 26.1 Providers (`data/clouds.ts`)
+Prices are multiples of each GPU's `rentPerDay`, so a GPU rebalance moves every provider with it.
+
+| Provider | Kind | On-demand | Opens | Stocks a GPU from | Retires after | Quota (GPUs) | Reserved 1 yr / 3 yr | Spot | Crunch chance |
+|---|---|---|---|---|---|---|---|---|---|
+| Amazomb Web Services (default) | hyperscaler | ×1.00 | 2017 | launch | never | 3,000 × 1.75^years | −30% / −50% | ×0.40, 4%/day | 1/700 a day |
+| Microsquash Azzure | hyperscaler | ×1.08 | 2017 | +0.25 yr | never | 2,000 × 1.8^years | −33% / −52% | — | 1/700 |
+| Gargle Cloud | hyperscaler | ×0.97 | 2017 | +0.5 yr | never | 1,500 × 1.75^years | −28% / −46% | ×0.35, 6%/day | 1/700 |
+| CoreWheeze | neocloud | ×0.78 | 2019 | launch | 4 yr | 400 × 2.4^years | −20% / −35% | — | 1/350 |
+| Lambada Labs | neocloud | ×0.85 | 2018 | +0.25 yr | 5 yr | 300 × 2^years | −18% / — | — | 1/400 |
+| GPU Bazaar | spot only | — | 2017 | +1 yr | never | 800 × 1.6^years | — | ×0.45, 8%/day | 1/500 |
+| EuroStack Sovereign Cloud | sovereign | ×1.35 | 2019 | +1 yr | never | 600 × 1.6^years | −25% / −40% | — | never |
+
+- **Quota** = `floor(quotaBase × quotaGrowth^(year − openYear))` GPUs per provider (fractional year), halved during a crunch. It counts every kind (on-demand, spot, reserved). In 2019 every provider together allows about 24k to 32k GPUs (so 50k is out of reach); by 2025 the default alone allows about 260k.
+- **New generations are scarce:** one GPU may take `0.2 + 0.8 × (years since the provider stocked it)` of the quota, reaching all of it after a year.
+- **The legacy pool.** `compute.rented` is the default provider's on-demand pool. `rentGpus` rents there, now within the quota (a big order rents what is left and says so). Events, bots, tests and multiplayer keep using it. Every other lease lives in `compute.cloud.leases`.
+- **Crunches.** Each provider rolls `crunchPerDay` daily (own random stream, `flags['cloud.rng']`), lasting 30 to 90 days: quota ×0.5 for new rentals (existing leases stay), spot price ×1.6, spot preemption ×3. Customers of that provider get a toast (no news line: news would shift the headline picker's rolls on the shared stream). The Cloud providers table marks it.
+
+### 26.2 Reserved and spot
+- **On-demand** price per GPU-day = `rentPerDay × priceMult × rentMult` (rent shocks from events still apply).
+- **Reserved** (`commitCloud {providerId, gpuId, count, months: 12 | 36}`): `on-demand × (1 − discount)`, locked at signing, billed every day for `months × 365/12` days whether used or not. Needs quota for the whole order and a month of the bill in cash. **Early exit** (`endCloudCommit {leaseId}`) costs `50% × days left × count × price`.
+- **Spot** (`rentCloud {..., spot: true}`): `on-demand × spot.priceMult` (×1.6 in a crunch). Each spot lease is preempted with `preemptPerDay` a day (×3 in a crunch); it is then offline and unbilled for 1 to 3 days. A preemption during a training run rolls the run back half a day of the preempted GPUs' share: `doneFlops −= share × trainingPflops × 1e15 × 86,400 × 0.5`, with a line in the run log.
+- `rentCloud {providerId, gpuId, count, spot?}` rents (count > 0) or returns (count < 0) on-demand or spot at any provider. All cloud bills book under `compute`.
+
+### 26.3 Datacenter upgrades (`upgradeDatacenter {datacenterId, upgrade}`)
+- **Liquid cooling**: 30% of the tier's build cost. PUE ×0.85 and failure rate ×0.75 in that hall.
+- **InfiniBand**: 25% of the tier's build cost. Neocloud on-demand from that hall sells at ×1.15, and lab deals of 256+ GPUs require it (offered at ×1.15). It does not change your own training (cluster efficiency stays with the research tiers).
+
+### 26.4 Neocloud: you as the provider (`systems/neocloud.ts`)
+- **Halls.** `setNeocloudHall {datacenterId, dedicated}` takes a finished datacenter out of your own fleet (it no longer trains or serves) and sells it. It still pays power, hardware ops, upkeep and wear in compute.ts. Taking a hall back while deals run on it breaks their SLA: that is how your own training steals capacity.
+- **Market price** of one GPU-day = `rentPerDay × 0.75 × age × demand × rentMult`.
+  - `age` = 1 until a newer generation ships, then `0.85 × max(0.08, 0.78^(years since it shipped))`. An A-1OO earns about $65 a day in 2020 and about $30 in 2025.
+  - `demand` = `(0.8 + 0.4 × aiHype/100) × (1 + 0.1 × providers in a crunch)`. Big-cloud shortages spill over to you.
+- **On-demand.** Dedicated GPUs not under contract sell on-demand at `market × priceMult` (`setNeocloudPrice {mult}`, 0.5 to 2). Utilization moves 10% a day toward `0.72 × demand × priceMult^−2.5 × (0.75 + 0.5 × reputation/100)`, at most 97%, and at most `200 × 2^(year − 2017) × demand × repFactor` GPUs of market depth. That drift is the churn: customers come and go slowly.
+- **Idle listing** (`setNeocloudListIdle {on}`): the own fleet's idle share of your installed GPUs in other halls sells too, at 60% of the price, with no SLA (your runs take it back). Rented GPUs are never listed.
+- **Capacity deals.** Every 10 to 25 days (shorter with reputation) a customer offers a deal sized to your dedicated halls (or your installed GPUs before you dedicate any):
+
+  | Customer | Size of the hall | Months | SLA | Price |
+  |---|---|---|---|---|
+  | Rival lab (active labs from `competitors`) | 40–100% | 6 / 12 / 24 | 97% | ×1.05 (×1.15 with InfiniBand at 256+) |
+  | Startup | 10–35% | 3 / 6 | 95% | ×1.10, may fold (1/700 a day) |
+  | Enterprise | 15–50% | 12 / 24 | 99% | ×1.00 |
+
+  Price = `market × customer premium × term (12 mo ×0.94, 24 mo ×0.88) × (0.9 + 0.2 × reputation/100) × noise 0.92–1.08`, **locked for the term**: a long deal signed before the next generation ships keeps paying the old price. Offers expire after 21 days; at most 4 are open. `acceptCapacityDeal` needs that many free GPUs of that generation in dedicated halls (InfiniBand halls when required).
+- **SLA.** Each day deals take dedicated GPUs (InfiniBand deals first, then by signing order). A deal delivered below its SLA pays a credit of `missed GPU-days × price × 2` (expense `sla`) and costs 0.5 reputation a day; after 14 days in a row the customer walks (−8 reputation and a news line). GPU failures (§24) eat into deals sized to the whole hall, so a full hall needs spares. `cancelCapacityDeal` refunds 30 days and costs 10 reputation.
+- **Renewal and churn.** A finished deal comes back as a renewal offer with chance `0.9 × reputation/100`; otherwise the customer moves to another cloud.
+- **Reputation** starts at 50 and grows 0.04 a day while you sell anything and every deal holds its SLA.
+- **Money.** Revenue books daily under the revenue category `cloud` (finance and HQ show it as "Cloud (neocloud)"), SLA credits under the expense `sla`. Cloud revenue counts toward the run-rate, valuation and loans like any other revenue.
+- **Not a money printer.** An A-1OO bought in 2020 earns about $60 to $75 a day against about $17 a day to run (§24) and $27k up front, so it pays back in roughly 15 months, while its price starts falling when the H-1OO ships in 2022. Debt service, payroll, upkeep and wear come on top.
+- The neocloud state and its random stream (`flags['neocloud.rng']`) exist only after the first neocloud action or in the Neocloud scenario, so other games roll exactly as before.
+
+### 26.5 Neocloud scenario (`data/scenarios.ts`)
+Start 1 January 2020 with $8M cash, $20M of debt, a finished Colo Cage "Hall 1" of 384 A-1OOs dedicated to the neocloud, six engineers, two sales and one researcher. Goals: $100M a year of compute revenue (`revenueBreakdown.cloud × 365`) by 2025, and a provider reputation of 80. `ScenarioDef` gained optional `datacenter` and `debt` fields.
+
+### 26.6 Balance
+The bots rent through `rentGpus` and never reach the default provider's quota (the frontier bot peaks around 46k GPUs in 2025 against a quota of about 260k), never touch the neocloud, and the cloud market draws only from its own stream and writes no news. `--all --years=8 --seeds=1` gives exactly the v15 table: seeded games that ignore the new systems play out identically.

@@ -13,6 +13,7 @@ const REVENUE_LABEL: Record<string, string> = {
   contracts: 'Contracts',
   grant: 'Grants',
   data: 'Data sales',
+  cloud: 'Cloud (neocloud)',
   other: 'Other',
 };
 
@@ -32,6 +33,7 @@ const EXPENSE_LABEL: Record<string, string> = {
   capex: 'Buildings',
   events: 'Events',
   contracts: 'Contract delivery',
+  sla: 'SLA credits',
   other: 'Other',
 };
 

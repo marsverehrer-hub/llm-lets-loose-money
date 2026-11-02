@@ -9,6 +9,8 @@ import { createScene as createDatacenter, CAM as DC_CAM } from '../../scenes/com
 import { FleetPicker } from './compute/FleetPicker';
 import { DailyCost } from './compute/DailyCost';
 import { BlockSheet, BuildBody, RentBody } from './compute/ComputeSheets';
+import { CloudMarket } from './compute/CloudMarket'; // v16 cloud providers
+import { NeocloudTab } from './compute/NeocloudTab'; // v16 neocloud
 import './panels.css';
 import './compute/compute.css';
 
@@ -19,7 +21,7 @@ export function ComputePanel() {
   const room = buildRoom(s);
   const [sheet, setSheet] = useState<OpenSheet>(null);
   const close = () => setSheet(null);
-  const [get, setGet] = useState<'rent' | 'build'>('rent');
+  const [get, setGet] = useState<'rent' | 'market' | 'build' | 'neocloud'>('rent');
 
   return (
     <div class="panel pn pn-compute cc">
@@ -62,12 +64,14 @@ export function ComputePanel() {
             onChange={setGet}
             tabs={[
               { id: 'rent', label: 'Rent (no upfront cost)' },
+              { id: 'market', label: 'Cloud providers' },
               { id: 'build', label: 'Build a datacenter' },
+              { id: 'neocloud', label: 'Neocloud', count: s.neocloud?.offers.length || undefined },
             ]}
           />
         }
       >
-        {get === 'rent' ? <RentBody /> : <BuildBody />}
+        {get === 'rent' ? <RentBody /> : get === 'market' ? <CloudMarket /> : get === 'build' ? <BuildBody /> : <NeocloudTab />}
       </Card>
 
       <div class="cc-two">

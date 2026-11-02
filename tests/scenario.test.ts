@@ -55,9 +55,9 @@ describe('default setup', () => {
 });
 
 describe('scenario definitions', () => {
-  it('has the eight scenarios from the spec, with valid GPUs and datasets', () => {
+  it('has the nine scenarios from the spec, with valid GPUs and datasets', () => {
     expect(SCENARIOS.map((x) => x.id).sort()).toEqual(
-      ['agi_speedrun', 'bootstrapped', 'big_tech_spinout', 'data_broker', 'garage', 'late_2022', 'open_collective', 'sovereign'].sort(),
+      ['agi_speedrun', 'bootstrapped', 'big_tech_spinout', 'data_broker', 'garage', 'late_2022', 'neocloud', 'open_collective', 'sovereign'].sort(),
     );
     for (const sc of SCENARIOS) {
       for (const gpu of Object.keys(sc.fleet ?? {})) {
@@ -66,7 +66,8 @@ describe('scenario definitions', () => {
         expect(def!.unlockYear).toBeLessThanOrEqual(sc.startYear);
       }
       expect(sc.goals.length).toBeLessThanOrEqual(3);
-      for (const g of sc.goals) expect(g.progress(createInitialState(SEED, NAME, setupFor(sc.id)))).toEqual(expect.any(String));
+      const st = sc.goals.length > 0 ? createInitialState(SEED, NAME, setupFor(sc.id)) : null;
+      for (const g of sc.goals) expect(g.progress(st!)).toEqual(expect.any(String));
     }
     expect(DATASETS.length).toBeGreaterThan(0);
   });
