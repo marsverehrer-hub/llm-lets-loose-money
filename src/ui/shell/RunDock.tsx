@@ -12,6 +12,7 @@ import { formatDays, useIsMobile } from '../components';
 import { navigate } from '../nav';
 import { useGame } from '../store';
 import { TempoControl } from '../panels/lab/TempoControl';
+import { nextStep } from '../panels/hq/nextStep';
 import './rundock.css';
 import '../panels/lab/lab.css';
 
@@ -131,6 +132,19 @@ function CupCell({ s }: { s: GameState }) {
   );
 }
 
+/** v17: the single most useful move, on every screen. Red when something is urgent. */
+function NextCell({ s }: { s: GameState }) {
+  const st = nextStep(s);
+  if (!st) return null;
+  return (
+    <button type="button" class={`dock-cell dock-next ${st.priority === 'urgent' ? 'is-urgent' : ''}`} onClick={() => navigate(st.panel)} title={st.why}>
+      <span class="dock-k">{st.priority === 'urgent' ? 'Urgent' : 'Next'}</span>
+      <span class="dock-name">{st.text}</span>
+      <span class="dock-go" aria-hidden="true">›</span>
+    </button>
+  );
+}
+
 export function RunDock() {
   const s = useGame();
   const phone = useIsMobile();
@@ -139,6 +153,7 @@ export function RunDock() {
     <div class="rundock" aria-label="Lab status">
       <TrainCell s={s} phone={phone} />
       <ResearchCell s={s} phone={phone} />
+      {!phone && <NextCell s={s} />}
       <LevelCell s={s} />
       {!phone && <CupCell s={s} />}
       {!phone && <BoardCell s={s} />}

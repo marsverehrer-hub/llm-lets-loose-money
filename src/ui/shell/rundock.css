@@ -149,3 +149,9 @@ button.dock-cell:hover,
 .dock-cup { flex: 0 0 auto; }
 .dock-cup.is-open .dock-k,
 .dock-cup.is-open .dock-v:first-of-type { color: var(--amber); }
+
+/* v17: the next move, on every screen. */
+.dock-next { flex: 1 1 260px; min-width: 0; overflow: hidden; }
+.dock-next .dock-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+:root .dock-next.is-urgent { border-color: var(--down); box-shadow: inset 3px 0 0 var(--down); }
+:root .dock-next.is-urgent .dock-k { color: var(--down); }

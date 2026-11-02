@@ -15,7 +15,7 @@ const PRIORITY: Record<Priority, { label: string; tone: 'bad' | 'violet' | 'mute
 const SHOWN = 4;
 
 export function NextCard({ s }: { s: GameState }) {
-  const steps = nextSteps(s);
+  const steps = nextSteps(s).filter((st) => !st.chapter); // the chapter has its own banner above
   const [all, setAll] = useState(false);
   const shown = all ? steps : steps.slice(0, SHOWN);
   const urgent = steps.filter((st) => st.priority === 'urgent').length;

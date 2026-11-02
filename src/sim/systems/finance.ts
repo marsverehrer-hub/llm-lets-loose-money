@@ -51,7 +51,7 @@ export function annualRevenue(s: GameState): number {
 }
 
 /** Player's 1-based arena rank, or 0 when the player has no released model. */
-function playerArenaRank(s: GameState): number {
+export function playerArenaRank(s: GameState): number {
   const rows = arenaLeaderboard(s);
   const idx = rows.findIndex((r) => r.isPlayer);
   return idx < 0 ? 0 : idx + 1;
