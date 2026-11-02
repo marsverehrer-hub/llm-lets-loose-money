@@ -30,9 +30,12 @@ import { progressionTick, handlers as progressionHandlers } from './systems/prog
 import { handlers as tempoHandlers } from './systems/tempo'; // v13 run tempo
 import { modelLifeTick, handlers as modelLifeHandlers } from './systems/modelLife'; // v15 patches, mastery, retirement, routers
 import { cupTick, handlers as cupHandlers } from './systems/tournament'; // v15 Arena Cup
+import { cloudTick, handlers as cloudHandlers } from './systems/cloudMarket'; // v16 cloud providers
+import { neocloudTick, handlers as neocloudHandlers } from './systems/neocloud'; // v16 neocloud
 
 /** Order matters: costs/capacity first, then production, then market, then finance closes the books. */
 const SYSTEMS: System[] = [
+  cloudTick, // v16: crunches, spot preemptions and reserved expiries, before compute bills the day
   computeTick,
   dataTick,
   dataOpsTick,
@@ -49,6 +52,7 @@ const SYSTEMS: System[] = [
   marketTick,
   productsTick,
   servingTick, // v10: after demand is known; books the cloud burst and each product's serving cost
+  neocloudTick, // v16: after the fleet split is known (idle listing); books cloud revenue and SLA credits
   contractsTick,
   modelLifeTick, // v15: patches land, models earn mastery from the users they serve
   cupTick, // v15: Arena Cup announcements and play days
@@ -107,6 +111,8 @@ const HANDLERS: ActionHandlers = Object.assign(
   tempoHandlers,
   modelLifeHandlers,
   cupHandlers,
+  cloudHandlers,
+  neocloudHandlers,
 );
 
 /** True when the simulation should not advance (game over or an event awaits a decision). */

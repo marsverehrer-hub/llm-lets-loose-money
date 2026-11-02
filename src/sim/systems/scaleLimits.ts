@@ -8,6 +8,7 @@ import { GPUS } from '../data/gpus';
 import { yearOf } from '../util';
 import { isResearched } from './research';
 import { clusterEfficiency } from './compute';
+import { cloudGpusByType } from './cloudMarket';
 
 export const MEMORY_TUNING = {
   /** Off only in unit tests that predate the wall (tests/setup.ts) and use toy fleets with big models. */
@@ -48,8 +49,12 @@ export function fleetMemGB(s: GameState): number {
     n += k;
     mem += k * (g?.memGB ?? MEMORY_TUNING.DEFAULT_MEM_GB);
   };
-  for (const [gid, k] of Object.entries(s.compute.rented)) if (k > 0) add(gid, k);
-  for (const dc of s.compute.datacenters) if (dc.buildDaysLeft <= 0) for (const [gid, k] of Object.entries(dc.gpus)) if (k > 0) add(gid, k);
+  for (const [gid, k] of Object.entries(cloudGpusByType(s))) if (k > 0) add(gid, k); // every cloud provider
+  const sold = s.neocloud?.dedicated ?? []; // halls dedicated to the neocloud do not train
+  for (const dc of s.compute.datacenters) {
+    if (dc.buildDaysLeft > 0 || sold.includes(dc.id)) continue;
+    for (const [gid, k] of Object.entries(dc.gpus)) if (k > 0) add(gid, k);
+  }
   return n > 0 ? mem / n : (GPUS[0].memGB ?? MEMORY_TUNING.DEFAULT_MEM_GB);
 }
 

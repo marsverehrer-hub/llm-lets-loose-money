@@ -730,6 +730,10 @@ export interface Datacenter {
   bought?: Record<Id, number>;
   /** v14: fractional GPU failures carried to the next day, per GPU model. */
   wear?: Record<Id, number>;
+  /** v16 (GAME_DESIGN §26.3): liquid cooling retrofit (lower PUE, fewer failures). */
+  liquid?: boolean;
+  /** v16: InfiniBand fabric (neocloud price premium, big training customers require it). */
+  infiniband?: boolean;
 }
 
 /** v8: buyer tiers inside every segment (GAME_DESIGN §19.3). Weights drift with the year. */
@@ -994,6 +998,8 @@ export interface GameState {
     priority?: FleetPriority;
     /** v10: today's derived fleet picture (serving system). */
     fleet?: FleetBreakdown;
+    /** v16: cloud providers, reserved contracts and spot leases (systems/cloudMarket.ts). Created on demand. */
+    cloud?: CloudState;
   };
 
   data: {
@@ -1102,6 +1108,8 @@ export interface GameState {
   hallOfFame?: HallOfFameEntry[];
   /** v15: the Arena Cup, a recurring themed tournament (systems/tournament.ts). Created on demand. */
   cup?: CupState;
+  /** v16: the player's own compute-provider business (systems/neocloud.ts). Created by the first neocloud action. */
+  neocloud?: NeocloudState;
 }
 
 // ---------------------------------------------------------------------------
@@ -1182,6 +1190,18 @@ export type GameAction =
   | { type: 'sellGpus'; datacenterId: Id; gpuId: Id; count: number }
   | { type: 'setTrainingShare'; share: number }
   | { type: 'setFleetPriority'; priority: FleetPriority }
+  // v16 cloud market (systems/cloudMarket.ts). count < 0 returns GPUs. rentGpus still rents from the default provider.
+  | { type: 'rentCloud'; providerId: Id; gpuId: Id; count: number; spot?: boolean }
+  | { type: 'commitCloud'; providerId: Id; gpuId: Id; count: number; months: CloudTerm }
+  | { type: 'endCloudCommit'; leaseId: Id }
+  | { type: 'upgradeDatacenter'; datacenterId: Id; upgrade: DatacenterUpgrade }
+  // v16 neocloud (systems/neocloud.ts)
+  | { type: 'setNeocloudHall'; datacenterId: Id; dedicated: boolean }
+  | { type: 'setNeocloudListIdle'; on: boolean }
+  | { type: 'setNeocloudPrice'; mult: number }
+  | { type: 'acceptCapacityDeal'; offerId: Id }
+  | { type: 'declineCapacityDeal'; offerId: Id }
+  | { type: 'cancelCapacityDeal'; contractId: Id }
   // staff
   | { type: 'hire'; role: RoleId; count: number }
   | { type: 'fire'; role: RoleId; count: number }
@@ -1649,4 +1669,89 @@ export interface CupState {
   /** The cup currently open for entries, if any. */
   open?: { edition: number; theme: CupTheme; announcedDay: number; playDay: number; prize: number; entryFee: number; entrantModelId?: Id };
   history: CupResult[];
+}
+
+// ---------------------------------------------------------------------------
+// v16 Cloud market and neocloud (GAME_DESIGN.md §26)
+// ---------------------------------------------------------------------------
+/** Reserved-capacity terms, in months. */
+export type CloudTerm = 12 | 36;
+export type DatacenterUpgrade = 'liquid' | 'infiniband';
+
+/**
+ * GPUs leased from a cloud provider other than the legacy pool (`compute.rented` stays the default provider's on-demand
+ * GPUs). On-demand and spot leases merge per provider and GPU; each reserved contract is its own lease.
+ */
+export interface CloudLease {
+  id: Id;
+  providerId: Id;
+  gpuId: Id;
+  count: number;
+  kind: 'ondemand' | 'spot' | 'reserved';
+  startDay: number;
+  /** Reserved: last day of the term (exclusive). */
+  endDay?: number;
+  /** Reserved: $ per GPU-day, locked when signed. */
+  pricePerDay?: number;
+  /** Spot: preempted, offline and unbilled until this day. */
+  downUntil?: number;
+}
+
+export interface CloudState {
+  leases: CloudLease[];
+  /** Provider id -> day its availability crunch ends. */
+  crunchUntil: Record<Id, number>;
+}
+
+export type CapacityCustomerKind = 'lab' | 'startup' | 'enterprise';
+
+/** A capacity deal an NPC customer offers the player's neocloud. */
+export interface CapacityOffer {
+  id: Id;
+  customer: string;
+  kind: CapacityCustomerKind;
+  /** Rival lab id when the customer is a lab. */
+  labId?: Id;
+  gpuId: Id;
+  count: number;
+  months: number;
+  /** $ per GPU-day. */
+  price: number;
+  /** Share of the contracted GPUs that must be delivered every day (0.97 = 97%). */
+  sla: number;
+  /** Must run on InfiniBand halls. */
+  needsInfiniband: boolean;
+  expiresDay: number;
+  /** A renewal from a customer whose deal just ended. */
+  renewal?: boolean;
+}
+
+export interface CapacityContract extends Omit<CapacityOffer, 'expiresDay'> {
+  startDay: number;
+  endDay: number;
+  /** Consecutive days below the SLA. */
+  breachDays: number;
+  /** Share delivered yesterday (0..1). */
+  delivered: number;
+}
+
+export interface NeocloudState {
+  /** Datacenter ids taken out of the own fleet and sold to customers. */
+  dedicated: Id[];
+  /** Also sell the idle GPUs of the other halls, interruptibly. */
+  listIdle: boolean;
+  /** On-demand price as a multiple of the market price. */
+  priceMult: number;
+  /** Provider reputation, 0..100. */
+  reputation: number;
+  /** On-demand utilization, smoothed (customers arrive and churn gradually). */
+  utilization: number;
+  offers: CapacityOffer[];
+  contracts: CapacityContract[];
+  nextOfferDay: number;
+  /** Weekly samples for the chart (cap 200). */
+  history: { day: number; revenue: number; utilization: number }[];
+  /** Lifetime totals. */
+  totalRevenue: number;
+  totalCredits: number;
 }

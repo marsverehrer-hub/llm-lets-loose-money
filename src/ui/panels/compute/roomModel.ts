@@ -3,6 +3,7 @@
 // The fleet breakdown has no per-datacenter split yet, so each block gets the fleet's job mix in proportion.
 import type { Datacenter, FleetBreakdown, GameState, Id, ServingSlice } from '../../../sim/types';
 import { availableGpus, datacenterTierById, gpuById } from '../../../sim/systems/compute';
+import { cloudGpusByType } from '../../../sim/systems/cloudMarket'; // v16: every provider
 import { GPUS } from '../../../sim/data/gpus';
 import { formatMoney } from '../../../sim/util';
 import { fleetNow, ownGpuCount } from './fleetView';
@@ -247,7 +248,7 @@ export function buildRoom(s: GameState): ServerRoom {
   const ref = referenceGpu(s);
   const burstGpuEq = fb.burstPflops > 0 && ref.pflops > 0 ? fb.burstPflops / ref.pflops : 0;
   const burstCap = Math.ceil(burstGpuEq - 1e-9);
-  const rented = s.compute.rented;
+  const rented = cloudGpusByType(s);
   const rentedCount = Object.values(rented).reduce((a, n) => a + (n ?? 0), 0);
   const slotsOf = (dc: Datacenter) => datacenterTierById(dc.tierId)?.maxGpus ?? 0;
   const biggest = Math.max(0, rentedCount, burstCap, ...s.compute.datacenters.map(slotsOf));
@@ -262,7 +263,7 @@ export function buildRoom(s: GameState): ServerRoom {
       key: dc.id,
       kind: 'dc',
       name: dc.name,
-      sub: tier?.name ?? dc.tierId,
+      sub: `${tier?.name ?? dc.tierId}${s.neocloud?.dedicated.includes(dc.id) ? ' · neocloud hall' : ''}`,
       capacity: slotsOf(dc),
       counts: dc.gpus,
       upkeepPerDay: tier?.upkeepPerDay ?? 0,

@@ -170,6 +170,10 @@ export interface ScenarioDef {
   brand?: number;
   /** Rented GPUs at start: GPU id -> count. Every GPU must be unlocked by startYear. */
   fleet?: Record<Id, number>;
+  /** v16: a finished datacenter at start, optionally dedicated to the neocloud (systems/neocloud.ts). */
+  datacenter?: { tierId: Id; name: string; gpus: Record<Id, number>; dedicated?: boolean };
+  /** v16: debt at start (interest is charged as usual). */
+  debt?: number;
   /** Lab doctrine at start. `lock` stops changes. */
   doctrine?: { start: DoctrineId; lock?: boolean };
   rules: ScenarioRules;
@@ -343,6 +347,38 @@ export const SCENARIOS: ScenarioDef[] = [
       },
     ],
     starter: { name: 'Scraped-1', paramsB: 1.5, tokensB: 30 },
+  },
+  {
+    id: 'neocloud',
+    name: 'Neocloud',
+    pitch: 'Skip the models. Sell the shovels: a hall of GPUs, a loan, and every lab in town needs compute.',
+    briefing:
+      'It is 2020 and you own a colo cage with 384 Ampere A-1OOs, bought with $20M of venture debt. The hall is dedicated to your cloud: sell it on-demand, sign capacity deals with labs, startups and enterprises, and keep the SLA. Old GPUs lose value every time a new generation ships, so keep buying. Reach $100M a year of compute revenue by 2025.',
+    startYear: 2020,
+    startCash: 8_000_000,
+    startValuation: 40_000_000,
+    roundsRaised: ['Pre-seed', 'Venture debt'],
+    staff: { engineer: 6, sales: 2, researcher: 1 },
+    brand: 5,
+    fleet: {},
+    datacenter: { tierId: 'colo', name: 'Hall 1', gpus: { a100: 384 }, dedicated: true },
+    debt: 20_000_000,
+    rules: {},
+    goals: [
+      {
+        id: 'cloud_100m',
+        text: '$100M a year of compute revenue',
+        deadlineYear: 2025,
+        check: (s) => (s.finance.revenueBreakdown.cloud ?? 0) * 365 >= 100_000_000,
+        progress: (s) => `Run-rate ${formatMoney((s.finance.revenueBreakdown.cloud ?? 0) * 365)} of $100M`,
+      },
+      {
+        id: 'cloud_rep',
+        text: 'Provider reputation of 80',
+        check: (s) => (s.neocloud?.reputation ?? 0) >= 80,
+        progress: (s) => `Reputation ${Math.floor(s.neocloud?.reputation ?? 0)} of 80`,
+      },
+    ],
   },
   {
     id: 'agi_speedrun',

@@ -1,7 +1,7 @@
 // OWNER: SCENARIO. v9 new-game setup (GAME_DESIGN §20.1): scenario rules, difficulty hooks, goals with the victory and
 // loss takeovers, the government grant, and mid-era starts (fast-forward the world, then rebase the player).
 // Hooks in other systems are one line each, marked `// v9 scenario`. Read the helpers below before changing them.
-import type { Capabilities, GameSetup, GameState, GoalState, Model, Moment, ReleaseMode, Rng, RoleId, Scores } from '../types';
+import type { Capabilities, Datacenter, GameSetup, GameState, GoalState, Model, Moment, ReleaseMode, Rng, RoleId, Scores } from '../types';
 import { CAP_IDS } from '../types';
 import { BALANCE } from '../balance';
 import { DOCTRINE_COOLDOWN } from '../data/doctrines';
@@ -17,6 +17,7 @@ import { activeParamsFor } from './trainingMath';
 import { competitorCaps, contextWindowK, evaluateModel, modalitiesFor, overallScore, scoresFromCaps } from './capabilities';
 import { frontierQuality } from './market';
 import { measureEvalSuite } from './vault';
+import { startNeocloud } from './neocloud'; // v16 neocloud scenario
 
 /** Flags. The sandbox flag is set when a goal is missed; the fast-forward flag only exists during createInitialState. */
 export const SCENARIO_FLAG = {
@@ -391,7 +392,7 @@ function rebasePlayer(s: GameState, setup: GameSetup, startDay: number): void {
   const cash = Math.round(sc.startCash * diff.startCash);
   s.finance.cash = cash;
   s.finance.totalRaised = cash;
-  s.finance.debt = 0;
+  s.finance.debt = sc.debt ?? 0; // v16
   s.finance.today = { revenue: {}, expenses: {} };
   s.finance.dailyRevenue = 0;
   s.finance.dailyExpenses = 0;
@@ -409,6 +410,9 @@ function rebasePlayer(s: GameState, setup: GameSetup, startDay: number): void {
   if (sc.fleet) s.compute.rented = { ...sc.fleet };
   if (mid) {
     s.compute.datacenters = [];
+    // v16: player-side cloud leases and the neocloud business start empty.
+    if (s.compute.cloud) s.compute.cloud.leases = [];
+    delete s.neocloud;
     s.data.owned = DATASETS.filter((d) => d.cost === 0 && d.unlockYear <= sc.startYear && !d.requiresResearch).map((d) => d.id);
   }
 
@@ -456,6 +460,15 @@ function rebasePlayer(s: GameState, setup: GameSetup, startDay: number): void {
     if (s.classes) s.classes.benchTunes = [];
     // A starter model comes with the start, so its "first model" takeover has been seen.
     if (sc.starter) s.flags['moment.first_model'] = startDay;
+  }
+
+  // v16: a starting hall (the Neocloud scenario).
+  if (sc.datacenter) {
+    const d = sc.datacenter;
+    const dc: Datacenter = { id: newId(s, 'dc'), name: d.name, tierId: d.tierId, gpus: { ...d.gpus }, buildDaysLeft: 0, bought: {} };
+    for (const g of Object.keys(d.gpus)) dc.bought![g] = startDay;
+    s.compute.datacenters.push(dc);
+    if (d.dedicated) s.neocloud = startNeocloud(s, [dc.id]);
   }
 
   if (sc.starter) {
