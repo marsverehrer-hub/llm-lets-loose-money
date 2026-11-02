@@ -1,18 +1,33 @@
 // Module-level store for the Models panel: the in-progress pre-training draft and which view is open.
 // Kept outside React state so a half-built run survives switching panels. Reset after Train.
 import { useEffect, useState } from 'preact/hooks';
-import type { GameState, Id } from '../../../sim/types';
+import type { GameState, Id, MediaKind } from '../../../sim/types';
+import type { RecipeId } from '../../../sim/data/recipes';
+import type { MediaOverrides } from '../../../sim/systems/imageGen';
 import { initSheet } from './model';
 import type { Sheet } from './model';
 import { onGameSwap } from '../../store';
 
 export type StepId = 1 | 2 | 3 | 4 | 5;
 
+/** v16 quick start: what the player picked before (or instead of) the full wizard. */
+export interface QuickPick {
+  kind: 'text' | MediaKind;
+  recipe: RecipeId;
+  mediaPreset: Id;
+  /** Time budget in days; null = the preset's own. */
+  days: number | null;
+  media: MediaOverrides;
+}
+
 export interface Draft {
   step: StepId;
   sheet: Sheet;
   /** Learning rates in the LR sweep: 3 or 5. */
   sweepCount: 3 | 5;
+  /** v16: the quick start leads; 'advanced' opens the five-step wizard. Missing = quick. */
+  mode?: 'quick' | 'advanced';
+  quick?: QuickPick;
 }
 
 export type View =

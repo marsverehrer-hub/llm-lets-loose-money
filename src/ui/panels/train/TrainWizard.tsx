@@ -33,8 +33,16 @@ import { StepData } from './StepData';
 import { StepArch } from './StepArch';
 import { StepRecipe } from './StepRecipe';
 import { StepReview } from './StepReview';
+import { QuickStart } from './QuickStart';
 
+/** v16: the quick start leads (type, preset, size, start); the five steps are the expert path. */
 export function TrainWizard() {
+  const s = useGame();
+  useDraftStore();
+  return (getDraft(s).mode ?? 'quick') === 'quick' ? <QuickStart /> : <AdvancedWizard />;
+}
+
+function AdvancedWizard() {
   const s = useGame();
   useDraftStore();
   const d = getDraft(s);
@@ -167,9 +175,14 @@ export function TrainWizard() {
 
   return (
     <Card code="NEW" title="New pretraining run" class="tw-card" subtitle={`Step ${step} of 5 · ${STEP_NAMES[stepIndex]}`} actions={
-      <button type="button" class="btn btn-sm btn-ghost" onClick={() => setView({ kind: 'list' })}>
-        Cancel
-      </button>
+      <>
+        <button type="button" class="btn btn-sm btn-ghost" onClick={() => updateDraft((x) => ({ ...x, mode: 'quick' }))}>
+          Presets
+        </button>
+        <button type="button" class="btn btn-sm btn-ghost" onClick={() => setView({ kind: 'list' })}>
+          Cancel
+        </button>
+      </>
     }>
       <div class="tw-wiz">
         <div class="tw-step-now" aria-live="polite">{`Step ${step} of 5 · ${STEP_NAMES[stepIndex]}`}</div>

@@ -32,6 +32,7 @@ import { modelLifeTick, handlers as modelLifeHandlers } from './systems/modelLif
 import { cupTick, handlers as cupHandlers } from './systems/tournament'; // v15 Arena Cup
 import { cloudTick, handlers as cloudHandlers } from './systems/cloudMarket'; // v16 cloud providers
 import { neocloudTick, handlers as neocloudHandlers } from './systems/neocloud'; // v16 neocloud
+import { mediaTick, handlers as mediaHandlers } from './systems/imageGen'; // v16 image and video models
 
 /** Order matters: costs/capacity first, then production, then market, then finance closes the books. */
 const SYSTEMS: System[] = [
@@ -54,6 +55,7 @@ const SYSTEMS: System[] = [
   servingTick, // v10: after demand is known; books the cloud burst and each product's serving cost
   neocloudTick, // v16: after the fleet split is known (idle listing); books cloud revenue and SLA credits
   contractsTick,
+  mediaTick, // v16: media run, media products and rival media lines (idle until the player first uses it)
   modelLifeTick, // v15: patches land, models earn mastery from the users they serve
   cupTick, // v15: Arena Cup announcements and play days
   eventsTick,
@@ -113,6 +115,7 @@ const HANDLERS: ActionHandlers = Object.assign(
   cupHandlers,
   cloudHandlers,
   neocloudHandlers,
+  mediaHandlers,
 );
 
 /** True when the simulation should not advance (game over or an event awaits a decision). */

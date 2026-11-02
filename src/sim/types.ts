@@ -346,7 +346,7 @@ export const RESEARCH_BRANCHES: ResearchBranch[] = ['architecture', 'scaling', '
 export type DataKind = DatasetDef['kind'];
 export const DATA_KINDS: DataKind[] = ['web', 'books', 'code', 'science', 'dialogue', 'synthetic', 'multimodal'];
 
-export type TrainingOptionGroup = 'arch' | 'tokenizer' | 'context' | 'optimizer' | 'precision' | 'schedule' | 'filter';
+export type TrainingOptionGroup = 'arch' | 'tokenizer' | 'context' | 'optimizer' | 'precision' | 'schedule' | 'filter' | 'post' | 'anneal';
 
 /** A selectable run-sheet option. Gated by research and/or year. */
 export interface TrainingOptionDef {
@@ -387,6 +387,10 @@ export interface TrainingConfig {
   dataMix: Partial<Record<DataKind, number>>;
   filters: Id[];               // option ids, group 'filter'
   checkpointing: 'often' | 'normal' | 'rare';
+  /** v16: post-training stages run after pretraining (option ids, group 'post'). Missing = none (older sheets, bots). */
+  post?: Id[];
+  /** v16: data annealing for the last stretch of the run (option id, group 'anneal'). Missing = none. */
+  anneal?: Id;
 }
 
 /** Model persona knobs set during instruct/chat-style fine-tunes. Each -1..1, 0 = neutral. */
@@ -629,6 +633,8 @@ export interface RunHidden {
   emergencePlan?: Id[];
   /** Grokking plateau: the loss display stays flat between these progress fractions, then drops. */
   grokking?: [number, number];
+  /** v16: how well each post-training stage took (multiplier on its capAdd; ~1, breakthroughs ~2, duds ~0). */
+  postTake?: Record<Id, number>;
 }
 
 export interface CheckpointReading {
@@ -693,6 +699,8 @@ export interface LabKnowledge {
   forecastErrors: number[];
   /** LR sweeps in progress. Their points land in `sweeps` when `doneDay` arrives. */
   sweepJobs?: SweepJob[];
+  /** v16: recipe interactions the lab has seen (id -> day found). Forecasts include only these. */
+  synergies?: Record<Id, number>;
 }
 
 /** An LR sweep in progress (see runLrSweep). Readings are measured at launch and revealed on doneDay. */
@@ -718,6 +726,8 @@ export interface EvalReveal {
   dataSurprises: Record<Id, number>;
   /** Benchmark id -> score, in display order for the reveal. */
   benchmarks: Record<Id, number>;
+  /** v16: lab-notebook lines that explain the result (stage breakthroughs and duds, recipe interactions, luck). */
+  notes?: string[];
 }
 
 export interface Datacenter {
@@ -730,7 +740,7 @@ export interface Datacenter {
   bought?: Record<Id, number>;
   /** v14: fractional GPU failures carried to the next day, per GPU model. */
   wear?: Record<Id, number>;
-  /** v16 (GAME_DESIGN §26.3): liquid cooling retrofit (lower PUE, fewer failures). */
+  /** v16 (GAME_DESIGN §28.3): liquid cooling retrofit (lower PUE, fewer failures). */
   liquid?: boolean;
   /** v16: InfiniBand fabric (neocloud price premium, big training customers require it). */
   infiniband?: boolean;
@@ -1110,6 +1120,8 @@ export interface GameState {
   cup?: CupState;
   /** v16: the player's own compute-provider business (systems/neocloud.ts). Created by the first neocloud action. */
   neocloud?: NeocloudState;
+  /** v16: image and video models, their runs, data, products and the media arena (systems/imageGen.ts). Created on demand. */
+  media?: MediaState;
 }
 
 // ---------------------------------------------------------------------------
@@ -1129,6 +1141,14 @@ export type GameAction =
   | { type: 'enterCup'; modelId: Id | null }
   | { type: 'setProductRouter'; productId: Id; modelId: Id | null; share?: number }
   | { type: 'renameCompany'; name: string }
+  // v16 media models (systems/imageGen.ts, GAME_DESIGN §26)
+  | { type: 'buyMediaDataset'; datasetId: Id }
+  | { type: 'startMediaRun'; name: string; config: MediaRunConfig }
+  | { type: 'cancelMediaRun' }
+  | { type: 'releaseMediaModel'; modelId: Id; openWeights?: boolean }
+  | { type: 'launchMediaProduct'; kind: MediaKind; channel: MediaChannel; modelId: Id; price?: number }
+  | { type: 'updateMediaProduct'; productId: Id; modelId?: Id; price?: number }
+  | { type: 'shutdownMediaProduct'; productId: Id }
   // training & data
   | { type: 'buyDataset'; datasetId: Id }
   | { type: 'cancelLicense'; datasetId: Id }
@@ -1754,4 +1774,89 @@ export interface NeocloudState {
   /** Lifetime totals. */
   totalRevenue: number;
   totalCredits: number;
+}
+
+// ---------------------------------------------------------------------------
+// v16 Media models: image and video generation (GAME_DESIGN §28, systems/imageGen.ts)
+// ---------------------------------------------------------------------------
+
+export type MediaKind = 'image' | 'video';
+/** app = a consumer subscription ($/month), api = pay per generation ($/image or $/clip). */
+export type MediaChannel = 'app' | 'api';
+export type MediaCapId = 'adherence' | 'aesthetics' | 'realism' | 'text' | 'speed' | 'motion';
+export type MediaCaps = Record<MediaCapId, number>;
+
+/** Everything chosen on a media run sheet. */
+export interface MediaRunConfig {
+  kind: MediaKind;
+  arch: Id;                    // MEDIA_ARCHS id
+  paramsB: number;
+  /** Samples seen, in millions (image-text pairs or clips, epochs included). */
+  samplesM: number;
+  datasetIds: Id[];            // MEDIA_DATASETS ids, owned
+  resolution: 256 | 512 | 1024;
+  style: Id;                   // MEDIA_STYLES id
+  /** Few-step distillation at the end: faster to serve, a little worse. */
+  distill: boolean;
+  /** Honour artist opt-outs: drops most legal risk from scraped sets, costs some aesthetics. */
+  optOut: boolean;
+}
+
+export interface MediaModel {
+  id: Id;
+  name: string;
+  kind: MediaKind;
+  config: MediaRunConfig;
+  caps: MediaCaps;
+  overall: number;
+  /** Arena rating, vibes included. */
+  elo: number;
+  trainedDay: number;
+  releasedDay: number | null;
+  openWeights?: boolean;
+  quirk?: Id;
+  /** Lab-notebook lines: why it came out the way it did. */
+  notes: string[];
+  forecastMid: number;
+  /** Legal exposure from scraped data (0..1), lowered by opt-outs. */
+  legalRisk: number;
+}
+
+export interface MediaRun {
+  id: Id;
+  name: string;
+  config: MediaRunConfig;
+  totalFlops: number;
+  doneFlops: number;
+  startedDay: number;
+  forecast: { low: number; mid: number; high: number };
+  /** Hidden truths: the UI must not read these. */
+  hidden: { luck: number; tag: 'golden' | 'cursed' | null; vibes: number; quirk: Id | null };
+}
+
+export interface MediaProduct {
+  id: Id;
+  kind: MediaKind;
+  channel: MediaChannel;
+  name: string;
+  modelId: Id;
+  /** app: $/user/month. api: $ per generation. */
+  price: number;
+  /** app: subscribers. api: generations per day. */
+  users: number;
+  revenuePerDay: number;
+  costPerDay: number;
+  launchedDay: number;
+  active: boolean;
+}
+
+export interface MediaState {
+  models: MediaModel[];
+  run: MediaRun | null;
+  owned: Id[];
+  products: MediaProduct[];
+  /** Rival line id -> index of the last release announced. */
+  rivalSeen: Record<Id, number>;
+  /** Dataset id -> day of the last lawsuit over it. */
+  suedDay: Record<Id, number>;
 }

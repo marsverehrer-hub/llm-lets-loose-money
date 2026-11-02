@@ -1626,3 +1626,58 @@ Old saves gain the new labs on load (inactive until their founding year).
 ### 27.5 Balance targets (`scripts/balance.ts`)
 Frontier first profitable 2023–2026 and IPO 2024–2028; small and specialist labs profitable 2021–2024. Unit tests that
 predate the wall turn it and allocation off in `tests/setup.ts`; `tests/scaleLimits.test.ts` covers them.
+
+## 28. Deeper training, recipes and media models (v16)
+Player request: "make model training even deeper, more varied, add image models etc. too, and make the gameplay a bit more approachable while results are a bit more varied, with difficulty about the same". Contract: `src/sim/types.ts`, search "v16". No save-version bump: every new field is optional and filled lazily.
+
+### 28.1 Language models: stages, annealing, recipes, synergies
+**Post-training stages** (`TrainingConfig.post`, option group `post` in `data/trainingOptions.ts`). Extra compute after pretraining. Each stage lifts some skills and costs others, so its effect on overall is small (under ±1.5 points at equal days, tested); the point is the shape.
+
+| stage | gate | compute | effect |
+|---|---|---|---|
+| SFT | `instruction_tuning` | ×1.03 | chat +3, safety +2, knowledge −3, multilingual −1 |
+| RLHF (PPO) | `rlhf` | ×1.08 | chat +6, safety +4, reasoning −4, math −3, knowledge −2; risk ▲ |
+| DPO | `dpo` | ×1.04 | chat +4, safety +2, reasoning −3, math −2 |
+| Constitution pass | `constitutional_ai` | ×1.05 | safety +9, chat −3, agentic −2, coding −1 |
+| Reasoning RL | `reasoning_models` | ×1.18 | reasoning +7, math +8, coding +2, chat −6, multilingual −3; risk ▲ |
+| RL on verifiable rewards | `rlvr` | ×1.25 | reasoning +8, math +10, coding +5, chat −7, safety −3; risk ▲ |
+| Agentic RL | `agents` | ×1.12 | agentic +9, coding +3, safety −3, chat −2 |
+
+**Annealing** (`TrainingConfig.anneal`, group `anneal`): the last stretch on a different diet. Quality anneal (×1.015 quality, knowledge and multilingual −2), code-and-math anneal (coding and math +4, chat −4), long-document anneal (long context +8, compute ×1.04).
+
+**Stage takes.** Each stage rolls how well it took (`RunHidden.postTake`): usually N(1, 0.2) clamped to 0.4..1.6, a 7% breakthrough (×2) and a 7% dud (×0). The mean is 1, so the forecast (which assumes 1) is unbiased; the forecast band widens by 8% per stage. Sheets without stages draw nothing from the RNG, so the bots are unchanged.
+
+**Synergies** (`data/recipes.ts` `SYNERGIES`): recipe × data interactions such as "Checkable homework" (RL on a code and science heavy mix), "Reward hacking" (RL with nothing to verify), "Sycophancy spiral" (RLHF and DPO with no constitution), "Free lunch decay" (WSD schedule plus an anneal), "Textbook voice", "Router gaming", "Tool fluency" and "Button masher". Good and bad ones are paired (their total size is within ±40%). The true run sees every synergy; the forecast sees only those in `lab.synergies`, which a finished run records. So untried recipes surprise you once, and the notebook explains why.
+
+**The lab notebook.** `EvalReveal.notes` lists breakthroughs, duds, found and repeated synergies and seed luck. The eval-day screen shows it, and the lines go into the run log.
+
+**Recipes** (`RECIPES`): Balanced, Reasoning-heavy, Coder, Chatty, Cheap and fast. Each sets data-mix weights, the stages it wants (first unlocked of each slot), an anneal, a time budget, and a technique focus. `planRecipe(s, recipe, name, days)` (`systems/recipes.ts`) builds a complete `startTraining` action: the lab's defaults, the recipe's choices, the techniques that serve its focus, and the largest compute-optimal size (20 tokens per effective parameter, capped by data) that finishes in the budget. Balanced lands about 1 to 2 overall points above a plain sheet of the same size; the specialist recipes trade overall for their shape.
+
+### 28.2 Image and video models (`data/imageModels.ts`, `data/imageRivals.ts`, `systems/imageGen.ts`)
+Media models live in `s.media` (`MediaState`), never in `s.models`, so the language-model systems (market, classes, contracts, cup, vault) are untouched. `s.media` is created the first time the player buys media data or starts a media run; until then `mediaTick` does nothing.
+
+**Run sheet** (`MediaRunConfig`): kind (image or video), architecture, parameters, samples seen, datasets, resolution (256, 512 or 1024 px), style (balanced, artsy, photoreal, typography), few-step distillation, and artist opt-outs.
+
+**Architectures:** GAN (2017, efficient but capped at 42), autoregressive tokens (2020), latent diffusion UNet (2021, `clip_contrastive`), diffusion transformer (2023, `image_generation`), flow matching (2024); video: video diffusion (2023, `video_understanding`), spacetime transformer (2024), world simulator (2026, `world_models`). Each has an efficiency, a quality ceiling and a capability profile.
+
+**Physics.** FLOPs = 6 × params × samples × 1,024 × resolution factor (×12 for video). Quality = 100 × (1 − e^(−(log10(effective compute) − 18) / 4.2)), where effective compute counts repeats at half, the arch efficiency and (0.5 + data quality). Below one sample per parameter a run loses 5 points per halving (max 20). The arch ceiling caps it. Capabilities: prompt adherence, aesthetics, realism, text rendering, speed and (video) motion; datasets, resolution, style, distillation and opt-outs move them. Overall weights: image 0.3 adherence, 0.3 aesthetics, 0.2 realism, 0.1 text, 0.1 speed; video 0.25 / 0.2 / 0.15 / 0.3 motion / 0.1 speed. Elo = 1000 + 8 × overall + vibes.
+
+**Variance.** Seed luck N(0, 3.5), golden 5% (+7), cursed 5% (−8); a 45% chance of a quirk (six fingers, Elvish text, a cat in every background, spaghetti eaten convincingly). The forecast band is ±1.28 × 4 points (×1.4 on a new architecture). The model's notebook explains the result: ceiling hit, undertraining, which dataset shaped it, luck, quirk, legal risk.
+
+**Compute.** A media run uses the training compute. Alone it takes all of it; while a language-model run trains it takes 40% and the language model gets 60% (`trainingRatePerDay` applies the split; `rawTrainingRate` is the whole).
+
+**Data:** CelebFaces-ish, ImageNot and COCOnut Captions (2017), a licensed stock library (2019), LAION-ish 400M and an ArtStation-ish scrape (2021), LAION-ish 5B (2022), synthetic recaptions (2023), typography synth (2024); video: a TubeTube scrape and a stock-footage licence (2023), game-engine renders (2025). Scraped sets carry legal risk. Once a model trained on them is public, each day it risks a lawsuit (risk × 0.15%, at most every 240 days per model): a settlement of $400k × 1.2^(years after 2021), reputation −4, hype +1. Opt-outs cut the risk to a quarter for −3 aesthetics.
+
+**Rivals** (`MEDIA_RIVALS`): scripted release lines in parody: ThisFaceDoesNotExist, Imagine-n and Vee-Oh (DeepMined), DALL-Eh and Sorta (OpenAye), Midjourmey, Instability AI (open weights), Black Forest Gateau's Flux Capacitor (open), Ideogramme, Runaway and Kling Kong. A line with `labId` ships only while that lab is active. New releases make news once the player has a media book.
+
+**Arena and benchmarks.** `mediaArena(s, kind)` ranks released player models and each rival line's current model by Elo. Benchmarks: DrawBench (2022), GenEval, HandCount-5 (2023), Can-It-Spell, VBench (2024), Does-It-Fall-Down (2025).
+
+**Products and market.** One app (subscription) and one API (per generation) per kind. The launch fee is $250k for an app and $100k for an API, × 1.15^(year − 2022). Demand curves start tiny in 2017, grow fast in 2022–2023 and flatten; video starts in 2023. Reference prices fall every year. Share is a logit over the player's product, every rival line on that channel, "nobody buys" (weight 0.3) and "run it yourself" (stronger when good open weights exist, double for the API): appeal = e^((overall − best)/6) × (ref price / price)^elasticity × (0.5 + brand/100) × usability. Users move 4% (app) or 8% (API) a day toward the target. Revenue books as `media`; cloud serving cost books as `compute`. Open-weight releases pay brand and reputation now, but the player's own product keeps only 60% of its appeal.
+
+**Calibration** (from a scratch run): a 2018 GAN on the free 2017 sets earns about $1.5M a year with no rivals; a 2022 diffusion model on a modest fleet can take half of a young market (about $100M a year) until Midjourmey, DALL-Eh 2 and the open models arrive; by 2025 the same budget wins a few percent. Images are an early on-ramp for a small lab, not a substitute for the language-model race.
+
+### 28.3 The quick start
+"New model" opens a one-screen quick start: (1) model type (language, image, video; locked kinds say why), (2) a recipe or media preset, (3) a time budget (the preset's own, about a week, three weeks or three months). The readout is size, "fits your compute in N days", the cloud-equivalent cost and the forecast band. Train or Add to queue starts it. "Customize every knob" opens the five-step wizard on the same sheet, which gained post-training and anneal tiles in the Recipe step. The media quick start keeps architecture, resolution, style, distillation, opt-outs and datasets in a collapsed Advanced section and offers the cheapest data inline. The Models panel gains an "Image and video models" card: the live media run, models with release, open-weights and launch actions, the notebook and benchmarks, products with model swap and price, both arenas, and the data shop.
+
+### 28.4 Balance
+The bots never use stages, anneals, recipes or media, and none of those draw from the RNG unless used, so `--all --years=8 --seeds=1` is unchanged (see the commit message for the numbers).
