@@ -1,4 +1,4 @@
-// v16 memory wall (GAME_DESIGN §26.1). A model has to fit in the cluster before it can train: weights, gradients and
+// v16 memory wall (GAME_DESIGN §27.1). A model has to fit in the cluster before it can train: weights, gradients and
 // Adam state take BYTES_PER_PARAM per parameter (MoE counts every expert), and a GPU only has so much HBM. Naive model
 // parallelism splits a model over one 8-GPU box. Each parallelism node
 // lets the model be sharded over more GPUs. So a 3T model needs pipeline or 3D parallelism AND hundreds of big-memory
@@ -108,7 +108,7 @@ export function memoryWallError(s: GameState, paramsB: number): string | null {
 }
 
 // ---------------------------------------------------------------------------
-// v16 GPU allocation (GAME_DESIGN §26.2): the vendor rations new generations
+// v16 GPU allocation (GAME_DESIGN §27.2): the vendor rations new generations
 // ---------------------------------------------------------------------------
 
 export const SUPPLY_TUNING = {

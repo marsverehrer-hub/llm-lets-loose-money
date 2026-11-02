@@ -1578,3 +1578,51 @@ Start 1 January 2020 with $8M cash, $20M of debt, a finished Colo Cage "Hall 1" 
 
 ### 26.6 Balance
 The bots rent through `rentGpus` and never reach the default provider's quota (the frontier bot peaks around 46k GPUs in 2025 against a quota of about 260k), never touch the neocloud, and the cloud market draws only from its own stream and writes no news. `--all --years=8 --seeds=1` gives exactly the v15 table: seeded games that ignore the new systems play out identically.
+
+## 27. Realism pass (v16): memory, supply, slower markets, more labs
+Player feedback: GPUs felt free, products grew too fast and paid too much too early, and a 3T model could be trained in
+2021 in ten days. Being SOTA should still mean fighting the big labs head on (rival catch-up, §18.1, is unchanged).
+
+### 27.1 The memory wall (`systems/scaleLimits.ts`)
+Training needs `BYTES_PER_PARAM = 16` bytes per parameter (bf16 weights and grads, fp32 master copy, two Adam moments);
+MoE counts every expert. A GPU can give `USABLE_SHARE = 0.6` of its HBM (`memGB` in `data/gpus.ts`) to that, so one GPU
+holds `memGB × 0.6 / 16` billion parameters. One model copy can be sharded over at most `shardDegree` GPUs:
+
+| Research | Shard degree | A-1OO (80 GB) max |
+|---|---|---|
+| none (naive model parallel in one box) | 8 | 24B |
+| ZeRO sharding (2020) | 32 | 96B |
+| tensor parallel (2021) | 128 | 384B |
+| pipeline parallel (2022) | 1,024 | 3T |
+| 3D parallelism (2023) | 8,192 | 24T |
+| cross-DC training (2027) | 65,536 | |
+
+Max params = per-GPU params × min(shard degree, GPUs in the training pool), using the GPU-count-weighted HBM of the
+lab's own and cloud GPUs (neocloud halls excluded). `startTraining` and ablations refuse bigger models with an
+explanation. So 3T in 2021 needs pipeline parallelism a year early and ~1,000 big-memory GPUs, and then the FLOPs still
+take months.
+
+Precision speedups no longer double count utilisation (GPU `pflops` are already effective): FP16 ×1.7, BF16 ×1.8,
+FP8 ×2.6, FP4 ×3.6 (were 2, 2, 3.5, 6).
+
+### 27.2 GPU allocation
+The vendor rations new generations per 90-day quarter: `256 × 4^(years since launch) × (1 + brand / 50)` GPUs of each
+generation per lab. Old generations are effectively unlimited; a launch-year generation is a few hundred a quarter.
+The cloud market (§26) has its own quotas.
+
+### 27.3 Slower markets
+- Adoption ceilings (share of TAM paying) start near zero: developer 0.5% (2017) → 5% (2022) → 20% (2024) → 50% (2030);
+  enterprise 0.1% → 4% (2023) → 15% (2026) → 35% (2030); consumer 0.02% → 0.4% (2022) → 5% (2026) → 12% (2030).
+- Users grow toward their target at `USER_GROWTH_PER_DAY = 0.009` (~115-day time constant) and still leave at 0.03.
+- A player chatbot starts the chat moment only with a model of overall ≥ 75 (`CHAT_MOMENT_MIN_OVERALL`). Before the
+  moment, consumer chat is a hobbyist toy at 1% of normal adoption.
+
+### 27.4 More labs (`data/competitors.ts`)
+Eight new labs: Alibabble Qwerty, Moonshoot AI, Zhipuzzle, ByteDunce Seedling, MiniMaxx (region `cn`), Cohear (enterprise
+specialist), xHype and AI21 Jump Street. `segmentAppeal` multiplies a lab's attractiveness per segment: Chinese labs are
+very cheap but get 0.35–0.5× with Western enterprise buyers; Cohear gets 1.35× in enterprise and little consumer reach.
+Old saves gain the new labs on load (inactive until their founding year).
+
+### 27.5 Balance targets (`scripts/balance.ts`)
+Frontier first profitable 2023–2026 and IPO 2024–2028; small and specialist labs profitable 2021–2024. Unit tests that
+predate the wall turn it and allocation off in `tests/setup.ts`; `tests/scaleLimits.test.ts` covers them.
