@@ -41,9 +41,12 @@ describe('data tables', () => {
     expect(free.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('has nine GPU generations with the starter GPU first, and four datacenter tiers', () => {
-    expect(GPUS.length).toBe(9);
-    expect(GPUS[0].unlockYear).toBe(2017);
+  it('has a GPU catalogue in unlock order with the starter GPU first, and four datacenter tiers', () => {
+    expect(GPUS.length).toBeGreaterThanOrEqual(19);
+    expect(GPUS[0].id).toBe('p100');
+    expect(new Set(GPUS.map((g) => g.id)).size).toBe(GPUS.length);
+    for (let i = 1; i < GPUS.length; i++) expect(GPUS[i].unlockYear).toBeGreaterThanOrEqual(GPUS[i - 1].unlockYear);
+    for (const g of GPUS) expect(g.buyPrice, g.id).toBe(300 * g.rentPerDay); // v14: a purchase is 300 days of rent
     expect(DATACENTER_TIERS.length).toBe(4);
     expect(ROLES.map((r) => r.id).sort()).toEqual(['engineer', 'marketing', 'researcher', 'safety', 'sales']);
     expect(OFFICE_TIERS[0].name).toBe("Mom's Garage");

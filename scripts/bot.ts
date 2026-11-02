@@ -678,7 +678,8 @@ function computeStep(st: GameState, cash: number): void {
   // Compute: rent newest GPU when rich, build datacenter when very rich
   if (st.day % 7 !== 0) return;
   const gpus = availableGpus(st);
-  const newest = gpus[gpus.length - 1];
+  // The fastest card on sale (the list also holds budget and rival cards, so the last one is not always the best).
+  const newest = gpus.reduce<(typeof gpus)[number] | undefined>((best, g) => (!best || g.pflops > best.pflops ? g : best), undefined);
   const rentNow = Object.entries(st.compute.rented).reduce((a, [id, n]) => a + n * (gpus.find((g) => g.id === id)?.rentPerDay ?? 0), 0);
   // A lab with less than a year of cash at its net burn stops adding rent on its cash, and hands back the excess (most
   // expensive first). Without this the cash term kept renting while the cash lasted, and a bot ran out of money in a bad

@@ -48,10 +48,10 @@ const capHint = (base: number) => (s: GameState) => `Costs about ${$(capAtCash(s
 const from = (s: GameState, day: number, w: number) => (s.day >= day ? w : 0);
 const researchers = (s: GameState) => s.staff.roles.researcher.count;
 
-/** The newest GPU generation that is on the market this year. */
+/** The fastest GPU on the market this year (the flagship; budget and rival cards share launch years with it). */
 function currentGpuId(s: GameState): string {
   const year = calendarYear(s.day);
-  const live = GPUS.filter((g) => g.unlockYear <= year).sort((a, b) => b.unlockYear - a.unlockYear);
+  const live = GPUS.filter((g) => g.unlockYear <= year).sort((a, b) => b.pflops - a.pflops);
   return live[0]?.id ?? starterGpuId();
 }
 function addGpus(s: GameState, n: number): void {
