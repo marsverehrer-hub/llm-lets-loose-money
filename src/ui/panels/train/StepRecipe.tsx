@@ -8,7 +8,8 @@ import { optionsByGroup, RUN_TUNING } from '../../../sim/data/trainingOptions';
 import type { TrainingConfig } from '../../../sim/types';
 import { formatMoney } from '../../../sim/util';
 import { formatDays, Pill } from '../../components';
-import { STEPS, LR_MIN, LR_MAX, fmtLr, lrAt, optionName, posOfLr, sweepLrs, quoteMoney, mult } from './model';
+import { STEPS, LR_MIN, LR_MAX, fmtLr, lrAt, optionName, posOfLr, sweepLrs, quoteMoney, mult, tradeoffs } from './model';
+import type { OptionRow } from '../../../sim/data/trainingOptions';
 import type { Ctx } from './model';
 import { getDraft, updateDraft } from './draft';
 import { Chip, OptionTiles, SweepChart, Slider } from './kit';
@@ -149,6 +150,30 @@ export function StepRecipe({ ctx }: { ctx: Ctx }) {
       </div>
 
       <div class="tw-group">
+        <div class="tw-label">Post-training stages</div>
+        <div class="tw-small tw-muted">Extra compute after pretraining. Each stage lifts some skills and costs others, and can break through or fizzle.</div>
+        <ToggleTiles
+          label="Post-training stages"
+          rows={optionsByGroup(s, 'post')}
+          isOn={(id) => (cfg.post ?? []).includes(id)}
+          onToggle={(id) => {
+            const cur = cfg.post ?? [];
+            const next = cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id];
+            patchCfg({ post: next.length ? next : undefined });
+          }}
+        />
+      </div>
+      <div class="tw-group">
+        <div class="tw-label">Data anneal</div>
+        <ToggleTiles
+          label="Data anneal"
+          rows={optionsByGroup(s, 'anneal')}
+          isOn={(id) => cfg.anneal === id}
+          onToggle={(id) => patchCfg({ anneal: cfg.anneal === id ? undefined : id })}
+        />
+      </div>
+
+      <div class="tw-group">
         <div class="tw-label">Techniques</div>
         {techs.length === 0 ? (
           <div class="tw-faint tw-small">None researched yet. See RES.</div>
@@ -181,6 +206,37 @@ export function StepRecipe({ ctx }: { ctx: Ctx }) {
         </label>
         {sheet.benchmaxx && <div class="md-warn">Benchmaxx is on. Test sets go into the training data.</div>}
       </div>
+    </div>
+  );
+}
+
+/** Tiles that toggle (post-training stages, anneal). Same look as OptionTiles; locked ones are counted, not shown. */
+function ToggleTiles({ label, rows, isOn, onToggle }: { label: string; rows: OptionRow[]; isOn: (id: string) => boolean; onToggle: (id: string) => void }) {
+  const open = rows.filter((r) => r.unlocked);
+  const locked = rows.length - open.length;
+  if (open.length === 0) return <div class="tw-faint tw-small">{`None researched yet${locked ? ` (${locked} locked)` : ''}. See RES.`}</div>;
+  return (
+    <div class="tw-opts">
+      <div class="tw-tiles" role="group" aria-label={label}>
+        {open.map(({ option }) => {
+          const on = isOn(option.id);
+          return (
+            <button key={option.id} type="button" class={`tw-tile ${on ? 'is-on' : ''}`} aria-pressed={on} title={option.description} onClick={() => onToggle(option.id)}>
+              <div class="tw-tile-head">
+                <span class="tw-tile-name">{option.name}</span>
+              </div>
+              <div class="tw-trades">
+                {tradeoffs(option).map((x, i) => (
+                  <span key={i} class={`tw-trade tone-${x.tone}`}>
+                    {x.text}
+                  </span>
+                ))}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+      {locked > 0 && <div class="tw-faint tw-small">{`${locked} more locked behind research.`}</div>}
     </div>
   );
 }

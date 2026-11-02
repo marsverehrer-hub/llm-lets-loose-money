@@ -3,7 +3,7 @@
 import { useState } from 'preact/hooks';
 import { dispatch, useGame } from '../../store';
 import { formatMoney } from '../../../sim/util';
-import { COMPUTE_TUNING, annualFailureRate, availableDatacenterTiers, availableGpus, gpuAgeYears, gpuById, ownedCostPerGpuDay, resaleFraction } from '../../../sim/systems/compute';
+import { COMPUTE_TUNING, datacenterPue, datacenterTierById, annualFailureRate, availableDatacenterTiers, availableGpus, gpuAgeYears, gpuById, ownedCostPerGpuDay, resaleFraction } from '../../../sim/systems/compute';
 import { DATACENTER_TIERS } from '../../../sim/data/gpus';
 import { RESEARCH } from '../../../sim/data/research';
 import type { GameState, Id } from '../../../sim/types';
@@ -119,7 +119,8 @@ function BlockBody({ s, room, b, onRent }: { s: GameState; room: ServerRoom; b: 
           <ul class="cc-rows">
             {b.gpuMix.map((g) => {
               const def = gpuById(g.gpuId);
-              const cut = (n: number) => Math.min(n, g.count);
+              // v16: the rental block shows every provider; these buttons return the default provider's on-demand GPUs.
+              const cut = (n: number) => Math.min(n, isDc ? g.count : s.compute.rented[g.gpuId] ?? 0);
               // v14: installed GPUs age. Older ones fail more often and resell for less.
               const dc = isDc ? s.compute.datacenters.find((d) => d.id === b.key) : undefined;
               const age = dc ? gpuAgeYears(s, dc, g.gpuId) : 0;
@@ -159,6 +160,7 @@ function BlockBody({ s, room, b, onRent }: { s: GameState; room: ServerRoom; b: 
       )}
 
       {isDc && !b.building && <BuyGpus s={s} b={b} />}
+      {isDc && <HallOptions s={s} dcId={b.key} />}
 
       {!isDc && (
         <div class="cc-section">
@@ -167,6 +169,52 @@ function BlockBody({ s, room, b, onRent }: { s: GameState; room: ServerRoom; b: 
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+/** v16 (GAME_DESIGN §26.3, §26.4): one-off upgrades and the neocloud switch for one datacenter. */
+function HallOptions({ s, dcId }: { s: GameState; dcId: Id }) {
+  const dc = s.compute.datacenters.find((d) => d.id === dcId);
+  const tier = dc ? datacenterTierById(dc.tierId) : undefined;
+  if (!dc || !tier) return null;
+  const liquidCost = tier.buildCost * COMPUTE_TUNING.LIQUID_COST_SHARE;
+  const ibCost = tier.buildCost * COMPUTE_TUNING.INFINIBAND_COST_SHARE;
+  const dedicated = !!s.neocloud?.dedicated.includes(dc.id);
+  return (
+    <div class="cc-section">
+      <h4 class="cc-h">Hall options</h4>
+      <div class="cc-steps" role="group">
+        <button
+          type="button"
+          class="btn btn-sm"
+          disabled={dc.liquid || s.finance.cash < liquidCost}
+          title={dc.liquid ? 'Installed' : `${formatMoney(liquidCost)}: PUE ×${COMPUTE_TUNING.LIQUID_PUE_MULT}, failures ×${COMPUTE_TUNING.LIQUID_FAIL_MULT}`}
+          onClick={() => dispatch({ type: 'upgradeDatacenter', datacenterId: dc.id, upgrade: 'liquid' })}
+        >
+          {dc.liquid ? 'Liquid cooled' : 'Liquid cooling'}
+        </button>
+        <button
+          type="button"
+          class="btn btn-sm"
+          disabled={dc.infiniband || s.finance.cash < ibCost}
+          title={dc.infiniband ? 'Installed' : `${formatMoney(ibCost)}: neocloud customers pay more, and big lab deals need it`}
+          onClick={() => dispatch({ type: 'upgradeDatacenter', datacenterId: dc.id, upgrade: 'infiniband' })}
+        >
+          {dc.infiniband ? 'InfiniBand' : 'Add InfiniBand'}
+        </button>
+        <button
+          type="button"
+          class="btn btn-sm"
+          title={dedicated ? 'Return this hall to your own fleet' : 'Sell this hall to cloud customers (Neocloud tab)'}
+          onClick={() => dispatch({ type: 'setNeocloudHall', datacenterId: dc.id, dedicated: !dedicated })}
+        >
+          {dedicated ? 'Take back from neocloud' : 'Dedicate to neocloud'}
+        </button>
+      </div>
+      <p class="cc-note">
+        PUE {datacenterPue(dc).toFixed(2)}. Liquid cooling costs {formatMoney(liquidCost)}, InfiniBand {formatMoney(ibCost)}.
+      </p>
     </div>
   );
 }

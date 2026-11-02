@@ -38,6 +38,7 @@
 .sf-swatch--empty {
   background: transparent;
   border: 1px solid var(--line-2);
+  border-radius: var(--r-md);
 }
 
 .sf-faint {
@@ -145,6 +146,7 @@
   font: inherit;
   font-size: var(--fs-sm);
   cursor: pointer;
+  border-radius: var(--r-md);
 }
 .sf-chip:hover {
   border-color: var(--line-2);
@@ -179,6 +181,7 @@
   border: 1px solid var(--line-2);
   color: var(--fg-2);
   font-size: var(--fs-sm);
+  border-radius: var(--r-md);
 }
 .sf-banner.bad {
   border-color: var(--down);
@@ -195,6 +198,7 @@
   border: 1px solid var(--line);
   border-left: 3px solid var(--c, var(--line-2));
   background: var(--bg-1);
+  border-radius: var(--r-md);
 }
 .sf-team-card.is-open {
   border-color: var(--line-2);
@@ -313,6 +317,7 @@
   padding: 10px;
   border: 1px solid var(--line);
   background: var(--bg);
+  border-radius: var(--r-md);
 }
 .sf-star-name {
   font-weight: 600;
@@ -332,6 +337,7 @@
   font-family: var(--mono);
   font-size: var(--fs-xs);
   color: var(--fg-2);
+  border-radius: var(--r-md);
 }
 .sf-bonus.good {
   color: var(--up);
@@ -393,6 +399,7 @@
   font: inherit;
   text-align: left;
   cursor: pointer;
+  border-radius: var(--r-md);
 }
 .sf-role-card:hover {
   border-color: var(--line-2);

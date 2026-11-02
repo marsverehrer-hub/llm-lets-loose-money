@@ -45,6 +45,7 @@
   padding: 12px 14px;
   background: var(--bg-1);
   border: 1px solid var(--line);
+  border-radius: var(--r-md);
 }
 .ct-offer-pending {
   border-color: var(--line-2);
@@ -104,6 +105,7 @@
   color: var(--fg-2);
   font-size: var(--fs-xs);
   line-height: 1.4;
+  border-radius: var(--r-md);
 }
 .ct-chip-mark {
   font-size: var(--fs-xs);
@@ -196,6 +198,7 @@
   color: var(--fg-2);
   font-size: var(--fs-sm);
   line-height: 1.5;
+  border-radius: var(--r-md);
 }
 .ct-pending strong {
   color: var(--fg);

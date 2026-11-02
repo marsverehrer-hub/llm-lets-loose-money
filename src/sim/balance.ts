@@ -26,6 +26,8 @@ export const BALANCE = {
   ATTR_QUALITY_EXP: 2.2,
   ATTR_PRICE_EXP: 1.3,
   USER_MIGRATION_PER_DAY: 0.03,
+  /** v16: growth toward a higher target is slower than churn (~115-day time constant instead of ~33). */
+  USER_GROWTH_PER_DAY: 0.009,
 
   // Finance
   LOAN_RATE_PER_YEAR: 0.09,

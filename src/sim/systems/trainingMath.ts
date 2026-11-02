@@ -11,6 +11,7 @@ import { roleStrength } from './staff';
 import { clusterEfficiency } from './compute';
 import { believedQualityOf, collapsePenalty, datasetById, hashNormal, trueQualityOf } from './data';
 import { trainingRatePerDay } from './capabilities';
+import { synergiesFor, type SynergyDef } from '../data/recipes';
 
 /**
  * 'true' is what the run really does (hidden truths). 'belief' is what the lab knows: claimed data quality until
@@ -107,7 +108,7 @@ export function effParamsFor(paramsB: number, cfg: TrainingConfig): number {
 
 /** Every option a run sheet selects, in group order. */
 export function configOptions(cfg: TrainingConfig): TrainingOption[] {
-  const ids = [cfg.arch, cfg.tokenizer, cfg.context, cfg.optimizer, cfg.precision, cfg.schedule, ...cfg.filters];
+  const ids = [cfg.arch, cfg.tokenizer, cfg.context, cfg.optimizer, cfg.precision, cfg.schedule, ...cfg.filters, ...(cfg.post ?? []), ...(cfg.anneal ? [cfg.anneal] : [])];
   return ids.map((id) => optionById(id)).filter((o): o is TrainingOption => !!o);
 }
 
@@ -410,6 +411,8 @@ export function resolveRun(
   const contextK = optionById(cfg.context)?.contextK ?? 2;
   if (contextK > 2) addCap('longContext', RUN_TUNING.CONTEXT_CAP_PER_DOUBLING * Math.log2(contextK / 2));
   for (const [k, v] of Object.entries(mixCapAdd(rows)) as [keyof Capabilities, number][]) addCap(k, v);
+  // v16: recipe × data interactions. The true world has all of them; the lab's belief only those it has seen.
+  for (const syn of runSynergies(s, cfg, rows, mode)) for (const [k, v] of Object.entries(syn.capAdd)) addCap(k as keyof Capabilities, v ?? 0);
 
   const speedMult = speedMultiplier(s, cfg);
   const ce = clusterEfficiency(s);
@@ -448,6 +451,18 @@ export function resolveRun(
     webShare,
     contaminationChance: decontam ? 0 : webShare * RUN_TUNING.ACCIDENTAL_CONTAMINATION_PER_WEB,
   };
+}
+
+/**
+ * v16: recipe × data interactions a run sheet triggers. 'true' returns all of them, 'belief' only the ones the lab has
+ * already discovered (lab.synergies). Sheets without post-training or annealing trigger none.
+ */
+export function runSynergies(s: GameState, cfg: TrainingConfig, rows: readonly MixRow[], mode: PhysicsMode): SynergyDef[] {
+  if (!cfg.post?.length && !cfg.anneal) return [];
+  const shares: Partial<Record<DataKind, number>> = {};
+  for (const r of rows) shares[r.kind] = r.share;
+  const all = synergiesFor({ cfg, shares });
+  return mode === 'true' ? all : all.filter((x) => s.lab?.synergies?.[x.id] !== undefined);
 }
 
 /** Physics of a live run in the true world, using its own sheet, data and techniques. */

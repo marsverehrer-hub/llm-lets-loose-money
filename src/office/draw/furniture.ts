@@ -129,7 +129,7 @@ export function drawWhiteboard(c: Ctx, x: number, y: number, w: number, seed: nu
   }
   // a little "∫" / "E=mc²"-style glyph
   g.fillStyle = C.blue;
-  g.font = `${Math.max(6, 7 * p.scale)}px IBM Plex Mono, monospace`;
+  g.font = `${Math.max(6, 7 * p.scale)}px JetBrains Mono, monospace`;
   g.fillText(seed % 2 ? '∑ θ²' : '∫ e^x', x0 + (x1 - x0) * 0.55, top + (bot - top) * 0.85);
   g.restore();
 }
@@ -209,7 +209,7 @@ export function drawSecretCrate(c: Ctx, x: number, y: number, t: number): void {
   g.save();
   g.fillStyle = C.red;
   g.globalAlpha = 0.6 + 0.4 * Math.sin(t * 6);
-  g.font = `bold ${Math.max(5, 5.5 * p.scale)}px IBM Plex Mono, monospace`;
+  g.font = `bold ${Math.max(5, 5.5 * p.scale)}px JetBrains Mono, monospace`;
   g.textAlign = 'center';
   g.fillText('TOP SECRET', sx, sy);
   g.restore();
@@ -238,7 +238,7 @@ export function drawNeonSign(c: Ctx, x: number, y: number, w: number, text: stri
   planeY(c, x, x + w, y, 34, 42, '#0c0c0c');
   const [cx, cy] = project(p, x + w / 2, y, 38);
   g.save();
-  g.font = `600 ${Math.max(8, 10 * p.scale)}px IBM Plex Mono, monospace`;
+  g.font = `600 ${Math.max(8, 10 * p.scale)}px JetBrains Mono, monospace`;
   g.textAlign = 'center';
   g.textBaseline = 'middle';
   g.fillStyle = color;

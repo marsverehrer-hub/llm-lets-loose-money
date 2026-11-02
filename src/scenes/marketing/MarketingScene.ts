@@ -20,7 +20,7 @@ const STREET_Y0 = 3.2;
 const STREET_Y1 = 5.6;
 const WALK_Y1 = 6.8;
 const TOP = 84; // headroom above the ground for the tallest lot's top edge (fit only)
-const FONT = 'IBM Plex Mono, monospace';
+const FONT = 'JetBrains Mono, monospace';
 
 const BUS_LEN = 2.4;
 const BUS_DEP = 1.2;
@@ -448,7 +448,7 @@ export class MarketingScene implements Scene {
     // HUD, bottom right (same place as the office HUD)
     const campaigns = s.market.campaigns.length;
     g.save();
-    g.font = '10px IBM Plex Mono, monospace';
+    g.font = '10px JetBrains Mono, monospace';
     g.textAlign = 'right';
     g.textBaseline = 'alphabetic';
     g.fillStyle = C.textDim;

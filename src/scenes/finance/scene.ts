@@ -339,7 +339,7 @@ export class TreasuryScene implements Scene {
 
     // HUD, bottom right
     g.save();
-    g.font = '10px IBM Plex Mono, monospace';
+    g.font = '10px JetBrains Mono, monospace';
     g.textAlign = 'right';
     g.textBaseline = 'alphabetic';
     g.fillStyle = C.textDim;
@@ -359,7 +359,7 @@ export class TreasuryScene implements Scene {
     if (!L.lanes.length) return;
     const fs = Math.max(7, 8 * p.scale);
     g.save();
-    g.font = `600 ${fs}px IBM Plex Mono, monospace`;
+    g.font = `600 ${fs}px JetBrains Mono, monospace`;
     g.textAlign = 'center';
     g.textBaseline = 'middle';
     g.fillStyle = C.fgDim;

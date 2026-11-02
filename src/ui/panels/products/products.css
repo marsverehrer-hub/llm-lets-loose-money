@@ -140,6 +140,7 @@
   border: 1px solid var(--down);
   font-size: var(--fs-sm);
   color: var(--down);
+  border-radius: var(--r-md);
 }
 
 /* Model and price */
@@ -246,6 +247,7 @@
   color: var(--fg);
   font: inherit;
   text-align: left;
+  border-radius: var(--r-md);
 }
 button.pr-tile {
   cursor: pointer;
@@ -289,6 +291,7 @@ button.pr-tile:focus-visible {
   min-width: 0;
   padding: 8px 10px;
   border: 1px solid var(--line);
+  border-radius: var(--r-md);
 }
 .pr-fact b {
   font-variant-numeric: tabular-nums;
@@ -305,6 +308,7 @@ button.pr-tile:focus-visible {
   min-width: 0;
   padding: 8px 10px;
   border: 1px solid var(--line);
+  border-radius: var(--r-md);
 }
 .pr-tier-cell > span:first-child {
   font-size: var(--fs-xs);

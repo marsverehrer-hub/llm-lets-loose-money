@@ -15,7 +15,7 @@ export type TrainingOption = TrainingOptionDef & {
   tokenMult?: number;
 };
 
-export const TRAINING_OPTION_GROUPS: TrainingOptionGroup[] = ['arch', 'tokenizer', 'context', 'optimizer', 'precision', 'schedule', 'filter'];
+export const TRAINING_OPTION_GROUPS: TrainingOptionGroup[] = ['arch', 'tokenizer', 'context', 'optimizer', 'precision', 'schedule', 'filter', 'post', 'anneal'];
 
 export const TRAINING_OPTIONS: TrainingOption[] = [
   // ---- architecture -------------------------------------------------------------------------
@@ -50,10 +50,10 @@ export const TRAINING_OPTIONS: TrainingOption[] = [
 
   // ---- precision ----------------------------------------------------------------------------
   { id: 'fp32', group: 'precision', name: 'FP32', description: 'Full precision. Slow, boring, and the numbers are all there.', instability: -0.1 },
-  { id: 'fp16', group: 'precision', name: 'FP16', description: 'Half precision with a loss scaler and a prayer.', requiresResearch: 'mixed_precision', speedMult: 2, instability: 0.3 },
-  { id: 'bf16', group: 'precision', name: 'BF16', description: 'Brain floats. Same range as FP32, half the bits, none of the drama.', requiresResearch: 'bf16_training', speedMult: 2 },
-  { id: 'fp8', group: 'precision', name: 'FP8', description: 'Eight bits per weight. Very fast, very opinionated about outliers.', requiresResearch: 'fp8_training', speedMult: 3.5, instability: 0.5, qualityMult: 0.985 },
-  { id: 'fp4', group: 'precision', name: 'FP4', description: 'Four bits. The weights are fine. The weights are fine.', requiresResearch: 'fp4_training', speedMult: 6, instability: 1.2, qualityMult: 0.95 },
+  { id: 'fp16', group: 'precision', name: 'FP16', description: 'Half precision with a loss scaler and a prayer.', requiresResearch: 'mixed_precision', speedMult: 1.7, instability: 0.3 },
+  { id: 'bf16', group: 'precision', name: 'BF16', description: 'Brain floats. Same range as FP32, half the bits, none of the drama.', requiresResearch: 'bf16_training', speedMult: 1.8 },
+  { id: 'fp8', group: 'precision', name: 'FP8', description: 'Eight bits per weight. Very fast, very opinionated about outliers.', requiresResearch: 'fp8_training', speedMult: 2.6, instability: 0.5, qualityMult: 0.985 },
+  { id: 'fp4', group: 'precision', name: 'FP4', description: 'Four bits. The weights are fine. The weights are fine.', requiresResearch: 'fp4_training', speedMult: 3.6, instability: 1.2, qualityMult: 0.95 },
 
   // ---- schedule -----------------------------------------------------------------------------
   { id: 'cosine', group: 'schedule', name: 'Cosine', description: 'Decay the learning rate along a cosine. Best if you run to the end; stopping early wastes the tail.', qualityMult: 1.02 },
@@ -66,6 +66,22 @@ export const TRAINING_OPTIONS: TrainingOption[] = [
   { id: 'toxicity', group: 'filter', name: 'Toxicity Filter', description: 'Keeps the worst of the internet out. Also some of the best jokes.', requiresResearch: 'toxicity_filtering', capAdd: { safety: 6, knowledge: -1 } },
   { id: 'decontam', group: 'filter', name: 'Decontamination', description: 'Scrubs the benchmark answer keys out of the training set.', requiresResearch: 'decontamination' },
   { id: 'pii_scrub', group: 'filter', name: 'PII Scrubber', description: 'Removes names, numbers and the one embarrassing diary. Lowers lawsuit risk.', requiresResearch: 'pii_scrubbing' },
+
+  // ---- v16 post-training stages (GAME_DESIGN §28.1). Extra compute after pretraining; each one reshapes the model. --
+  // Every stage costs compute (flopsMult) and moves some skills down as others go up, so the sum stays near neutral
+  // on overall: the point is the shape. How well a stage takes is rolled per run (breakthroughs and duds).
+  { id: 'sft', group: 'post', name: 'SFT', description: 'Supervised fine-tuning on curated answers. Cheap, polite, a little less curious.', requiresResearch: 'instruction_tuning', flopsMult: 1.03, capAdd: { chat: 3, safety: 2, knowledge: -3, multilingual: -1 } },
+  { id: 'rlhf_ppo', group: 'post', name: 'RLHF (PPO)', description: 'A reward model trained on human ratings, then a policy trained on the reward model. Liked by humans, taxed on logic.', requiresResearch: 'rlhf', flopsMult: 1.08, instability: 0.08, capAdd: { chat: 6, safety: 4, reasoning: -4, math: -3, knowledge: -2 } },
+  { id: 'dpo_pass', group: 'post', name: 'DPO', description: 'Preference tuning without the reward model. Most of RLHF for a third of the drama.', requiresResearch: 'dpo', flopsMult: 1.04, capAdd: { chat: 4, safety: 2, reasoning: -3, math: -2 } },
+  { id: 'constitution', group: 'post', name: 'Constitution pass', description: 'The model critiques itself against a list of principles. Safer, slightly preachier.', requiresResearch: 'constitutional_ai', flopsMult: 1.05, capAdd: { safety: 9, chat: -3, agentic: -2, coding: -1 } },
+  { id: 'reasoning_rl', group: 'post', name: 'Reasoning RL', description: 'Long chains of thought, rewarded when the answer checks out. Thinks harder, chats worse.', requiresResearch: 'reasoning_models', flopsMult: 1.18, instability: 0.15, capAdd: { reasoning: 7, math: 8, coding: 2, chat: -6, multilingual: -3, knowledge: -1 } },
+  { id: 'rlvr_pass', group: 'post', name: 'RL on verifiable rewards', description: 'Unit tests and proof checkers as the only judges. Scary good at homework, a bit of a rules lawyer.', requiresResearch: 'rlvr', flopsMult: 1.25, instability: 0.2, capAdd: { reasoning: 8, math: 10, coding: 5, chat: -7, safety: -3, multilingual: -2 } },
+  { id: 'agentic_rl', group: 'post', name: 'Agentic RL', description: 'Rewarded for finishing multi-step tasks in a sandbox. Gets things done, asks forgiveness later.', requiresResearch: 'agents', flopsMult: 1.12, instability: 0.1, capAdd: { agentic: 9, coding: 3, safety: -3, chat: -2 } },
+
+  // ---- v16 data annealing: the last stretch of the run on a different diet (GAME_DESIGN §28.1) -----------------------
+  { id: 'anneal_quality', group: 'anneal', name: 'Quality anneal', description: 'Finish on the cleanest tenth of the data. Sharper, slightly narrower.', requiresResearch: 'curriculum_learning', qualityMult: 1.015, capAdd: { knowledge: -2, multilingual: -2 } },
+  { id: 'anneal_code_math', group: 'anneal', name: 'Code and math anneal', description: 'The last stretch is all code and proofs. It comes out sharper at both and duller at parties.', requiresResearch: 'curriculum_learning', capAdd: { coding: 4, math: 4, reasoning: 1, chat: -4, multilingual: -3 } },
+  { id: 'anneal_long', group: 'anneal', name: 'Long-document anneal', description: 'Finish on books and whole repositories. Reads further, costs a little more.', requiresResearch: 'long_context', flopsMult: 1.04, capAdd: { longContext: 8, knowledge: 1, chat: -2 } },
 ];
 
 const OPTION_BY_ID = new Map(TRAINING_OPTIONS.map((o) => [o.id, o] as const));
@@ -281,7 +297,11 @@ export function legacyConfig(s: GameState, datasetIds: readonly Id[], contextK?:
 export function configSignature(cfg: TrainingConfig): string {
   const experts = cfg.arch === 'moe' ? `:${cfg.moeExperts ?? RUN_TUNING.MOE_DEFAULT_EXPERTS}` : '';
   const filters = [...cfg.filters].sort().join(',');
-  return [`${cfg.arch}${experts}`, cfg.tokenizer, cfg.context, cfg.optimizer, cfg.precision, cfg.schedule, `lr${cfg.lr.toFixed(2)}`, filters || 'nofilter', cfg.checkpointing].join('|');
+  const parts = [`${cfg.arch}${experts}`, cfg.tokenizer, cfg.context, cfg.optimizer, cfg.precision, cfg.schedule, `lr${cfg.lr.toFixed(2)}`, filters || 'nofilter', cfg.checkpointing];
+  // v16: only sheets that use post-training or annealing get the extra parts, so older ablations keep their keys.
+  if (cfg.post?.length) parts.push(`post:${[...cfg.post].sort().join(',')}`);
+  if (cfg.anneal) parts.push(`anneal:${cfg.anneal}`);
+  return parts.join('|');
 }
 
 /** Short human label for a run sheet, e.g. "MoE x64 · FP8 · WSD · lr 0.50". */
@@ -290,7 +310,8 @@ export function describeConfig(cfg: TrainingConfig): string {
   const experts = cfg.arch === 'moe' ? ` x${cfg.moeExperts ?? RUN_TUNING.MOE_DEFAULT_EXPERTS}` : '';
   const prec = optionById(cfg.precision)?.name ?? cfg.precision;
   const sched = optionById(cfg.schedule)?.name ?? cfg.schedule;
-  return `${arch}${experts} · ${prec} · ${sched} · lr ${cfg.lr.toFixed(2)}`;
+  const post = [...(cfg.post ?? []), ...(cfg.anneal ? [cfg.anneal] : [])].map((id) => optionById(id)?.name ?? id);
+  return `${arch}${experts} · ${prec} · ${sched} · lr ${cfg.lr.toFixed(2)}${post.length ? ` · ${post.join(' + ')}` : ''}`;
 }
 
 /**
@@ -331,6 +352,15 @@ export function validateConfig(s: GameState, cfg: TrainingConfig): string | null
     if (!opt || opt.group !== 'filter') return `Unknown data filter: ${id}.`;
     const lock = optionLock(s, opt);
     if (lock) return `${opt.name} is locked. ${lock}`;
+  }
+  for (const [group, ids] of [['post', cfg.post ?? []], ['anneal', cfg.anneal ? [cfg.anneal] : []]] as const) {
+    if (new Set(ids).size !== ids.length) return 'Each post-training stage can run once.';
+    for (const id of ids) {
+      const opt = optionById(id);
+      if (!opt || opt.group !== group) return `Unknown ${group === 'post' ? 'post-training stage' : 'anneal'}: ${id}.`;
+      const lock = optionLock(s, opt);
+      if (lock) return `${opt.name} is locked. ${lock}`;
+    }
   }
   for (const [kind, w] of Object.entries(cfg.dataMix)) {
     if (!DATA_KINDS.includes(kind as DataKind)) return `Unknown data kind: ${kind}.`;

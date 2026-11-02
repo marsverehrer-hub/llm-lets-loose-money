@@ -25,7 +25,8 @@ export function Toasts() {
   const [flash, setFlash] = useState<(BannerDetail & { key: number }) | null>(null);
   const latest = useGameSelect((s) => s.notifications.slice(-MAX_VISIBLE), sameItems);
   const room = isPhone ? (flash ? MAX_PHONE - 1 : MAX_PHONE) : MAX_VISIBLE;
-  const visible = room > 0 ? latest.slice(-room) : [];
+  // A milestone banner already shows its text, so its toast twin waits until the banner is gone.
+  const visible = (room > 0 ? latest.slice(-room) : []).filter((n) => !flash || plain(n.text) !== flash.text);
 
   // Milestones, model releases and the IPO arrive as banner events from fx/Director.
   useEffect(() => {

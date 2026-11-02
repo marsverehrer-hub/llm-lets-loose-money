@@ -244,6 +244,16 @@ function Then({ s, r }: { s: GameState; r: Reveal }) {
 
   return (
     <div class="ev-then">
+      {(r.notes?.length ?? 0) > 0 && (
+        <section class="ev-group" aria-label="Lab notebook">
+          <div class="section-title">Lab notebook</div>
+          {r.notes!.map((n) => (
+            <div key={n} class="ev-item-text">
+              {plain(n)}
+            </div>
+          ))}
+        </section>
+      )}
       <section class="ev-group" aria-label="Discoveries">
         <div class="section-title">Discoveries</div>
         {found.length === 0 && <div class="ev-none">None this run.</div>}

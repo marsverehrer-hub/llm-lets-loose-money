@@ -159,7 +159,7 @@ export function drawSlumped(c: Ctx, x: number, y: number, body: string, seed: nu
 /** Small rounded label in the office's terminal style: black box, hairline frame, mono text. */
 export function drawPill(g: CanvasRenderingContext2D, x: number, y: number, text: string, color: string, size = 11): void {
   g.save();
-  g.font = `600 ${size}px IBM Plex Mono, monospace`;
+  g.font = `600 ${size}px JetBrains Mono, monospace`;
   const w = Math.ceil(g.measureText(text).width) + 16;
   const h = Math.round(size * 1.8);
   const px = Math.round(x - w / 2);

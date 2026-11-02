@@ -101,7 +101,7 @@ interface DrawItem {
 /** Small label in the office's terminal style: black box, hairline frame, mono text. */
 function pill(g: CanvasRenderingContext2D, x: number, y: number, text: string, color: string): void {
   g.save();
-  g.font = '600 10px IBM Plex Mono, monospace';
+  g.font = '600 10px JetBrains Mono, monospace';
   const w = Math.ceil(g.measureText(text).width) + 12;
   const h = 16;
   const px = Math.round(x - w / 2);

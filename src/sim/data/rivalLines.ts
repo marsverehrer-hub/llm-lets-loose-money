@@ -13,6 +13,12 @@ export const LINE_SCHEDULE: Record<Id, Partial<Record<LineClass, number>>> = {
   openaye: { small: 2023, nano: 2024 },
   deepmined: { medium: 2023, nano: 2024 },
   anthropomorphic: { small: 2024, nano: 2026 },
+  // v16 labs
+  alibabble: { small: 2023, medium: 2024, nano: 2024 },
+  bytedunce: { small: 2024 },
+  zhipuzzle: { small: 2024 },
+  cohear: { small: 2024 },
+  xhype: { small: 2025 },
 };
 
 /** Tier words stripped from a flagship name to get its family ("Gemineye 3.5 Flash" -> "Gemineye 3.5"). */
@@ -55,6 +61,10 @@ export function lineName(labId: Id, cls: LineClass, flagship: string, activePara
     case 'deepseekers': {
       const base = flagship.replace(/-Lite$/, '');
       return cls === 'medium' ? `${base}-Distill` : `${base}-Lite`;
+    }
+    case 'alibabble': {
+      const fam = flagship.split('-')[0];
+      return `${fam}-${sizeLabel(activeParamsB)}B`;
     }
     default:
       return `${flagship} ${cls === 'nano' ? 'Nano' : 'Small'}`;

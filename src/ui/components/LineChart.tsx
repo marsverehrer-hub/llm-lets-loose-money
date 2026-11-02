@@ -182,7 +182,7 @@ function draw(canvas: HTMLCanvasElement, w: number, h: number, series0: LineSeri
   const bottom = PAD.t + ph;
 
   // grid + y labels
-  ctx.font = '12px "IBM Plex Mono", ui-monospace, Consolas, monospace';
+  ctx.font = '12px Figtree, system-ui, sans-serif';
   ctx.textBaseline = 'middle';
   ctx.textAlign = 'right';
   ctx.lineWidth = 1;

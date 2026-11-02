@@ -67,7 +67,7 @@ export function BoardCard({ s }: { s: GameState }) {
           return (
             <li key={o.id} class={`board-goal ${isDone ? 'is-done' : ''} ${o.stretch ? 'is-stretch' : ''}`}>
               <div class="board-goal-head">
-                <span class="board-check" aria-hidden="true">{isDone ? '■' : '□'}</span>
+                <span class="board-check" aria-hidden="true">{isDone ? '✓' : ''}</span>
                 <span class="board-text">{o.text}</span>
                 {o.stretch && <Pill tone="warn">Stretch</Pill>}
               </div>

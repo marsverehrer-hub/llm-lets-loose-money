@@ -41,6 +41,8 @@ import { getState, subscribe, useGameSelect, sameRecord } from './store';
 import { isPanelVisible, markSeen, subscribeUnlocks, syncUnlocks, unlockPanel, unseenPanels } from './unlocks';
 import { useIsMobile } from './components';
 import { MobileNav } from './shell/MobileNav';
+import { HubTabs } from './shell/HubTabs';
+import { HubContext, hubOf, type Hub } from './shell/hubs';
 import { applyTheme, readTheme } from './shell/theme';
 import type { GameState } from '../sim/types';
 import './shell/shell.css';
@@ -56,7 +58,7 @@ export type PanelId = 'dashboard' | 'lab' | 'models' | 'products' | 'compute' | 
 
 export const PANELS: { id: PanelId; label: string; code: string; Component: () => any }[] = [
   { id: 'dashboard', label: 'Headquarters', code: 'HQ', Component: DashboardPanel },
-  { id: 'lab', label: 'Lab & perks', code: 'LAB', Component: LabPanel }, // v13 progression
+  { id: 'lab', label: 'Level & perks', code: 'LAB', Component: LabPanel }, // v13 progression
   { id: 'models', label: 'Models', code: 'MDL', Component: ModelsPanel },
   { id: 'products', label: 'Products', code: 'PRD', Component: ProductsPanel },
   { id: 'compute', label: 'Compute', code: 'CMP', Component: ComputePanel },
@@ -112,7 +114,22 @@ export function App() {
     if (mainRef.current) mainRef.current.scrollTop = 0;
   };
 
+  // Each hub reopens on the panel last visited there.
+  const lastInHub = useRef<Partial<Record<string, PanelId>>>({});
+  lastInHub.current[hubOf(tab).id] = tab;
+  const openHub = (hub: Hub) => {
+    const live = getState();
+    const visible = hub.ids.filter((id) => (id === 'vs' ? !!live.mp : isPanelVisible(live, id)));
+    const last = lastInHub.current[hub.id];
+    const id = last && visible.includes(last) ? last : visible[0];
+    if (id) select(id);
+  };
+
   useEffect(() => onNavigate(select), []);
+  // Dev-only hook for screenshot scripts.
+  useEffect(() => {
+    if (import.meta.env.DEV) (window as any).__nav = select;
+  }, []);
 
   useEffect(() => {
     const check = () => {
@@ -160,21 +177,28 @@ export function App() {
   const navItems = PANELS.filter((p) => (p.id === 'vs' ? inMatch : isPanelVisible(live, p.id))).map(({ id, label, code }) => ({ id, label, code }));
   const navBadges = withUnseen(badges, unseenPanels(live));
 
+  const hub = hubOf(tab);
+  const highlight = tutorialTarget(tutStep);
+
   return (
-    <div class="app">
+    <div class={`app hub-${hub.id}`}>
       <TopBar />
+      {/* v17 Pit Wall: the hubs are the main nav bar across the top, like a team principal's menu. */}
+      {!isPhone && <SideNav items={navItems} active={tab} onHub={openHub} badges={navBadges} highlight={highlight} />}
       <RunDock />
       <div class="app-body">
-        {!isPhone && <SideNav items={navItems} active={tab} onSelect={select} badges={navBadges} highlight={tutorialTarget(tutStep)} />}
         <main class="app-main" ref={mainRef}>
+          <HubTabs items={navItems} active={tab} onSelect={select} badges={navBadges} highlight={highlight} />
           {/* keyed so each tab change remounts the panel (resets panel-local state) */}
-          <div key={tab} class="panel-host">
-            <Active />
-          </div>
+          <HubContext.Provider value={hub}>
+            <div key={tab} class="panel-host">
+              <Active />
+            </div>
+          </HubContext.Provider>
         </main>
       </div>
       <NewsTicker />
-      {isPhone && <MobileNav items={navItems} active={tab} onSelect={select} badges={navBadges} highlight={tutorialTarget(tutStep)} />}
+      {isPhone && <MobileNav items={navItems} active={tab} onHub={openHub} badges={navBadges} highlight={highlight} />}
       <EventModal />
       <IncidentModal />
       <EvalReveal />

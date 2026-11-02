@@ -1,5 +1,5 @@
-// OWNER: ONBOARD (v10 agent 7). Headquarters: the first screen. A calm overview that leads with pictures.
-// Parts live in ./hq/: the next-step card, money, training, products, the rival race and the Details drawer.
+// OWNER: ONBOARD. Headquarters: the first screen. It answers "what is going on and what should I do next":
+// the advisor (./hq/NextCard), goals, key numbers with trends, the live run, money, products, rivals and the office.
 import { OfficeView } from '../../office/OfficeView';
 import { OFFICE_TIERS } from '../../sim/data/roles';
 import type { GameState } from '../../sim/types';
@@ -11,6 +11,7 @@ import { GoalsCard } from './GoalsCard'; // v9 scenario: renders only when the s
 import { DetailsSection } from './hq/DetailsSection';
 import { MoneyCard } from './hq/MoneyCard';
 import { NextCard } from './hq/NextCard';
+import { KpiStrip } from './hq/KpiStrip';
 import { ProductsCard } from './hq/ProductsCard';
 import { RaceCard } from './hq/RaceCard';
 import { TrainingCard } from './hq/TrainingCard';
@@ -22,7 +23,7 @@ import './hq/hq.css';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-/** "14 MAR 2019" from a day number. */
+/** "14 Mar 2019" from a day number. */
 function dateTag(day: number): string {
   const d = dayToDate(day);
   return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
@@ -38,18 +39,24 @@ export function DashboardPanel() {
 
   return (
     <div class="panel hq">
-      <PanelHeader code="HQ" title="Headquarters" subtitle={`${s.company.name} · ${dateTag(s.day)}`} />
-      <PanelIntro id="hq">Your lab on one screen. The top card always names the next useful move, and Details holds the charts.</PanelIntro>
+      <PanelHeader title={s.company.name} subtitle={`${dateTag(s.day)} · ${office?.name ?? 'Unknown office'}`} />
+      <PanelIntro id="hq">
+        Your lab at a glance. The advisor lists what to do next, most urgent first. Every number links to the screen where you change it.
+      </PanelIntro>
 
       <div class="hq-top">
         <NextCard s={s} />
-        <GoalsCard />
+        <div class="hq-goals">
+          <BoardCard s={s} />
+          <GoalsCard />
+        </div>
       </div>
 
-      {/* v13: the loop on one row. The live run (with its tempo), this quarter's board goals and the lab level. */}
+      <KpiStrip s={s} />
+
+      {/* The loop on one row: the live run (with its tempo) and the lab level. */}
       <div class="hq-hero">
         <TrainingCard s={s} />
-        <BoardCard s={s} />
         <LevelCard s={s} />
       </div>
 
@@ -59,12 +66,11 @@ export function DashboardPanel() {
         <RaceCard s={s} />
       </div>
 
-      <Card title="Office" class="hq-office" subtitle={`${office?.name ?? 'Unknown office'} · ${heads}/${seats} seats · ${datacenters} DC`} flush>
-        <OfficeView state={s} height={isPhone ? 190 : 240} />
+      <Card title="Office" class="hq-office" subtitle={`${office?.name ?? 'Unknown office'} · ${heads}/${seats} seats · ${datacenters} datacenter${datacenters === 1 ? '' : 's'}`} flush>
+        <OfficeView state={s} height={isPhone ? 190 : 260} />
       </Card>
 
       <DetailsSection s={s} />
     </div>
   );
 }
-

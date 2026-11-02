@@ -10,6 +10,9 @@ import { getBonuses } from '../bonuses';
 import { isResearched } from './research';
 import { roleStrength } from './staff';
 import { productPflopsNeed } from './modelLife'; // v15 routers
+import { consumeGpuAllocation, gpuAllocationLeft } from './scaleLimits'; // v16 supply
+import { DEFAULT_PROVIDER_ID } from '../data/clouds'; // v16 cloud market
+import { cloudLeaseGpus, cloudLeaseRentPerDay, rentFromProvider } from './cloudMarket'; // v16 cloud market
 
 export interface Capacity { total: number; training: number; inference: number }
 
@@ -33,6 +36,14 @@ export const COMPUTE_TUNING = {
   /** Failures are reported at most once per this many days. */
   FAIL_NOTICE_DAYS: 30,
   HOURS_PER_DAY: 24,
+  /**
+   * v16 (GAME_DESIGN §26.3): datacenter upgrades, priced as a share of the tier's build cost. Liquid cooling multiplies
+   * the PUE and the failure rate; InfiniBand matters to neocloud customers (systems/neocloud.ts).
+   */
+  LIQUID_COST_SHARE: 0.3,
+  LIQUID_PUE_MULT: 0.85,
+  LIQUID_FAIL_MULT: 0.75,
+  INFINIBAND_COST_SHARE: 0.25,
   /** Inference efficiency gain per sqrt(engineer strength). */
   ENGINEER_BOOST: 0.08,
   MAX_GPU_ORDER: 1_000_000,
@@ -59,6 +70,14 @@ export function datacenterTierById(id: string): DatacenterTier | undefined {
 function isFinished(dc: Datacenter): boolean {
   return dc.buildDaysLeft <= 0;
 }
+/** v16: a finished datacenter that works for the lab (a hall dedicated to the neocloud is sold to customers instead). */
+function inFleet(s: GameState, dc: Datacenter): boolean {
+  return isFinished(dc) && !s.neocloud?.dedicated?.includes(dc.id);
+}
+/** v16: PUE of one datacenter: its tier's, lowered by liquid cooling. */
+export function datacenterPue(dc: Datacenter): number {
+  return pueOf(dc.tierId) * (dc.liquid ? COMPUTE_TUNING.LIQUID_PUE_MULT : 1);
+}
 function installedCount(dc: Datacenter): number {
   let n = 0;
   for (const c of Object.values(dc.gpus)) n += c;
@@ -78,7 +97,7 @@ function powerPerDay(dc: Datacenter): number {
   if (!tier) return 0;
   let kw = 0;
   for (const [gid, n] of Object.entries(dc.gpus)) kw += n * (gpuById(gid)?.powerKw ?? 0);
-  return kw * pueOf(tier.id) * COMPUTE_TUNING.HOURS_PER_DAY * tier.powerPricePerKwh;
+  return kw * datacenterPue(dc) * COMPUTE_TUNING.HOURS_PER_DAY * tier.powerPricePerKwh;
 }
 /** v14: hardware operations per day for one datacenter: maintenance, networking, spares and on-call per installed GPU. */
 function hardwarePerDay(dc: Datacenter): number {
@@ -97,6 +116,12 @@ export function installedRunningCostPerDay(s: GameState): number {
   let p = 0;
   for (const dc of s.compute.datacenters) if (isFinished(dc)) p += powerPerDay(dc) + hardwarePerDay(dc);
   return p;
+}
+
+/** v16: everything one finished datacenter costs per day: power with cooling, hardware operations and upkeep. */
+export function datacenterRunningCostPerDay(dc: Datacenter): number {
+  if (!isFinished(dc)) return 0;
+  return powerPerDay(dc) + hardwarePerDay(dc) + (datacenterTierById(dc.tierId)?.upkeepPerDay ?? 0);
 }
 
 /** v14: what one installed GPU costs per day to run in a datacenter tier (power with cooling plus hardware ops). */
@@ -136,7 +161,8 @@ function wearTick(s: GameState): void {
       dc.bought ??= {};
       dc.bought[gid] ??= s.day; // old saves: count the fleet as new
       dc.wear ??= {};
-      const w = (dc.wear[gid] ?? 0) + (n * annualFailureRate(gpuAgeYears(s, dc, gid))) / 365;
+      const cool = dc.liquid ? COMPUTE_TUNING.LIQUID_FAIL_MULT : 1; // v16
+      const w = (dc.wear[gid] ?? 0) + (n * annualFailureRate(gpuAgeYears(s, dc, gid)) * cool) / 365;
       const k = Math.min(n, Math.floor(w));
       dc.wear[gid] = w - k;
       if (k <= 0) continue;
@@ -203,11 +229,12 @@ function clusterFor(s: GameState, usedGpus: number): ClusterEfficiency {
 // Own fleet, priority and the split
 // ---------------------------------------------------------------------------
 
-/** Own GPUs: rented in the cloud plus installed in finished datacenters. */
+/** Own GPUs: rented in the cloud (v16: every provider) plus installed in finished datacenters not dedicated to the neocloud. */
 export function ownGpuCount(s: GameState): number {
   let gpus = 0;
   for (const n of Object.values(s.compute.rented)) gpus += n;
-  for (const dc of s.compute.datacenters) if (isFinished(dc)) gpus += installedCount(dc);
+  for (const n of Object.values(cloudLeaseGpus(s))) gpus += n;
+  for (const dc of s.compute.datacenters) if (inFleet(s, dc)) gpus += installedCount(dc);
   return gpus;
 }
 
@@ -215,9 +242,10 @@ export function ownGpuCount(s: GameState): number {
 export function ownPflops(s: GameState): number {
   let rented = 0;
   for (const [gid, n] of Object.entries(s.compute.rented)) rented += n * (gpuById(gid)?.pflops ?? 0);
+  for (const [gid, n] of Object.entries(cloudLeaseGpus(s))) rented += n * (gpuById(gid)?.pflops ?? 0); // v16
   let installed = 0;
   for (const dc of s.compute.datacenters) {
-    if (!isFinished(dc)) continue;
+    if (!inFleet(s, dc)) continue;
     for (const [gid, n] of Object.entries(dc.gpus)) installed += n * (gpuById(gid)?.pflops ?? 0);
   }
   return rented + installed;
@@ -463,6 +491,7 @@ export function dailyComputeCost(s: GameState): { rent: number; power: number; u
   let rent = 0;
   for (const [gid, n] of Object.entries(s.compute.rented)) rent += n * (gpuById(gid)?.rentPerDay ?? 0);
   rent *= rentMultiplier(s);
+  rent += cloudLeaseRentPerDay(s); // v16: other providers, reserved and spot (prices already carry the rent shock)
   let power = 0;
   let upkeep = 0;
   let hardware = 0;
@@ -503,40 +532,28 @@ export function computeTick(s: GameState, _rng: Rng): void {
 }
 
 export const handlers: ActionHandlers = {
-  rentGpus: (s, a) => {
-    const gpu = gpuById(a.gpuId);
-    if (!gpu) {
-      notify(s, 'Unknown GPU.', 'bad');
+  // v16: the legacy rental rents on-demand from the default provider, within its quota (systems/cloudMarket.ts).
+  rentGpus: (s, a) => rentFromProvider(s, DEFAULT_PROVIDER_ID, a.gpuId, a.count),
+
+  // v16 (GAME_DESIGN §26.3): one-off datacenter upgrades.
+  upgradeDatacenter: (s, a) => {
+    const dc = s.compute.datacenters.find((d) => d.id === a.datacenterId);
+    const tier = dc ? datacenterTierById(dc.tierId) : undefined;
+    if (!dc || !tier) {
+      notify(s, 'Unknown datacenter.', 'bad');
       return;
     }
-    if (!Number.isInteger(a.count) || a.count === 0 || Math.abs(a.count) > COMPUTE_TUNING.MAX_GPU_ORDER) {
-      notify(s, 'Rent a whole number of GPUs (negative to give them back).', 'bad');
+    const liquid = a.upgrade === 'liquid';
+    if (!liquid && a.upgrade !== 'infiniband') return;
+    if (liquid ? dc.liquid : dc.infiniband) {
+      notify(s, `${dc.name} already has ${liquid ? 'liquid cooling' : 'InfiniBand'}.`, 'info');
       return;
     }
-    if (calendarYear(s.day) < gpu.unlockYear) {
-      notify(s, `${gpu.name} is not available until ${gpu.unlockYear}.`, 'bad');
-      return;
-    }
-    const have = s.compute.rented[gpu.id] ?? 0;
-    if (a.count > 0) {
-      const perDay = a.count * gpu.rentPerDay * rentMultiplier(s);
-      if (s.finance.cash < perDay) {
-        notify(s, `Need ${formatMoney(perDay)} to cover a day of rent on ${a.count} × ${gpu.name}.`, 'bad');
-        return;
-      }
-      s.compute.rented[gpu.id] = have + a.count;
-      notify(s, `Rented ${a.count} × ${gpu.name} (${formatMoney(perDay)}/day).`, 'good');
-      return;
-    }
-    const back = Math.min(-a.count, have);
-    if (back === 0) {
-      notify(s, `You have no ${gpu.name} rentals to return.`, 'bad');
-      return;
-    }
-    const left = have - back;
-    if (left > 0) s.compute.rented[gpu.id] = left;
-    else delete s.compute.rented[gpu.id];
-    notify(s, `Returned ${back} × ${gpu.name} to the cloud.`, 'info');
+    const cost = tier.buildCost * (liquid ? COMPUTE_TUNING.LIQUID_COST_SHARE : COMPUTE_TUNING.INFINIBAND_COST_SHARE);
+    if (!trySpend(s, 'capex', cost, liquid ? 'liquid cooling' : 'InfiniBand')) return;
+    if (liquid) dc.liquid = true;
+    else dc.infiniband = true;
+    notify(s, `${dc.name} now has ${liquid ? 'liquid cooling: lower power bill, fewer failures' : 'InfiniBand: neocloud customers pay more for it'}.`, 'good');
   },
 
   buildDatacenter: (s, a) => {
@@ -590,7 +607,13 @@ export const handlers: ActionHandlers = {
       notify(s, `Only ${Math.max(0, free).toLocaleString('en-US')} free slot${free === 1 ? '' : 's'} in ${dc.name}.`, 'bad');
       return;
     }
+    const alloc = gpuAllocationLeft(s, gpu.id); // v16: new generations are rationed
+    if (a.count > alloc) {
+      notify(s, `The vendor allocates you ${alloc.toLocaleString('en-US')} more ${gpu.name} this quarter. Older generations ship in bulk; brand gets you more.`, 'bad');
+      return;
+    }
     if (!trySpend(s, 'capex', a.count * gpu.buyPrice, `${a.count} × ${gpu.name}`)) return;
+    consumeGpuAllocation(s, gpu.id, a.count);
     // v14: track the batch's age as a count-weighted average purchase day.
     const had = dc.gpus[gpu.id] ?? 0;
     dc.bought ??= {};

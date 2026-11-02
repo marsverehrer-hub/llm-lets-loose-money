@@ -99,6 +99,7 @@
   height: 12px;
   border: 1px solid var(--line-2);
   background: var(--bg-3);
+  border-radius: 4px;
 }
 .md-band-range {
   position: absolute;
@@ -216,6 +217,7 @@
   min-width: 0;
   padding: 8px 10px;
   border: 1px solid var(--line);
+  border-radius: var(--r-md);
 }
 .md-cp.is-done { border-color: var(--line-2); }
 .md-cp-val { color: var(--fg); font-size: var(--fs-sm); }
@@ -283,6 +285,7 @@
   padding: 6px 8px;
   font-size: var(--fs-sm);
   line-height: 1.45;
+  border-radius: var(--r-md);
 }
 
 .md-armed {
@@ -400,6 +403,7 @@
   border: 1px solid var(--line-2);
   padding: 10px 12px;
   margin-top: 4px;
+  border-radius: var(--r-md);
 }
 
 /* ---------- modal helpers (incident modal uses shell classes) ------------- */
@@ -456,7 +460,8 @@
     min-width: 0;
     background: var(--bg-1);
     border: 1px solid var(--line);
-  }
+    border-radius: var(--r-md);
+}
   .md-card.sel {
     border-color: var(--amber);
     border-left-width: 3px;

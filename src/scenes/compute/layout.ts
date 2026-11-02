@@ -3,6 +3,7 @@
 // front of the halls, the cloud rental platform floats off to the left and the product block sits to the right.
 import type { FleetBreakdown, GameState, Datacenter } from '../../sim/types';
 import { DATACENTER_TIERS } from '../../sim/data/gpus';
+import { cloudGpusByType } from '../../sim/systems/cloudMarket';
 import { prand } from '../../office/iso';
 
 export const GAP = 1.2;
@@ -169,7 +170,8 @@ export function engineersOf(s: GameState): number {
 
 export function rentedOf(s: GameState): number {
   let n = 0;
-  for (const k in s.compute.rented) n += s.compute.rented[k] ?? 0;
+  const rented = cloudGpusByType(s); // v16: every cloud provider
+  for (const k in rented) n += rented[k] ?? 0;
   return n;
 }
 

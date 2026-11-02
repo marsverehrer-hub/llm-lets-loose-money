@@ -1518,3 +1518,166 @@ Each product's serving cost now carries its share of cloud **rent** as well as t
 
 ### 25.7 Balance
 `--all --years=20 --seeds=1,2,3`, medians: frontier profitable 2019.7, IPO 2023.0, $1T 2030.9; small and specialist profitable 2018.6; open IPO 2025.0; no bot bankrupt; idle bankrupt in 2.1 years (that check now passes). The bots never patch, enter cups, route or retire, so the only v15 effect on them is mastery's buyer appeal, which brings the frontier IPO forward by about 0.3 years. Profitability before 2020 and $1T before 2032 still fail, as in §23 and §24.
+
+## 26. Clouds and neoclouds (v16)
+Player request: "make cloud providers and servers deeper and make it possible to e.g. be a neocloud/compute provider too, with its own gameloop". Before v16 the cloud was one flat map (`compute.rented`, GPU → count at `rentPerDay`) with no supply limit, so a lab could rent 50,000 GPUs in 2019. Contract: `src/sim/types.ts`, search "v16". Code: `data/clouds.ts`, `systems/cloudMarket.ts`, `systems/neocloud.ts`, plus small hooks in `systems/compute.ts` (lease totals, dedicated halls, upgrades). UI: Compute → "Cloud providers" and "Neocloud" tabs, and Hall options in a datacenter's sheet. No save-version bump: `compute.cloud` and `neocloud` are optional and created on demand.
+
+### 26.1 Providers (`data/clouds.ts`)
+Prices are multiples of each GPU's `rentPerDay`, so a GPU rebalance moves every provider with it.
+
+| Provider | Kind | On-demand | Opens | Stocks a GPU from | Retires after | Quota (GPUs) | Reserved 1 yr / 3 yr | Spot | Crunch chance |
+|---|---|---|---|---|---|---|---|---|---|
+| Amazomb Web Services (default) | hyperscaler | ×1.00 | 2017 | launch | never | 3,000 × 1.75^years | −30% / −50% | ×0.40, 4%/day | 1/700 a day |
+| Microsquash Azzure | hyperscaler | ×1.08 | 2017 | +0.25 yr | never | 2,000 × 1.8^years | −33% / −52% | — | 1/700 |
+| Gargle Cloud | hyperscaler | ×0.97 | 2017 | +0.5 yr | never | 1,500 × 1.75^years | −28% / −46% | ×0.35, 6%/day | 1/700 |
+| CoreWheeze | neocloud | ×0.78 | 2019 | launch | 4 yr | 400 × 2.4^years | −20% / −35% | — | 1/350 |
+| Lambada Labs | neocloud | ×0.85 | 2018 | +0.25 yr | 5 yr | 300 × 2^years | −18% / — | — | 1/400 |
+| GPU Bazaar | spot only | — | 2017 | +1 yr | never | 800 × 1.6^years | — | ×0.45, 8%/day | 1/500 |
+| EuroStack Sovereign Cloud | sovereign | ×1.35 | 2019 | +1 yr | never | 600 × 1.6^years | −25% / −40% | — | never |
+
+- **Quota** = `floor(quotaBase × quotaGrowth^(year − openYear))` GPUs per provider (fractional year), halved during a crunch. It counts every kind (on-demand, spot, reserved). In 2019 every provider together allows about 24k to 32k GPUs (so 50k is out of reach); by 2025 the default alone allows about 260k.
+- **New generations are scarce:** one GPU may take `0.2 + 0.8 × (years since the provider stocked it)` of the quota, reaching all of it after a year.
+- **The legacy pool.** `compute.rented` is the default provider's on-demand pool. `rentGpus` rents there, now within the quota (a big order rents what is left and says so). Events, bots, tests and multiplayer keep using it. Every other lease lives in `compute.cloud.leases`.
+- **Crunches.** Each provider rolls `crunchPerDay` daily (own random stream, `flags['cloud.rng']`), lasting 30 to 90 days: quota ×0.5 for new rentals (existing leases stay), spot price ×1.6, spot preemption ×3. Customers of that provider get a toast (no news line: news would shift the headline picker's rolls on the shared stream). The Cloud providers table marks it.
+
+### 26.2 Reserved and spot
+- **On-demand** price per GPU-day = `rentPerDay × priceMult × rentMult` (rent shocks from events still apply).
+- **Reserved** (`commitCloud {providerId, gpuId, count, months: 12 | 36}`): `on-demand × (1 − discount)`, locked at signing, billed every day for `months × 365/12` days whether used or not. Needs quota for the whole order and a month of the bill in cash. **Early exit** (`endCloudCommit {leaseId}`) costs `50% × days left × count × price`.
+- **Spot** (`rentCloud {..., spot: true}`): `on-demand × spot.priceMult` (×1.6 in a crunch). Each spot lease is preempted with `preemptPerDay` a day (×3 in a crunch); it is then offline and unbilled for 1 to 3 days. A preemption during a training run rolls the run back half a day of the preempted GPUs' share: `doneFlops −= share × trainingPflops × 1e15 × 86,400 × 0.5`, with a line in the run log.
+- `rentCloud {providerId, gpuId, count, spot?}` rents (count > 0) or returns (count < 0) on-demand or spot at any provider. All cloud bills book under `compute`.
+
+### 26.3 Datacenter upgrades (`upgradeDatacenter {datacenterId, upgrade}`)
+- **Liquid cooling**: 30% of the tier's build cost. PUE ×0.85 and failure rate ×0.75 in that hall.
+- **InfiniBand**: 25% of the tier's build cost. Neocloud on-demand from that hall sells at ×1.15, and lab deals of 256+ GPUs require it (offered at ×1.15). It does not change your own training (cluster efficiency stays with the research tiers).
+
+### 26.4 Neocloud: you as the provider (`systems/neocloud.ts`)
+- **Halls.** `setNeocloudHall {datacenterId, dedicated}` takes a finished datacenter out of your own fleet (it no longer trains or serves) and sells it. It still pays power, hardware ops, upkeep and wear in compute.ts. Taking a hall back while deals run on it breaks their SLA: that is how your own training steals capacity.
+- **Market price** of one GPU-day = `rentPerDay × 0.75 × age × demand × rentMult`.
+  - `age` = 1 until a newer generation ships, then `0.85 × max(0.08, 0.78^(years since it shipped))`. An A-1OO earns about $65 a day in 2020 and about $30 in 2025.
+  - `demand` = `(0.8 + 0.4 × aiHype/100) × (1 + 0.1 × providers in a crunch)`. Big-cloud shortages spill over to you.
+- **On-demand.** Dedicated GPUs not under contract sell on-demand at `market × priceMult` (`setNeocloudPrice {mult}`, 0.5 to 2). Utilization moves 10% a day toward `0.72 × demand × priceMult^−2.5 × (0.75 + 0.5 × reputation/100)`, at most 97%, and at most `200 × 2^(year − 2017) × demand × repFactor` GPUs of market depth. That drift is the churn: customers come and go slowly.
+- **Idle listing** (`setNeocloudListIdle {on}`): the own fleet's idle share of your installed GPUs in other halls sells too, at 60% of the price, with no SLA (your runs take it back). Rented GPUs are never listed.
+- **Capacity deals.** Every 10 to 25 days (shorter with reputation) a customer offers a deal sized to your dedicated halls (or your installed GPUs before you dedicate any):
+
+  | Customer | Size of the hall | Months | SLA | Price |
+  |---|---|---|---|---|
+  | Rival lab (active labs from `competitors`) | 40–100% | 6 / 12 / 24 | 97% | ×1.05 (×1.15 with InfiniBand at 256+) |
+  | Startup | 10–35% | 3 / 6 | 95% | ×1.10, may fold (1/700 a day) |
+  | Enterprise | 15–50% | 12 / 24 | 99% | ×1.00 |
+
+  Price = `market × customer premium × term (12 mo ×0.94, 24 mo ×0.88) × (0.9 + 0.2 × reputation/100) × noise 0.92–1.08`, **locked for the term**: a long deal signed before the next generation ships keeps paying the old price. Offers expire after 21 days; at most 4 are open. `acceptCapacityDeal` needs that many free GPUs of that generation in dedicated halls (InfiniBand halls when required).
+- **SLA.** Each day deals take dedicated GPUs (InfiniBand deals first, then by signing order). A deal delivered below its SLA pays a credit of `missed GPU-days × price × 2` (expense `sla`) and costs 0.5 reputation a day; after 14 days in a row the customer walks (−8 reputation and a news line). GPU failures (§24) eat into deals sized to the whole hall, so a full hall needs spares. `cancelCapacityDeal` refunds 30 days and costs 10 reputation.
+- **Renewal and churn.** A finished deal comes back as a renewal offer with chance `0.9 × reputation/100`; otherwise the customer moves to another cloud.
+- **Reputation** starts at 50 and grows 0.04 a day while you sell anything and every deal holds its SLA.
+- **Money.** Revenue books daily under the revenue category `cloud` (finance and HQ show it as "Cloud (neocloud)"), SLA credits under the expense `sla`. Cloud revenue counts toward the run-rate, valuation and loans like any other revenue.
+- **Not a money printer.** An A-1OO bought in 2020 earns about $60 to $75 a day against about $17 a day to run (§24) and $27k up front, so it pays back in roughly 15 months, while its price starts falling when the H-1OO ships in 2022. Debt service, payroll, upkeep and wear come on top.
+- The neocloud state and its random stream (`flags['neocloud.rng']`) exist only after the first neocloud action or in the Neocloud scenario, so other games roll exactly as before.
+
+### 26.5 Neocloud scenario (`data/scenarios.ts`)
+Start 1 January 2020 with $8M cash, $20M of debt, a finished Colo Cage "Hall 1" of 384 A-1OOs dedicated to the neocloud, six engineers, two sales and one researcher. Goals: $100M a year of compute revenue (`revenueBreakdown.cloud × 365`) by 2025, and a provider reputation of 80. `ScenarioDef` gained optional `datacenter` and `debt` fields.
+
+### 26.6 Balance
+The bots rent through `rentGpus` and never reach the default provider's quota (the frontier bot peaks around 46k GPUs in 2025 against a quota of about 260k), never touch the neocloud, and the cloud market draws only from its own stream and writes no news. `--all --years=8 --seeds=1` gives exactly the v15 table: seeded games that ignore the new systems play out identically.
+
+## 27. Realism pass (v16): memory, supply, slower markets, more labs
+Player feedback: GPUs felt free, products grew too fast and paid too much too early, and a 3T model could be trained in
+2021 in ten days. Being SOTA should still mean fighting the big labs head on (rival catch-up, §18.1, is unchanged).
+
+### 27.1 The memory wall (`systems/scaleLimits.ts`)
+Training needs `BYTES_PER_PARAM = 16` bytes per parameter (bf16 weights and grads, fp32 master copy, two Adam moments);
+MoE counts every expert. A GPU can give `USABLE_SHARE = 0.6` of its HBM (`memGB` in `data/gpus.ts`) to that, so one GPU
+holds `memGB × 0.6 / 16` billion parameters. One model copy can be sharded over at most `shardDegree` GPUs:
+
+| Research | Shard degree | A-1OO (80 GB) max |
+|---|---|---|
+| none (naive model parallel in one box) | 8 | 24B |
+| ZeRO sharding (2020) | 32 | 96B |
+| tensor parallel (2021) | 128 | 384B |
+| pipeline parallel (2022) | 1,024 | 3T |
+| 3D parallelism (2023) | 8,192 | 24T |
+| cross-DC training (2027) | 65,536 | |
+
+Max params = per-GPU params × min(shard degree, GPUs in the training pool), using the GPU-count-weighted HBM of the
+lab's own and cloud GPUs (neocloud halls excluded). `startTraining` and ablations refuse bigger models with an
+explanation. So 3T in 2021 needs pipeline parallelism a year early and ~1,000 big-memory GPUs, and then the FLOPs still
+take months.
+
+Precision speedups no longer double count utilisation (GPU `pflops` are already effective): FP16 ×1.7, BF16 ×1.8,
+FP8 ×2.6, FP4 ×3.6 (were 2, 2, 3.5, 6).
+
+### 27.2 GPU allocation
+The vendor rations new generations per 90-day quarter: `256 × 4^(years since launch) × (1 + brand / 50)` GPUs of each
+generation per lab. Old generations are effectively unlimited; a launch-year generation is a few hundred a quarter.
+The cloud market (§26) has its own quotas.
+
+### 27.3 Slower markets
+- Adoption ceilings (share of TAM paying) start near zero: developer 0.5% (2017) → 5% (2022) → 20% (2024) → 50% (2030);
+  enterprise 0.1% → 4% (2023) → 15% (2026) → 35% (2030); consumer 0.02% → 0.4% (2022) → 5% (2026) → 12% (2030).
+- Users grow toward their target at `USER_GROWTH_PER_DAY = 0.009` (~115-day time constant) and still leave at 0.03.
+- A player chatbot starts the chat moment only with a model of overall ≥ 75 (`CHAT_MOMENT_MIN_OVERALL`). Before the
+  moment, consumer chat is a hobbyist toy at 1% of normal adoption.
+
+### 27.4 More labs (`data/competitors.ts`)
+Eight new labs: Alibabble Qwerty, Moonshoot AI, Zhipuzzle, ByteDunce Seedling, MiniMaxx (region `cn`), Cohear (enterprise
+specialist), xHype and AI21 Jump Street. `segmentAppeal` multiplies a lab's attractiveness per segment: Chinese labs are
+very cheap but get 0.35–0.5× with Western enterprise buyers; Cohear gets 1.35× in enterprise and little consumer reach.
+Old saves gain the new labs on load (inactive until their founding year).
+
+### 27.5 Balance targets (`scripts/balance.ts`)
+Frontier first profitable 2023–2026 and IPO 2024–2028; small and specialist labs profitable 2021–2024. Unit tests that
+predate the wall turn it and allocation off in `tests/setup.ts`; `tests/scaleLimits.test.ts` covers them.
+
+## 28. Deeper training, recipes and media models (v16)
+Player request: "make model training even deeper, more varied, add image models etc. too, and make the gameplay a bit more approachable while results are a bit more varied, with difficulty about the same". Contract: `src/sim/types.ts`, search "v16". No save-version bump: every new field is optional and filled lazily.
+
+### 28.1 Language models: stages, annealing, recipes, synergies
+**Post-training stages** (`TrainingConfig.post`, option group `post` in `data/trainingOptions.ts`). Extra compute after pretraining. Each stage lifts some skills and costs others, so its effect on overall is small (under ±1.5 points at equal days, tested); the point is the shape.
+
+| stage | gate | compute | effect |
+|---|---|---|---|
+| SFT | `instruction_tuning` | ×1.03 | chat +3, safety +2, knowledge −3, multilingual −1 |
+| RLHF (PPO) | `rlhf` | ×1.08 | chat +6, safety +4, reasoning −4, math −3, knowledge −2; risk ▲ |
+| DPO | `dpo` | ×1.04 | chat +4, safety +2, reasoning −3, math −2 |
+| Constitution pass | `constitutional_ai` | ×1.05 | safety +9, chat −3, agentic −2, coding −1 |
+| Reasoning RL | `reasoning_models` | ×1.18 | reasoning +7, math +8, coding +2, chat −6, multilingual −3; risk ▲ |
+| RL on verifiable rewards | `rlvr` | ×1.25 | reasoning +8, math +10, coding +5, chat −7, safety −3; risk ▲ |
+| Agentic RL | `agents` | ×1.12 | agentic +9, coding +3, safety −3, chat −2 |
+
+**Annealing** (`TrainingConfig.anneal`, group `anneal`): the last stretch on a different diet. Quality anneal (×1.015 quality, knowledge and multilingual −2), code-and-math anneal (coding and math +4, chat −4), long-document anneal (long context +8, compute ×1.04).
+
+**Stage takes.** Each stage rolls how well it took (`RunHidden.postTake`): usually N(1, 0.2) clamped to 0.4..1.6, a 7% breakthrough (×2) and a 7% dud (×0). The mean is 1, so the forecast (which assumes 1) is unbiased; the forecast band widens by 8% per stage. Sheets without stages draw nothing from the RNG, so the bots are unchanged.
+
+**Synergies** (`data/recipes.ts` `SYNERGIES`): recipe × data interactions such as "Checkable homework" (RL on a code and science heavy mix), "Reward hacking" (RL with nothing to verify), "Sycophancy spiral" (RLHF and DPO with no constitution), "Free lunch decay" (WSD schedule plus an anneal), "Textbook voice", "Router gaming", "Tool fluency" and "Button masher". Good and bad ones are paired (their total size is within ±40%). The true run sees every synergy; the forecast sees only those in `lab.synergies`, which a finished run records. So untried recipes surprise you once, and the notebook explains why.
+
+**The lab notebook.** `EvalReveal.notes` lists breakthroughs, duds, found and repeated synergies and seed luck. The eval-day screen shows it, and the lines go into the run log.
+
+**Recipes** (`RECIPES`): Balanced, Reasoning-heavy, Coder, Chatty, Cheap and fast. Each sets data-mix weights, the stages it wants (first unlocked of each slot), an anneal, a time budget, and a technique focus. `planRecipe(s, recipe, name, days)` (`systems/recipes.ts`) builds a complete `startTraining` action: the lab's defaults, the recipe's choices, the techniques that serve its focus, and the largest compute-optimal size (20 tokens per effective parameter, capped by data) that finishes in the budget. Balanced lands about 1 to 2 overall points above a plain sheet of the same size; the specialist recipes trade overall for their shape.
+
+### 28.2 Image and video models (`data/imageModels.ts`, `data/imageRivals.ts`, `systems/imageGen.ts`)
+Media models live in `s.media` (`MediaState`), never in `s.models`, so the language-model systems (market, classes, contracts, cup, vault) are untouched. `s.media` is created the first time the player buys media data or starts a media run; until then `mediaTick` does nothing.
+
+**Run sheet** (`MediaRunConfig`): kind (image or video), architecture, parameters, samples seen, datasets, resolution (256, 512 or 1024 px), style (balanced, artsy, photoreal, typography), few-step distillation, and artist opt-outs.
+
+**Architectures:** GAN (2017, efficient but capped at 42), autoregressive tokens (2020), latent diffusion UNet (2021, `clip_contrastive`), diffusion transformer (2023, `image_generation`), flow matching (2024); video: video diffusion (2023, `video_understanding`), spacetime transformer (2024), world simulator (2026, `world_models`). Each has an efficiency, a quality ceiling and a capability profile.
+
+**Physics.** FLOPs = 6 × params × samples × 1,024 × resolution factor (×12 for video). Quality = 100 × (1 − e^(−(log10(effective compute) − 18) / 4.2)), where effective compute counts repeats at half, the arch efficiency and (0.5 + data quality). Below one sample per parameter a run loses 5 points per halving (max 20). The arch ceiling caps it. Capabilities: prompt adherence, aesthetics, realism, text rendering, speed and (video) motion; datasets, resolution, style, distillation and opt-outs move them. Overall weights: image 0.3 adherence, 0.3 aesthetics, 0.2 realism, 0.1 text, 0.1 speed; video 0.25 / 0.2 / 0.15 / 0.3 motion / 0.1 speed. Elo = 1000 + 8 × overall + vibes.
+
+**Variance.** Seed luck N(0, 3.5), golden 5% (+7), cursed 5% (−8); a 45% chance of a quirk (six fingers, Elvish text, a cat in every background, spaghetti eaten convincingly). The forecast band is ±1.28 × 4 points (×1.4 on a new architecture). The model's notebook explains the result: ceiling hit, undertraining, which dataset shaped it, luck, quirk, legal risk.
+
+**Compute.** A media run uses the training compute. Alone it takes all of it; while a language-model run trains it takes 40% and the language model gets 60% (`trainingRatePerDay` applies the split; `rawTrainingRate` is the whole).
+
+**Data:** CelebFaces-ish, ImageNot and COCOnut Captions (2017), a licensed stock library (2019), LAION-ish 400M and an ArtStation-ish scrape (2021), LAION-ish 5B (2022), synthetic recaptions (2023), typography synth (2024); video: a TubeTube scrape and a stock-footage licence (2023), game-engine renders (2025). Scraped sets carry legal risk. Once a model trained on them is public, each day it risks a lawsuit (risk × 0.15%, at most every 240 days per model): a settlement of $400k × 1.2^(years after 2021), reputation −4, hype +1. Opt-outs cut the risk to a quarter for −3 aesthetics.
+
+**Rivals** (`MEDIA_RIVALS`): scripted release lines in parody: ThisFaceDoesNotExist, Imagine-n and Vee-Oh (DeepMined), DALL-Eh and Sorta (OpenAye), Midjourmey, Instability AI (open weights), Black Forest Gateau's Flux Capacitor (open), Ideogramme, Runaway and Kling Kong. A line with `labId` ships only while that lab is active. New releases make news once the player has a media book.
+
+**Arena and benchmarks.** `mediaArena(s, kind)` ranks released player models and each rival line's current model by Elo. Benchmarks: DrawBench (2022), GenEval, HandCount-5 (2023), Can-It-Spell, VBench (2024), Does-It-Fall-Down (2025).
+
+**Products and market.** One app (subscription) and one API (per generation) per kind. The launch fee is $250k for an app and $100k for an API, × 1.15^(year − 2022). Demand curves start tiny in 2017, grow fast in 2022–2023 and flatten; video starts in 2023. Reference prices fall every year. Share is a logit over the player's product, every rival line on that channel, "nobody buys" (weight 0.3) and "run it yourself" (stronger when good open weights exist, double for the API): appeal = e^((overall − best)/6) × (ref price / price)^elasticity × (0.5 + brand/100) × usability. Users move 4% (app) or 8% (API) a day toward the target. Revenue books as `media`; cloud serving cost books as `compute`. Open-weight releases pay brand and reputation now, but the player's own product keeps only 60% of its appeal.
+
+**Calibration** (from a scratch run): a 2018 GAN on the free 2017 sets earns about $1.5M a year with no rivals; a 2022 diffusion model on a modest fleet can take half of a young market (about $100M a year) until Midjourmey, DALL-Eh 2 and the open models arrive; by 2025 the same budget wins a few percent. Images are an early on-ramp for a small lab, not a substitute for the language-model race.
+
+### 28.3 The quick start
+"New model" opens a one-screen quick start: (1) model type (language, image, video; locked kinds say why), (2) a recipe or media preset, (3) a time budget (the preset's own, about a week, three weeks or three months). The readout is size, "fits your compute in N days", the cloud-equivalent cost and the forecast band. Train or Add to queue starts it. "Customize every knob" opens the five-step wizard on the same sheet, which gained post-training and anneal tiles in the Recipe step. The media quick start keeps architecture, resolution, style, distillation, opt-outs and datasets in a collapsed Advanced section and offers the cheapest data inline. The Models panel gains an "Image and video models" card: the live media run, models with release, open-weights and launch actions, the notebook and benchmarks, products with model swap and price, both arenas, and the data shop.
+
+### 28.4 Balance
+The bots never use stages, anneals, recipes or media, and none of those draw from the RNG unless used, so `--all --years=8 --seeds=1` is unchanged (see the commit message for the numbers).

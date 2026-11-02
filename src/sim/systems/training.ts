@@ -1,3 +1,4 @@
+import { memoryWallError } from './scaleLimits';
 import type { ActionHandlers, Capabilities, DatasetDef, EvalReveal, GameState, Id, Model, ResearchNode, Rng, RunHidden, Scores, TrainingConfig, TrainingRun, Forecast } from '../types';
 import { CAP_IDS } from '../types';
 import { CAP_TUNING } from '../balance';
@@ -41,9 +42,11 @@ import {
   resolveRun,
   runConfig,
   runPhysics,
+  runSynergies,
   uniqueTokensOf,
   type RunPhysics,
 } from './trainingMath';
+import { STAGE_TAKE } from '../data/recipes';
 import {
   applyForgetting,
   discoveriesOf,
@@ -325,6 +328,7 @@ function finishPretrain(s: GameState, run: TrainingRun, rng: Rng): void {
   });
 
   const verdict = verdictFor(overall, forecast, hidden.seedTag);
+  const notes = pretrainNotes(s, run, cfg, hidden);
   s.pendingReveal = {
     modelId: model.id,
     kind: 'pretrain',
@@ -336,10 +340,47 @@ function finishPretrain(s: GameState, run: TrainingRun, rng: Rng): void {
     quirks: [...quirks],
     dataSurprises,
     benchmarks: suite,
+    ...(notes.length ? { notes } : {}),
   };
+  for (const n of notes) run.log = [...(run.log ?? []), { day: s.day, text: n, kind: 'info' }];
   pushNews(s, verdictNews(s, rng, verdict, run.name, overall, forecast.mid), VERDICT_KIND[verdict]);
   notify(s, `${run.name} finished training. The eval report is in.`, 'milestone');
   pushNews(s, `Internal memo: ${run.name} has finished training. Nobody outside the building knows yet.`, 'info');
+}
+
+/**
+ * v16 lab notebook (GAME_DESIGN §28.1): why the run landed where it did. Post-training stages that broke through or
+ * fizzled, recipe × data interactions (new ones become discoveries the forecasts use from now on) and seed luck.
+ */
+function pretrainNotes(s: GameState, run: TrainingRun, cfg: TrainingConfig, hidden: RunHidden): string[] {
+  const notes: string[] = [];
+  for (const [id, take] of Object.entries(hidden.postTake ?? {})) {
+    const name = optionById(id)?.name ?? id;
+    if (take >= STAGE_TAKE.BREAKTHROUGH - 0.01) notes.push(`Breakthrough: ${name} took about twice as well as usual.`);
+    else if (take <= STAGE_TAKE.DUD + 0.01) notes.push(`Dud: ${name} barely moved the model this time. The compute is spent.`);
+    else if (take >= 1.3) notes.push(`${name} took better than usual.`);
+    else if (take <= 0.7) notes.push(`${name} took worse than usual.`);
+  }
+  const lab = labOf(s);
+  lab.synergies ??= {};
+  for (const syn of runSynergies(s, cfg, mixRows(s, run.datasetIds, cfg, 'true'), 'true')) {
+    const fresh = lab.synergies[syn.id] === undefined;
+    lab.synergies[syn.id] ??= s.day;
+    notes.push(`${fresh ? 'Found' : 'Again'}: ${syn.name}. ${syn.explain}`);
+  }
+  if (hidden.seedTag === 'golden') notes.push('Golden seed: the initialisation was simply lucky. Nobody can repeat it.');
+  if (hidden.seedTag === 'cursed') notes.push('Cursed seed: the same sheet on another seed would have done better.');
+  return notes;
+}
+
+/** v16: how well each post-training stage takes (mean 1). Only sheets with stages draw from the rng. */
+function rollStageTakes(rng: Rng, cfg: TrainingConfig): Record<Id, number> {
+  const out: Record<Id, number> = {};
+  for (const id of cfg.post ?? []) {
+    const r = rng.next();
+    out[id] = r < STAGE_TAKE.TAIL ? STAGE_TAKE.DUD : r < 2 * STAGE_TAKE.TAIL ? STAGE_TAKE.BREAKTHROUGH : clamp(rng.normal(1, STAGE_TAKE.SD), STAGE_TAKE.MIN, STAGE_TAKE.MAX);
+  }
+  return out;
 }
 
 const VERDICT_KIND: Record<keyof typeof VERDICT_NEWS, 'good' | 'info' | 'bad'> = {
@@ -553,6 +594,8 @@ function validateSpec(
     return `Parameters must be between ${MIN_PARAMS_B * 1000}M and ${(MAX_PARAMS_B / 1000).toFixed(0)}T.`;
   }
   if (!Number.isFinite(tokensB) || tokensB < MIN_TOKENS_B) return `Train on at least ${MIN_TOKENS_B}B tokens.`;
+  const oom = memoryWallError(s, paramsB); // v16: the model has to fit in the cluster
+  if (oom) return oom;
   const ids = [...new Set(datasetIds)];
   if (ids.length === 0) return 'Pick at least one dataset.';
   for (const id of ids) {
@@ -644,6 +687,16 @@ export const handlers: ActionHandlers = {
     const forecast = forecastTraining(s, a.paramsB, a.tokensB, datasetIds, techniques, cfg);
     const accidental = rng.chance(phys.contaminationChance);
     const hidden = rollPretrainHidden(s, rng, cfg, datasetIds, phys);
+    // v16: each stage's take moves the TRUE caps away from what the sheet shows (the forecast assumes a take of 1).
+    let capAdd = phys.capAdd;
+    if (cfg.post?.length) {
+      hidden.postTake = rollStageTakes(rng, cfg);
+      for (const [id, take] of Object.entries(hidden.postTake)) {
+        for (const [k, v] of Object.entries(optionById(id)?.capAdd ?? {})) {
+          capAdd = { ...capAdd, [k]: (capAdd[k as keyof Capabilities] ?? 0) + (take - 1) * (v ?? 0) };
+        }
+      }
+    }
     s.training = {
       id: newId(s, 'run'),
       name,
@@ -666,7 +719,7 @@ export const handlers: ActionHandlers = {
       benchmaxx: !!a.benchmaxx,
       config: cfg,
       qualityMult: phys.qualityMult,
-      capAdd: phys.capAdd,
+      capAdd,
       pendingIncident: null,
       log: [],
       stallDays: 0,

@@ -13,6 +13,7 @@
   background: var(--bg-1);
   border: 1px solid var(--line);
   container: doarea / inline-size;
+  border-radius: var(--r-md);
 }
 
 .do-head {
@@ -109,7 +110,7 @@
   padding: 0 12px;
   background: transparent;
   border: 1px solid var(--line-2);
-  border-radius: 0;
+  border-radius: var(--r-sm);
   color: var(--fg-2);
   font-family: var(--font);
   font-size: var(--fs-sm);
@@ -277,6 +278,7 @@
   padding: 12px;
   background: var(--bg);
   border: 1px solid var(--line);
+  border-radius: var(--r-md);
 }
 .do-item-head {
   display: flex;
@@ -383,6 +385,7 @@
   padding: 10px 12px;
   background: var(--bg);
   border: 1px solid var(--line);
+  border-radius: var(--r-md);
 }
 .do-slot.free {
   border-style: dashed;
@@ -441,6 +444,7 @@
   color: var(--fg-3);
   font-size: var(--fs-xs);
   text-align: center;
+  border-radius: var(--r-md);
 }
 .do-strike.on {
   background: var(--down-3);

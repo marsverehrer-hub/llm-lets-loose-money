@@ -529,7 +529,7 @@ export class ProductsScene implements Scene {
       }
     }
     g.save();
-    g.font = '10px IBM Plex Mono, monospace';
+    g.font = '10px JetBrains Mono, monospace';
     g.textAlign = 'right';
     g.textBaseline = 'alphabetic';
     g.fillStyle = C.textDim;

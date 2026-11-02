@@ -486,6 +486,10 @@ function pretrainBand(s: GameState, cfg: TrainingConfig, phys: RunPhysics, datas
     why: near ? null : 'No learning-rate sweep for this architecture at this size.',
   });
 
+  // v16: each post-training stage can break through or fizzle, and untried recipe interactions hide in the mix.
+  const stages = cfg.post?.length ?? 0;
+  if (stages > 0) factors.push({ v: 1 + 0.08 * stages, why: `${stages} post-training stage${stages === 1 ? '' : 's'}: each can break through or fizzle.` });
+
   if (isResearched(s, 'scaling_laws')) factors.push({ v: LAB_TUNING.SCALING_LAWS_FACTOR, why: null });
   if (mup) factors.push({ v: LAB_TUNING.MUP_FACTOR, why: null });
 
