@@ -7,7 +7,7 @@ import { describeConfig, optionById, RUN_TUNING } from '../../../sim/data/traini
 import { mixRows } from '../../../sim/systems/trainingMath';
 import { modelCaps } from '../../../sim/systems/capabilities';
 import type { GameState, Model } from '../../../sim/types';
-import { Pill, Radar } from '../../components';
+import { NetView, Pill, Radar, netSpecOfText } from '../../components';
 import { plain } from '../../shell/fmt';
 import { BandBar } from '../train/kit';
 import { KIND_LABEL, optionName, pct, r0, tokensShort } from '../train/model';
@@ -45,6 +45,9 @@ export function OverviewTab({ s, m }: { s: GameState; m: Model }) {
       </div>
 
       <div class="mpg-col">
+        <Section title="Anatomy" aside="The network, drawn to its real depth and width">
+          <NetView spec={netSpecOfText(m.paramsB, m.config, m.activeParamsB ?? m.paramsB, m.contextK ?? (m.config && optionById(m.config.context)?.contextK))} seed={m.id} />
+        </Section>
         <Section title="Forecast vs actual">
           <ForecastCheck m={m} />
         </Section>

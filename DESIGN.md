@@ -115,3 +115,19 @@ Every panel opens with a picture of its subject (camera feed, server room, offic
 capability shapes, research timeline, finance waterfall). Visuals are interactive: hover shows exact numbers, click
 selects or drills in, and nothing important lives only in a hover. They must work at phone width and in both themes.
 Secondary controls go behind a `Popover` or a `Sheet`; lists of owned things are cards first, tables behind a toggle.
+
+### Model anatomy (`components/NetView.tsx`, `components/netSpec.ts`)
+Every model can be seen as the network it is: on the model page (Anatomy), in the new-model quick start (it redraws as
+the recipe and time budget change the size), on the live training run, and for image and video models in the studio.
+- **Proportions are real:** layers and width come from the parameter count (params ≈ 12 · layers · width², width ≈
+  128 · layers), so 175B draws ~96 layers × 12,288 wide. Up to ~20 blocks are drawn; the rest is a `// +N` break.
+- **Shape follows the architecture:** transformer blocks (cyan attention column, MLP column), MoE (experts boxed behind a
+  router, two light up per token), LSTM loops, SSM hybrids (square state cells), recurrent-depth and diffusion-LM loops,
+  a diffusion U-Net (encoder narrows, decoder widens, skip arcs, noise in, a picture out), a GAN (generator, picture,
+  discriminator verdict), transformer denoisers on patches.
+- **It runs:** marker-yellow signals cross the net in ~2.5 s, attention arcs reach back to input tokens, the output
+  distribution picks a token or the picture denoises. While training, layers past the progress mark are a dashed
+  wireframe and signals stop at the frontier.
+- **Size ruler:** a log scale from 100M to 10T with parody landmarks (GPTee-2, GPTee-3, Llamaish 405B; image and video
+  have their own) and this model marked in marker yellow.
+- Canvas, token colours, paused off-screen, a still frame under `prefers-reduced-motion`.

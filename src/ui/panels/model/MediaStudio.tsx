@@ -2,7 +2,7 @@
 // notebook and benchmarks, the products that sell them, the media arena and the data shop. Never reads run.hidden.
 import { useState } from 'preact/hooks';
 import { dispatch } from '../../store';
-import { Card, Pill, ProgressBar, clamp, formatDays } from '../../components';
+import { Card, NetView, Pill, ProgressBar, clamp, formatDays, netSpecOfMedia } from '../../components';
 import { formatMoney, formatParams } from '../../../sim/util';
 import { mediaArchById } from '../../../sim/data/imageModels';
 import {
@@ -40,6 +40,7 @@ export function MediaStudio({ s }: { s: GameState }) {
             <div>
               <div class="md-desc">{`${run.name} · ${mediaArchById(run.config.arch)?.name ?? run.config.arch} · ${formatParams(run.config.paramsB)} · forecast ${Math.round(run.forecast.low)} to ${Math.round(run.forecast.high)}`}</div>
               <ProgressBar value={clamp(run.doneFlops / Math.max(1, run.totalFlops), 0, 1)} right={`ETA ${formatDays(etaOf(s))}`} />
+              <NetView spec={netSpecOfMedia(run.config)} progress={clamp(run.doneFlops / Math.max(1, run.totalFlops), 0, 1)} seed={run.name} height={160} />
               {s.training && <div class="tw-faint tw-small">Sharing the cluster with the language-model run.</div>}
             </div>
             <button type="button" class="btn btn-sm" onClick={() => dispatch({ type: 'cancelMediaRun' })}>
@@ -269,6 +270,10 @@ function Notebook({ s, m }: { s: GameState; m: MediaModel }) {
         {bench.length > 0 && (
           <div class="tw-small tw-muted">{bench.map((b) => `${b.name} ${Math.round(b.score)}%`).join(' · ')}</div>
         )}
+      </div>
+      <div class="span-full">
+        <div class="md-section-title">Anatomy</div>
+        <NetView spec={netSpecOfMedia(m.config)} seed={m.id} height={160} />
       </div>
       <div>
         <div class="md-section-title">Lab notebook</div>

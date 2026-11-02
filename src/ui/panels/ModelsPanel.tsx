@@ -4,6 +4,7 @@
 // Body: header, then one of: the pre-training wizard, the fine-tune wizard, or the release, distill and merge wizards
 // (all full width, replacing the body), or the live run (or a "New model" call to action), the model table,
 // the model page (src/ui/panels/model/) for the selected model, and the lab notebook.
+import { NetView, netSpecOfText } from '../components';
 import { useState } from 'preact/hooks';
 import { dispatch, useGame } from '../store';
 import { formatFlops, formatParams } from '../../sim/util';
@@ -16,8 +17,8 @@ import { datasetTokensOf, estimateTraining, trainingRatePerDay, TRAINING_TUNING 
 import { liveRunEta } from '../../sim/systems/tempo'; // v13
 import { TempoControl } from './lab/TempoControl'; // v13
 import './lab/lab.css';
-import { resolveRun, runConfig } from '../../sim/systems/trainingMath';
-import { RUN_TUNING } from '../../sim/data/trainingOptions';
+import { activeParamsFor, resolveRun, runConfig } from '../../sim/systems/trainingMath';
+import { RUN_TUNING, optionById } from '../../sim/data/trainingOptions';
 import type { GameState, Id, Model, TrainingConfig, TrainingRun } from '../../sim/types';
 import { Card, PanelHeader, PanelIntro, Pill, ProgressBar, Stat, Tabs, clamp, formatDays, useIsMobile } from '../components';
 import { plain, tdate } from '../shell/fmt';
@@ -218,6 +219,9 @@ function LiveRun({ s, run }: { s: GameState; run: TrainingRun }) {
           right={`${(progress * 100).toFixed(1)}% · ETA ${formatDays(eta)}`}
           height={8}
         />
+
+        {/* v16: the network taking shape, layer by layer, as the FLOPs land. */}
+        <NetView spec={netSpecOfText(run.paramsB, cfg, activeParamsFor(run.paramsB, cfg), optionById(cfg.context)?.contextK)} progress={progress} seed={run.name} height={190} />
 
         {/* v13: push or protect the run while it is live. */}
         <div class="md-tempo">

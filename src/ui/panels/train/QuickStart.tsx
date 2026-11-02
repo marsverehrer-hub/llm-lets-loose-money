@@ -3,13 +3,14 @@
 // opens the five-step wizard on the same sheet. Reads forecasts only, never hidden run fields.
 import { useMemo } from 'preact/hooks';
 import { dispatch, useGame } from '../../store';
-import { Card, Pill, Tabs, formatDays } from '../../components';
+import { Card, NetView, Pill, Tabs, formatDays, netSpecOfText, netSpecOfMedia } from '../../components';
 import { formatMoney, formatParams, yearOf } from '../../../sim/util';
 import { suggestCodename } from '../../../sim/data/names';
 import { RECIPES } from '../../../sim/data/recipes';
 import { MEDIA_PRESETS, MEDIA_STYLES, mediaArchById } from '../../../sim/data/imageModels';
 import { optionById } from '../../../sim/data/trainingOptions';
 import { planRecipe } from '../../../sim/systems/recipes';
+import { activeParamsFor } from '../../../sim/systems/trainingMath';
 import { cheapestCloudCostPerFlop } from '../../../sim/systems/training';
 import { forecastTraining } from '../../../sim/systems/lab';
 import { modelCaps } from '../../../sim/systems/capabilities';
@@ -163,6 +164,7 @@ function TextQuick({ pick, set, name }: { pick: QuickPick; set: (p: Partial<Quic
         {a && plan ? (
           <>
             <div class="tw-readout num">{`${formatParams(a.paramsB)} params · ${tokensShort(a.tokensB)} tokens`}</div>
+            <NetView spec={netSpecOfText(a.paramsB, a.config, activeParamsFor(a.paramsB, a.config!), optionById(a.config!.context)?.contextK)} seed="draft" height={170} />
             <div class="tw-readout">{`Fits your compute in ${formatDays(plan.days)} · about ${quoteMoney(cost, formatMoney)} if rented in the cloud`}</div>
             {fc && <BandBar variant="mini" low={fc.low} mid={fc.mid} high={fc.high} label={`Forecast overall ${Math.round(fc.low)} to ${Math.round(fc.high)}`} />}
             <ShapeBars rows={shapeRows(fc?.caps ?? null, flagship ? modelCaps(flagship, s) : null)} compact />
@@ -265,6 +267,7 @@ function MediaQuick({ kind, pick, set, name }: { kind: MediaKind; pick: QuickPic
         {cfg && est ? (
           <>
             <div class="tw-readout num">{`${arch?.name ?? cfg.arch} · ${formatParams(cfg.paramsB)} params · ${Math.round(cfg.samplesM)}M samples · ${cfg.resolution}px`}</div>
+            <NetView spec={netSpecOfMedia(cfg)} seed="draft-media" height={170} />
             <div class="tw-readout">{`Fits your compute in ${formatDays(est.days)} · about ${quoteMoney(est.cloudCost, formatMoney)} if rented in the cloud`}</div>
             <BandBar variant="mini" low={est.low} mid={est.mid} high={est.high} label={`Forecast overall ${Math.round(est.low)} to ${Math.round(est.high)}`} />
             {est.reasons.map((r) => (

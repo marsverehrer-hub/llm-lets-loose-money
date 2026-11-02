@@ -57,3 +57,9 @@ export { Radar } from './Radar';
 export type { RadarProps, RadarAxis, RadarSeries } from './Radar';
 export { Waterfall } from './Waterfall';
 export type { WaterfallProps, WaterfallStep } from './Waterfall';
+
+// v16: a model drawn as the network it is
+export { NetView } from './NetView';
+export type { NetViewProps } from './NetView';
+export { netSpecOfText, netSpecOfMedia, depthWidth, weightsSize } from './netSpec';
+export type { NetSpec, NetFamily } from './netSpec';

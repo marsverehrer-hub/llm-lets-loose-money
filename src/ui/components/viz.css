@@ -187,3 +187,71 @@
 @media (prefers-reduced-motion: reduce) {
   .flowbar-seg, .barlist-fill, .stacked-seg, .wf-row, .breakdown-row, .share-row { transition: none; }
 }
+
+/* v16 NetView: a model drawn as its network. */
+.netview {
+  width: 100%;
+  min-width: 0;
+  border: 1px dashed var(--line);
+  border-radius: var(--r-sm);
+  background: var(--bg);
+  overflow: hidden;
+}
+.netview-canvas { display: block; }
+.netview-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  padding: 6px 10px 8px;
+  border-top: 1px dashed var(--line);
+  color: var(--fg-3);
+  font-family: var(--code);
+  font-size: 11px;
+  letter-spacing: 0.03em;
+}
+.netview-stats span:first-child { color: var(--fg); }
+/* The size ruler under a NetView: 100M to 10T on a log scale, landmarks above, this model marked in marker yellow. */
+.netruler { padding: 22px 16px 18px; border-top: 1px dashed var(--line); }
+.netruler-track { position: relative; height: 6px; background: var(--bg-3); border: 1px solid var(--line); }
+.netruler-fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--tex-hatch), var(--hl); }
+.netruler-tick {
+  position: absolute;
+  top: 9px;
+  transform: translateX(-50%);
+  color: var(--fg-4);
+  font-family: var(--code);
+  font-size: 10px;
+}
+.netruler-mark { position: absolute; top: -5px; bottom: -5px; width: 1px; background: var(--fg-3); }
+.netruler-mark-label {
+  position: absolute;
+  bottom: 13px;
+  left: 0;
+  transform: translateX(-50%) rotate(-18deg);
+  transform-origin: center;
+  white-space: nowrap;
+  color: var(--fg-3);
+  font-family: var(--code);
+  font-size: 9.5px;
+}
+.netruler-you {
+  position: absolute;
+  top: -7px;
+  width: 3px;
+  height: 18px;
+  margin-left: -1px;
+  background: var(--fg);
+}
+.netruler-you-label {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0 4px;
+  background: var(--hl);
+  color: var(--on-hl);
+  font-family: var(--code);
+  font-size: 10.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
