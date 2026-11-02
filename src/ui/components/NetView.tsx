@@ -638,9 +638,10 @@ function SizeRuler({ paramsB, marks }: { paramsB: number; marks: [number, string
             {formatParams(p)}
           </span>
         ))}
-        {marks.map(([p, name]) => (
+        {marks.map(([p, name], k) => (
           <span key={name} class="netruler-mark" style={{ left: `${rulerPct(p)}%` }} title={`${name}: ${formatParams(p)}`}>
-            <span class="netruler-mark-label">{name}</span>
+            {/* Alternate rows so neighbours on the log scale (175B, 405B, 1.8T) never overlap. */}
+            <span class={`netruler-mark-label ${k % 2 ? 'high' : ''}`}>{name}</span>
           </span>
         ))}
         <span class="netruler-fill" style={{ width: `${rulerPct(paramsB)}%` }} />
