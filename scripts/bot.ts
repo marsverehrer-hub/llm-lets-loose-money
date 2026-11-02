@@ -26,7 +26,7 @@ import { headcount, officeCapacity, dailyPayroll } from '../src/sim/systems/staf
 import { availableGpus, availableDatacenterTiers } from '../src/sim/systems/compute';
 import { fleetPriority, previewFleet } from '../src/sim/systems/serving';
 import { unlockedProductKinds, defaultPrice, liveLines } from '../src/sim/systems/products';
-import { canIpo } from '../src/sim/systems/finance';
+import { canIpo, pitchReadiness, runwayDays } from '../src/sim/systems/finance';
 import { activeBenchmarks, availableSpecs, isSaturated, productFitFor, specById } from '../src/sim/systems/capabilities';
 import { segQuality } from '../src/sim/systems/market';
 import { defaultConfig, isOptionUnlocked } from '../src/sim/data/trainingOptions';
@@ -639,7 +639,8 @@ function staffStep(st: GameState, strategy: BotStrategy, cash: number, net: numb
   // Grow while runway is healthy
   const runwayOk = cash > dailyPayroll(st) * 365 * 1.5 || net > 0;
   if (st.day % 7 !== 0 || !runwayOk) return;
-  const roles: RoleId[] = ['researcher', 'researcher', 'engineer', 'safety', 'sales', 'marketing'];
+  // v17.2: sales and marketing are pure burn before there is anything to sell (chat and enterprise open later).
+  const roles: RoleId[] = calendarYear(st.day) < 2019 ? ['researcher', 'researcher', 'engineer', 'safety'] : ['researcher', 'researcher', 'engineer', 'safety', 'sales', 'marketing'];
   const role = roles[((st.day / 7) % roles.length) | 0];
   if (strategy === 'small') {
     // Lean: a couple of hires a week up to the cap, never a hiring spree.
@@ -736,6 +737,8 @@ export function botDay(st: GameState, idle = false, strategy: BotStrategy = 'fro
 
   // Funding
   if (st.finance.pendingOffer) dispatch(st, { type: 'acceptOffer' });
+  // v17.2: like a player, pitch investors when runway gets short instead of waiting for a call.
+  else if (runwayDays(st) < 270 && pitchReadiness(st).ok) dispatch(st, { type: 'pitchInvestors' });
   if (!st.company.isPublic && canIpo(st).ok) dispatch(st, { type: 'ipo' });
 
   researchStep(st, strategy);

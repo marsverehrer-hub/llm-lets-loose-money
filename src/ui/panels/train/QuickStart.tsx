@@ -13,6 +13,9 @@ import { planRecipe } from '../../../sim/systems/recipes';
 import { activeParamsFor } from '../../../sim/systems/trainingMath';
 import { cheapestCloudCostPerFlop } from '../../../sim/systems/training';
 import { forecastTraining } from '../../../sim/systems/lab';
+import { RESEARCH } from '../../../sim/data/research';
+import { effectiveResearchCost, isResearched } from '../../../sim/systems/research';
+import { navigate } from '../../nav';
 import { modelCaps } from '../../../sim/systems/capabilities';
 import {
   estimateMediaRun,
@@ -106,6 +109,41 @@ function TimeChips({ pick, set, presetDays }: { pick: QuickPick; set: (p: Partia
 // language models
 // ---------------------------------------------------------------------------
 
+/**
+ * v17.2: before Transformers a first run is an LSTM and comes out weak, which is the worst way to start. Say so, and
+ * offer the one research that fixes it (about two weeks), plus better data.
+ */
+function PreTransformerTip() {
+  const s = useGame();
+  if (isResearched(s, 'transformers')) return null;
+  const node = RESEARCH.find((n) => n.id === 'transformers');
+  const cost = node ? effectiveResearchCost(s, node) : 0;
+  const ppd = s.research.pointsPerDay;
+  const running = s.research.current === 'transformers';
+  const left = ppd > 0 ? Math.ceil(Math.max(0, cost - (running ? s.research.progress : 0)) / ppd) : null;
+  return (
+    <div class="tw-group tw-tip">
+      <div class="tw-label">Before you train</div>
+      <p class="tw-small">
+        Without Transformers this run is an LSTM, and it will come out weak. Research Transformers first
+        {left !== null ? ` (about ${left} days)` : ''}, and buy a little better data, so your first model is good enough to release and to impress investors.
+      </p>
+      <div class="tw-chips">
+        {running ? (
+          <Pill tone="info">Researching Transformers</Pill>
+        ) : (
+          <button type="button" class="btn btn-sm btn-primary" onClick={() => dispatch({ type: 'setResearch', nodeId: 'transformers' })}>
+            Research Transformers
+          </button>
+        )}
+        <button type="button" class="btn btn-sm" onClick={() => navigate('data')}>
+          Buy data
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function TextQuick({ pick, set, name }: { pick: QuickPick; set: (p: Partial<QuickPick>) => void; name: string }) {
   const s = useGame();
   const recipe = RECIPES.find((r) => r.id === pick.recipe) ?? RECIPES[0];
@@ -142,6 +180,7 @@ function TextQuick({ pick, set, name }: { pick: QuickPick; set: (p: Partial<Quic
 
   return (
     <>
+      <PreTransformerTip />
       <div class="tw-group">
         <div class="tw-label">2 · Pick a recipe</div>
         <div class="tw-chips">

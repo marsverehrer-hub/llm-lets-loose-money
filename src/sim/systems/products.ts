@@ -12,7 +12,9 @@ import { frontierQuality, modelById, mtokPerUserDay, refPriceFor, segQuality, se
 import { openUserMult, previewDemandCap } from './release';
 
 /** One-off launch fee per product kind. */
-export const LAUNCH_FEE: Record<ProductKind, number> = { api: 20_000, chat: 200_000, enterprise: 1_000_000 };
+export const LAUNCH_FEE: Record<ProductKind, number> = { api: 20_000, chat: 200_000, enterprise: 500_000 };
+/** v17.2: before the chat moment a chatbot is a hobby project, and so is its launch budget. */
+export const PRE_CHAT_CHAT_FEE = 60_000;
 /** v8 product lines (GAME_DESIGN §19.3): up to this many live products per kind, e.g. Pro and Lite. */
 export const MAX_LINES_PER_KIND = 2;
 /** v8: the second line of a kind costs this share of the launch fee. */
@@ -25,7 +27,8 @@ export function liveLines(s: GameState, kind: ProductKind): Product[] {
 
 /** The fee to launch the next product of this kind: full for the first line, half for the second. */
 export function launchFee(s: GameState, kind: ProductKind): number {
-  return liveLines(s, kind).length >= 1 ? LAUNCH_FEE[kind] * SECOND_LINE_FEE_MULT : LAUNCH_FEE[kind];
+  const base = kind === 'chat' && !('chatMoment' in s.flags) ? PRE_CHAT_CHAT_FEE : LAUNCH_FEE[kind];
+  return liveLines(s, kind).length >= 1 ? base * SECOND_LINE_FEE_MULT : base;
 }
 const KIND_LABEL: Record<ProductKind, string> = { api: 'API', chat: 'Chat', enterprise: 'Enterprise' };
 const OUTAGE_THRESHOLD = 0.98;

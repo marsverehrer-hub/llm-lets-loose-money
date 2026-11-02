@@ -117,10 +117,10 @@ describe('training', () => {
 
   it('cancelling discards progress', () => {
     const s = createInitialState(42);
-    dispatch(s, { type: 'startTraining', name: 'Big', paramsB: 1.5, tokensB: 30, datasetIds: ['scrawl_sample'], techniques: [] });
-    expect(s.training).toBeNull(); // only 5B unique, 30B needs 7.5B: rejected
+    dispatch(s, { type: 'startTraining', name: 'Big', paramsB: 1.5, tokensB: 70, datasetIds: ['scrawl_sample'], techniques: [] });
+    expect(s.training).toBeNull(); // only 15B unique, 70B at four epochs needs 17.5B: rejected
     dispatch(s, { type: 'buyDataset', datasetId: 'wikipediaish' });
-    dispatch(s, { type: 'startTraining', name: 'Big', paramsB: 1.5, tokensB: 30, datasetIds: ['scrawl_sample', 'wikipediaish'], techniques: [] });
+    dispatch(s, { type: 'startTraining', name: 'Big', paramsB: 1.5, tokensB: 70, datasetIds: ['scrawl_sample', 'wikipediaish'], techniques: [] });
     expect(s.training).not.toBeNull();
     days(s, 3);
     dispatch(s, { type: 'cancelTraining' });

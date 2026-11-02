@@ -106,9 +106,11 @@ function baseState(seed: number, companyName: string): GameState {
     market: {
       aiHype: 10,
       segments: {
-        consumer: { tam: 20_000_000, adoption: 0.005, refPrice: 20, playerUsers: 0 },
-        developer: { tam: 200_000, adoption: 0.045, refPrice: 30, playerUsers: 0 },
-        enterprise: { tam: 500_000, adoption: 0.005, refPrice: 60, playerUsers: 0 },
+        // v17.2: seeded at the 2017 adoption the market drifts toward (market.ts ADOPTION_CEILING x hype x quality), so
+        // early revenue no longer starts high and decays all year.
+        consumer: { tam: 50_000_000, adoption: 0.000002, refPrice: 20, playerUsers: 0 },
+        developer: { tam: 200_000, adoption: 0.0016, refPrice: 30, playerUsers: 0 },
+        enterprise: { tam: 500_000, adoption: 0.0003, refPrice: 60, playerUsers: 0 },
       },
       campaigns: [],
     },
