@@ -1,8 +1,9 @@
-// Staff floor plan: a pure function of GameState. Five department zones and an open-seat zone, each sized by its
-// headcount. One desk per seat; past about 100 desks each desk stands for `unit` people so big offices stay readable.
+// Staff floor plan: a pure function of GameState and the frame. Five department rooms and an open-seat room, each
+// sized by its headcount, laid out across the frame as a pod row (src/office/kit/frame.ts). One desk per seat; past
+// about 100 desks each desk stands for `unit` people so big offices stay readable.
 import type { GameState, RoleId, Star } from '../../sim/types';
 import { headcount, officeCapacity } from '../../sim/systems/staff';
-import { C } from '../../office/palette';
+import { type Box2, arrangePods } from '../../office/kit/frame';
 
 export const ZONE_IDS: RoleId[] = ['researcher', 'engineer', 'safety', 'sales', 'marketing'];
 export type ZoneId = RoleId | 'open';
@@ -15,12 +16,11 @@ const DESK_FOOT = 1.3;
 const MARGIN = 0.6;
 /** Depth of the prop band behind the desks (back wall side of each zone). */
 const PROP_BAND = 2.4;
-const GAP = 1.4;
-const X_START = 1.2;
-const Y_START = 1.6;
 const MAX_DESKS = 72;
 const UNITS = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000];
-const POSTER_COLORS = [C.amber, C.blue, C.green, C.red];
+/** Wall height of a department room, and the tallest prop in one (whiteboards, racks). */
+export const ROOM_WALL = 30;
+const ROOM_TOP = 46;
 
 export type Prop =
   | { k: 'whiteboard'; x: number; y: number; seed: number }
@@ -29,7 +29,7 @@ export type Prop =
   | { k: 'shield'; x: number; y: number }
   | { k: 'screen'; x: number; y: number; w: number; seed: number }
   | { k: 'phone'; x: number; y: number }
-  | { k: 'poster'; x: number; y: number; color: string; seed: number }
+  | { k: 'poster'; x: number; y: number; seed: number }
   | { k: 'tripod'; x: number; y: number };
 
 export interface DeskSpot {
@@ -56,6 +56,8 @@ export interface Zone {
   d: number;
   cols: number;
   rows: number;
+  /** Row of the pod layout this room sits in. */
+  row: number;
   /** Team headcount, stars included. For the open zone: free seats. */
   heads: number;
   /** Ordinary people (no stars). */
@@ -80,9 +82,9 @@ export interface Layout {
   free: number;
   over: number;
   band: Band;
-  /** Floor plate size in floor units (walls run along x=0 and y=0). */
-  W: number;
-  D: number;
+  /** Scale-1 screen box of all the rooms, for the camera fit. */
+  box: Box2;
+  rows: number;
   zones: Zone[];
   plants: Plant[];
   hiring: boolean;
@@ -151,7 +153,7 @@ function propsFor(id: ZoneId, heads: number): { props: Prop[]; width: number } {
   } else if (id === 'marketing') {
     const n = clamp(2 + Math.floor(heads / 5), 2, 5);
     for (let i = 0; i < n; i++) {
-      props.push({ k: 'poster', x: MARGIN + i * 1.25, y: 0.35, color: POSTER_COLORS[i % POSTER_COLORS.length], seed: i });
+      props.push({ k: 'poster', x: MARGIN + i * 1.25, y: 0.35, seed: i });
     }
     props.push({ k: 'tripod', x: MARGIN + n * 1.25 + 0.3, y: 1.0 });
     width = n * 1.25 + 0.9;
@@ -197,7 +199,7 @@ function draftZone(id: ZoneId, spots: Spot[], heads: number, count: number, star
   };
 }
 
-function place(dr: Draft, ox: number, oy: number): Zone {
+function place(dr: Draft, ox: number, oy: number, row: number): Zone {
   return {
     id: dr.id,
     x: ox,
@@ -206,6 +208,7 @@ function place(dr: Draft, ox: number, oy: number): Zone {
     d: dr.d,
     cols: dr.cols,
     rows: dr.rows,
+    row,
     heads: dr.heads,
     count: dr.count,
     stars: dr.stars,
@@ -223,8 +226,8 @@ function place(dr: Draft, ox: number, oy: number): Zone {
   };
 }
 
-/** Pure function of state: the whole staff floor plan. */
-export function buildLayout(s: GameState): Layout {
+/** Pure function of state and the frame (available CSS px): the whole staff floor plan. */
+export function buildLayout(s: GameState, aw = 1200, ah = 200): Layout {
   const cap = officeCapacity(s);
   const hc = headcount(s);
   const free = Math.max(0, cap - hc);
@@ -243,36 +246,26 @@ export function buildLayout(s: GameState): Layout {
   }
   drafts.set('open', draftZone('open', openSpots(free, unit), free, 0, [], [], 0));
 
-  const rowsOf: ZoneId[][] = [
-    ['researcher', 'engineer', 'safety'],
-    ['sales', 'marketing', 'open'],
-  ];
-  const zones: Zone[] = [];
-  let y = Y_START;
-  let W = 0;
-  for (const row of rowsOf) {
-    let x = X_START;
-    let rowD = 0;
-    for (const id of row) {
-      const dr = drafts.get(id)!;
-      zones.push(place(dr, x, y));
-      x += dr.w + GAP;
-      rowD = Math.max(rowD, dr.d);
-    }
-    W = Math.max(W, x - GAP);
-    y += rowD + GAP;
-  }
-  const D = y - GAP;
+  const order: ZoneId[] = [...ZONE_IDS, 'open'];
+  const ds = order.map((id) => drafts.get(id)!);
+  const plan = arrangePods(
+    ds.map((dr) => ({ w: dr.w, d: dr.d, h: ROOM_TOP })),
+    aw,
+    ah,
+    1.6,
+    1.4,
+  );
+  const zones: Zone[] = ds.map((dr, i) => place(dr, plan.x[i], plan.y[i], plan.row[i]));
 
   // Fewer plants as morale falls: none at all when it is low.
   const plants: Plant[] = [];
-  if (band !== 'low') plants.push({ x: 0.5, y: Y_START + 0.4, size: 1.1 });
   for (const z of zones) {
-    if (band !== 'low') plants.push({ x: z.x + 0.25, y: z.y + z.d - 0.35, size: 1 });
-    if (band === 'high') plants.push({ x: z.x + z.w - 0.25, y: z.y + z.d - 0.35, size: 1.1 });
+    if (band !== 'low') plants.push({ x: z.x + 0.3, y: z.y + z.d - 0.35, size: 1 });
+    if (band === 'high') plants.push({ x: z.x + z.w - 0.3, y: z.y + z.d - 0.35, size: 1.1 });
   }
 
   const sig = [
+    plan.rows,
     cap,
     unit,
     band,
@@ -291,8 +284,8 @@ export function buildLayout(s: GameState): Layout {
     free,
     over,
     band,
-    W: W + 1.0,
-    D: D + 1.0,
+    box: plan.box,
+    rows: plan.rows,
     zones,
     plants,
     hiring: band === 'low',

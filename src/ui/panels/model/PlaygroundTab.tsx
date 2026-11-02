@@ -1,11 +1,12 @@
 // OWNER: UI-PAGE. Playground tab: ask the model a prompt. Pokes are free and can expose a hidden quirk.
 // The response text comes from playgroundResponse, which uses only visible quirks and persona.
+import { useState } from 'preact/hooks';
 import { dispatch } from '../../store';
 import { calendarYear } from '../../../sim/util';
 import { PROMPTS, playgroundResponse } from '../../../sim/data/playground';
 import type { PlaygroundPrompt, PromptCategory, ResponseGrade } from '../../../sim/data/playground';
 import type { GameState, Model } from '../../../sim/types';
-import { Pill } from '../../components';
+import { Pill, Tabs } from '../../components';
 import type { PillTone } from '../../components';
 import type { Exchange } from './ModelPage';
 
@@ -45,6 +46,10 @@ export function PlaygroundTab({
   const year = calendarYear(s.day);
   const available = PROMPTS.filter((p) => (p.minYear ?? 0) <= year);
   const last = chat.length > 0 ? chat[chat.length - 1] : null;
+  // One category of prompts at a time keeps the list short and the transcript in view.
+  const cats = CATEGORIES.filter((c) => available.some((p) => p.category === c.id));
+  const [catPick, setCat] = useState<PromptCategory>(cats[0]?.id ?? 'math');
+  const cat = cats.some((c) => c.id === catPick) ? catPick : cats[0]?.id;
 
   /** Poke the model, then read its answer. The poke runs first so any quirk it exposes is already visible. */
   const ask = (p: PlaygroundPrompt, variant: number) => {
@@ -66,22 +71,20 @@ export function PlaygroundTab({
     <div class="mpg-cols mpg-cols-play">
       <div class="mpg-col">
         <div class="mpg-cats">
-          {CATEGORIES.map((c) => {
-            const items = available.filter((p) => p.category === c.id);
-            if (items.length === 0) return null;
-            return (
-              <div class="mpg-cat" key={c.id}>
-                <span class="mpg-label">{c.label}</span>
-                <div class="mpg-chips">
-                  {items.map((p) => (
+          {cats.length > 0 && cat && (
+            <>
+              <Tabs<PromptCategory> variant="segmented" class="mpg-catpick" value={cat} onChange={setCat} tabs={cats.map((c) => ({ id: c.id, label: c.label }))} />
+              <div class="mpg-chips">
+                {available
+                  .filter((p) => p.category === cat)
+                  .map((p) => (
                     <button key={p.id} type="button" class="mpg-chip" onClick={() => ask(p, 0)}>
                       {p.prompt}
                     </button>
                   ))}
-                </div>
               </div>
-            );
-          })}
+            </>
+          )}
           {available.length === 0 && <span class="mpg-desc">No prompts for this era yet.</span>}
         </div>
       </div>

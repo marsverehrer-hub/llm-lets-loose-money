@@ -87,7 +87,7 @@ function RevealBody({ r }: { r: Reveal }) {
                 : isFine
                   ? `Fine-tune results: ${name}`
                   : `Eval day: ${name}`}
-            {model?.codename && <span class="ev-label">{` · codename ${plain(model.codename)}`}</span>}
+            {model?.codename && plain(model.codename) !== name && <span class="ev-label">{` · codename ${plain(model.codename)}`}</span>}
           </h2>
         </div>
 

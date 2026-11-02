@@ -47,7 +47,7 @@ function CampaignCard({ def, s }: { def: CampaignDef; s: GameState }) {
   const running = s.market.campaigns.find((c) => c.defId === def.id);
   const block = launchBlock(s, def);
   const note = campaignNote(s, def);
-  const status = running ? `Running, ${running.daysLeft} ${running.daysLeft === 1 ? 'day' : 'days'} left` : block ?? note ?? 'Ready to launch';
+  const status = running ? `Running, ${running.daysLeft} ${running.daysLeft === 1 ? 'day' : 'days'} left` : block ?? note ?? '';
   return (
     <article class={`mk-camp ${running ? 'is-running' : ''}`}>
       <div class="mk-camp-head">

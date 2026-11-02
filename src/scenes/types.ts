@@ -15,4 +15,6 @@ export interface Scene {
   draw(g: CanvasRenderingContext2D, s: GameState, dt: number, nowMs: number): void;
   /** What is under (x, y) in CSS px, or null. Called on pointer move and click. */
   hitTest(x: number, y: number): SceneHit | null;
+  /** Optional (v18): the id under the mouse, or null when it leaves, so the scene can outline it. */
+  setHover?(id: string | null): void;
 }

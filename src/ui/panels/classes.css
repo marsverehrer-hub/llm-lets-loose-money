@@ -39,6 +39,7 @@
 .wc-arena-table td {
   white-space: nowrap;
 }
+.wc-arena-table .wc-rank { width: 3em; }
 
 /* Inline confirm for a bench tune, shown in a full-width row under the benchmark. */
 .wc-confirm {

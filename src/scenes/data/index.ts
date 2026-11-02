@@ -1,64 +1,58 @@
-// Data warehouse scene: the player's owned data as an isometric warehouse. Shelving has one aisle per data domain,
-// filled with crates (tokens / unit, quality shades the crate), with warning tags for unverified or risky sets and a
-// red "legal" sticker for high-risk scraped sets. Data ops: crawler (pipe in), refinery, job workers, startup streams
-// (belts from outside), and a forklift that carries crates to the "training" door while a run is on.
+// Data warehouse scene: the player's owned data as shelving islands, one per data domain, filled with crates
+// (tokens / unit, quality shades the cardboard), with yellow warning tags for unverified or risky sets and a red
+// "legal" sticker for high-risk scraped sets. Data ops are islands of their own: the crawler mast, the refinery and the
+// loading bay (job dock plus the training gate, where a forklift feeds the run). Startup streams are conveyors on their
+// domain's island; job deliveries are workers carrying boxes to the shelf. Islands fill the frame (kit.lattice).
 //
 // SceneHit ids:
-//   domain:<domain>  a shelving aisle. Tip: sets, tokens, crates, average quality, warning and legal counts.
-//   crawler          the crawler machine (only once one is built). Tip: tier, status, tokens per day, lifetime crawl.
+//   domain:<domain>  a shelving island. Tip: sets, tokens, crates, average quality, warning and legal counts.
+//   crawler          the crawler mast (only once one is built). Tip: tier, status, tokens per day, lifetime crawl.
 //   refinery         the refinery. Tip: busy lines and their jobs.
 //   jobs             the dock where bounty, archive and distillation jobs land. Tip: jobs in flight.
-//   stream:<id>      a startup stream's belt. Tip: domain, tokens per day, days left, dataset.
-// Not clickable: the training door (its pill lights up while a run is on).
+//   stream:<id>      a startup stream's conveyor. Tip: domain, tokens per day, days left, dataset.
+// Not clickable: the training gate (it glows and its tag lights up while a run is on).
 import type { GameState } from '../../sim/types';
 import { datasetById } from '../../sim/systems/data';
 import { crawlBlocked, crawlYieldPerDayB, refineLevelDef } from '../../sim/systems/dataOps';
-import { TILE_H, TILE_W, type Projector } from '../../office/iso';
-import { C } from '../../office/palette';
-import { Ctx } from '../../office/draw/prims';
-import { WALL_H, drawFloor, drawNeonStrip, drawWalls } from '../../office/draw/room';
 import type { Scene, SceneHit } from '../types';
-import { MIN_X, buildLayout, DOMAIN_NAME, fmtTokens, type HitBox, type Layout, type SetView } from './layout';
-import { boxContains, buildMovers, buildStatics, drawFloorLayer, drawOverlay, type Item } from './draw';
+import { Tags, background, fitIso, hitBox, hud, iso, outline, palette, type Box3, type Ctx, type Proj } from '../kit';
+import { ISLE, RACK_TOP, buildLayout, DOMAIN_NAME, fmtTokens, type HitBox, type Layout, type SetView } from './layout';
+import { drawAisle, drawBay, drawCrawler, drawRefinery } from './draw';
 
-const FLOOR_A = '#2b2a27';
-const FLOOR_B = '#262522';
-const TRIM = '#34312c';
 const SIG_EVERY = 0.25;
 
 class DataScene implements Scene {
   private L: Layout | null = null;
-  private statics: Item[] = [];
   private sigTimer = 0;
   private time = 0;
   private cssW = 0;
   private cssH = 0;
-  private proj: Projector = { ox: 0, oy: 0, scale: 1 };
-  private ctx: Ctx = { g: null as unknown as CanvasRenderingContext2D, p: this.proj };
+  private proj: Proj = { ox: 0, oy: 0, s: 1 };
   private s: GameState | null = null;
+  private hover: string | null = null;
+  private readonly tags = new Tags();
+  /** Static layer: islands, racking, crates, machines. Redrawn on a new layout, size, pixel ratio or theme. */
+  private staticCv: HTMLCanvasElement | null = null;
+  private staticKey = '';
 
   resize(cssW: number, cssH: number): void {
     this.cssW = cssW;
     this.cssH = cssH;
-    this.fit();
+    this.sigTimer = 0;
   }
 
-  /** Fit the warehouse (x from MIN_X to W, y from 0 to D, height WALL_H) into the canvas. */
-  private fit(): void {
-    const L = this.L;
-    if (!L) return;
-    const pad = 14;
-    const availW = Math.max(40, this.cssW - pad * 2);
-    const availH = Math.max(40, this.cssH - pad * 2);
-    const X = L.W - MIN_X;
-    const Y = L.D;
-    const cx = (MIN_X + L.W) / 2;
-    const cy = L.D / 2;
-    const s = Math.min(availW / ((X + Y) * TILE_W / 2), availH / ((X + Y) * TILE_H / 2 + WALL_H), 2.6);
-    const sc = Math.max(0.3, s);
-    this.proj.scale = sc;
-    this.proj.ox = this.cssW / 2 - ((cx - cy) * TILE_W / 2) * sc;
-    this.proj.oy = this.cssH / 2 - ((cx + cy) * TILE_H / 2 - WALL_H / 2) * sc;
+  setHover(id: string | null): void {
+    this.hover = id;
+  }
+
+  private fit(L: Layout): void {
+    const b: Box3[] = [];
+    const add = (x: number, y: number, z1: number) => b.push({ x0: x, y0: y, x1: x + ISLE, y1: y + ISLE, z0: -2, z1 });
+    for (const a of L.aisles) add(a.x, a.y, RACK_TOP + 12);
+    if (L.crawlerIsle) add(L.crawlerIsle.x, L.crawlerIsle.y, (L.crawler?.h ?? 22) + 24);
+    add(L.refineryIsle.x, L.refineryIsle.y, 46);
+    add(L.bayIsle.x, L.bayIsle.y, 40);
+    fitIso(this.proj, b, this.cssW, this.cssH);
   }
 
   draw(g: CanvasRenderingContext2D, s: GameState, dt: number, _nowMs: number): void {
@@ -66,63 +60,85 @@ class DataScene implements Scene {
     const t = this.time;
     this.s = s;
 
-    // Layout only changes when its signature does; check a few times a second.
+    // Layout only changes when its signature (or the canvas size) does; check a few times a second.
     this.sigTimer -= dt;
     if (!this.L || this.sigTimer <= 0) {
       this.sigTimer = SIG_EVERY;
-      const next = buildLayout(s);
+      const next = buildLayout(s, this.cssW, this.cssH);
       if (!this.L || next.sig !== this.L.sig) {
         this.L = next;
-        this.statics = buildStatics(next);
-        this.fit();
+        this.fit(next);
       }
     }
     const L = this.L as Layout;
-
-    const c = this.ctx;
-    c.g = g;
-    c.p = this.proj;
-
-    const bg = g.createLinearGradient(0, 0, 0, this.cssH);
-    bg.addColorStop(0, C.bgTop);
-    bg.addColorStop(1, C.bgBottom);
-    g.fillStyle = bg;
-    g.fillRect(0, 0, this.cssW, this.cssH);
-
-    drawFloor(c, L.W, L.D, 2, FLOOR_A, FLOOR_B);
-    drawWalls(c, L.W, L.D, WALL_H, TRIM);
-    drawNeonStrip(c, L.W, L.D, WALL_H, t);
-    drawFloorLayer(c, L, s);
-
-    // Statics and movers, merged by depth so workers and the forklift pass in front of and behind the shelves.
-    const movers = buildMovers(L, s, t);
-    movers.sort((a, b) => a.d - b.d);
-    const st = this.statics;
-    let si = 0;
-    for (const m of movers) {
-      while (si < st.length && st[si].d <= m.d) {
-        st[si].fn(c, t);
-        si++;
+    const pal = palette();
+    const c: Ctx = { g, p: this.proj, pal };
+    const training = !!s.training;
+    const dpr = g.getTransform().a || 1;
+    const key = `${L.sig}|${this.cssW}x${this.cssH}@${dpr}|${pal.bg}`;
+    if (!this.staticCv || key !== this.staticKey) {
+      const cv = this.staticCv ?? document.createElement('canvas');
+      cv.width = Math.max(1, Math.round(this.cssW * dpr));
+      cv.height = Math.max(1, Math.round(this.cssH * dpr));
+      const sg = cv.getContext('2d');
+      if (sg) {
+        sg.setTransform(dpr, 0, 0, dpr, 0, 0);
+        const sc: Ctx = { g: sg, p: this.proj, pal };
+        background(sc, this.cssW, this.cssH);
+        this.drawIslands(sc, L, training, t, false);
       }
-      m.fn(c, t);
+      this.staticCv = cv;
+      this.staticKey = key;
     }
-    for (; si < st.length; si++) st[si].fn(c, t);
-
-    drawOverlay(c, L, s, t);
-
-    // HUD, bottom right (same place as the office HUD).
     g.save();
-    g.font = '10px JetBrains Mono, monospace';
-    g.textAlign = 'right';
-    g.textBaseline = 'alphabetic';
-    g.fillStyle = C.textDim;
-    g.fillText(
-      `${L.sets.length} SETS · ${fmtTokens(L.totalTokensB)} TOKENS · ${L.totalCrates} CRATES`.toUpperCase(),
-      this.cssW - 10,
-      this.cssH - 8,
-    );
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.drawImage(this.staticCv, 0, 0);
     g.restore();
+    this.drawIslands(c, L, training, t, true);
 
+    if (this.hover) {
+      const h = L.hits.find((x) => x.id === this.hover);
+      if (h) outline(c, { x0: h.x0, y0: h.y0, x1: h.x1, y1: h.y1, z0: 0, z1: h.z1 });
+    }
+
+    // Tags.
+    const p = this.proj;
+    const small = p.s < 0.42;
+    const tags = this.tags;
+    for (const a of L.aisles) {
+      const [x, y] = iso(p, a.sx + 0.2, a.sy + 0.2, RACK_TOP + 2);
+      const tokens = a.sets.reduce((acc, v) => acc + v.tokensB, 0);
+      const warn = a.sets.some((v) => v.legal) ? pal.down : a.sets.some((v) => v.warn) ? pal.warn : pal.hl;
+      tags.add(x, y, DOMAIN_NAME[a.domain], { tone: a.total > 0 ? warn : pal.fg4, sub: a.total > 0 ? `${fmtTokens(tokens)}${a.overflow > 0 ? ` · ×${a.total}` : ''}` : 'empty', small, leader: 4 }, this.hover === `domain:${a.domain}` ? 20 : 3);
+    }
+    if (L.crawler && L.crawlerIsle) {
+      const cw = L.crawler;
+      const [x, y] = iso(p, L.crawlerIsle.x + 3.15, L.crawlerIsle.y + 1.05, cw.h + 22);
+      const status = cw.blocked ? 'Blocked' : cw.building ? 'Building' : cw.flowing ? `+${crawlYieldPerDayB(s).toFixed(1)}B/day` : 'Idle';
+      tags.add(x, y, 'Crawler', { tone: cw.blocked ? pal.down : cw.flowing ? pal.up : pal.warn, sub: status, small }, 6);
+    }
+    {
+      const [x, y] = iso(p, L.refineryIsle.x + 0.6, L.refineryIsle.y + 0.6, 38);
+      tags.add(x, y, 'Refinery', { tone: L.refines.length ? pal.hl : pal.fg4, sub: `${L.refines.length}/2 busy`, small, leader: 4 }, 5);
+    }
+    {
+      const [x, y] = iso(p, L.bayIsle.x + 2.6, L.bayIsle.y + 0.35, 32);
+      tags.add(x, y, 'Training gate', training ? { solid: true, sub: s.training?.name, small } : { tone: pal.fg4, sub: 'idle', small }, training ? 12 : 4);
+      const [jx, jy] = iso(p, L.bayIsle.x + 0.8, L.bayIsle.y + 2.6, 22);
+      if (L.jobs.length) tags.add(jx, jy, 'Dock', { tone: pal.warn, sub: `${L.jobs.length} jobs`, small }, 2);
+    }
+    tags.flush(g, pal, this.cssW, this.cssH);
+
+    hud(g, pal, this.cssW, this.cssH, `${L.sets.length} sets · ${fmtTokens(L.totalTokensB)} tokens · ${L.totalCrates} crates`);
+  }
+
+  private drawIslands(c: Ctx, L: Layout, training: boolean, t: number, live: boolean): void {
+    for (let line = 0; line < L.lines; line++) {
+      if (L.crawler && L.crawlerIsle && L.crawlerIsle.line === line) drawCrawler(c, L.crawlerIsle, L.crawler, t, live);
+      if (L.refineryIsle.line === line) drawRefinery(c, L.refineryIsle, L.refines.length, t, live);
+      if (L.bayIsle.line === line) drawBay(c, L, training, t, live);
+      for (const a of L.aisles) if (a.line === line) drawAisle(c, a, t, live);
+    }
   }
 
   hitTest(x: number, y: number): SceneHit | null {
@@ -130,14 +146,8 @@ class DataScene implements Scene {
     const s = this.s;
     if (!L || !s) return null;
     let best: HitBox | null = null;
-    let bestDepth = -Infinity;
     for (const h of L.hits) {
-      if (!boxContains(this.proj, h, x, y)) continue;
-      const depth = h.x1 + h.y1;
-      if (depth > bestDepth) {
-        best = h;
-        bestDepth = depth;
-      }
+      if (hitBox(this.proj, { x0: h.x0, y0: h.y0, x1: h.x1, y1: h.y1, z0: 0, z1: h.z1 }, x, y)) best = h;
     }
     if (!best) return null;
     return { id: best.id, label: tipFor(best.id, L, s) };
@@ -156,7 +166,7 @@ function tipFor(id: string, L: Layout, s: GameState): string {
     const a = L.aisles.find((x) => x.domain === dom);
     const name = DOMAIN_NAME[dom] ?? dom;
     if (!a || a.sets.length === 0) {
-      const streams = L.belts.filter((b) => b.domain === dom).length;
+      const streams = L.aisles.reduce((n, x) => n + x.belts.filter((b) => b.domain === dom).length, 0);
       const jobs = L.jobs.filter((j) => j.domain === dom).length;
       return `${name} shelf\nNo sets yet\nInbound: ${streams} stream${streams === 1 ? '' : 's'}, ${jobs} job${jobs === 1 ? '' : 's'}`;
     }

@@ -7,6 +7,7 @@ import { OFFICE_TIERS } from '../../../sim/data/roles';
 import type { GameState } from '../../../sim/types';
 import { formatMoney } from '../../../sim/util';
 import { objectiveProgress } from '../../../sim/systems/board';
+import { currentChapter } from '../../../sim/systems/chapters';
 import { formatDays } from '../../components';
 import { KIND_LABEL, headcount } from '../../components/derive';
 
@@ -22,6 +23,8 @@ export interface Step {
   /** Button label. */
   cta: string;
   priority: Priority;
+  /** v17: this step is the current lab chapter (HQ shows it in its own banner). */
+  chapter?: boolean;
 }
 
 /** Every suggestion that applies, urgent first, then the core loop, then ideas. */
@@ -80,16 +83,12 @@ export function nextSteps(s: GameState): Step[] {
   if (cap.total <= 0)
     add({ priority: 'urgent', text: 'Rent some GPUs', why: 'With no compute, nothing trains and nothing serves.', panel: 'compute', cta: 'Open Compute' });
 
+  // Next: the current chapter, unless another move already points at the same screen.
+  const chapterStep = chapterNextStep(s);
+
   // Next: the core loop (train, release, sell, research).
   const unreleased = s.models.find((m) => m.releasedDay === null);
-  if (s.models.length === 0 && !s.training)
-    add({
-      priority: 'next',
-      text: 'Train your first model',
-      why: 'Models are the whole business. Pick a size and some data, then let the GPUs cook.',
-      panel: 'models',
-      cta: 'Start training',
-    });
+  // The first training run is chapter one (systems/chapters.ts), so it has no separate move here.
   if (unreleased)
     add({
       priority: 'next',
@@ -135,6 +134,12 @@ export function nextSteps(s: GameState): Step[] {
       cta: 'Add compute',
     });
 
+  // The chapter leads the 'next' moves (after anything urgent), unless a more specific move already points at its screen.
+  if (chapterStep && !out.some((st) => st.priority === 'next' && st.panel === chapterStep.panel)) {
+    const firstNext = out.findIndex((st) => st.priority !== 'urgent');
+    out.splice(firstNext < 0 ? out.length : firstNext, 0, chapterStep);
+  }
+
   // Ideas: growth and progression.
   const pts = s.progress?.perkPoints ?? 0;
   if (pts > 0)
@@ -158,9 +163,16 @@ export function nextSteps(s: GameState): Step[] {
     add({ priority: 'idea', text: 'Hire into the empty desks', why: 'More researchers and engineers make everything faster. You can afford it.', panel: 'staff', cta: 'Hire' });
   if (s.data.owned.length < 4)
     add({ priority: 'idea', text: 'Buy more training data', why: `You own ${s.data.owned.length} dataset${s.data.owned.length === 1 ? '' : 's'}. More and better data means smarter models.`, panel: 'data', cta: 'Shop data' });
-  if (out.length === 0)
+  if (out.every((st) => st.chapter))
     add({ priority: 'idea', text: 'Nothing on fire. Check on the rivals', why: 'See who leads each market and what buyers want next.', panel: 'market', cta: 'Open Market' });
   return out;
+}
+
+/** The current lab chapter as a move (null once every chapter is done). */
+export function chapterNextStep(s: GameState): Step | null {
+  const ch = currentChapter(s);
+  if (!ch) return null;
+  return { priority: 'next', text: ch.title, why: ch.why, panel: ch.panel as PanelId, cta: ch.cta, chapter: true };
 }
 
 /** The single most useful move. */

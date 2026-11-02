@@ -1,27 +1,28 @@
-// Products scene: storefront drawing. One shopfront per product line on a street, a datacenter hall at the back, and
-// empty lots for kinds that are locked or not yet launched. Built from the HQ office kit (src/office) and read-only.
-// Each `draw*` call takes a snapshot `Lot` (see scene.ts) plus the frame time; live numbers are read in scene.ts.
+// Products scene: storefront drawing. Each product line is a storefront pod (its lot, a sidewalk and a stretch of
+// street); the datacenter that serves them is a pod of its own. Empty lots show the kinds that are locked or not yet
+// launched. Built from the scene kit (src/office/kit) and read-only. Each `draw*` call takes a snapshot `Lot` (see
+// scene.ts) plus the frame time; live numbers are read in scene.ts. Coordinates are absolute floor units.
 import { project } from '../../office/iso';
-import { C, shade } from '../../office/palette';
-import { drawChair, drawDesk, drawPlant, drawRack } from '../../office/draw/furniture';
-import { drawPerson } from '../../office/draw/person';
-import { type Ctx, floorLine, floorTile, glow, isoBlock, isoBox, planeY, poly, withAlpha } from '../../office/draw/prims';
+import { type Ctx, floorLine, floorTile, glow, isoBlock, planeY, poly } from '../../office/draw/prims';
+import { block, chair, desk, plant, rack, room, shadowOn } from '../../office/kit/props';
+import { person } from '../../office/kit/person';
+import { tag } from '../../office/kit/frame';
+import { T, alpha, mix, roleColor, shade } from '../../office/kit/theme';
 import type { ProductKind } from '../../sim/types';
 
-/** Lot footprint and layout on the floor grid. Lots sit in one row behind the street; the datacenter hall is behind them. */
+/** Lot footprint. A storefront pod is the lot, a sidewalk and the street in front of it. */
 export const LOT_W = 3.6;
 export const LOT_D = 3.6;
-export const LOT_Y = 5.4;
-export const LOT_X0 = 0.6;
-export const LOT_PITCH = 4.0;
-/** Front edge of the lots (the sidewalk starts here). */
-export const FRONT_Y = LOT_Y + LOT_D;
-/** Datacenter hall footprint (back wall at DC_Y1, its face is where the serving pipes land). */
-export const DC_Y0 = 0.4;
-export const DC_Y1 = 3.6;
-/** Car lane centre line on the street. */
-export const CAR_Y = 9.75;
+/** Pod size around a lot, and where the lot sits in it. */
+export const POD_W = 4.2;
+export const POD_D = 6.0;
+export const LOT_IN = 0.3;
+/** Car lane centre, measured from the lot's back edge. */
+export const CAR_DY = 4.07;
 export const CAR_D = 0.75;
+/** Datacenter pod size. */
+export const DC_W = 5.4;
+export const DC_D = 4.6;
 export const KIND_LABEL: Record<ProductKind, string> = { chat: 'Chat', api: 'API', enterprise: 'Enterprise' };
 export const SIGN_TEXT: Record<ProductKind, string> = { chat: 'CHAT', api: 'API', enterprise: 'ENTERPRISE' };
 
@@ -33,6 +34,7 @@ export interface Lot {
   kind: ProductKind;
   /** 0 = first line of the kind, 1 = second line. */
   slot: number;
+  /** Lot back corner (floor units). */
   x: number;
   y: number;
   state: LotState;
@@ -53,15 +55,15 @@ export interface Lot {
 }
 
 export interface DcSnap {
-  hallH: number;
+  /** Pod back corner. */
+  x: number;
+  y: number;
   racks: number;
   label: string;
   training: boolean;
 }
 
 type Quad = number[];
-
-const FONT = 'JetBrains Mono, monospace';
 
 /** Point on a screen quad given as [TL, TR, BR, BL] (from planeY). u runs left to right, v top to bottom. */
 function qp(q: Quad, u: number, v: number): [number, number] {
@@ -80,28 +82,31 @@ function qpoly(g: CanvasRenderingContext2D, q: Quad, u0: number, v0: number, u1:
   poly(g, [a[0], a[1], b[0], b[1], c[0], c[1], d[0], d[1]], fill);
 }
 
-/** Shrink the font until `text` fits `maxW` px. Keeps the office mono face. */
-function fitFont(g: CanvasRenderingContext2D, text: string, maxW: number, px: number): void {
-  let size = Math.max(5, px);
-  g.font = `600 ${size}px ${FONT}`;
-  while (size > 5 && g.measureText(text).width > maxW) {
-    size -= 0.5;
-    g.font = `600 ${size}px ${FONT}`;
-  }
+/** Building shell colour: graphite in the dark theme, pale concrete in the light one. */
+function shell(): string {
+  return T.dark ? mix(T.bg3, T.fg4, 0.45) : mix(T.bg3, T.fg4, 0.25);
 }
 
-/** Dark sign board on a +y facing plane (the front of a building), with short text centred on it. */
+/** Dark LED sign board on a +y facing plane (the front of a building), with short text on it, slanted to match. */
 function signPanel(c: Ctx, x0: number, x1: number, fy: number, z0: number, z1: number, text: string, color: string): void {
   const { g, p } = c;
-  const q = planeY(c, x0, x1, fy, z0, z1, '#0c0c0c');
+  const q = planeY(c, x0, x1, fy, z0, z1, '#0d0e10');
+  planeY(c, x0, x1, fy + 0.004, z0, z0 + 0.5, color);
   const [cx, cy] = qp(q, 0.5, 0.5);
   g.save();
   const w = Math.abs(q[2] - q[0]);
-  fitFont(g, text, w * 0.86, 8.5 * p.scale);
+  let size = Math.max(5, 8.5 * p.scale);
+  g.font = `700 ${size}px ${T.figure}`;
+  while (size > 5 && g.measureText(text).width > w * 0.86) {
+    size -= 0.5;
+    g.font = `700 ${size}px ${T.figure}`;
+  }
   g.textAlign = 'center';
   g.textBaseline = 'middle';
   g.fillStyle = color;
-  g.fillText(text, cx, cy);
+  g.translate(cx, cy);
+  g.transform(1, (q[3] - q[1]) / Math.max(1, q[2] - q[0]), 0, 1, 0, 0);
+  g.fillText(text, 0, 0.5);
   g.restore();
 }
 
@@ -109,37 +114,21 @@ function signPanel(c: Ctx, x0: number, x1: number, fy: number, z0: number, z1: n
 function shutter(c: Ctx, x0: number, x1: number, fy: number, zTop: number, drop: number): void {
   if (drop <= 0.001) return;
   const zLow = zTop - zTop * Math.min(1, drop);
-  planeY(c, x0, x1, fy, zLow, zTop, '#4a463f');
+  planeY(c, x0, x1, fy, zLow, zTop, T.metal);
   const n = Math.floor((zTop - zLow) / 1.6);
   for (let k = 1; k < n; k++) {
     const z = zLow + k * 1.6;
-    planeY(c, x0, x1, fy + 0.005, z, z + 0.45, '#2c2a25');
+    planeY(c, x0, x1, fy + 0.005, z, z + 0.45, T.metalDark);
   }
-}
-
-/** Small tag on the floor with a dark box, for "x N" counts. Screen space. */
-function tag(c: Ctx, x: number, y: number, text: string, color: string): void {
-  const { g, p } = c;
-  g.save();
-  g.font = `600 ${Math.max(7, 9 * p.scale)}px ${FONT}`;
-  const w = Math.ceil(g.measureText(text).width) + 8;
-  const h = Math.max(12, 12 * p.scale);
-  g.fillStyle = 'rgba(0,0,0,0.85)';
-  g.fillRect(Math.round(x - w / 2), Math.round(y - h), w, h);
-  g.fillStyle = color;
-  g.textAlign = 'center';
-  g.textBaseline = 'middle';
-  g.fillText(text, x, y - h / 2);
-  g.restore();
 }
 
 /** Cable from a terminal to a rack, drooping in screen space, with light pulses running along it. */
 function cable(c: Ctx, a: [number, number], b: [number, number], speed: number, t: number, seed: number): void {
   const { g, p } = c;
   const mx = (a[0] + b[0]) / 2;
-  const my = (a[1] + b[1]) / 2 + 26 * p.scale;
+  const my = (a[1] + b[1]) / 2 + 22 * p.scale;
   g.save();
-  g.strokeStyle = withAlpha(C.fgDim, 0.42);
+  g.strokeStyle = alpha(T.fg3, 0.6);
   g.lineWidth = Math.max(1, 1.1 * p.scale);
   g.beginPath();
   g.moveTo(a[0], a[1]);
@@ -151,18 +140,20 @@ function cable(c: Ctx, a: [number, number], b: [number, number], speed: number, 
     const v = 1 - u;
     const px = v * v * a[0] + 2 * v * u * mx + u * u * b[0];
     const py = v * v * a[1] + 2 * v * u * my + u * u * b[1];
-    glow(g, px, py, 5 * p.scale, k ? C.blue : C.green, 0.9);
+    g.fillStyle = k ? roleColor('engineer') : T.up;
+    g.fillRect(px - 1.5 * p.scale, py - 1.5 * p.scale, 3 * p.scale, 3 * p.scale);
   }
 }
 
-/** A person in the queue, with a phone glint at the hand. */
-function queuer(c: Ctx, px: number, py: number, seed: number): void {
+/** A person in the queue, looking at their phone. */
+function queuer(c: Ctx, px: number, py: number, seed: number, t: number): void {
   const { g, p } = c;
-  drawPerson(c, { x: px, y: py, role: 'safety', seed, sitting: false, typing: false, walkPhase: 0, highlight: false, t: 0 });
+  const shirts = [T.fg2, roleColor('engineer'), roleColor('marketing'), roleColor('sales'), T.warn];
+  person(c, { x: px, y: py, role: '', shirt: shirts[seed % shirts.length], seed, back: true, t });
   const [bx, by] = project(p, px, py, 0);
   const s = p.scale;
-  g.fillStyle = '#9fd0ff';
-  g.fillRect(bx + 3.2 * s, by - 11 * s, 2.2 * s, 3.4 * s);
+  g.fillStyle = alpha('#9fd0ff', 0.9);
+  g.fillRect(bx + 3.2 * s, by - 12 * s, 2 * s, 3 * s);
 }
 
 /* ---------- chat: consumer app store kiosk with a queue ---------- */
@@ -171,47 +162,41 @@ function drawChat(c: Ctx, L: Lot, t: number): void {
   const { x, y } = L;
   const W = LOT_W;
   const H = L.H;
-  floorTile(c, x, y, W, LOT_D, '#2c2823');
   const bx = x + 0.2;
   const by = y + 0.2;
   const bw = W - 0.4;
   const bd = 1.8;
   const fy = by + bd;
-  isoBox(c, bx, by, bw, bd, H, '#37312a', '#1f1c18', '#2a2622');
+  shadowOn(c, bx, by, bw, bd);
+  block(c, bx, by, bw, bd, 0, H, shell());
 
   // Screen with an app grid. Dims while the shop is shut.
-  const scr = planeY(c, bx + 0.3, bx + bw - 0.3, fy + 0.01, 3, H - 2, '#120d07');
-  const hues = [C.amber, C.blue, C.green, C.fgDim];
+  const scr = planeY(c, bx + 0.3, bx + bw - 0.3, fy + 0.01, 3, H - 2, T.screen);
+  const hues = [T.hl, roleColor('engineer'), T.up, T.fg2];
   for (let r = 0; r < 3; r++) {
     for (let k = 0; k < 4; k++) {
-      const u0 = (k + 0.18) / 4;
-      const u1 = (k + 0.82) / 4;
-      const v0 = (r + 0.2) / 3;
-      const v1 = (r + 0.8) / 3;
       const hue = hues[(r * 4 + k + L.seed) % 4];
-      const a = L.drop > 0 ? 0.1 : 0.32 + 0.36 * (0.5 + 0.5 * Math.sin(t * 1.7 + r * 1.3 + k * 2.1 + L.seed));
-      qpoly(c.g, scr, u0, v0, u1, v1, withAlpha(hue, a));
+      const a = L.drop > 0 ? 0.12 : 0.4 + 0.4 * (0.5 + 0.5 * Math.sin(t * 1.7 + r * 1.3 + k * 2.1 + L.seed));
+      qpoly(c.g, scr, (k + 0.18) / 4, (r + 0.2) / 3, (k + 0.82) / 4, (r + 0.8) / 3, alpha(hue, a));
     }
   }
   shutter(c, bx + 0.25, bx + bw - 0.25, fy + 0.03, H - 1, L.drop);
-  signPanel(c, bx, bx + bw, fy + 0.02, H + 1, H + 4.5, SIGN_TEXT.chat, C.amber);
+  signPanel(c, bx, bx + bw, fy + 0.02, H + 1, H + 4.5, SIGN_TEXT.chat, T.hl);
 
   // Counter and till at the front right corner.
-  isoBlock(c, x + W - 1.05, fy, 0.75, 0.42, 0, 6, '#4f4334', '#2e2820', '#3b3328');
+  block(c, x + W - 1.05, fy, 0.75, 0.42, 0, 6, T.desk);
   const [tx, ty] = project(c.p, x + W - 0.67, fy + 0.2, 6.6);
-  glow(c.g, tx, ty, 6 * c.p.scale, C.amber, 0.35);
+  glow(c.g, tx, ty, 6 * c.p.scale, T.hl, 0.35);
 
   // Queue: up to 6 in the first row, then a second row behind it.
   for (let k = 0; k < L.count; k++) {
     const row = k < 6 ? 0 : 1;
     const i = row ? k - 6 : k;
-    const px = x + 0.45 + i * 0.42 + row * 0.2;
-    const py = y + 2.95 + row * 0.42;
-    queuer(c, px, py, L.seed + k * 3);
+    queuer(c, x + 0.45 + i * 0.42 + row * 0.2, y + 2.95 + row * 0.42, L.seed + k * 3, t);
   }
   if (L.mult > 0) {
-    const [qx, qy] = project(c.p, x + 1.4, y + 3.75, 0);
-    tag(c, qx, qy, `×${shortNum(L.mult)}`, C.amber);
+    const [qx, qy] = project(c.p, x + 1.5, y + 3.0, 30);
+    tag(c.g, qx, qy, `×${shortNum(L.mult)}`, T.hl, { size: 10 });
   }
 }
 
@@ -220,33 +205,32 @@ function drawChat(c: Ctx, L: Lot, t: number): void {
 function drawApi(c: Ctx, L: Lot, t: number): void {
   const { p } = c;
   const { x, y } = L;
-  floorTile(c, x, y, LOT_W, LOT_D, '#2a2622');
   const bx = x + 0.2;
   const by = y + 0.2;
   const bw = 1.9;
   const bd = 1.2;
   const H = 16;
   const fy = by + bd;
-  isoBox(c, bx, by, bw, bd, H, '#312b25', '#1e1a16', '#29241f');
-  planeY(c, bx + 0.25, bx + bw - 0.25, fy + 0.01, 11, 12.2, withAlpha(C.blue, 0.55));
+  const blue = roleColor('engineer');
+  shadowOn(c, bx, by, bw, bd);
+  block(c, bx, by, bw, bd, 0, H, shell());
+  planeY(c, bx + 0.25, bx + bw - 0.25, fy + 0.01, 11, 12.2, alpha(blue, 0.8));
   shutter(c, bx + 0.15, bx + bw - 0.15, fy + 0.03, H - 1, L.drop);
-  signPanel(c, bx, bx + bw, fy + 0.02, H + 1, H + 4.5, SIGN_TEXT.api, C.blue);
+  signPanel(c, bx, bx + bw, fy + 0.02, H + 1, H + 4.5, SIGN_TEXT.api, blue);
 
   // Racks standing behind the booth, to the right.
-  for (let k = 0; k < L.count; k++) drawRack(c, x + 2.2 + k * 0.45, y + 0.3, 0, false, t, L.seed + k);
+  for (let k = 0; k < L.count; k++) rack(c, x + 2.2 + k * 0.45, y + 0.3, 0, false, t, L.seed + k);
 
   // Terminal desk and the developer at it.
   const dx = x + 0.3;
   const dy = y + 2.0;
-  drawDesk(c, dx, dy, 'engineer', true, 0.55 + 0.45 * Math.sin(t * 3 + L.seed), t);
-  const cx = dx + 0.45 + 0.2;
-  const cy = dy + 0.95 + 0.2;
-  drawChair(c, cx - 0.2, cy - 0.2);
-  if (L.people > 0) {
-    drawPerson(c, { x: cx, y: cy, role: 'engineer', seed: L.seed, sitting: true, typing: true, walkPhase: 0, highlight: false, t });
-  }
+  desk(c, dx, dy, 'engineer', true, 0.55 + 0.45 * Math.sin(t * 3 + L.seed), t);
+  const cx = dx + 0.65;
+  const cy = dy + 1.15;
+  chair(c, cx - 0.2, cy - 0.2);
+  if (L.people > 0) person(c, { x: cx, y: cy, role: 'engineer', seed: L.seed, sitting: true, typing: true, back: true, t });
   for (let k = 1; k < L.people; k++) {
-    drawPerson(c, { x: x + 2.25 + (k - 1) * 0.5, y: y + 3.0, role: 'engineer', seed: L.seed + k * 5, sitting: false, typing: false, walkPhase: 0, highlight: false, t });
+    person(c, { x: x + 2.25 + (k - 1) * 0.5, y: y + 3.0, role: 'engineer', seed: L.seed + k * 5, t });
   }
 
   // Cables from the terminal to each rack top.
@@ -264,23 +248,24 @@ function drawEnt(c: Ctx, L: Lot, t: number): void {
   const { x, y } = L;
   const W = LOT_W;
   const H = L.H;
-  floorTile(c, x, y, W, LOT_D, '#2c2823');
   // plaza in front of the lobby
-  floorTile(c, x, y + 2.4, W, 1.2, '#38332c');
+  floorTile(c, x, y + 2.4, W, 1.2, mix(T.floor, T.metal, 0.12));
   const tx0 = x + 0.25;
   const tx1 = x + W - 0.25;
   const fy = y + 2.4;
-  isoBox(c, tx0, y + 0.25, tx1 - tx0, fy - (y + 0.25), H, '#2e2d30', '#1b1a1d', '#252427');
+  const glassTone = T.dark ? mix(T.bg3, '#5a7390', 0.35) : mix(T.bg3, '#8aa4c0', 0.45);
+  shadowOn(c, tx0, y + 0.25, tx1 - tx0, fy - (y + 0.25));
+  block(c, tx0, y + 0.25, tx1 - tx0, fy - (y + 0.25), 0, H, glassTone);
 
-  // Lobby band: dark interior with a warm ceiling strip and the door.
-  planeY(c, tx0 + 0.15, tx1 - 0.15, fy + 0.01, 0, 9, '#1a1410');
-  planeY(c, tx0 + 0.4, tx1 - 0.4, fy + 0.015, 7.6, 8.4, withAlpha(C.amber, 0.45));
-  planeY(c, x + 1.35, x + 2.25, fy + 0.02, 0, 7, withAlpha(C.amber, 0.38));
+  // Lobby band: interior with a warm ceiling strip and the door.
+  planeY(c, tx0 + 0.15, tx1 - 0.15, fy + 0.01, 0, 9, T.dark ? '#16181c' : '#3a3e46');
+  planeY(c, tx0 + 0.4, tx1 - 0.4, fy + 0.015, 7.6, 8.4, alpha(T.lamp, 0.7));
+  planeY(c, x + 1.35, x + 2.25, fy + 0.02, 0, 7, alpha(T.lamp, 0.45));
   const [dxp, dyp] = project(p, x + 1.8, fy, 3.5);
-  glow(g, dxp, dyp, 13 * p.scale, C.amber, 0.22);
+  glow(g, dxp, dyp, 13 * p.scale, T.lamp, 0.2);
   shutter(c, tx0 + 0.15, tx1 - 0.15, fy + 0.03, 9, L.drop);
 
-  // Office windows, some lit.
+  // Office windows, some lit; mullions on the side face.
   const wStep = (tx1 - tx0 - 0.6) / 3;
   let row = 0;
   for (let z = 11; z + 2.6 < H - 3; z += 3.6) {
@@ -288,16 +273,16 @@ function drawEnt(c: Ctx, L: Lot, t: number): void {
       const wx0 = tx0 + 0.3 + col * wStep + 0.08;
       const wx1 = wx0 + wStep - 0.16;
       const lit = (L.seed + row * 7 + col * 3) % 5 < 3;
-      const flick = lit ? 0.3 + 0.08 * Math.sin(t * 0.8 + row + col) : 0;
-      planeY(c, wx0, wx1, fy + 0.01, z, z + 2.4, lit ? withAlpha(C.amber, flick) : '#1d1b18');
+      const flick = lit ? 0.55 + 0.1 * Math.sin(t * 0.8 + row + col) : 0;
+      planeY(c, wx0, wx1, fy + 0.01, z, z + 2.4, lit ? alpha(T.lamp, flick) : shade(glassTone, 0.7));
     }
     row++;
   }
-  signPanel(c, tx0, tx1, fy + 0.02, H + 1, H + 4.5, SIGN_TEXT.enterprise, C.amber);
+  signPanel(c, tx0, tx1, fy + 0.02, H + 1, H + 4.5, SIGN_TEXT.enterprise, T.fg);
 
   // Reception desk in the plaza, a plant by the door.
-  isoBlock(c, x + 0.5, y + 2.6, 0.8, 0.32, 0, 4.5, '#4f4334', '#2e2820', '#3b3328');
-  drawPlant(c, x + 3.1, y + 2.9, 1);
+  block(c, x + 0.5, y + 2.6, 0.8, 0.32, 0, 4.5, T.desk);
+  plant(c, x + 3.1, y + 2.9, 1, L.seed);
 }
 
 /* ---------- locked and vacant lots ---------- */
@@ -316,27 +301,16 @@ function drawEmpty(c: Ctx, L: Lot): void {
   const { x, y } = L;
   const W = LOT_W;
   const D = LOT_D;
-  if (L.state === 'locked') {
-    floorTile(c, x, y, W, D, '#1a1816');
-    const edge = 'rgba(232,228,220,0.16)';
-    dashedEdge(c, x, y, x + W, y, edge);
-    dashedEdge(c, x + W, y, x + W, y + D, edge);
-    dashedEdge(c, x, y + D, x + W, y + D, edge);
-    dashedEdge(c, x, y, x, y + D, edge);
-    isoBlock(c, x + 0.4, y + 0.45, 0.08, 0.08, 0, 8, '#4a4640');
-    isoBlock(c, x + W - 0.48, y + 0.45, 0.08, 0.08, 0, 8, '#4a4640');
-    signPanel(c, x + 0.4, x + W - 0.4, y + 0.5, 8, 13, 'COMING SOON', C.fgDim);
-  } else {
-    floorTile(c, x, y, W, D, '#24201c');
-    const edge = withAlpha(C.amberDim, 0.4);
-    dashedEdge(c, x, y, x + W, y, edge);
-    dashedEdge(c, x + W, y, x + W, y + D, edge);
-    dashedEdge(c, x, y + D, x + W, y + D, edge);
-    dashedEdge(c, x, y, x, y + D, edge);
-    isoBlock(c, x + 0.4, y + 0.45, 0.08, 0.08, 0, 8, '#4a4640');
-    isoBlock(c, x + W - 0.48, y + 0.45, 0.08, 0.08, 0, 8, '#4a4640');
-    signPanel(c, x + 0.4, x + W - 0.4, y + 0.5, 8, 13, 'FOR LEASE', C.amberDim);
-  }
+  const locked = L.state === 'locked';
+  floorTile(c, x, y, W, D, locked ? T.slab : mix(T.floor, T.floorAlt, 0.5));
+  const edge = locked ? alpha(T.fg3, 0.5) : alpha(T.hl, 0.6);
+  dashedEdge(c, x, y, x + W, y, edge);
+  dashedEdge(c, x + W, y, x + W, y + D, edge);
+  dashedEdge(c, x, y + D, x + W, y + D, edge);
+  dashedEdge(c, x, y, x, y + D, edge);
+  isoBlock(c, x + 0.4, y + 0.45, 0.08, 0.08, 0, 8, T.metalDark);
+  isoBlock(c, x + W - 0.48, y + 0.45, 0.08, 0.08, 0, 8, T.metalDark);
+  signPanel(c, x + 0.4, x + W - 0.4, y + 0.5, 8, 13, locked ? 'COMING SOON' : 'FOR LEASE', locked ? T.fg3 : T.hl);
 }
 
 /** Draw one lot's static shell and its figures (queue, racks, staff). */
@@ -349,31 +323,41 @@ export function drawLot(c: Ctx, L: Lot, t: number): void {
 
 /* ---------- street and datacenter ---------- */
 
-/** Slab, sidewalk, road, lane marks and street lamps. */
-export function drawStreet(c: Ctx): void {
+/** A lot's own ground: slab, lot paving, sidewalk, its stretch of road with lane marks, and a street lamp. */
+export function drawStreet(c: Ctx, L: Lot): void {
   const { g, p } = c;
-  floorTile(c, -0.8, -0.6, 26.4, 12.6, '#12100d');
-  floorTile(c, -0.4, FRONT_Y, 25.6, 0.4, '#2b2722');
-  floorTile(c, -0.4, FRONT_Y + 0.4, 25.6, 2.2, '#1b1915');
-  for (let x = -0.2; x < 25; x += 1.6) floorLine(c, x, 10.95, x + 0.8, 10.95, 0.05, withAlpha(C.amberDim, 0.35), 1);
-  for (const lx of [-0.2, 7.8, 15.8, 23.8]) {
-    isoBlock(c, lx, FRONT_Y + 0.1, 0.12, 0.12, 0, 16, '#3a3631', '#2a2722', '#33302b');
-    const [sx, sy] = project(p, lx + 0.06, FRONT_Y + 0.16, 16);
-    glow(g, sx, sy, 12 * p.scale, C.amber, 0.22);
+  const x0 = L.x - LOT_IN;
+  const y0 = L.y - LOT_IN;
+  const front = L.y + LOT_D;
+  isoBlock(c, x0, y0, POD_W, POD_D, -3, 0, T.floorAlt, shade(T.slab, 0.9), T.slab);
+  floorTile(c, L.x, L.y, LOT_W, LOT_D, T.floor);
+  floorTile(c, x0, front, POD_W, 0.4, mix(T.floor, T.metal, 0.18));
+  floorTile(c, x0, front + 0.4, POD_W, 1.6, T.dark ? '#141518' : '#c4c7cd');
+  const lane = front + 1.2;
+  for (let x = x0 + 0.2; x < x0 + POD_W - 0.4; x += 1.4) floorLine(c, x, lane, x + 0.7, lane, 0.05, alpha(T.hl, 0.55), 1);
+  isoBlock(c, x0 + 0.1, front + 0.1, 0.1, 0.1, 0, 18, T.metalDark);
+  isoBlock(c, x0 + 0.1, front + 0.1, 0.5, 0.1, 18, 19, T.metalDark);
+  const [sx, sy] = project(p, x0 + 0.5, front + 0.15, 17.5);
+  g.fillStyle = T.lamp;
+  g.fillRect(sx - 1.5 * p.scale, sy - 0.8 * p.scale, 3 * p.scale, 1.6 * p.scale);
+  glow(g, sx, sy, 12 * p.scale, T.lamp, T.dark ? 0.18 : 0.08);
+}
+
+/** The datacenter pod: a server room whose racks grow with GPUs. Serving pipes end at its intake. */
+export function drawHall(c: Ctx, dc: DcSnap, t: number): void {
+  room(c, dc.x, dc.y, DC_W, DC_D, { wallH: 40, floor: T.dark ? '#1a1c20' : '#d3d6db', floorAlt: T.dark ? '#16181b' : '#cbcfd5', cell: 0.5 });
+  const n = dc.racks;
+  const cols = Math.min(6, Math.max(2, Math.ceil(n / 3)));
+  for (let k = 0; k < n; k++) {
+    const rx = dc.x + 0.5 + (k % cols) * 0.78;
+    const ry = dc.y + 0.4 + Math.floor(k / cols) * 1.1;
+    rack(c, rx, ry, dc.training ? 0.6 : 0, dc.training, t, k, 36);
   }
 }
 
-/** The datacenter hall at the back. Its racks grow with GPUs. Serving pipes end on its face. */
-export function drawHall(c: Ctx, dc: DcSnap, t: number): void {
-  const H = dc.hallH;
-  isoBox(c, 0.2, DC_Y0, 24.2, DC_Y1 - DC_Y0, H, '#25221e', '#17150f', '#1d1a16');
-  planeY(c, 0.6, 23.8, DC_Y1 + 0.01, H - 6, H - 4.6, withAlpha(C.amber, 0.25));
-  signPanel(c, 19.2, 23.6, DC_Y1 + 0.02, H + 1, H + 4.5, dc.label, C.amber);
-  const n = dc.racks;
-  for (let k = 0; k < n; k++) {
-    const rx = n <= 1 ? 12 : 1.0 + k * (22.2 / (n - 1));
-    drawRack(c, rx, DC_Y1 + 0.3, dc.training ? 0.6 : 0, dc.training, t, k);
-  }
+/** Intake point of the datacenter (floor units, z): where the serving pipes land. */
+export function dcIntake(dc: DcSnap): [number, number, number] {
+  return [dc.x, dc.y + DC_D * 0.5, 40];
 }
 
 /** Short number for "x N" tags: 950K, 1.2M, 12. */
@@ -393,9 +377,9 @@ export function mood(sat: number): 'happy' | 'mixed' | 'grumpy' {
 /** Face disc in screen space: a happy, neutral or grumpy face in a border of the mood colour. */
 export function drawFace(g: CanvasRenderingContext2D, cx: number, cy: number, r: number, sat: number): void {
   const m = mood(sat);
-  const col = m === 'happy' ? C.green : m === 'mixed' ? C.amber : C.red;
+  const col = m === 'happy' ? T.up : m === 'mixed' ? T.warn : T.down;
   g.save();
-  g.fillStyle = '#0a0a0a';
+  g.fillStyle = T.bg1;
   g.beginPath();
   g.arc(cx, cy, r, 0, Math.PI * 2);
   g.fill();
@@ -420,44 +404,23 @@ export function drawFace(g: CanvasRenderingContext2D, cx: number, cy: number, r:
   g.restore();
 }
 
-/** Red blinking DOWN board for an outage. Screen space, office pill style. */
+/** Blinking DOWN tag over a product in an outage. */
 export function drawDown(g: CanvasRenderingContext2D, x: number, y: number, t: number): void {
-  g.save();
-  g.font = `600 ${11}px ${FONT}`;
-  const text = 'DOWN';
-  const w = Math.ceil(g.measureText(text).width) + 14;
-  const h = 18;
-  const px = Math.round(x - w / 2);
-  const py = Math.round(y - h);
-  g.globalAlpha = 1;
-  g.fillStyle = '#000000';
-  g.fillRect(px, py, w, h);
-  g.strokeStyle = withAlpha(C.red, 0.95);
-  g.lineWidth = 1;
-  g.strokeRect(px + 0.5, py + 0.5, w - 1, h - 1);
-  g.fillStyle = C.red;
-  g.globalAlpha = 0.55 + 0.45 * (Math.sin(t * 5) > 0 ? 1 : 0.2);
-  g.textAlign = 'center';
-  g.textBaseline = 'middle';
-  g.fillText(text, px + w / 2, py + h / 2 - 0.5);
-  g.restore();
+  tag(g, x, y, 'Down', T.down, { solid: true, ink: '#ffffff', alpha: Math.sin(t * 5) > 0 ? 1 : 0.55 });
 }
 
-/** Body colour for a car, from a small palette of dark hexes. */
-export function carColor(seed: number): string {
-  const opts = ['#2f3640', '#3a2f2a', '#26302c', '#33363d'];
-  return opts[Math.abs(seed) % opts.length];
-}
+const CAR_COLORS = ['#3a4250', '#6a2f33', '#2f4a3d', '#4a4d55'];
 
-/** A car drawn at centre x `cx` on the car lane. */
-export function drawCar(c: Ctx, cx: number, seed: number): void {
-  const body = carColor(seed);
-  isoBox(c, cx - 0.75, CAR_Y, 1.5, CAR_D, 2.4, body, shade(body, 0.7), shade(body, 0.85));
-  isoBlock(c, cx - 0.4, CAR_Y + 0.08, 0.85, CAR_D - 0.16, 2.4, 3.8, '#4a5560', shade('#4a5560', 0.7), shade('#4a5560', 0.85));
+/** A car at centre x `cx` on a lot's lane. */
+export function drawCar(c: Ctx, cx: number, laneY: number, seed: number): void {
+  const body = CAR_COLORS[Math.abs(seed) % CAR_COLORS.length];
+  shadowOn(c, cx - 0.75, laneY, 1.5, CAR_D);
+  block(c, cx - 0.75, laneY, 1.5, CAR_D, 0.8, 3.2, body, false);
+  block(c, cx - 0.4, laneY + 0.08, 0.85, CAR_D - 0.16, 3.2, 4.8, mix(body, '#0b0c0e', 0.3), false);
+  planeY(c, cx - 0.35, cx + 0.4, laneY + CAR_D - 0.08, 3.3, 4.6, T.glass);
 }
 
 /** Suit walking on the sidewalk, in front of the lobby. */
 export function drawSuit(c: Ctx, x: number, y: number, seed: number, t: number): void {
-  drawPerson(c, { x, y, role: 'marketing', seed, sitting: false, typing: false, walkPhase: 2 + t * 9, highlight: false, t });
+  person(c, { x, y, role: '', shirt: T.dark ? '#2d3340' : '#3a4250', seed, walk: 2 + t * 9, back: true, t });
 }
-

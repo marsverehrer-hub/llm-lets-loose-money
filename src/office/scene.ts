@@ -1,44 +1,52 @@
-// Office scene: builds a layout from GameState and renders it each frame.
+// HQ office camera (v18): the company's workspace as a row of isometric rooms that grows with the office tier.
+// Garage (and Mom's house) -> WeWork hot desks with a kombucha bar -> loft with meeting room, lounge and server
+// closet -> floors -> campus with a park. Desks are grouped into open-plan rooms by role; people sit, type, get
+// coffee and walk to the whiteboards. The rooms are laid out across the frame by the kit's pod row and the camera
+// fits them to any frame (wide desktop strip or phone). Reads GameState fresh every frame, never copies it.
 import type { GameState } from '../sim/types';
 import { OFFICE_TIERS } from '../sim/data/roles';
-import { TILE_H, TILE_W, project, type Projector } from './iso';
-import { C, ROLE_LABEL, mix } from './palette';
-import { Ctx, floorTile, glow, isoBlock, planeX, planeY, withAlpha } from './draw/prims';
-import {
-  DESK_W,
-  Role,
-  drawBoxes,
-  drawChair,
-  drawCarSpot,
-  drawCoffee,
-  drawDesk,
-  drawFoldingTable,
-  drawNeonSign,
-  drawPlant,
-  drawRack,
-  drawSecretCrate,
-  drawWhiteboard,
-  drawWindow,
-} from './draw/furniture';
-import { WALL_H, drawFloor, drawNeonStrip, drawWalls } from './draw/room';
-import { drawPerson } from './draw/person';
+import { formatNumber } from '../sim/util';
+import { project, type Projector } from './iso';
+import { type Ctx, floorTile, glow } from './draw/prims';
+import type { Role } from './draw/furniture';
 import { Crowd, MAX_PEOPLE, chairOf, type DeskSlot, type Person, type Stops } from './agents';
 import { Effects } from './effects';
+import { T, alpha, mix, shade, syncTheme } from './kit/theme';
+import { type Box2, type HudPart, type PodSpec, arrangePods, drawGround, feedMargins, fitTo, floorAt, hud, tag, tagWidth } from './kit/frame';
+import {
+  block,
+  boxes,
+  car,
+  chair,
+  desk,
+  glassFront,
+  kitchen,
+  meetingChairsFront,
+  meetingTable,
+  pingPong,
+  plant,
+  rack,
+  room,
+  scaffold,
+  secretCrate,
+  shadowOn,
+  slab,
+  sofa,
+  tree,
+  wallSign,
+  whiteboard,
+} from './kit/props';
+import { person } from './kit/person';
 
 const ROLE_ORDER: Role[] = ['researcher', 'engineer', 'safety', 'sales', 'marketing'];
+const ROLE_NAME: Record<Role, string> = { researcher: 'Researcher', engineer: 'Engineer', safety: 'Safety', sales: 'Sales', marketing: 'Marketing' };
 const DESK_CAP = 80;
-const DX0 = 3.4; // first desk column x
-const DY0 = 3.2; // first desk row y
+const PX = 1.62;
+const PY = 2.45;
+const WALL = 34;
 const TIER_NAMES = ["Mom's Garage", 'WeWork Hot Desks', 'SoMa Loft', 'Mission Bay Floors', 'Glass Donut Campus', 'Arcology'];
-const TIER_FLOORS: [string, string][] = [
-  ['#33302c', '#2c2a26'],
-  ['#3a2f22', '#332a1e'],
-  ['#2b2824', '#26231f'],
-  ['#2a2c2f', '#25272a'],
-  ['#2d3133', '#282b2d'],
-  ['#2a2622', '#24211e'],
-];
-const TIER_TRIM = ['#3a3834', '#34312c', '#3a342a', '#2f3132', '#2b2e30', '#3a352e'];
+/** Desks per open-plan room by tier. */
+const PER_ROOM = [8, 12, 14, 16, 16, 16];
 
 export function tierIndex(s: GameState): number {
   const id = s.company.officeTierId;
@@ -69,42 +77,78 @@ export function totalGpus(s: GameState): number {
   return n;
 }
 
-export interface RackSlot { x: number; y: number; }
-export interface Scaffold { x: number; y: number; days: number; name: string; }
+type PodKind = 'desks' | 'garage' | 'house' | 'kitchen' | 'meeting' | 'server' | 'park';
+
+export interface Pod {
+  kind: PodKind;
+  name: string;
+  x: number;
+  y: number;
+  w: number;
+  d: number;
+  h: number;
+  row: number;
+  /** Desks in this room (open plan and garage). */
+  desks: DeskSlot[];
+  /** Server racks (server room, or the garage shelf). */
+  racks: { x: number; y: number }[];
+  /** Datacenters under construction (server room). */
+  builds: { x: number; days: number }[];
+  /** Unreleased-model crates. */
+  crates: { x: number; y: number }[];
+  /** Whiteboards on the back wall: x and width. */
+  boards: { x: number; w: number }[];
+  /** People shown in a meeting / at the kitchen (not hoverable desk staff). */
+  extras: number;
+  sign: string | null;
+  seed: number;
+}
 
 export interface Layout {
   sig: string;
   tier: number;
-  W: number;
-  D: number;
-  wingX: number;
-  wingW: number;
-  wingD: number;
-  hasWing: boolean;
-  extX: number;
-  extY: number;
+  pods: Pod[];
   desks: DeskSlot[];
   salesDesks: DeskSlot[];
-  stops: Stops;
-  racks: RackSlot[];
-  scaffolds: Scaffold[];
-  crates: { x: number; y: number }[];
-  plants: { x: number; y: number; size: number }[];
-  windows: number[];
-  neonX: number;
-  neonText: string | null;
-  coffee: { x: number; y: number };
+  rows: number;
+  box: Box2;
   headcount: number;
   gpus: number;
   overflow: number;
-  garage: boolean;
-  floorTone: string;
-  floorAlt: string;
-  trim: string;
+  building: number;
 }
 
-/** Pure function of state: the static room plan. */
-export function buildLayout(s: GameState): Layout {
+function newPod(kind: PodKind, name: string, w: number, d: number, h: number, seed: number): Pod {
+  return { kind, name, x: 0, y: 0, w, d, h, row: 0, desks: [], racks: [], builds: [], crates: [], boards: [], extras: 0, sign: null, seed };
+}
+
+/** Open-plan room for a run of desks. Desk positions are local until the pods are placed. */
+function deskRoom(roles: Role[], start: number, name: string, seed: number, garage: boolean): Pod {
+  const n = roles.length;
+  const cols = Math.max(2, Math.min(garage ? 3 : 6, Math.ceil(Math.sqrt(n * 1.7))));
+  const rows = Math.max(1, Math.ceil(n / cols));
+  const extra = garage ? 3.4 : 0;
+  const pod = newPod(garage ? 'garage' : 'desks', name, 1.5 + cols * PX + extra, 2.3 + rows * PY - 0.3, WALL, seed);
+  const stops: Stops = { coffee: { x: 0.75, y: 1.65 }, corridorX: 0.75, board: new Map() };
+  roles.forEach((role, i) => {
+    pod.desks.push({ x: 1.3 + (i % cols) * PX, y: 2.2 + Math.floor(i / cols) * PY, role, index: start + i, stops });
+  });
+  // A whiteboard over each column that seats a researcher.
+  const boardCols = new Set<number>();
+  roles.forEach((r, i) => {
+    if (r === 'researcher') boardCols.add(i % cols);
+  });
+  for (const c of [...boardCols].sort((a, b) => a - b)) pod.boards.push({ x: 1.3 + c * PX - 0.05, w: 1.4 });
+  pod.desks.forEach((d) => {
+    if (d.role !== 'researcher') return;
+    const col = Math.round((d.x - 1.3) / PX);
+    if (boardCols.has(col)) stops.board.set(d.index, { x: d.x + 0.7, y: 1.35 });
+  });
+  return pod;
+}
+
+/** Pure function of state and frame aspect: the rooms, their contents and where they sit. */
+export function buildLayout(s: GameState, aw: number, ah: number): Layout {
   const tier = tierIndex(s);
   const counts = ROLE_ORDER.map((r) => Math.max(0, Math.floor(s.staff.roles[r]?.count ?? 0)));
   const headcount = counts.reduce((a, b) => a + b, 0);
@@ -112,410 +156,580 @@ export function buildLayout(s: GameState): Layout {
   ROLE_ORDER.forEach((r, i) => {
     for (let k = 0; k < counts[i] && seq.length < DESK_CAP; k++) seq.push(r);
   });
-  const deskN = seq.length;
-  const perRow = Math.min(10, Math.max(2, Math.ceil(Math.sqrt(Math.max(1, deskN)) * 1.3)));
-  const rows = Math.max(1, Math.ceil(Math.max(1, deskN) / perRow));
-  const desks: DeskSlot[] = seq.map((role, i) => ({
-    x: DX0 + (i % perRow) * 1.8,
-    y: DY0 + Math.floor(i / perRow) * 2.6,
-    role,
-    index: i,
-  }));
-  const garage = tier === 0;
-  const W = Math.max(9, DX0 + perRow * 1.8 + 0.8 + (garage ? 3.0 : 0));
-  const D = Math.max(6.5, DY0 + rows * 2.6 + 0.6);
-
   const gpus = totalGpus(s);
   const dcs = s.compute.datacenters;
-  const dcBuilding = dcs.filter((d) => d.buildDaysLeft > 0);
-  const racksN = gpus > 0 ? Math.min(28, Math.round(Math.log2(1 + gpus) * 1.2)) : 0;
-  const hasWing = gpus > 0 || dcs.length > 0;
-  const cols = Math.max(1, Math.ceil(Math.sqrt(racksN)));
-  const wrows = Math.max(1, Math.ceil(racksN / cols));
-  const wingX = W + 1.2;
-  const wingW = 1.6 + cols * 0.9 + 0.5;
-  const wingD = Math.max(D, 2.0 + wrows * 0.9);
-  const racks: RackSlot[] = [];
-  for (let i = 0; i < racksN; i++) {
-    racks.push({ x: wingX + 0.8 + (i % cols) * 0.9, y: 1.6 + Math.floor(i / cols) * 0.9 });
-  }
-  const scaffolds: Scaffold[] = dcBuilding.map((dc, k) => ({
-    x: wingX + 0.3 + k * 2.0,
-    y: wingD + 0.3,
-    days: dc.buildDaysLeft,
-    name: dc.name,
-  }));
-
-  const unreleased = s.models.filter((m) => m.releasedDay === null).length;
-  const crates: { x: number; y: number }[] = [];
-  for (let i = 0; i < Math.min(3, unreleased); i++) crates.push({ x: 0.4 + i * 0.62, y: D - 1.5 });
-
-  const plantN = Math.min(8, 1 + tier * 2);
-  const plants: { x: number; y: number; size: number }[] = [];
-  for (let k = 0; k < plantN; k++) {
-    plants.push({ x: 0.45, y: 1.4 + (k * (D - 2.6)) / Math.max(1, plantN), size: 1 + (k % 2) * 0.25 });
-  }
-
-  const windows: number[] = [];
-  for (let x = 4.8; x + 1.6 < W - 0.4; x += 2.4) {
-    windows.push(x);
-    if (garage) break;
-  }
-
+  const building = dcs.filter((d) => d.buildDaysLeft > 0);
+  const unreleased = Math.min(3, s.models.filter((m) => m.releasedDay === null).length);
   const marketing = counts[4];
-  const neonText = marketing > 0 ? 'GO VIRAL' : tier >= 1 ? 'WE ARE HIRING' : null;
 
-  const coffee = { x: 0.75, y: 3.4 };
-  const board = new Map<number, { x: number; y: number }>();
-  for (const d of desks) {
-    if (d.role === 'researcher') board.set(d.index, { x: d.x + 0.65, y: d.y - 0.5 });
+  const pods: Pod[] = [];
+  const garage = tier === 0;
+  if (garage) pods.push(newPod('house', "Mom's house", 4.6, 4.2, 44, 1));
+  if (tier >= 1) pods.push(newPod('kitchen', tier === 1 ? 'Kombucha bar' : 'Kitchen', tier >= 2 ? 6.4 : 5, tier >= 2 ? 5 : 4, WALL, 2));
+
+  // Open-plan rooms, filled in role order so teams sit together.
+  const per = PER_ROOM[tier];
+  const nRooms = Math.max(1, Math.ceil(seq.length / per));
+  const deskRooms: Pod[] = [];
+  for (let r = 0; r < nRooms; r++) {
+    const a = Math.round((r * seq.length) / nRooms);
+    const b = Math.round(((r + 1) * seq.length) / nRooms);
+    const chunk = seq.slice(a, b);
+    const name = garage ? 'Garage' : nRooms === 1 ? 'Open plan' : `Floor ${r + 1}`;
+    deskRooms.push(deskRoom(chunk, a, name, 10 + r, garage));
   }
-  const stops: Stops = { coffee: { x: 1.5, y: coffee.y + 0.3 }, corridorX: 1.5, board };
+  const first = deskRooms[0];
+  first.sign = marketing > 0 ? 'GO VIRAL' : tier >= 1 ? 'WE ARE HIRING' : null;
+  pods.push(...deskRooms);
 
-  const extX = hasWing ? wingX + wingW : W;
-  const extY = Math.max(D, hasWing ? wingD : 0) + (scaffolds.length ? 1.9 : 0);
+  if (tier >= 2) {
+    const meet = newPod('meeting', 'Meeting room', 5.2, 4.4, WALL, 3);
+    meet.extras = Math.min(6, Math.max(2, Math.floor(headcount / 8)));
+    meet.boards.push({ x: 1.0, w: 2.2 });
+    pods.push(meet);
+  }
 
-  const [floorTone, floorAlt] = TIER_FLOORS[tier];
-  const sig = [counts.join(','), tier, gpus, dcs.length, dcBuilding.length, unreleased, neonText ?? '-'].join('|');
+  // Server room (or the garage shelf): racks grow with log GPUs, scaffolds for datacenters being built.
+  const racksN = gpus > 0 ? Math.min(28, Math.round(Math.log2(1 + gpus) * 1.2)) : 0;
+  if (garage) {
+    const gp = first;
+    const k = Math.min(3, racksN);
+    for (let i = 0; i < k; i++) gp.racks.push({ x: gp.w - 0.75, y: 0.35 + i * 0.6 });
+    for (let i = 0; i < unreleased; i++) gp.crates.push({ x: gp.w - 3.2 + i * 0.62, y: 0.4 });
+  }
+  if (!garage && (racksN > 0 || dcs.length > 0 || unreleased > 0)) {
+    const cols = Math.max(2, Math.ceil(Math.sqrt(Math.max(1, racksN) * 1.4)));
+    const rws = Math.max(1, Math.ceil(racksN / cols));
+    const builds = Math.min(3, building.length);
+    const sv = newPod('server', 'Server room', Math.max(4.2, 1.4 + cols * 0.9 + 0.4, builds * 2.4 + 0.6), 1.2 + rws * 0.95 + 1.5 + (builds ? 2.2 : 0), WALL + 4, 4);
+    for (let i = 0; i < racksN; i++) sv.racks.push({ x: 0.9 + (i % cols) * 0.9, y: 0.5 + Math.floor(i / cols) * 0.95 });
+    building.slice(0, 3).forEach((dc, k) => sv.builds.push({ x: 0.4 + k * 2.4, days: dc.buildDaysLeft }));
+    for (let i = 0; i < unreleased; i++) sv.crates.push({ x: 0.3 + i * 0.65, y: sv.d - 0.85 });
+    pods.push(sv);
+  }
+  if (tier >= 4) pods.push(newPod('park', tier === 4 ? 'The park' : 'Sky garden', 6, 5, 30, 5));
+  if (tier >= 5) pods.push(newPod('park', 'Atrium', 5, 5, 30, 6));
 
+  const specs: PodSpec[] = pods.map((p) => ({ w: p.w, d: p.d, h: p.kind === 'server' && p.builds.length ? Math.max(p.h, 46) : p.h, top: 0 }));
+  const plan = arrangePods(specs, aw, ah, 2, 1.4);
+  const desks: DeskSlot[] = [];
+  pods.forEach((p, i) => {
+    const ox = plan.x[i];
+    const oy = plan.y[i];
+    p.x = ox;
+    p.y = oy;
+    p.row = plan.row[i];
+    if (p.desks.length) {
+      const st = p.desks[0].stops;
+      st.coffee = { x: st.coffee.x + ox, y: st.coffee.y + oy };
+      st.corridorX += ox;
+      for (const [k, v] of st.board) st.board.set(k, { x: v.x + ox, y: v.y + oy });
+      for (const d of p.desks) {
+        d.x += ox;
+        d.y += oy;
+        desks.push(d);
+      }
+    }
+    for (const r of p.racks) {
+      r.x += ox;
+      r.y += oy;
+    }
+    for (const c of p.crates) {
+      c.x += ox;
+      c.y += oy;
+    }
+  });
+  desks.sort((a, b) => a.index - b.index);
+
+  const sig = [counts.join(','), tier, racksN, dcs.length, building.length, unreleased, first.sign ?? '-', plan.rows, Math.round(aw / 40), Math.round(ah / 40)].join('|');
   return {
     sig,
     tier,
-    W,
-    D,
-    wingX,
-    wingW,
-    wingD,
-    hasWing,
-    extX,
-    extY,
+    pods,
     desks,
     salesDesks: desks.filter((d) => d.role === 'sales'),
-    stops,
-    racks,
-    scaffolds,
-    crates,
-    plants,
-    windows,
-    neonX: 0.8,
-    neonText,
-    coffee,
+    rows: plan.rows,
+    box: plan.box,
     headcount,
     gpus,
     overflow: Math.max(0, headcount - MAX_PEOPLE),
-    garage,
-    floorTone,
-    floorAlt,
-    trim: TIER_TRIM[tier],
+    building: building.length,
   };
 }
 
 interface Env {
   training: boolean;
   night: number;
-  skyTop: string;
-  skyBottom: string;
+  sky: [string, string];
 }
 
-interface StaticItem {
+interface Item {
   d: number;
+  row: number;
   fn: (c: Ctx, t: number, env: Env) => void;
 }
 
-function buildStatics(L: Layout): StaticItem[] {
-  const out: StaticItem[] = [];
-  for (const desk of L.desks) {
-    const { x, y, role, index } = desk;
-    if (role === 'researcher') {
-      out.push({ d: x + y + 0.53, fn: (c) => drawWhiteboard(c, x, y - 0.12, DESK_W, index) });
+function smooth(a: number, b: number, x: number): number {
+  const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
+  return t * t * (3 - 2 * t);
+}
+
+/** Shell of a pod: slab, walls, windows and wall-mounted things. Drawn before anything stands in the room. */
+function drawShell(c: Ctx, p: Pod, env: Env, t: number): void {
+  const { x, y, w, d } = p;
+  if (p.kind === 'house') {
+    slab(c, x, y, w, d, T.dark ? '#24392b' : '#cfe3d2', T.dark ? '#21352a' : '#c6dcc9', 1, 2);
+    floorTile(c, x + w - 1.4, y + 2.4, 1.1, d - 2.4, T.dark ? T.bg3 : T.bg3);
+    return;
+  }
+  if (p.kind === 'park') {
+    slab(c, x, y, w, d, T.dark ? '#22382a' : '#cfe3d2', T.dark ? '#203527' : '#c6dcc9', 1, 2);
+    floorTile(c, x + w / 2 - 0.5, y, 1, d, T.dark ? mix(T.bg3, T.wood, 0.25) : T.bg3);
+    floorTile(c, x, y + d / 2 - 0.5, w, 1, T.dark ? mix(T.bg3, T.wood, 0.25) : T.bg3);
+    return;
+  }
+  const windows: number[] = [];
+  if (p.kind === 'desks' || p.kind === 'meeting' || p.kind === 'kitchen') {
+    const startX = p.kind === 'kitchen' ? 3.6 : p.boards.length ? -1 : 1.4;
+    if (startX > 0) for (let wx = startX; wx + 1.8 < w; wx += 2.6) windows.push(x + wx);
+    else {
+      // windows between the whiteboards
+      for (let wx = 1.2; wx + 1.8 < w; wx += 1.8) {
+        if (!p.boards.some((b) => wx + 1.6 > b.x - 0.1 && wx < b.x + b.w + 0.1)) windows.push(x + wx);
+      }
     }
-    out.push({
-      d: x + y + 1.0,
-      fn: (c, t, env) => {
-        const occ = index < MAX_PEOPLE;
-        const fl = occ ? 0.5 + 0.5 * Math.sin(t * (4 + (index % 5)) + index * 1.3) : 0.05;
-        drawDesk(c, x, y, role, role === 'engineer', fl, t);
-        if (env.night > 0.05) {
-          const [lx, ly] = project(c.p, x + 0.65, y + 0.3, 30);
-          glow(c.g, lx, ly, 18 * c.p.scale, '#fde68a', 0.12 * env.night);
-        }
-      },
-    });
-    const cp = chairOf(desk);
-    out.push({ d: x + y + 1.8, fn: (c) => drawChair(c, cp.x - 0.2, cp.y - 0.2) });
   }
-  for (const pl of L.plants) out.push({ d: pl.x + pl.y + 0.5, fn: (c) => drawPlant(c, pl.x, pl.y, pl.size) });
-  out.push({ d: L.coffee.x + L.coffee.y + 0.9, fn: (c, t) => drawCoffee(c, L.coffee.x, L.coffee.y, t) });
-  if (L.garage) {
-    out.push({ d: 0.5 + 0.6 + 1.2, fn: (c) => drawBoxes(c, 0.5, 0.6, 3) });
-    out.push({ d: L.W - 2.9 + 0.6 + 1.1, fn: (c) => drawFoldingTable(c, L.W - 2.9, 0.6) });
-  }
-  for (const cr of L.crates) out.push({ d: cr.x + cr.y + 0.5, fn: (c, t) => drawSecretCrate(c, cr.x, cr.y, t) });
-  L.racks.forEach((r, i) => {
-    out.push({
-      d: r.x + r.y + 0.45,
-      fn: (c, t, env) => {
-        const lit = env.training ? 0.5 + 0.5 * Math.sin(t * 3 + i * 0.7) : 0;
-        drawRack(c, r.x, r.y, lit, env.training, t, i);
-      },
-    });
+  const floor = p.kind === 'server' ? (T.dark ? '#1a1c20' : '#d3d6db') : p.kind === 'garage' ? (T.dark ? '#2a2a2c' : '#dcdcd8') : undefined;
+  const alt = p.kind === 'server' ? (T.dark ? '#16181b' : '#cbcfd5') : p.kind === 'garage' ? (T.dark ? '#262628' : '#d4d4d0') : undefined;
+  room(c, x, y, w, d, {
+    wallH: p.h,
+    floor,
+    floorAlt: alt,
+    cell: p.kind === 'server' ? 0.5 : 1,
+    windows,
+    sky: env.sky,
+    livery: p.kind === 'desks' || p.kind === 'garage',
   });
-  for (const sc of L.scaffolds) out.push({ d: sc.x + sc.y + 0.5, fn: (c) => drawScaffold(c, sc.x, sc.y, sc.days) });
-  return out;
-}
-
-function drawScaffold(c: Ctx, x: number, y: number, days: number): void {
-  const { g, p } = c;
-  const w = 1.8;
-  const d = 0.9;
-  const H = 40;
-  const pole = '#b45309';
-  isoBlock(c, x, y, 0.07, 0.07, 0, H, pole);
-  isoBlock(c, x + w - 0.07, y, 0.07, 0.07, 0, H, pole);
-  isoBlock(c, x, y + d - 0.07, 0.07, 0.07, 0, H, pole);
-  isoBlock(c, x + w - 0.07, y + d - 0.07, 0.07, 0.07, 0, H, pole);
-  for (const z of [12, 26, 40]) {
-    planeY(c, x, x + w, y + d, z, z + 1.2, '#d97706');
-    planeX(c, x + w, y, y + d, z, z + 1.2, '#b45309');
+  if (p.kind === 'meeting') floorTile(c, x + 0.6, y + 1.2, w - 1.2, d - 1.8, alpha(T.fg3, T.dark ? 0.12 : 0.18));
+  if (p.kind === 'kitchen') floorTile(c, x + 0.3, y + 1.0, w - 0.6, d - 1.3, alpha(T.wood, T.dark ? 0.16 : 0.22));
+  if (p.kind === 'server') {
+    // cold aisle markings
+    for (let k = 0; k < 2; k++) floorTile(c, x + 0.2, y + d - 0.9 - k * 0.12, w - 0.4, 0.05, alpha(T.hl, 0.7));
   }
-  const [cx, cy] = project(p, x + w / 2, y + d / 2, H + 8);
-  g.save();
-  g.font = `600 ${Math.max(7, 8 * p.scale)}px JetBrains Mono, monospace`;
-  g.textAlign = 'center';
-  g.fillStyle = C.amber;
-  g.fillText(`building · ${Math.ceil(days)}d left`, cx, cy);
-  g.restore();
+  if (p.kind === 'garage') {
+    // Mom's car bay
+    const cx = x + w - 3.2;
+    for (const [ax, ay, bx, by] of [[cx, 1.8, cx + 2.8, 1.8], [cx, 1.8, cx, d - 0.3]]) floorTile(c, ax, y + ay, Math.max(0.06, bx - ax), Math.max(0.06, by - ay), alpha(T.fg, 0.25));
+  }
+  for (const b of p.boards) whiteboard(c, x + b.x, y + 0.12, b.w, p.seed + Math.round(b.x * 3));
+  if (p.sign) wallSign(c, x, y + 0.6, Math.min(3.6, d - 1.2), p.h - 12, p.sign, T.hl, true);
+  if (p.kind === 'server') wallSign(c, x + 0.4, y, 2.6, p.h - 11, 'SERVERS', T.up);
 }
 
-const SKY_DAY_TOP = '#2a2a2a';
-const SKY_DAY_BOTTOM = '#4a4236';
-const SKY_NIGHT_TOP = '#050505';
-const SKY_NIGHT_BOTTOM = '#14110c';
+/** Things standing in the pod, as depth-sorted items. */
+function podItems(p: Pod, out: Item[]): void {
+  const { x, y, w, d, row } = p;
+  const push = (dd: number, fn: Item['fn']) => out.push({ d: dd, row, fn });
+  if (p.kind === 'house') {
+    push(x + y + 3, (c) => {
+      const hx = x + 0.5;
+      const hy = y + 0.6;
+      const wall = T.dark ? '#c9c2b3' : '#efe9dc';
+      shadowOn(c, hx, hy, 3.2, 2.6);
+      block(c, hx, hy, 3.2, 2.6, 0, 22, wall, false);
+      block(c, hx - 0.15, hy - 0.15, 3.5, 2.9, 22, 25, T.dark ? '#5c4038' : '#9a6a58', false);
+      block(c, hx + 2.3, hy + 0.3, 0.4, 0.4, 25, 33, T.dark ? '#6b4b40' : '#a8776a', false);
+      block(c, hx + 1.0, hy + 2.6, 0.7, 0.04, 0, 13, T.dark ? '#3a2d25' : '#6b5040', false);
+      for (const wx of [0.25, 2.1]) block(c, hx + wx, hy + 2.6, 0.75, 0.04, 8, 16, T.dark ? alpha(T.lamp, 0.55) : '#a9c4dc', false);
+      block(c, hx + 3.2, hy + 0.5, 0.04, 1.8, 8, 16, T.dark ? alpha(T.lamp, 0.4) : '#a9c4dc', false);
+    });
+    push(x + y + w + d - 1, (c) => plant(c, x + 0.5, y + d - 0.4, 1.3, 1));
+    push(x + y + w + d - 0.5, (c) => car(c, x + w - 1.7, y + d - 1.2, T.dark ? '#6b2a2a' : '#b8473f'));
+    return;
+  }
+  if (p.kind === 'park') {
+    const n = 5;
+    for (let i = 0; i < n; i++) {
+      const tx = x + 0.9 + ((i * 2.3) % (w - 1.6));
+      const ty = y + 0.8 + ((i * 1.7) % (d - 1.4));
+      if (Math.abs(tx - (x + w / 2)) < 0.7 || Math.abs(ty - (y + d / 2)) < 0.7) continue;
+      push(tx + ty, (c) => tree(c, tx, ty, 0.9 + (i % 3) * 0.15));
+    }
+    push(x + w / 2 + y + d / 2, (c) => {
+      block(c, x + w / 2 - 0.6, y + d / 2 - 0.6, 1.2, 1.2, 0, 3, T.metal, false);
+      floorTile(c, x + w / 2 - 0.45, y + d / 2 - 0.45, 0.9, 0.9, alpha('#5ba8d8', 0.75), 3.01);
+    });
+    return;
+  }
+  if (p.kind === 'kitchen') {
+    push(x + y + 0.8, (c, t) => kitchen(c, x + 0.3, y + 0.25, Math.min(4.2, w - 0.6), t));
+    if (w > 6) {
+      push(x + 3.6 + y + 2.6, (c) => pingPong(c, x + 3.6, y + 2.2));
+      push(x + 0.4 + y + 3.2, (c) => sofa(c, x + 0.4, y + 3.1, 1.8, T.dark ? '#3b3f48' : '#8d939c'));
+    } else {
+      push(x + 2.0 + y + 2.4, (c) => {
+        block(c, x + 1.8, y + 1.9, 1.4, 0.8, 0, 11, T.desk);
+      });
+    }
+    // People at the counter, chatting.
+    const ppl = [
+      [x + 1.4, y + 1.35],
+      [x + 2.2, y + 1.45],
+      [x + 2.6, y + 3.1],
+    ];
+    ppl.forEach(([px, py], i) => {
+      push(px + py + 0.05, (c, t) => {
+        person(c, { x: px, y: py, role: ROLE_ORDER[(i * 2 + p.seed) % 5], seed: p.seed * 31 + i * 7, t, walk: 0 });
+        if (Math.sin(t * 1.3 + i * 2) > 0.6) talkDots(c, px, py, t);
+      });
+    });
+    push(x + y + w + d - 1.2, (c) => plant(c, x + w - 0.5, y + d - 0.5, 1.2, 2));
+    return;
+  }
+  if (p.kind === 'meeting') {
+    const tx = x + 0.9;
+    const ty = y + 1.9;
+    const tw = w - 1.8;
+    const td = 1.1;
+    push(tx + ty + 0.2, (c) => meetingTable(c, tx, ty, tw, td));
+    const n = p.extras;
+    const backN = Math.ceil(n / 2);
+    for (let i = 0; i < n; i++) {
+      const back = i < backN;
+      const k = back ? i : i - backN;
+      const cnt = back ? backN : n - backN;
+      const px = tx + 0.4 + (k + 0.5) * ((tw - 0.4) / Math.max(1, cnt)) - 0.2;
+      const py = back ? ty - 0.3 : ty + td + 0.45;
+      push(px + py + (back ? 0 : 0.01), (c, t) => {
+        person(c, { x: px, y: py, role: ROLE_ORDER[(i + p.seed) % 5], seed: 77 + i * 13, sitting: true, back: !back, t });
+        if (!back && Math.sin(t * 0.9 + i * 1.7) > 0.75) talkDots(c, px, py, t);
+      });
+    }
+    push(tx + ty + td + 0.9, (c) => meetingChairsFront(c, tx, ty, tw, td));
+    // presenter at the board
+    push(x + 2.1 + y + 1.0, (c, t) => person(c, { x: x + 2.1 + Math.sin(t * 0.4) * 0.5, y: y + 1.0, role: 'researcher', seed: 404, t, walk: Math.sin(t * 0.4) !== 0 ? t * 6 : 0 }));
+    push(x + y + w + d, (c) => glassFront(c, x, x + w, y + d, 12));
+    push(x + w - 0.5 + y + 0.5, (c) => plant(c, x + w - 0.5, y + 0.6, 1.2, 3));
+    return;
+  }
+  if (p.kind === 'server') {
+    p.racks.forEach((r, i) => {
+      push(r.x + r.y + 0.45, (c, t, env) => rack(c, r.x, r.y, env.training ? 0.5 + 0.5 * Math.sin(t * 3 + i * 0.7) : 0, env.training, t, i, p.h - 2));
+    });
+    for (const b of p.builds) {
+      const bx = x + b.x;
+      const by = y + d - 2.0;
+      push(bx + by + 1.5, (c) => scaffold(c, bx, by, 1.8, 0.9, 40));
+    }
+    for (const cr of p.crates) push(cr.x + cr.y + 0.5, (c, t) => secretCrate(c, cr.x, cr.y, t));
+    return;
+  }
+  // Open plan and garage.
+  for (const dk of p.desks) {
+    const { x: dx, y: dy, role, index } = dk;
+    push(dx + dy + 1.0, (c, t) => {
+      const occ = index < MAX_PEOPLE;
+      const fl = occ ? 0.55 + 0.45 * Math.sin(t * (2 + (index % 5)) + index * 1.3) : 0.08;
+      desk(c, dx, dy, role, role === 'engineer', fl, t);
+    });
+    const cp = chairOf(dk);
+    push(dx + dy + 1.8, (c) => chair(c, cp.x - 0.2, cp.y - 0.2));
+  }
+  if (p.kind === 'desks') {
+    // coffee point at the corridor head, plants on the corners
+    push(x + 0.3 + y + 1.0, (c) => {
+      block(c, x + 0.15, y + 0.5, 0.55, 0.5, 0, 11, T.metalDark, false);
+      block(c, x + 0.22, y + 0.56, 0.4, 0.34, 11, 19, T.dark ? '#2a2c31' : '#4a4e56');
+    });
+    push(x + w - 0.4 + y + d - 0.4, (c) => plant(c, x + w - 0.45, y + d - 0.45, 1.25, p.seed));
+    push(x + 0.4 + y + d - 0.4, (c) => plant(c, x + 0.45, y + d - 0.45, 1.0, p.seed + 1));
+  } else {
+    push(x + 0.6 + y + 1.0, (c) => boxes(c, x + 0.3, y + 0.5, 3));
+    push(x + w - 3 + y + 2.6, (c) => car(c, x + w - 2.9, y + 2.4, T.dark ? '#33465a' : '#6c86a3'));
+    for (const r of p.racks) push(r.x + r.y + 0.45, (c, t, env) => rack(c, r.x, r.y, env.training ? 0.8 : 0, env.training, t, r.y * 7, 20));
+    for (const cr of p.crates) push(cr.x + cr.y + 0.5, (c, t) => secretCrate(c, cr.x, cr.y, t));
+    push(x + y + d + 0.5, (c) => plant(c, x + 0.45, y + d - 0.45, 1.0, 4));
+  }
+}
+
+function talkDots(c: Ctx, x: number, y: number, t: number): void {
+  const { g, p } = c;
+  const [dx, dy] = project(p, x, y, 30);
+  const s = p.scale;
+  g.fillStyle = T.tagBg;
+  g.beginPath();
+  g.ellipse(dx, dy, 6 * s, 3.6 * s, 0, 0, Math.PI * 2);
+  g.fill();
+  g.fillStyle = T.fg;
+  for (let k = 0; k < 3; k++) {
+    g.globalAlpha = 0.35 + 0.65 * Math.max(0, Math.sin(t * 6 - k * 0.9));
+    g.fillRect(dx + (k - 1) * 2.6 * s - 0.7 * s, dy - 0.7 * s, 1.4 * s, 1.4 * s);
+  }
+  g.globalAlpha = 1;
+}
+
+const SKY_DAY: [string, string] = ['#7fa6c9', '#cfe0ec'];
+const SKY_NIGHT: [string, string] = ['#0c1220', '#1d2536'];
 
 export class OfficeScene {
   private layout: Layout | null = null;
-  private statics: StaticItem[] = [];
+  private items: Item[] = [];
   private sigTimer = 0;
   readonly crowd = new Crowd();
   private effects = new Effects();
   private proj: Projector = { ox: 0, oy: 0, scale: 1 };
   private ctx: Ctx = { g: null as unknown as CanvasRenderingContext2D, p: this.proj };
-  private env: Env = { training: false, night: 0, skyTop: SKY_DAY_TOP, skyBottom: SKY_DAY_BOTTOM };
+  private env: Env = { training: false, night: 0, sky: SKY_DAY };
   private order: Person[] = [];
   private cssW = 0;
   private cssH = 0;
   private lastModels = -1;
   private time = 0;
-  private trainLabel = '';
-  private trainPct = 0;
+  private state: GameState | null = null;
+  private tagRects: { box: Box2; text: string }[] = [];
 
   resize(cssW: number, cssH: number): void {
     this.cssW = cssW;
     this.cssH = cssH;
-    this.fit();
+    this.sigTimer = 0;
+    if (this.state) this.check(this.state, true);
   }
 
-  /** Fit the scene footprint into the canvas (CSS px). */
-  private fit(): void {
-    const L = this.layout;
-    if (!L) return;
-    const pad = 14;
-    const availW = Math.max(40, this.cssW - pad * 2);
-    const availH = Math.max(40, this.cssH - pad * 2);
-    const X = L.extX;
-    const Y = L.extY;
-    const s = Math.min(availW / ((X + Y) * TILE_W / 2), availH / ((X + Y) * TILE_H / 2 + WALL_H), 2.6);
-    const sc = Math.max(0.35, s);
-    this.proj.scale = sc;
-    this.proj.ox = this.cssW / 2 - ((X - Y) * TILE_W / 4) * sc;
-    this.proj.oy = this.cssH / 2 - ((X + Y) * TILE_H / 4 - WALL_H / 2) * sc;
+  private avail(): [number, number] {
+    const m = feedMargins(this.cssW, this.cssH);
+    return [Math.max(40, this.cssW - m.l - m.r), Math.max(40, this.cssH - m.t - m.b)];
   }
 
-  private rebuild(s: GameState): void {
-    const L = buildLayout(s);
-    this.layout = L;
-    this.statics = buildStatics(L).sort((a, b) => a.d - b.d);
-    this.crowd.sync(L.desks, L.stops);
-    this.fit();
+  private check(s: GameState, force: boolean): void {
+    const [aw, ah] = this.avail();
+    const next = buildLayout(s, aw, ah);
+    if (force || !this.layout || next.sig !== this.layout.sig) {
+      this.layout = next;
+      const items: Item[] = [];
+      for (const p of next.pods) podItems(p, items);
+      this.items = items.sort((a, b) => a.row - b.row || a.d - b.d);
+      this.crowd.sync(next.desks);
+      fitTo(this.proj, next.box, this.cssW, this.cssH);
+    }
   }
 
-  /** Advance simulation-side animation and paint one frame. dt in seconds, nowMs = Date.now(). */
+  /** Advance animation and paint one frame. dt in seconds, nowMs = Date.now(). */
   draw(g: CanvasRenderingContext2D, s: GameState, dt: number, nowMs: number): void {
+    syncTheme(nowMs);
+    this.state = s;
     this.time += dt;
     const t = this.time;
-    // Layout only changes on a state signature change; check a few times a second.
     this.sigTimer -= dt;
     if (!this.layout || this.sigTimer <= 0) {
       this.sigTimer = 0.25;
-      const next = buildLayout(s);
-      if (!this.layout || next.sig !== this.layout.sig) this.rebuild(s);
+      this.check(s, false);
     }
     const L = this.layout as Layout;
 
-    // Day/night: fake 2-minute cycle on real time, nudged by the in-game season.
+    // Day and night on a 2-minute loop, nudged by the season.
     const cyc = (nowMs / 1000 / 120) % 1;
     const sun = (1 - Math.cos(cyc * Math.PI * 2)) / 2;
     const dayPhase = (s.day % 365) / 365;
     const night = 1 - smooth(0.28 + 0.03 * Math.sin(dayPhase * Math.PI * 2), 0.6, sun);
     const env = this.env;
     env.night = night;
-    env.skyTop = mix(SKY_DAY_TOP, SKY_NIGHT_TOP, night);
-    env.skyBottom = mix(SKY_DAY_BOTTOM, SKY_NIGHT_BOTTOM, night);
+    env.sky = [mix(SKY_DAY[0], SKY_NIGHT[0], night), mix(SKY_DAY[1], SKY_NIGHT[1], night)];
     env.training = !!s.training;
 
-    // Simulation-driven effects
     this.crowd.update(dt);
     this.trackModels(s);
-    this.updateTraining(s);
 
     const c = this.ctx;
     c.g = g;
     c.p = this.proj;
     const p = this.proj;
+    drawGround(g, p, this.cssW, this.cssH);
 
-    // Background
-    const bg = g.createLinearGradient(0, 0, 0, this.cssH);
-    bg.addColorStop(0, C.bgTop);
-    bg.addColorStop(1, C.bgBottom);
-    g.fillStyle = bg;
-    g.fillRect(0, 0, this.cssW, this.cssH);
-
-    // Base layer: slabs, floors, walls, windows, neon
-    const wingCell = 1;
-    drawFloor(c, L.W, L.D, 1, L.floorTone, L.floorAlt);
-    if (L.hasWing) drawWingFloor(c, L.wingX, L.wingW, L.wingD, wingCell);
-    if (L.garage) drawCarSpot(c, L.W - 2.9, 2.6, 2.4, 3.4);
-    drawWalls(c, L.W, L.D, WALL_H, L.trim);
-    if (L.hasWing) planeY(c, L.wingX, L.wingX + L.wingW, 0, 0, WALL_H, '#141414');
-    for (const wx of L.windows) drawWindow(c, wx, 0.03, 1.6, env.skyTop, env.skyBottom);
-    if (L.neonText) drawNeonSign(c, L.neonX, 0.04, 3.4, L.neonText, C.amber, t);
-    drawNeonStrip(c, L.W, L.D, WALL_H, t);
-
-    // Props + people, painter's order by x+y
-    const people = this.crowd.people;
+    // Rows back to front: each row's shells, then its furniture and people in depth order.
     const order = this.order;
     order.length = 0;
-    for (const pl of people) order.push(pl);
-    order.sort((a, b) => a.x + a.y - (b.x + b.y));
-
-    const st = this.statics;
-    let si = 0;
-    for (const pe of order) {
-      const key = pe.x + pe.y + 0.1;
-      while (si < st.length && st[si].d <= key) {
-        st[si].fn(c, t, env);
-        si++;
+    for (const pe of this.crowd.people) order.push(pe);
+    const rowOf = (pe: Person) => this.rowOfDesk(pe.desk);
+    order.sort((a, b) => rowOf(a) - rowOf(b) || a.x + a.y - (b.x + b.y));
+    const items = this.items;
+    let ii = 0;
+    let pi = 0;
+    for (let r = 0; r < L.rows; r++) {
+      for (const pod of L.pods) if (pod.row === r) drawShell(c, pod, env, t);
+      while (ii < items.length || pi < order.length) {
+        const it = ii < items.length && items[ii].row === r ? items[ii] : null;
+        const pe = pi < order.length && rowOf(order[pi]) === r ? order[pi] : null;
+        if (!it && !pe) break;
+        if (it && (!pe || it.d <= pe.x + pe.y + 0.1)) {
+          it.fn(c, t, env);
+          ii++;
+        } else if (pe) {
+          this.paintPerson(c, pe, t);
+          pi++;
+        }
       }
-      const sitting = pe.state === 'sit';
-      drawPerson(c, {
-        x: pe.x,
-        y: pe.y,
-        role: pe.role,
-        seed: pe.seed,
-        sitting,
-        typing: sitting,
-        walkPhase: pe.state === 'walk' ? pe.walkPhase : 0,
-        highlight: false,
-        t,
-      });
-      const [sx, sy] = project(p, pe.x, pe.y, 14);
-      pe.sx = sx;
-      pe.sy = sy;
     }
-    for (; si < st.length; si++) st[si].fn(c, t, env);
 
-    // Night wash + additive lights
-    if (night > 0.01) {
-      g.fillStyle = `rgba(0,0,0,${(0.5 * night).toFixed(3)})`;
+    // Night: a soft wash, then desk lamps and window light.
+    if (night > 0.02) {
+      g.fillStyle = T.dark ? `rgba(4,6,14,${(0.32 * night).toFixed(3)})` : `rgba(30,44,80,${(0.1 * night).toFixed(3)})`;
       g.fillRect(0, 0, this.cssW, this.cssH);
-    }
-    g.save();
-    g.globalCompositeOperation = 'lighter';
-    if (night > 0.05) {
-      for (const desk of L.desks) {
-        const [lx, ly] = project(p, desk.x + 0.65, desk.y + 0.3, WALL_H - 14);
-        glow(g, lx, ly, 26 * p.scale, '#fde68a', 0.05 * night);
-      }
-      for (const wx of L.windows) {
-        const [lx, ly] = project(p, wx + 0.8, 0.05, 30);
-        glow(g, lx, ly, 40 * p.scale, '#ffa630', 0.08 * night);
+      if (p.scale > 0.3) {
+        g.save();
+        g.globalCompositeOperation = T.dark ? 'lighter' : 'source-over';
+        for (const dk of L.desks) {
+          const [lx, ly] = project(p, dk.x + 0.65, dk.y + 0.3, 16);
+          glow(g, lx, ly, 22 * p.scale, T.lamp, (T.dark ? 0.12 : 0.06) * night);
+        }
+        g.restore();
       }
     }
-    if (env.training && L.hasWing) {
-      const [wx, wy] = project(p, L.wingX + L.wingW / 2, L.wingD / 2, 30);
-      glow(g, wx, wy, 90 * p.scale, C.amber, 0.22 + 0.08 * Math.sin(t * 2));
-      glow(g, wx, wy + 20 * p.scale, 60 * p.scale, C.amberDim, 0.1);
-    }
-    g.restore();
-
-    // Training label
-    if (env.training) this.drawTrainingLabel(g, L, t);
-
-    // Overflow bubble
-    if (L.overflow > 0) {
-      const [ox, oy] = project(p, DX0, L.D - 0.5, 0);
-      drawPill(g, ox, oy, `+${L.overflow} more staff`, C.amber);
+    if (env.training) {
+      const sv = L.pods.find((q) => q.kind === 'server') ?? L.pods.find((q) => q.racks.length > 0);
+      if (sv) {
+        g.save();
+        g.globalCompositeOperation = T.dark ? 'lighter' : 'source-over';
+        const [wx, wy] = project(p, sv.x + sv.w / 2, sv.y + sv.d / 2, 20);
+        glow(g, wx, wy, 70 * p.scale, T.hl, (T.dark ? 0.14 : 0.08) + 0.05 * Math.sin(t * 2));
+        g.restore();
+      }
     }
 
-    // Money floaters + confetti
+    // Money from the sales desks, confetti on a new model.
     if (s.finance.dailyRevenue > 0 && L.salesDesks.length > 0) {
       const pts = L.salesDesks.map((d) => project(p, d.x + 0.65, d.y + 0.3, 30) as [number, number]);
       this.effects.money(pts, dt, true, '+$');
-    } else {
-      this.effects.money([], dt, false, '+$');
-    }
+    } else this.effects.money([], dt, false, '+$');
     this.effects.step(g, dt);
 
-    // HUD, bottom-right (top corners belong to the camera overlay in OfficeView)
-    const gpus = L.gpus;
-    g.save();
-    g.font = '10px JetBrains Mono, monospace';
-    g.textAlign = 'right';
-    g.textBaseline = 'alphabetic';
-    g.fillStyle = C.textDim;
-    g.fillText(`${tierName(s)} · ${L.headcount} STAFF · ${gpus.toLocaleString()} GPUS`.toUpperCase(), this.cssW - 10, this.cssH - 8);
-    if (s.finance.cash < 0) {
-      const blink = Math.sin(t * 6) > 0 ? 1 : 0.35;
-      g.globalAlpha = blink;
-      g.fillStyle = C.red;
-      g.font = '600 11px JetBrains Mono, monospace';
-      g.fillText('CASH NEGATIVE', this.cssW - 10, this.cssH - 24);
+    this.drawTags(g, L, s, t);
+
+    const parts: HudPart[] = [
+      [tierName(s), T.fg],
+      [`${L.headcount} staff`, T.fg2],
+      [`${formatNumber(L.gpus, 1)} GPUs`, T.fg2],
+    ];
+    if (s.finance.cash < 0) parts.unshift(['Cash negative', Math.sin(t * 6) > 0 ? T.down : shade(T.down, 0.6)]);
+    hud(g, this.cssW, this.cssH, parts);
+  }
+
+  private rowOfDesk(d: DeskSlot): number {
+    const L = this.layout;
+    if (!L) return 0;
+    for (const p of L.pods) if (p.desks.length && p.desks[0].stops === d.stops) return p.row;
+    return 0;
+  }
+
+  private paintPerson(c: Ctx, pe: Person, t: number): void {
+    const sitting = pe.state === 'sit';
+    const [hx, hy] = person(c, {
+      x: pe.x,
+      y: pe.y,
+      role: pe.role,
+      seed: pe.seed,
+      sitting,
+      typing: sitting,
+      back: sitting || (pe.state === 'walk' && pe.away),
+      walk: pe.state === 'walk' ? pe.walkPhase : 0,
+      t,
+    });
+    pe.sx = hx;
+    pe.sy = hy + 6 * c.p.scale;
+  }
+
+  private drawTags(g: CanvasRenderingContext2D, L: Layout, s: GameState, t: number): void {
+    const p = this.proj;
+    this.tagRects = [];
+    const small = this.cssW < 520;
+    const size = small ? 10 : 11;
+    const placed: Box2[] = [];
+    const free = (x: number, y: number, w: number, h: number) =>
+      !placed.some((b) => x < b.x1 + 2 && x + w > b.x0 - 2 && y < b.y1 && y + h > b.y0);
+    // Priority: the training run and server room, the desk rooms, then the rest. A tag that would cover one already
+    // placed is left off (its room still answers to hover).
+    const rank = (k: PodKind) => (k === 'server' ? 0 : k === 'desks' || k === 'garage' ? 1 : 2);
+    const pods = [...L.pods].sort((a, b) => rank(a.kind) - rank(b.kind));
+    for (const pod of pods) {
+      // Tags sit on the end of the left wall, inside the room's own box, so they never need extra margin.
+      const [lx, ly] = project(p, pod.x, pod.y + pod.d, pod.h);
+      const tx = lx - 2;
+      const ty = ly - 3;
+      let text = pod.name;
+      let value: string | undefined;
+      let color = T.fg3;
+      let progress: number | undefined;
+      let tip = this.podTip(pod, L, s);
+      if (pod.kind === 'desks' || pod.kind === 'garage') {
+        value = `${pod.desks.length}`;
+        color = T.hl;
+      } else if (pod.kind === 'server') {
+        value = formatNumber(L.gpus, 1);
+        color = T.up;
+        if (s.training) {
+          const tr = s.training;
+          progress = tr.totalFlops > 0 ? Math.min(1, Math.max(0, tr.doneFlops / tr.totalFlops)) : 0;
+          text = 'Training';
+          value = `${Math.round(progress * 100)}%`;
+          color = T.hl;
+          tip = `Training ${tr.name}: ${value} done\n${tip}`;
+        }
+      } else if (pod.kind === 'meeting') value = `${pod.extras}`;
+      const w = tagWidth(g, text, { value, size });
+      const h = size + 7;
+      if (!free(tx, ty - h, w, h)) continue;
+      const box = tag(g, tx, ty, text, color, { value, progress, size, align: 'left' });
+      placed.push(box);
+      this.tagRects.push({ box, text: tip });
     }
-    g.restore();
+    for (const pod of L.pods) {
+      for (const b of pod.builds) {
+        const [bx, by] = project(p, pod.x + b.x + 0.9, pod.y + pod.d - 0.6, 0);
+        const w = tagWidth(g, 'Build', { value: '00d', size: 10 });
+        if (!free(bx - w / 2, by - 9, w, 17)) continue;
+        placed.push(tag(g, bx, by, 'Build', T.warn, { value: `${Math.ceil(b.days)}d`, size: 10, anchor: 'center', alpha: 0.85 + 0.15 * Math.sin(t * 3) }));
+      }
+    }
+    if (L.overflow > 0) {
+      const last = [...L.pods].reverse().find((q) => q.kind === 'desks' || q.kind === 'garage');
+      if (last) {
+        const [ox, oy] = project(p, last.x + last.w, last.y + last.d, 0);
+        tag(g, ox, oy + 4, `+${L.overflow} more staff`, T.hl, { size: 10, anchor: 'center' });
+      }
+    }
+  }
+
+  private podTip(pod: Pod, L: Layout, s: GameState): string {
+    switch (pod.kind) {
+      case 'desks':
+      case 'garage': {
+        const by = new Map<string, number>();
+        for (const d of pod.desks) by.set(d.role, (by.get(d.role) ?? 0) + 1);
+        const parts = [...by.entries()].map(([r, n]) => `${n} ${ROLE_NAME[r as Role].toLowerCase()}${n === 1 ? '' : 's'}`);
+        return `${pod.kind === 'garage' ? tierName(s) : pod.name}: ${pod.desks.length} desks\n${parts.join(', ') || 'Nobody yet'}`;
+      }
+      case 'server':
+        return `Server room: ${L.gpus.toLocaleString()} GPUs\n${pod.racks.length} racks${L.building ? `, ${L.building} datacenter${L.building === 1 ? '' : 's'} being built` : ''}${pod.crates.length ? `\n${pod.crates.length} unreleased model${pod.crates.length === 1 ? '' : 's'} in crates` : ''}`;
+      case 'meeting':
+        return `Meeting room: ${pod.extras} people in a meeting that could have been an email`;
+      case 'kitchen':
+        return `${pod.name}: where the real decisions are made`;
+      case 'house':
+        return "Mom's house: the rent is fine";
+      default:
+        return `${pod.name}: ${tierName(s)}`;
+    }
   }
 
   /** Confetti burst when a new model appears. */
   private trackModels(s: GameState): void {
     const n = s.models.length;
-    if (this.lastModels >= 0 && n > this.lastModels) {
-      this.effects.burst(this.cssW / 2, this.cssH * 0.3, 60);
-    }
+    if (this.lastModels >= 0 && n > this.lastModels) this.effects.burst(this.cssW / 2, this.cssH * 0.3, 60);
     this.lastModels = n;
-  }
-
-  private updateTraining(s: GameState): void {
-    const tr = s.training;
-    if (!tr) {
-      this.trainLabel = '';
-      this.trainPct = 0;
-      return;
-    }
-    const pct = tr.totalFlops > 0 ? Math.min(1, Math.max(0, tr.doneFlops / tr.totalFlops)) : 0;
-    this.trainPct = pct;
-    this.trainLabel = `Training: ${tr.name} ${Math.round(pct * 100)}%`;
-  }
-
-  private drawTrainingLabel(g: CanvasRenderingContext2D, L: Layout, t: number): void {
-    const p = this.proj;
-    const [x, y] = L.hasWing
-      ? project(p, L.wingX + L.wingW / 2, 0.8, WALL_H + 10)
-      : project(p, L.W / 2, 0.8, WALL_H + 10);
-    drawPill(g, x, y, this.trainLabel, C.amber, this.trainPct, t);
   }
 
   /** Hit-test people against the last drawn frame. */
   hitTest(mx: number, my: number): Person | null {
-    const r = 14 * this.proj.scale;
+    const r = Math.max(8, 13 * this.proj.scale);
     let best: Person | null = null;
     let bestD = r * r;
     for (const pe of this.crowd.people) {
@@ -531,47 +745,23 @@ export class OfficeScene {
   }
 
   roleLabel(pe: Person): string {
-    return `${ROLE_LABEL[pe.role] ?? pe.role} · desk ${pe.desk.index + 1}`;
+    return `${ROLE_NAME[pe.role] ?? pe.role} · desk ${pe.desk.index + 1}`;
   }
-}
 
-function smooth(a: number, b: number, x: number): number {
-  const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
-  return t * t * (3 - 2 * t);
-}
-
-function drawWingFloor(c: Ctx, x0: number, W: number, D: number, cell: number): void {
-  const nx = Math.ceil(W / cell);
-  const ny = Math.ceil(D / cell);
-  for (let i = 0; i < nx; i++) {
-    for (let j = 0; j < ny; j++) {
-      floorTile(c, x0 + i * cell, j * cell, Math.min(cell, W - i * cell), Math.min(cell, D - j * cell), (i + j) % 2 ? '#1c1b19' : '#211f1c');
+  /** Tip under a point: a person first, then a room tag or a room. */
+  tipAt(mx: number, my: number): string | null {
+    const pe = this.hitTest(mx, my);
+    if (pe) return this.roleLabel(pe);
+    for (const r of this.tagRects) if (mx >= r.box.x0 && mx <= r.box.x1 && my >= r.box.y0 && my <= r.box.y1) return r.text;
+    const L = this.layout;
+    const s = this.state;
+    if (!L || !s) return null;
+    for (const z of [0, 14]) {
+      const [fx, fy] = floorAt(this.proj, mx, my, z);
+      for (const pod of L.pods) {
+        if (fx >= pod.x && fx <= pod.x + pod.w && fy >= pod.y && fy <= pod.y + pod.d) return this.podTip(pod, L, s);
+      }
     }
+    return null;
   }
-}
-
-/** Square terminal label in screen space: black box, amber hairline, optional solid progress rule. */
-function drawPill(g: CanvasRenderingContext2D, x: number, y: number, text: string, color: string, progress?: number, t = 0): void {
-  g.save();
-  g.font = '600 11px JetBrains Mono, monospace';
-  const w = Math.ceil(g.measureText(text).width) + 16;
-  const h = 20;
-  const px = Math.round(x - w / 2);
-  const py = Math.round(y - h);
-  g.globalAlpha = 1;
-  g.fillStyle = '#000000';
-  g.fillRect(px, py, w, h);
-  g.strokeStyle = withAlpha(color, 0.9);
-  g.lineWidth = 1;
-  g.strokeRect(px + 0.5, py + 0.5, w - 1, h - 1);
-  if (progress !== undefined) {
-    g.fillStyle = C.amber;
-    g.fillRect(px + 1, py + h - 3, Math.max(0, (w - 2) * progress), 2);
-  }
-  g.fillStyle = C.fg;
-  g.textAlign = 'center';
-  g.textBaseline = 'middle';
-  g.globalAlpha = 0.85 + 0.15 * Math.sin(t * 3);
-  g.fillText(text, px + w / 2, py + h / 2 - 0.5);
-  g.restore();
 }

@@ -1266,6 +1266,7 @@ textarea {
 :root .progress-meta,
 :root .dock-k,
 :root .md-section-title,
+:root .mpg-sec-t,
 :root .md-label {
   font-family: var(--display);
   font-weight: 600;
@@ -1275,6 +1276,7 @@ textarea {
   color: var(--fg-3);
 }
 :root .panel-eyebrow { color: var(--hub, var(--accent)); font-weight: 700; }
+:root .mpg-sec-t { color: var(--fg-2); font-weight: 700; }
 :root .panel-eyebrow::before {
   content: '';
   width: 14px;
@@ -1371,10 +1373,19 @@ textarea {
 :root .btn-primary:disabled { background: var(--bg-3); color: var(--fg-4); }
 :root .btn-danger { background: var(--down-3); color: var(--down); }
 :root .btn-success { background: var(--up-3); color: var(--up); }
+:root .btn-danger.is-armed,
+:root .btn-danger.is-armed:hover:not(:disabled) { background: var(--down); color: var(--on-accent); }
 :root .btn-ghost { background: transparent; clip-path: none; }
 :root .btn-ghost:hover:not(:disabled) { background: var(--bg-2); }
 :root .btn.on { background: var(--accent-3); color: var(--accent); }
 :root .btn-icon { clip-path: none; padding: 0; }
+/* The slant clips an outside outline, so slanted controls show focus as an inside ring. */
+:root .btn:focus-visible,
+:root .tw-chip:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--accent); }
+:root .btn-primary:focus-visible,
+:root .tw-chip.is-on:focus-visible { box-shadow: inset 0 0 0 2px var(--on-hl); }
+:root .btn-ghost:focus-visible,
+:root .btn-icon:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; box-shadow: none; }
 
 /* ---- tags: solid slanted chips ---- */
 :root .pill {
@@ -1434,7 +1445,29 @@ textarea {
 :root .modal-header { background: var(--tex-head), var(--bg-2); border-bottom: 1px solid var(--line); box-shadow: inset 4px 0 0 var(--accent); }
 :root .modal-title { font-size: 20px; font-weight: 900; font-style: italic; }
 :root .input, :root .select { border-radius: 0; border: 1px solid var(--line-2); background: var(--bg); }
-:root .panel-intro { border-radius: 0; border: 1px solid var(--line); border-left: 4px solid var(--accent); background: var(--tex-head), var(--bg-1); }
+:root .panel-intro { border-radius: 0; border: 1px solid var(--line); border-left: 4px solid var(--accent); background: var(--tex-head), var(--bg-1); box-shadow: none; padding: 8px 10px 8px 14px; }
+:root details.disclosure { border-top: 1px solid var(--line); padding-top: 4px; }
+:root details.disclosure > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  cursor: pointer;
+  list-style: none;
+  font-family: var(--display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+}
+:root details.disclosure > summary::-webkit-details-marker { display: none; }
+:root details.disclosure > summary::before { content: '›'; font-size: 15px; color: var(--accent); transition: transform var(--t-fast) linear; }
+:root details.disclosure[open] > summary::before { transform: rotate(90deg); }
+:root details.disclosure > summary:hover { color: var(--fg); }
+:root .empty { padding: 14px 8px; gap: 4px; }
+:root .empty-title { font-size: 14px; letter-spacing: 0.04em; }
+:root .panel-intro-text { color: var(--fg-2); font-size: var(--fs-sm); line-height: 1.5; max-width: 90ch; }
 :root .office-view { border: 1px solid var(--line); border-radius: var(--r-sm); }
 
 /* ---- HUD: team badge, the date, the money, sim speed ---- */

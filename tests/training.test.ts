@@ -147,7 +147,7 @@ describe('precision and speed', () => {
     }
     expect(fp8Days).toBeLessThan(bf16Days);
     expect(fp8Incidents / fp8Days).toBeGreaterThan(bf16Incidents / bf16Days);
-  });
+  }, 20_000); // 200 simulated runs: ~4 s alone, more under a loaded full-suite run
 });
 
 describe('cluster efficiency', () => {

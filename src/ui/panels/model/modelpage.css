@@ -236,12 +236,6 @@ p.mpg-desc {
   gap: 12px;
   min-width: 0;
 }
-.mpg-cat {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 0;
-}
 .mpg-chips {
   display: flex;
   flex-wrap: wrap;
@@ -378,6 +372,7 @@ p.mpg-desc {
 
 /* playground: chips on the left, transcript on the right; columns start at the top, not stretched */
 .mpg-cols-play { align-items: start; }
+.mpg-catpick { flex-wrap: wrap; align-self: flex-start; }
 
 /* ---------- MOBILE-A: phone layout (<= 760px). Desktop rules above are unchanged. ---------- */
 @media (max-width: 760px) {

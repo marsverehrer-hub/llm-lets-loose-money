@@ -1,40 +1,41 @@
 // Drawing parts for the treasury room. Each draws in iso space through a Ctx, like the office furniture.
 import { floorTile, glow, isoBlock, isoBox, planeX, planeY, poly, withAlpha, type Ctx } from '../../office/draw/prims';
 import { project, type Projector } from '../../office/iso';
-import { C } from '../../office/palette';
-import { drawBoxes, drawChair, drawPlant } from '../../office/draw/furniture';
+import { T, TC as C, shade, tone } from '../../office/kit/theme';
+import { boxes as drawBoxes, chair as drawChair, plant as drawPlant } from '../../office/kit/props';
+import { tag } from '../../office/kit/frame';
 import { formatMoney } from '../../sim/util';
 import type { GameState } from '../../sim/types';
 import { BIN, BOARD, BUS, CHAIN_ANCHOR, CRATES, DOOR, PLANTS, SAFE, SLOT, TABLE, VAULT, type Lane, type Pt } from './plan';
 
 export const TREAS = {
-  carpetA: '#1f2a24',
-  carpetB: '#1b251f',
-  vaultFloor: '#17191c',
-  steel: '#2c3136',
-  steelLight: '#4a5058',
-  steelRail: '#60666d',
-  wood: '#4f4334',
-  woodTop: '#6e5d48',
+  get carpetA() { return tone(0.154); },
+  get carpetB() { return tone(0.135); },
+  get vaultFloor() { return tone(0.097); },
+  get steel() { return tone(0.189); },
+  get steelLight() { return tone(0.311); },
+  get steelRail() { return tone(0.397); },
+  get wood() { return T.wood; },
+  get woodTop() { return shade(T.wood, 1.25); },
   gold: '#e0a93f',
   cashA: '#3c9a63',
   cashB: '#2f7f51',
-  trim: '#34312c',
-  iron: '#aab0b8',
-  safeTop: '#4a5058',
-  safeLeft: '#2b3036',
-  safeRight: '#3a3f46',
-  safeDoor: '#5b626a',
-  binTop: '#40454c',
-  binLeft: '#2a2e33',
-  binRight: '#34383e',
-  belt: '#121416',
-  beltTop: '#2c3339',
-  beltDash: '#4b555e',
-  screen: '#050805',
-  paper: '#e8e4dc',
-  hatch: '#101214',
-  door: '#0e0f10',
+  get trim() { return tone(0.193); },
+  get iron() { return T.metal; },
+  get safeTop() { return tone(0.311); },
+  get safeLeft() { return tone(0.186); },
+  get safeRight() { return tone(0.245); },
+  get safeDoor() { return tone(0.381); },
+  get binTop() { return tone(0.268); },
+  get binLeft() { return tone(0.178); },
+  get binRight() { return tone(0.218); },
+  get belt() { return tone(0.077); },
+  get beltTop() { return tone(0.196); },
+  get beltDash() { return tone(0.328); },
+  get screen() { return tone(0.028); },
+  get paper() { return T.dark ? '#e8e4dc' : '#ffffff'; },
+  get hatch() { return tone(0.069); },
+  get door() { return tone(0.058); },
 };
 
 const TAU = Math.PI * 2;
@@ -72,7 +73,7 @@ export function drawVaultFloor(c: Ctx): void {
 
 /** Things drawn before the people: the back panel, the vault's left wall, the door and the revenue hatch. */
 export function drawShell(c: Ctx): void {
-  planeY(c, VAULT.x0, VAULT.x1, 0.03, 0, VAULT.h, '#262a2e');
+  planeY(c, VAULT.x0, VAULT.x1, 0.03, 0, VAULT.h, tone(0.163));
   isoBlock(c, VAULT.x0 - 0.2, 0, 0.2, VAULT.y1, 0, VAULT.h, TREAS.steel);
   // front door, left wall
   planeX(c, 0.03, DOOR.y0 - 0.25, DOOR.y1 + 0.25, 0, 26, TREAS.trim);
@@ -165,7 +166,7 @@ export function drawSafe(c: Ctx, scale: number, debtOn: boolean, chains: number,
     const [dx, dy] = project(p, x + w * 0.5, y + d + 0.02, h * 0.5);
     g.beginPath();
     g.arc(dx, dy, 3.2 * p.scale, 0, TAU);
-    g.fillStyle = '#20242a';
+    g.fillStyle = tone(0.140);
     g.fill();
     g.strokeStyle = TREAS.iron;
     g.lineWidth = 1 * p.scale;
@@ -184,11 +185,11 @@ export function drawSafe(c: Ctx, scale: number, debtOn: boolean, chains: number,
     const [lx, ly] = project(p, x + w, y + d * 0.5, h - 2);
     g.beginPath();
     g.arc(lx, ly, 1.6 * p.scale, 0, TAU);
-    g.fillStyle = Math.sin(t * 4) > 0 ? C.red : '#5a2a25';
+    g.fillStyle = Math.sin(t * 4) > 0 ? C.red : tone(0.203);
     g.fill();
   } else {
     // open door, empty, with a green lamp
-    planeY(c, x + w * 0.12, x + w * 0.88, y + d + 0.01, h * 0.15, h * 0.85, '#0b0c0d');
+    planeY(c, x + w * 0.12, x + w * 0.88, y + d + 0.01, h * 0.15, h * 0.85, tone(0.047));
     const [lx, ly] = project(p, x + w, y + d * 0.5, h - 2);
     g.beginPath();
     g.arc(lx, ly, 1.6 * p.scale, 0, TAU);
@@ -319,7 +320,7 @@ export function drawBoard(c: Ctx, s: GameState, t: number, vals: number[]): void
   const fs = Math.max(8, 9 * sc);
   g.save();
   g.textBaseline = 'middle';
-  g.font = `600 ${fs}px JetBrains Mono, monospace`;
+  g.font = `600 ${fs}px ${T.figure}`;
   g.textAlign = 'left';
   g.fillStyle = C.textDim;
   const [hx, hy] = P(cx0, 46.2);
@@ -329,11 +330,11 @@ export function drawBoard(c: Ctx, s: GameState, t: number, vals: number[]): void
     const mid = (cx0 + cx1) / 2;
     const [px, py] = P(mid, 42.5);
     g.textAlign = 'center';
-    g.font = `600 ${Math.max(9, 11 * sc)}px JetBrains Mono, monospace`;
+    g.font = `600 ${Math.max(9, 11 * sc)}px ${T.figure}`;
     g.fillStyle = C.textDim;
     g.fillText('PRIVATE', px, py);
     const [vx, vy] = P(mid, 36);
-    g.font = `600 ${fs}px JetBrains Mono, monospace`;
+    g.font = `600 ${fs}px ${T.figure}`;
     g.fillStyle = C.textDim;
     g.globalAlpha = 0.7;
     g.fillText(`val. ${formatMoney(s.finance.valuation)}`, vx, vy);
@@ -403,12 +404,12 @@ export function drawBoard(c: Ctx, s: GameState, t: number, vals: number[]): void
   const first = n >= 1 ? vals[0] : price;
   const change = first > 0 ? (price / first - 1) * 100 : 0;
   g.textAlign = 'left';
-  g.font = `600 ${Math.max(9, 11 * sc)}px JetBrains Mono, monospace`;
+  g.font = `600 ${Math.max(9, 11 * sc)}px ${T.figure}`;
   g.fillStyle = C.fg;
   const [qx, qy] = P(cx0, 42.5);
   g.fillText(`$${price.toFixed(2)}`, qx, qy);
   g.textAlign = 'right';
-  g.font = `600 ${fs}px JetBrains Mono, monospace`;
+  g.font = `600 ${fs}px ${T.figure}`;
   g.fillStyle = change >= 0 ? C.green : C.red;
   const [rx, ry] = P(cx1, 42.5);
   g.fillText(`${change >= 0 ? '+' : ''}${change.toFixed(1)}%`, rx, ry);
@@ -427,20 +428,5 @@ export function drawBoard(c: Ctx, s: GameState, t: number, vals: number[]): void
 
 /** Screen-space label in the office's pill style. */
 export function drawPill(g: CanvasRenderingContext2D, x: number, y: number, text: string, color: string): void {
-  g.save();
-  g.font = '600 11px JetBrains Mono, monospace';
-  const w = Math.ceil(g.measureText(text).width) + 16;
-  const h = 20;
-  const px = Math.round(x - w / 2);
-  const py = Math.round(y - h);
-  g.fillStyle = '#000000';
-  g.fillRect(px, py, w, h);
-  g.strokeStyle = withAlpha(color, 0.9);
-  g.lineWidth = 1;
-  g.strokeRect(px + 0.5, py + 0.5, w - 1, h - 1);
-  g.fillStyle = color;
-  g.textAlign = 'center';
-  g.textBaseline = 'middle';
-  g.fillText(text, px + w / 2, py + h / 2 - 0.5);
-  g.restore();
+  tag(g, x, y, text, color, { size: 11 });
 }

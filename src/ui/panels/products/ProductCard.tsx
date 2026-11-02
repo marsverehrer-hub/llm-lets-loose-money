@@ -184,7 +184,7 @@ export function LiveProductCard({ s, product }: { s: GameState; product: Product
             <span>Auto-upgrade model</span>
           </label>
           <ConfirmButton
-            class="pn-btn--sm"
+            class="btn-sm"
             label="Shut down"
             confirmLabel="Shut it down for good?"
             onConfirm={() => dispatch({ type: 'shutdownProduct', productId: product.id })}

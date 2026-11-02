@@ -1,4 +1,5 @@
 import type { ActionHandlers, GameAction, GameState, System } from './types';
+import { chaptersTick } from './systems/chapters';
 import { makeRng } from './rng';
 import { computeTick, handlers as computeHandlers } from './systems/compute';
 import { dataTick, handlers as dataHandlers } from './systems/data';
@@ -64,6 +65,7 @@ const SYSTEMS: System[] = [
   milestonesTick,
   momentsTick,
   boardTick, // v13: quarterly goals, paid the day they are met
+  chaptersTick, // v17: one clear objective at a time; before the XP observer so it sees the chapter's XP
   progressionTick, // v13: XP observer, last so it sees the whole day
 ];
 

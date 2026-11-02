@@ -979,10 +979,12 @@ export function GetDataArea({ s, market }: { s: GameState; market: ComponentChil
   }
 
   return (
-    <section class="do-area" aria-label="Get data">
-      <header class="do-head">
-        <span class="do-head-title">Get data</span>
-        <span class="do-head-sub">Eight ways in</span>
+    <section class="do-area card" aria-label="Get data">
+      <header class="card-header">
+        <div class="card-heading">
+          <h3 class="card-title">Get data</h3>
+          <span class="card-subtitle">Eight ways in</span>
+        </div>
       </header>
       <Tabs tabs={tabs} value={tab} onChange={setTab} class="do-tabs" />
       <div class="do-body">

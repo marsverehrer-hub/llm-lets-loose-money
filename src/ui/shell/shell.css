@@ -38,8 +38,8 @@
   align-items: center;
   gap: 12px;
   flex-shrink: 0;
-  min-width: 0;
-  width: calc(var(--nav-w) - 26px);
+  /* Grows when a long status tag ("Decision pending") would otherwise run into the cash readout. */
+  min-width: calc(var(--nav-w) - 26px);
 }
 .brand-mark {
   display: grid;
@@ -160,7 +160,7 @@
 /* Lower-priority readouts drop out as the window narrows. Selectors are doubled so they beat .tip-anchor. */
 @media (max-width: 1320px) { .topbar-stats .topbar-stat.ts-hype, .topbar-stats .tip-anchor.ts-hype { display: none; } }
 @media (max-width: 1220px) { .topbar-stats .topbar-stat.ts-val { display: none; } }
-@media (max-width: 1100px) { .brand { width: auto; } }
+@media (max-width: 1100px) { .brand { min-width: 0; } }
 @media (max-width: 1100px) { .topbar-stats .topbar-stat.ts-rev { display: none; } }
 @media (max-width: 900px) { .topbar-stats .topbar-stat.ts-runway { display: none; } }
 @media (max-width: 1000px) { .topbar .tb-text { display: none; } }
@@ -753,8 +753,11 @@
 .gameover-title {
   color: var(--down);
   font-family: var(--display);
-  font-size: 24px;
-  font-weight: 800;
+  font-size: 34px;
+  font-weight: 900;
+  font-style: italic;
+  line-height: 1;
+  text-transform: uppercase;
 }
 .gameover-reason {
   margin-top: 6px;
@@ -764,10 +767,12 @@
 .gameover-kv { margin-top: 12px; }
 .gameover-new {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-top: 14px;
 }
-.gameover-new .input { flex: 1; min-width: 0; }
+/* The name gets its own line; the three ways forward share the next one. */
+.gameover-new .input { flex: 1 1 100%; min-width: 0; }
 
 /* ---------- shortcuts ------------------------------------------------------ */
 .shortcut-list { display: flex; flex-direction: column; }

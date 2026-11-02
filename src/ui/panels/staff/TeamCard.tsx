@@ -2,7 +2,7 @@ import type { GameState, RoleId } from '../../../sim/types';
 import { formatMoney } from '../../../sim/util';
 import { Button, HelpTip, Pill, ProgressBar, Slider } from '../../components';
 import { dispatch } from '../../store';
-import { UNDERPAID_BELOW, POACH_MORALE_BELOW, effectSentence, teamEffect, type TeamStat } from './model';
+import { UNDERPAID_BELOW, POACH_MORALE_BELOW, teamEffect, type TeamStat } from './model';
 import { StarCard } from './StarCard';
 
 export interface TeamCardProps {
@@ -40,20 +40,25 @@ export function TeamCard({ s, team, selected, onToggle, onHire }: TeamCardProps)
       </button>
 
       <div class="sf-team-body">
-        <div class="sf-skill">
-          <span class="sf-lbl">
-            Skill
-            <HelpTip>
-              How good the average person on this team is. 1.00 is typical. Output scales with skill times morale.
-            </HelpTip>
-          </span>
-          <ProgressBar value={team.skill} max={SKILL_MAX} height={6} tone="info" right={team.count > 0 ? team.skill.toFixed(2) : '—'} />
-        </div>
-
         <p class="sf-effect">
-          <span class="sf-effect-main">{effectSentence(team, eff)}</span>
+          <span class="sf-effect-main">{eff.line}</span>
           {eff.extra && <span class="sf-effect-extra">{eff.extra}</span>}
         </p>
+
+        <ProgressBar
+          class="sf-skill"
+          value={team.skill}
+          max={SKILL_MAX}
+          height={6}
+          tone="info"
+          label={
+            <span class="sf-lbl">
+              Skill
+              <HelpTip>How good the average person on this team is. 1.00 is typical. Output scales with skill times morale.</HelpTip>
+            </span>
+          }
+          right={team.count > 0 ? team.skill.toFixed(2) : '—'}
+        />
 
         {(underpaid || poaching) && (
           <div class="sf-tags">

@@ -11,6 +11,7 @@ import { GoalsCard } from './GoalsCard'; // v9 scenario: renders only when the s
 import { DetailsSection } from './hq/DetailsSection';
 import { MoneyCard } from './hq/MoneyCard';
 import { NextCard } from './hq/NextCard';
+import { ChapterBanner } from './hq/ChapterBanner'; // v17
 import { KpiStrip } from './hq/KpiStrip';
 import { ProductsCard } from './hq/ProductsCard';
 import { RaceCard } from './hq/RaceCard';
@@ -43,6 +44,8 @@ export function DashboardPanel() {
       <PanelIntro id="hq">
         Your lab at a glance. The advisor lists what to do next, most urgent first. Every number links to the screen where you change it.
       </PanelIntro>
+
+      <ChapterBanner s={s} />
 
       <div class="hq-top">
         <NextCard s={s} />

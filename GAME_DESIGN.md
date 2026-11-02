@@ -1681,3 +1681,30 @@ Media models live in `s.media` (`MediaState`), never in `s.models`, so the langu
 
 ### 28.4 Balance
 The bots never use stages, anneals, recipes or media, and none of those draw from the RNG unless used, so `--all --years=8 --seeds=1` is unchanged (see the commit message for the numbers).
+
+## 29. Lab chapters (v17): one clear objective at a time
+Players found it unclear what the game wanted from them next, and the default Garage start had no goals at all.
+`systems/chapters.ts` gives every scenario a career of 13 chapters, completed strictly in order the day each condition
+holds (several on one day if already met). Each pays XP (40 to 600, times the era multiplier) and posts a milestone
+toast naming the next chapter. Progress is `s.flags.chapter`.
+
+| # | Chapter | Done when |
+|---|---|---|
+| 1 | Start your first training run | a run is live or any model exists |
+| 2 | Release a model | any model is released |
+| 3 | Launch your first product | a live LLM or media product |
+| 4 | Earn $10K a day | daily revenue ≥ $10K |
+| 5 | Raise a funding round | a round is raised, or public, or the scenario forbids VC |
+| 6 | Own your GPUs: build a datacenter | a finished datacenter holds GPUs |
+| 7 | Reach the top 3 on the Arena | arena rank 1–3 |
+| 8 | Earn $100K a day | |
+| 9 | Win a crown or a client contract | a class crown held, or a contract won or completed |
+| 10 | Earn $1M a day | |
+| 11 | Go public | public, or the scenario forbids an IPO |
+| 12 | Be number one on the Arena | arena rank 1 |
+| 13 | Reach a $1T valuation | |
+
+UI: Headquarters leads with the current chapter (objective, why, progress bar for numeric goals, pips for the whole
+career, a button to the right screen). The advisor (`ui/panels/hq/nextStep.ts`) slots the chapter in after urgent and
+core-loop moves unless a move already points at the same screen, and the run dock shows the single most useful move
+on every screen ("Next", or "Urgent" in red).

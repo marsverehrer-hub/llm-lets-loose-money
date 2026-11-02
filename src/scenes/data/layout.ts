@@ -1,10 +1,10 @@
-// Data warehouse layout: a pure function of GameState. Owned sets become crates on shelving aisles (one aisle per
-// domain), data ops become machines, belts and job traffic. Rebuilt only when its signature changes.
+// Data warehouse layout: a pure function of GameState and the canvas size. Owned sets become crates on shelving islands
+// (one per domain), data ops become machine islands (crawler, refinery, loading bay), conveyors and job traffic.
+// Islands sit on the kit's staggered lattice. Rebuilt only when its signature changes.
 import type { DataDomain, GameState, Id } from '../../sim/types';
 import { believedQualityOf, datasetById, isVerifiedData } from '../../sim/systems/data';
 import { CRAWLER_TIERS, archiveById, crawlBlocked, crawlYieldPerDayB, crawlerTierById } from '../../sim/systems/dataOps';
-
-export type P = [number, number];
+import { lattice } from '../kit';
 
 /** Short labels for aisles and tips. */
 export const DOMAIN_NAME: Record<DataDomain, string> = {
@@ -23,35 +23,25 @@ const RISKY_LEGAL = 0.25;
 const RISKY_REPUTATION = 0.2;
 const LEGAL_HIGH = 0.3;
 
-// Shelving geometry (world units; heights in px, same as the office kit).
+// Island geometry (world units; heights in px).
+export const CELL = 4.4;
+export const ISLE = 3.9;
 export const BAYS = 6;
 export const LEVELS = 3;
 export const DEPTH_SLOTS = 2;
 export const SLOTS = BAYS * LEVELS * DEPTH_SLOTS;
-export const BOARD_Z = [6, 18, 30];
-export const RACK_TOP = 40;
-export const BAY_W = 0.9;
+export const BOARD_Z = [5, 15, 25];
+export const RACK_TOP = 34;
+export const BAY_W = 0.56;
 export const RACK_LEN = BAYS * BAY_W;
-export const RACK_D = 1.6;
-export const CRATE_W = 0.74;
-export const CRATE_D = 0.66;
-export const CRATE_H = 9;
-export const CELL_W = RACK_LEN + 1.6;
-export const CELL_D = RACK_D + 0.8;
-export const X0 = 1.0;
-export const Y0 = 3.2;
-
-// Fixed zones. The building starts at x = 0; outside (x < 0) the pipe and belts come in.
-export const MIN_X = -2.8;
-export const CRAWLER_BOX = { x0: 1.0, y0: 0.7, x1: 2.9, y1: 2.0 };
-export const REFINERY_BOX = { x0: 3.5, y0: 0.7, x1: 5.6, y1: 2.0 };
-export const REFINE_LANE_X = [4.2, 5.0];
-export const LANE_STREAM = [2.25, 2.4];
-export const LANE_WORKER = 2.7;
-export const LANE_FORK = 2.95;
-const DOCK_Y = { y0: 2.45, y1: 3.05 };
-export const WORKER_MAX = 6;
-export const TRIP_S = 9;
+export const RACK_D = 1.3;
+export const CRATE_W = 0.46;
+export const CRATE_D = 0.52;
+export const CRATE_H = 8;
+/** Shelving origin inside an island, and the conveyor lanes in front of it. */
+const SHELF_X = 0.3;
+const SHELF_Y = 0.35;
+export const BELT_Y = [2.25, 2.95];
 
 export interface SetView {
   id: Id;
@@ -77,35 +67,46 @@ export interface CrateView {
   legal: boolean;
 }
 
-export interface AisleView {
-  index: number;
-  domain: DataDomain;
+/** An island: its slab origin (ISLE square) and its lattice line. */
+export interface Isle {
   x: number;
   y: number;
-  crates: CrateView[];
-  sets: SetView[];
-  /** Crates in this domain, including those past the shelf capacity. */
-  total: number;
-  overflow: number;
+  line: number;
 }
 
 export interface BeltView {
   streamId: string;
   name: string;
   domain: DataDomain;
-  path: P[];
-  aisle: number;
   tokensPerDayB: number;
+  /** Conveyor from x0 to x1 at y (world), on its aisle's island. */
+  x0: number;
+  x1: number;
+  y: number;
 }
 
 export interface JobView {
   id: Id;
   kind: 'bounty' | 'archive' | 'distill';
   domain: DataDomain;
-  aisle: number;
-  path: P[];
   doneDay: number;
   label: string;
+}
+
+export interface AisleView extends Isle {
+  index: number;
+  domain: DataDomain;
+  /** Shelving origin. */
+  sx: number;
+  sy: number;
+  crates: CrateView[];
+  sets: SetView[];
+  /** Crates in this domain, including those past the shelf capacity. */
+  total: number;
+  overflow: number;
+  /** Streams feeding this aisle (conveyors) and jobs on their way here (workers carrying boxes). */
+  belts: BeltView[];
+  jobs: JobView[];
 }
 
 export interface RefineView {
@@ -132,26 +133,24 @@ export interface HitBox {
   x1: number;
   y1: number;
   z1: number;
+  line: number;
 }
 
 export interface Layout {
   sig: string;
-  W: number;
-  D: number;
   unit: number;
   totalTokensB: number;
   totalCrates: number;
   sets: SetView[];
   aisles: AisleView[];
-  belts: BeltView[];
   jobs: JobView[];
   refines: RefineView[];
   crawler: CrawlerView | null;
-  /** Each aisle index that holds crates, with its forklift route to the training door. */
-  forkSources: { aisle: number; path: P[] }[];
-  doorX: number;
-  dock: { x0: number; y0: number; x1: number; y1: number };
+  crawlerIsle: Isle | null;
+  refineryIsle: Isle;
+  bayIsle: Isle;
   dockBoxes: number;
+  lines: number;
   hits: HitBox[];
 }
 
@@ -188,7 +187,7 @@ function collectSets(s: GameState): SetView[] {
   return out;
 }
 
-export function buildLayout(s: GameState): Layout {
+export function buildLayout(s: GameState, W: number, H: number): Layout {
   const sets = collectSets(s);
   const totalTokensB = sets.reduce((a, v) => a + v.tokensB, 0);
   const unit = Math.max(1, 10 ** Math.round(Math.log10(Math.max(1, totalTokensB) / CRATE_TARGET)));
@@ -208,26 +207,39 @@ export function buildLayout(s: GameState): Layout {
   for (const j of jobs) domains.add(jobDomain(j));
   let order = DOMAIN_ORDER.filter((d) => domains.has(d));
   if (order.length === 0) order = ['general'];
-  const N = order.length;
-  const cols = Math.max(1, Math.ceil(Math.sqrt((N * CELL_D) / CELL_W)));
-  const rows = Math.ceil(N / cols);
-  const W = Math.max(9.6, X0 + cols * CELL_W + 0.6);
-  const D = Y0 + rows * CELL_D + 0.2;
-  const doorX = W - 2.6;
-  const dock = { x0: W - 2.3, y0: DOCK_Y.y0, x1: W - 0.9, y1: DOCK_Y.y1 };
-  const dockX = (dock.x0 + dock.x1) / 2;
+
+  const c = ops?.crawler;
+  const nOps = c ? 3 : 2;
+  const cells = lattice(nOps + order.length, CELL, 0.5, 40, W, H);
+  const lines = cells.length ? cells[cells.length - 1].line + 1 : 1;
+  const isleAt = (k: number): Isle => {
+    const cc = cells[k] ?? { x: 0, y: 0, line: 0 };
+    return { x: cc.x + (CELL - ISLE) / 2, y: cc.y + (CELL - ISLE) / 2, line: cc.line };
+  };
+  let k = 0;
+  const crawlerIsle = c ? isleAt(k++) : null;
+  const refineryIsle = isleAt(k++);
+  const bayIsle = isleAt(k++);
+
+  const jobViews: JobView[] = jobs.map((j) => {
+    const domain = jobDomain(j);
+    let label: string;
+    if (j.kind === 'bounty') label = `Bounty, ${DOMAIN_NAME[domain]}, ${j.tokensB.toFixed(1)}B tokens`;
+    else if (j.kind === 'archive') label = `Archive: ${archiveById(j.archiveId)?.name ?? j.archiveId}`;
+    else label = `Distillation from ${j.modelName}`;
+    return { id: j.id, kind: j.kind as JobView['kind'], domain, doneDay: j.doneDay, label };
+  });
 
   const aisles: AisleView[] = order.map((domain, i) => {
-    const col = i % cols;
-    const row = Math.floor(i / cols);
-    const x = X0 + col * CELL_W;
-    const y = Y0 + row * CELL_D;
+    const isle = isleAt(k + i);
+    const sx = isle.x + SHELF_X;
+    const sy = isle.y + SHELF_Y;
     const domSets = sets.filter((v) => v.domain === domain);
     const crates: CrateView[] = [];
     let filled = 0;
     let total = 0;
     for (const v of domSets) {
-      for (let k = 0; k < v.crates; k++) {
+      for (let q = 0; q < v.crates; q++) {
         total++;
         if (filled >= SLOTS) continue;
         const idx = filled++;
@@ -236,54 +248,44 @@ export function buildLayout(s: GameState): Layout {
         const level = Math.floor(r / DEPTH_SLOTS);
         const depth = r % DEPTH_SLOTS;
         crates.push({
-          x: x + 0.08 + bay * BAY_W,
-          y: y + 0.12 + depth * 0.78,
+          x: sx + 0.05 + bay * BAY_W,
+          y: sy + 0.08 + (1 - depth) * 0.6,
           z0: BOARD_Z[level],
           color: qualityColor(v.q),
-          warn: k === 0 && v.warn,
-          legal: k === 0 && v.legal,
+          warn: q === 0 && v.warn,
+          legal: q === 0 && v.legal,
         });
       }
     }
-    return { index: i, domain, x, y, crates, sets: domSets, total, overflow: Math.max(0, total - SLOTS) };
-  });
-  const aisleOf = new Map<DataDomain, number>();
-  aisles.forEach((a) => aisleOf.set(a.domain, a.index));
-
-  const belts: BeltView[] = streams.map((st, k) => {
-    const a = aisles[aisleOf.get(st.domain) ?? 0];
-    const gx = a.x - 0.4;
-    const ly = LANE_STREAM[k % LANE_STREAM.length];
+    // Back slots first so the front crates draw over them; low boards first.
+    crates.sort((a, b) => a.y - b.y || a.z0 - b.z0 || a.x - b.x);
+    const belts: BeltView[] = streams
+      .filter((st) => st.domain === domain)
+      .map((st, n) => ({
+        streamId: st.id,
+        name: st.name,
+        domain: st.domain,
+        tokensPerDayB: st.tokensPerDayB,
+        x0: isle.x + 0.15,
+        x1: isle.x + ISLE - 0.3,
+        y: isle.y + BELT_Y[n % BELT_Y.length],
+      }));
     return {
-      streamId: st.id,
-      name: st.name,
-      domain: st.domain,
-      tokensPerDayB: st.tokensPerDayB,
-      aisle: a.index,
-      path: [[MIN_X, ly], [gx, ly], [gx, a.y + 0.9], [a.x + 0.2, a.y + 0.9]],
-    };
-  });
-
-  const jobViews: JobView[] = jobs.map((j) => {
-    const domain = jobDomain(j);
-    const a = aisles[aisleOf.get(domain) ?? 0];
-    const gx = a.x - 0.4;
-    let label: string;
-    if (j.kind === 'bounty') label = `Bounty, ${DOMAIN_NAME[domain]}, ${j.tokensB.toFixed(1)}B tokens`;
-    else if (j.kind === 'archive') label = `Archive: ${archiveById(j.archiveId)?.name ?? j.archiveId}`;
-    else label = `Distillation from ${j.modelName}`;
-    return {
-      id: j.id,
-      kind: j.kind as JobView['kind'],
+      ...isle,
+      index: i,
       domain,
-      aisle: a.index,
-      doneDay: j.doneDay,
-      label,
-      path: [[dockX, LANE_WORKER], [gx, LANE_WORKER], [gx, a.y + 0.9], [a.x + 0.5, a.y + 0.9]],
+      sx,
+      sy,
+      crates,
+      sets: domSets,
+      total,
+      overflow: Math.max(0, total - SLOTS),
+      belts,
+      jobs: jobViews.filter((j) => j.domain === domain),
     };
   });
 
-  const refines: RefineView[] = refineJobs.slice(0, REFINE_LANE_X.length).map((j, lane) => ({
+  const refines: RefineView[] = refineJobs.slice(0, 2).map((j, lane) => ({
     lane,
     name: datasetById(s, j.datasetId)?.name ?? j.datasetId,
     level: j.level,
@@ -291,7 +293,6 @@ export function buildLayout(s: GameState): Layout {
   }));
 
   let crawler: CrawlerView | null = null;
-  const c = ops?.crawler;
   if (c) {
     const tierIdx = Math.max(0, CRAWLER_TIERS.findIndex((t) => t.id === c.tier));
     const building = s.day < c.onlineDay;
@@ -299,7 +300,7 @@ export function buildLayout(s: GameState): Layout {
     crawler = {
       name: crawlerTierById(c.tier)?.name ?? c.tier,
       tierIdx,
-      h: 22 + tierIdx * 8,
+      h: 22 + tierIdx * 6,
       online: !building,
       building,
       blocked,
@@ -307,79 +308,54 @@ export function buildLayout(s: GameState): Layout {
     };
   }
 
-  const forkSources = aisles
-    .filter((a) => a.crates.length > 0)
-    .map((a) => {
-      const gx = a.x - 0.4;
-      return {
-        aisle: a.index,
-        path: [[gx, a.y + 0.9], [gx, LANE_FORK], [doorX, LANE_FORK], [doorX, 0.6]] as P[],
-      };
-    });
-
   const hits: HitBox[] = [];
   for (const a of aisles) {
-    hits.push({ id: `domain:${a.domain}`, x0: a.x, y0: a.y, x1: a.x + RACK_LEN + 1.1, y1: a.y + RACK_D, z1: RACK_TOP });
+    hits.push({ id: `domain:${a.domain}`, x0: a.x, y0: a.y, x1: a.x + ISLE, y1: a.sy + RACK_D + 0.3, z1: RACK_TOP, line: a.line });
+    for (const b of a.belts) hits.push({ id: `stream:${b.streamId}`, x0: b.x0, y0: b.y - 0.3, x1: b.x1, y1: b.y + 0.3, z1: 8, line: a.line + 0.5 });
   }
-  if (crawler) {
-    hits.push({ id: 'crawler', x0: CRAWLER_BOX.x0, y0: CRAWLER_BOX.y0, x1: CRAWLER_BOX.x1, y1: CRAWLER_BOX.y1, z1: crawler.h + 7 });
+  if (crawler && crawlerIsle) {
+    hits.push({ id: 'crawler', x0: crawlerIsle.x, y0: crawlerIsle.y, x1: crawlerIsle.x + ISLE, y1: crawlerIsle.y + ISLE, z1: crawler.h + 18, line: crawlerIsle.line });
   }
-  hits.push({ id: 'refinery', x0: REFINERY_BOX.x0, y0: REFINERY_BOX.y0, x1: REFINERY_BOX.x1, y1: REFINERY_BOX.y1, z1: 34 });
-  hits.push({ id: 'jobs', x0: dock.x0, y0: dock.y0, x1: dock.x1, y1: dock.y1, z1: 14 });
-  for (const b of belts) {
-    for (let i = 0; i + 1 < b.path.length; i++) {
-      const [ax, ay] = b.path[i];
-      const [bx, by] = b.path[i + 1];
-      hits.push({
-        id: `stream:${b.streamId}`,
-        x0: Math.min(ax, bx) - 0.22,
-        y0: Math.min(ay, by) - 0.22,
-        x1: Math.max(ax, bx) + 0.22,
-        y1: Math.max(ay, by) + 0.22,
-        z1: 8,
-      });
-    }
-  }
+  hits.push({ id: 'refinery', x0: refineryIsle.x, y0: refineryIsle.y, x1: refineryIsle.x + ISLE, y1: refineryIsle.y + ISLE, z1: 36, line: refineryIsle.line });
+  hits.push({ id: 'jobs', x0: bayIsle.x, y0: bayIsle.y + 1.7, x1: bayIsle.x + 2.0, y1: bayIsle.y + ISLE, z1: 18, line: bayIsle.line + 0.5 });
+  hits.sort((a, b) => a.line - b.line);
 
   const sig = [
     unit,
-    W.toFixed(2),
-    D.toFixed(2),
+    `${W}x${H}`,
     aisles.map((a) => `${a.domain}:${a.crates.length}:${a.overflow}`).join(','),
     sets.map((v) => `${v.id}:${v.crates}:${Math.round(v.q * 100)}:${v.warn ? 1 : 0}:${v.legal ? 1 : 0}`).join(','),
-    belts.map((b) => `${b.streamId}:${b.aisle}`).join(','),
-    jobViews.map((j) => `${j.id}:${j.aisle}`).join(','),
+    streams.map((b) => b.id).join(','),
+    jobViews.map((j) => j.id).join(','),
     refines.map((r) => `${r.lane}:${r.name}:${r.level}`).join(','),
     crawler ? `${crawler.tierIdx}:${crawler.building}:${crawler.blocked}:${crawler.flowing}` : '-',
   ].join('|');
 
   return {
     sig,
-    W,
-    D,
     unit,
     totalTokensB,
     totalCrates,
     sets,
     aisles,
-    belts,
     jobs: jobViews,
     refines,
     crawler,
-    forkSources,
-    doorX,
-    dock,
+    crawlerIsle,
+    refineryIsle,
+    bayIsle,
     dockBoxes: Math.min(6, jobViews.length),
+    lines,
     hits,
   };
 }
 
 // Quality ramp: dark brown for weak sets, cardboard in the middle, pale gold for the best.
 const QUALITY_STOPS: [number, string][] = [
-  [0, '#33281f'],
-  [0.5, '#7a5c3a'],
-  [0.8, '#b58c4e'],
-  [1, '#e0c88e'],
+  [0, '#4a3a2b'],
+  [0.5, '#8a6a44'],
+  [0.8, '#c09656'],
+  [1, '#ead39a'],
 ];
 export function qualityColor(q: number): string {
   const v = Math.min(1, Math.max(0, q));
@@ -406,29 +382,4 @@ export function fmtTokens(tokensB: number): string {
   if (tokensB >= 1000) return `${(tokensB / 1000).toFixed(tokensB >= 10000 ? 0 : 1)}T`;
   if (tokensB >= 10) return `${Math.round(tokensB)}B`;
   return `${tokensB.toFixed(1)}B`;
-}
-
-/** Position and heading at distance `dist` along a polyline (clamped to its ends). */
-export function alongPath(path: P[], dist: number): { x: number; y: number; dx: number; dy: number } {
-  let rest = Math.max(0, dist);
-  for (let i = 0; i + 1 < path.length; i++) {
-    const [ax, ay] = path[i];
-    const [bx, by] = path[i + 1];
-    const len = Math.hypot(bx - ax, by - ay);
-    if (rest <= len || i + 2 === path.length) {
-      const u = len > 0 ? Math.min(1, rest / len) : 0;
-      const dx = len > 0 ? (bx - ax) / len : 0;
-      const dy = len > 0 ? (by - ay) / len : 0;
-      return { x: ax + (bx - ax) * u, y: ay + (by - ay) * u, dx, dy };
-    }
-    rest -= len;
-  }
-  const last = path[path.length - 1];
-  return { x: last[0], y: last[1], dx: 0, dy: 0 };
-}
-
-export function pathLength(path: P[]): number {
-  let n = 0;
-  for (let i = 0; i + 1 < path.length; i++) n += Math.hypot(path[i + 1][0] - path[i][0], path[i + 1][1] - path[i][1]);
-  return n;
 }

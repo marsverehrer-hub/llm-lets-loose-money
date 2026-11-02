@@ -2,7 +2,7 @@
 
 .pr-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr));
   gap: 12px;
   align-items: start;
 }
@@ -260,6 +260,14 @@ button.pr-tile:focus-visible {
 .pr-tile.is-locked,
 .pr-tile.is-full {
   color: var(--fg-3);
+}
+.pr-tile-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  margin-top: auto;
 }
 .pr-fee {
   margin-top: auto;

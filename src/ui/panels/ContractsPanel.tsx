@@ -67,10 +67,9 @@ function Chips({ checks }: { checks: ReqCheck[] }) {
   return (
     <div class="ct-chips">
       {checks.map((c) => (
-        <span key={c.key} class={`ct-chip ${c.ok ? 'ct-chip-ok' : 'ct-chip-no'}`} title={c.ok ? 'Met' : 'Not met'}>
-          <span class="ct-chip-mark" aria-hidden="true">{c.ok ? '▲' : '▼'}</span>
-          {c.label}
-        </span>
+        <Pill key={c.key} tone={c.ok ? 'good' : 'bad'} title={c.ok ? 'Met' : 'Not met'}>
+          {`${c.ok ? '▲' : '▼'} ${c.label}`}
+        </Pill>
       ))}
     </div>
   );
@@ -243,13 +242,19 @@ export function ContractsPanel() {
 
   return (
     <div class="ct">
-      <PanelHeader code="CON" title="Contracts" subtitle="Deals that pay for fit, not size" />
+      <PanelHeader
+        code="CON"
+        title="Contracts"
+        subtitle="Deals that pay for fit, not size"
+        actions={
+          <>
+            <Stat label="Revenue a year" value={usd(perYear)} tone={perYear > 0 ? 'good' : 'muted'} size="sm" />
+            <Stat label="Active" value={String(active.length)} tone={active.length > 0 ? 'default' : 'muted'} size="sm" />
+            <Stat label="Offers" value={String(offers.length)} tone={offers.length > 0 ? 'default' : 'muted'} size="sm" />
+          </>
+        }
+      />
       <PanelIntro id="contracts">Clients pay for a model that fits their job. Bid with a model that qualifies, and keep it in spec while the deal runs.</PanelIntro>
-
-      <div class="ct-stats">
-        <Stat label="Contract revenue a year" value={usd(perYear)} size="sm" />
-        <Stat label="Active" value={String(active.length)} size="sm" />
-      </div>
 
       <Card code="OFR" title="Open offers" class="ct-card">
         {offers.length === 0 ? (
@@ -266,7 +271,7 @@ export function ContractsPanel() {
       <Card code="ACT" title="Active contracts" class="ct-card" flush>
         {active.length === 0 ? (
           <div class="ct-pad">
-            <EmptyState title="No active contracts." text="Win a bid and it lands here, paying every day." />
+            <EmptyState title="No active contracts" text="Win a bid and it lands here, paying every day." />
           </div>
         ) : (
           <div class="table-wrap table-stack">
