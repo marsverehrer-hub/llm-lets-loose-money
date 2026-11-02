@@ -33,6 +33,7 @@ import { arenaTop, bandText, fmtCtx, lineageRows, optionName, pct, r0, tokensSho
 import { ArmButton } from './model/parts';
 import { CLASS_NAME, ModelPage } from './model/ModelPage';
 import { statusPills } from './model/status';
+import { MediaStudio } from './model/MediaStudio'; // v16 image and video models
 import './models.css';
 import { ConfirmButton } from './panelKit';
 import { SceneView } from '../../scenes/SceneView';
@@ -128,6 +129,7 @@ export function ModelsPanel() {
       <ModelList s={s} models={models} selId={detail?.id ?? null} onSelect={setSelId} />
       {detail && <ModelPage key={detail.id} s={s} m={detail} />}
       <LabNotebook s={s} />
+      <MediaStudio s={s} />
     </div>
   );
 }

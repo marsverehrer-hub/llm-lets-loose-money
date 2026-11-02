@@ -25,8 +25,8 @@ function dateTag(day: number): string {
 }
 
 /** Revenue lines, in the order the waterfall shows them. The sim books revenue by buyer kind. */
-const REV_ORDER = ['api', 'chat', 'enterprise', 'other'] as const;
-const REV_LABEL: Record<string, string> = { api: 'API', chat: 'Chat', enterprise: 'Enterprise', other: 'Other' };
+const REV_ORDER = ['api', 'chat', 'enterprise', 'media', 'other'] as const;
+const REV_LABEL: Record<string, string> = { api: 'API', chat: 'Chat', enterprise: 'Enterprise', media: 'Image and video', other: 'Other' };
 const REV_COLOR: Record<string, string> = { api: SERIES.amber, chat: SERIES.blue, enterprise: SERIES.fg, other: SERIES.dim };
 
 const EXP_LABEL: Record<string, string> = {

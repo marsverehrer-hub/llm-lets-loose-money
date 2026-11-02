@@ -35,6 +35,7 @@ import { labName } from './labs';
 import { allDatasets, datasetById } from './data';
 import { nanoThresholdB, rivalActiveParamsB } from '../data/weightClasses';
 import { momentumSpeedMult } from './progression'; // v13
+import { MEDIA_TUNING } from '../data/imageModels'; // v16
 
 
 const SAT = CAP_TUNING.SATURATION_FRACTION;
@@ -312,6 +313,12 @@ export function modalitiesFor(caps: Capabilities, lineage: readonly Id[]): ('tex
  * MFU multipliers; without one the default run sheet is used. Cluster efficiency is already in computeCapacity.
  */
 export function trainingRatePerDay(s: GameState, cfg: TrainingConfig = defaultConfig(s)): number {
+  // v16: a live image or video run takes its share of the training compute (systems/imageGen.ts).
+  return rawTrainingRate(s, cfg) * (s.media?.run ? 1 - MEDIA_TUNING.SHARED_COMPUTE_SHARE : 1);
+}
+
+/** Training throughput before any media run takes its share. Media runs read this directly. */
+export function rawTrainingRate(s: GameState, cfg: TrainingConfig = defaultConfig(s)): number {
   const pflops = computeCapacity(s).training;
   const boost = 1 + CAP_TUNING.RESEARCHER_TRAIN_BOOST * Math.sqrt(roleStrength(s, 'researcher'));
   // v13: the Momentum perk turns the hot streak into training speed.

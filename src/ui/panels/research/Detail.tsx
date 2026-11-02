@@ -35,6 +35,8 @@ const GROUP_LABEL: Record<TrainingOptionGroup, string> = {
   precision: 'Precision',
   schedule: 'Schedule',
   filter: 'Data filter',
+  post: 'Post-training stage',
+  anneal: 'Data anneal',
 };
 
 const PRODUCT_LABEL: Record<ProductKind, string> = { chat: 'Chat', api: 'API', enterprise: 'Enterprise' };
