@@ -66,6 +66,7 @@ Saves live in the browser, so each device and address has its own game.
 | `npm test` | Runs the test suite (vitest). |
 | `node scripts/lint-style.mjs` | Checks the design rules. |
 | `npx tsx scripts/balance.ts --all --years=20 --seeds=1,2,3` | Runs the strategy bots and checks the design goals. |
+| `npx tsx scripts/econ-probe.ts small 8 1` | Prints one bot's yearly revenue, costs, users and valuation (strategy, years, seed). |
 | `npm run package` | Builds the shareable zip in `release/`. |
 
 The design reference is `GAME_DESIGN.md`. Visual rules are in `DESIGN.md`.

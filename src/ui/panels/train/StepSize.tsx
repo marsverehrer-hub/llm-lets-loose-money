@@ -7,6 +7,7 @@ import { NumField, Slider, Chip } from './kit';
 import { logToValue, sig2, uiRng, valueToLog } from '../panelKit';
 import { SCALE_TUNING, TRAINING_TUNING } from '../../../sim/systems/training';
 import { effParamsFor } from '../../../sim/systems/trainingMath';
+import { memoryWall, memoryWallError } from '../../../sim/systems/scaleLimits';
 
 export function StepSize({ ctx }: { ctx: Ctx }) {
   const { s, sheet, est, pos, paramsB, tokensB, maxTokens, canTokens, canSlideTokens, uniqueTokens, patch } = ctx;
@@ -16,6 +17,8 @@ export function StepSize({ ctx }: { ctx: Ctx }) {
   const ratio = est ? est.tokensPerParam : canTokens && paramsB > 0 ? tokensB / paramsB : 0;
   const ratioText = ratio >= 10 ? String(Math.round(ratio)) : ratio.toFixed(1);
   const auto = sheet.tokReq === null;
+  const wall = memoryWall(s); // v16: the model has to fit in the cluster
+  const oom = memoryWallError(s, paramsB);
 
   return (
     <div class="tw-stack">
@@ -65,6 +68,9 @@ export function StepSize({ ctx }: { ctx: Ctx }) {
           </div>
           <div class="tw-dial-note">
             {sheet.fit === 'manual' ? 'Set by hand. Drag or type to resize.' : 'Sized to the time budget. Moving the slider switches to manual.'}
+          </div>
+          <div class={`tw-dial-note ${oom ? 'bad' : ''}`} title="Weights, gradients and optimizer state need about 16 bytes per parameter. Parallelism research lets one model span more GPUs.">
+            {oom ?? `Memory: your cluster holds up to ${formatParams(wall.maxParamsB)} (${wall.limitedBy === 'research' ? 'research parallelism to go bigger' : 'add GPUs to go bigger'}).`}
           </div>
         </div>
 

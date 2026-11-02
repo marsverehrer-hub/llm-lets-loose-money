@@ -226,6 +226,7 @@
   font-size: var(--fs-xs);
   line-height: 1.45;
 }
+.tw-dial-note.bad { color: var(--down); }
 .tw-ratio {
   display: flex;
   flex-direction: column;

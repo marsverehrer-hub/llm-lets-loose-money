@@ -1,5 +1,6 @@
 // v16 (GAME_DESIGN §28.1): turn a recipe preset into a complete, valid pre-training run sheet sized to a time budget.
 // The quick start in the train wizard dispatches what planRecipe returns; experts open the same sheet in the wizard.
+import { memoryWall } from './scaleLimits';
 import type { Capabilities, GameAction, GameState, Id, TrainingConfig } from '../types';
 import { RECIPES, recipeById, type RecipeId } from '../data/recipes';
 import { defaultConfig, equalMixFor, isOptionUnlocked } from '../data/trainingOptions';
@@ -73,7 +74,9 @@ export function planRecipe(s: GameState, id: RecipeId, name: string, days?: numb
   const lo0 = TRAINING_TUNING.MIN_PARAMS_B;
   if (!Number.isFinite(daysAt(lo0))) return null;
   // Never size past what the data can feed at the optimal ratio.
-  const hiP = Math.min(TRAINING_TUNING.MAX_PARAMS_B, Math.max(lo0, maxTokens / (OPTIMAL_TPP * effParamsFor(1, cfg))));
+  // v16: and never past the memory wall of today's cluster (a smaller model than the data could feed is fine).
+  const wall = Math.max(lo0, Math.floor(memoryWall(s).maxParamsB * 100) / 100);
+  const hiP = Math.min(TRAINING_TUNING.MAX_PARAMS_B, wall, Math.max(lo0, maxTokens / (OPTIMAL_TPP * effParamsFor(1, cfg))));
   let lo = Math.log(lo0);
   let hi = Math.log(hiP);
   if (daysAt(hiP) <= budget) lo = hi;
@@ -84,7 +87,7 @@ export function planRecipe(s: GameState, id: RecipeId, name: string, days?: numb
       else hi = mid;
     }
   }
-  const paramsB = Number(Math.exp(lo).toPrecision(2));
+  const paramsB = Math.min(wall, Number(Math.exp(lo).toPrecision(2)));
   const tokensB = Math.min(maxTokens, Number(tokensFor(paramsB).toPrecision(3)));
   const phys = resolveRun(s, paramsB, tokensB, ids, techniques, cfg, 'belief');
   return {

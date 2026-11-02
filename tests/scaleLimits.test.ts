@@ -8,6 +8,7 @@ import { MEMORY_TUNING, SUPPLY_TUNING, gpuAllocationLeft, memoryWall, memoryWall
 import { defaultConfig } from '../src/sim/data/trainingOptions';
 import { COMPETITORS } from '../src/sim/data/competitors';
 import { segmentShares } from '../src/sim/systems/market';
+import { planRecipe } from '../src/sim/systems/recipes';
 
 beforeAll(() => {
   MEMORY_TUNING.ENFORCE = true;
@@ -116,5 +117,15 @@ describe('v16 labs', () => {
     const without = shares()?.share ?? 0;
     def.segmentAppeal = saved;
     expect(withAppeal).toBeLessThan(without);
+  });
+});
+
+describe('one-click recipes respect the wall', () => {
+  it('planRecipe never sizes a run past what the cluster can hold', () => {
+    const s = lab2021({ a100: 4000 }, ['mixed_precision', 'zero_sharding']);
+    const plan = planRecipe(s, 'balanced', 'Capped', 3650);
+    expect(plan).not.toBeNull();
+    expect(plan!.action.paramsB).toBeLessThanOrEqual(memoryWall(s).maxParamsB);
+    expect(memoryWallError(s, plan!.action.paramsB)).toBeNull();
   });
 });

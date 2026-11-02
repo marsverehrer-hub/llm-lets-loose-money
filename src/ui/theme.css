@@ -1,8 +1,8 @@
 /* ==========================================================================
-   LLM: Lets Loose Money — "Night Shift" design system (v4, see DESIGN.md)
-   A tycoon-game UI: layered ink surfaces, rounded cards with soft elevation,
-   one lavender accent, colour-coded hubs, a friendly sans for text and
-   tabular figures for numbers. Light theme via html[data-theme='light'].
+   LLM: Lets Loose Money — "Blueprint" design system (v5, see DESIGN.md)
+   The lab's drafting table: blueprint navy (dark) or graph paper (light), crop-marked
+   sheets, serif headlines and figures, mono annotations, marker-yellow highlights,
+   stamped tags and tactile buttons on hard offset shadows.
    OWNER: lead. Only THIS file may contain hex colours or gradients.
 
    CLASS REFERENCE
@@ -35,51 +35,56 @@
    ========================================================================== */
 
 :root {
-  /* Surfaces: ink, then each layer a step lighter. */
-  --bg: #0f0d18;
-  --bg-1: #191626;
-  --bg-2: #221e33;
-  --bg-3: #2d2842;
-  --line: #2c2740;
-  --line-2: #3e3858;
+  /* Blueprint: a drafting sheet at night. Navy paper, cyan linework, a highlighter for what matters. */
+  --bg: #0a1830;
+  --bg-1: #0e2140;
+  --bg-2: #13294f;
+  --bg-3: #1a345f;
+  --line: #24467a;
+  --line-2: #3a64a0;
+  --grid: rgba(128, 186, 255, 0.07);
+  --grid-major: rgba(128, 186, 255, 0.14);
+  --ink-shadow: #040c1a;
 
   /* Text */
-  --fg: #f2effa;
-  --fg-2: #c6c1d8;
-  --fg-3: #9a94b0;
-  --fg-4: #615b78;
+  --fg: #eef4ff;
+  --fg-2: #bccde9;
+  --fg-3: #8ba4ca;
+  --fg-4: #56719b;
 
-  /* The accent (lavender). --amber is its legacy name, used by older panel CSS. */
-  --accent: #a796ff;
-  --accent-2: #8a78f0;
-  --accent-3: #2c2552;
-  --on-accent: #15112a;
+  /* The accent: highlighter yellow. --hl is always the marker fill; --accent is the readable accent for text. */
+  --hl: #ffe14a;
+  --hl-soft: rgba(255, 225, 74, 0.2);
+  --on-hl: #0a1830;
+  --accent: #ffe14a;
+  --accent-2: #f2c500;
+  --accent-3: #2a3242;
+  --on-accent: #0a1830;
   --amber: var(--accent);
   --amber-2: var(--accent-2);
   --amber-3: var(--accent-3);
 
   /* Meaning */
-  --up: #4fdc9c;
-  --up-3: #163428;
-  --down: #ff7b7b;
-  --down-3: #3d1c22;
-  --warn: #ffbd5c;
-  --warn-3: #3a2a14;
-  --blue: #6cc4ff;
-  --blue-3: #16293d;
-  --yellow: #ffd866;
+  --up: #5df2a0;
+  --up-3: #0f3a33;
+  --down: #ff7066;
+  --down-3: #3d1d2a;
+  --warn: #ffb547;
+  --warn-3: #3a2c1a;
+  --blue: #7fd4ff;
+  --blue-3: #14335a;
+  --yellow: #ffe14a;
 
-  /* Hubs: each area of the game has its own colour (nav chip, panel eyebrow). */
-  --hub-home: var(--accent);
-  --hub-lab: #5fd8e8;
-  --hub-infra: #ffa95c;
-  --hub-business: #4fdc9c;
-  --hub-company: #ffd866;
+  /* Hubs: each binder section has its own index colour. */
+  --hub-home: #ffe14a;
+  --hub-lab: #7fd4ff;
+  --hub-infra: #ff9f5a;
+  --hub-business: #5df2a0;
+  --hub-company: #d4a8ff;
 
-  /* Type */
+  /* Type: a serif for headlines and big figures, mono for drafting annotations, a sans for reading. */
   --font: 'Figtree', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --display: 'Bricolage Grotesque', 'Figtree', system-ui, sans-serif;
-  /* --mono is the figures face: the text font with tabular numerals. --code is the real monospace (kbd). */
+  --display: 'Instrument Serif', 'Iowan Old Style', Georgia, serif;
   --mono: 'Figtree', system-ui, sans-serif;
   --code: 'JetBrains Mono', ui-monospace, Consolas, monospace;
   --fs: 15px;
@@ -87,62 +92,79 @@
   --fs-xs: 12.5px;
   --strip: 44px;
 
-  /* Shape and depth */
-  --r-sm: 8px;
-  --r-md: 12px;
-  --r-lg: 16px;
-  --r-xl: 22px;
+  /* Shape and depth: crisp sheets, hard offset shadows like a stack of paper. */
+  --r-sm: 3px;
+  --r-md: 5px;
+  --r-lg: 6px;
+  --r-xl: 10px;
   --r-pill: 999px;
-  --shadow-1: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 1px 2px rgba(0, 0, 0, 0.35), 0 4px 14px rgba(0, 0, 0, 0.18);
-  --shadow-2: 0 2px 6px rgba(0, 0, 0, 0.35), 0 12px 32px rgba(0, 0, 0, 0.35);
-  --shadow-3: 0 10px 30px rgba(0, 0, 0, 0.45), 0 30px 80px rgba(0, 0, 0, 0.45);
-  --ring: 0 0 0 3px color-mix(in srgb, var(--accent) 45%, transparent);
+  --shadow-1: none;
+  --shadow-2: 4px 4px 0 var(--ink-shadow);
+  --shadow-3: 8px 8px 0 var(--ink-shadow);
+  --shadow-hard: 3px 3px 0 var(--ink-shadow);
+  --ring: 0 0 0 3px color-mix(in srgb, var(--hl) 55%, transparent);
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
   --t-fast: 120ms;
   --t-med: 200ms;
-  /* Soft left and right edges for scrolling strips (mask-image). */
   --fade-x: linear-gradient(to right, transparent, #000 24px, #000 calc(100% - 24px), transparent);
+
+  /* Drafting textures (only this file may hold gradients). */
+  --tex-grid:
+    linear-gradient(var(--grid-major) 1px, transparent 1px) 0 0 / 120px 120px,
+    linear-gradient(90deg, var(--grid-major) 1px, transparent 1px) 0 0 / 120px 120px,
+    linear-gradient(var(--grid) 1px, transparent 1px) 0 0 / 24px 24px,
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px) 0 0 / 24px 24px;
+  --tex-hatch: repeating-linear-gradient(-45deg, rgba(10, 24, 48, 0.28) 0 4px, transparent 4px 9px);
+  --tex-ruler: repeating-linear-gradient(90deg, var(--line-2) 0 1px, transparent 1px 10%);
+  --tex-marker: linear-gradient(transparent 84%, var(--hl) 84%, var(--hl) 94%, transparent 94%);
+  --tex-dash: repeating-linear-gradient(90deg, var(--line) 0 4px, transparent 4px 8px);
 
   color-scheme: dark;
 }
 
-/* Light theme: lavender paper, white cards. */
+/* Light theme: graph paper and ink. */
 :root[data-theme='light'] {
-  --bg: #f3f1f9;
-  --bg-1: #ffffff;
-  --bg-2: #f1eef8;
-  --bg-3: #e4e0f0;
-  --line: #e2ddef;
-  --line-2: #cdc6e0;
+  --bg: #f1ede2;
+  --bg-1: #fbf9f3;
+  --bg-2: #f1ecdf;
+  --bg-3: #e5ddc8;
+  --line: #cbc1a6;
+  --line-2: #9c9178;
+  --grid: rgba(47, 91, 211, 0.07);
+  --grid-major: rgba(47, 91, 211, 0.14);
+  --ink-shadow: #1a2233;
 
-  --fg: #1c1830;
-  --fg-2: #48425f;
-  --fg-3: #6b6584;
-  --fg-4: #a7a2bb;
+  --fg: #1a2233;
+  --fg-2: #3c475d;
+  --fg-3: #626d86;
+  --fg-4: #a3a8b3;
 
-  --accent: #5a43dc;
-  --accent-2: #4733b8;
-  --accent-3: #ebe6ff;
+  --hl: #ffdd33;
+  --hl-soft: rgba(255, 214, 0, 0.42);
+  --on-hl: #1a2233;
+  --accent: #2448c4;
+  --accent-2: #1a379e;
+  --accent-3: #e2e8fb;
   --on-accent: #ffffff;
 
-  --up: #0f8050;
-  --up-3: #dcf3e7;
-  --down: #c9343a;
-  --down-3: #fbe1e2;
-  --warn: #a45c00;
-  --warn-3: #fdecd2;
-  --blue: #1b6db5;
-  --blue-3: #dcebf8;
+  --up: #0d7a4a;
+  --up-3: #d8f0e2;
+  --down: #c52f36;
+  --down-3: #f8dcdc;
+  --warn: #9c5800;
+  --warn-3: #fae8cc;
+  --blue: #1f63b8;
+  --blue-3: #dbe8f7;
   --yellow: #8a6700;
 
-  --hub-lab: #0b8a9c;
+  --hub-home: #b38a00;
+  --hub-lab: #1f63b8;
   --hub-infra: #c25e00;
-  --hub-business: #0f8050;
-  --hub-company: #9a7400;
+  --hub-business: #0d7a4a;
+  --hub-company: #7a3fc4;
 
-  --shadow-1: 0 1px 2px rgba(40, 30, 90, 0.06), 0 4px 14px rgba(40, 30, 90, 0.06);
-  --shadow-2: 0 2px 6px rgba(40, 30, 90, 0.08), 0 12px 32px rgba(40, 30, 90, 0.12);
-  --shadow-3: 0 10px 30px rgba(40, 30, 90, 0.16), 0 30px 80px rgba(40, 30, 90, 0.18);
+  --tex-hatch: repeating-linear-gradient(-45deg, rgba(26, 34, 51, 0.22) 0 4px, transparent 4px 9px);
+  --tex-marker: linear-gradient(transparent 55%, var(--hl-soft) 55%, var(--hl-soft) 94%, transparent 94%);
 
   color-scheme: light;
 }
@@ -1205,4 +1227,409 @@ textarea {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* ==========================================================================
+   BLUEPRINT LAYER (v5). The game's identity on top of the component styles above:
+   a drafting grid, crop-marked sheets, serif headlines and figures, mono drafting
+   annotations, highlighter marks, stamped tags and tactile offset buttons.
+   Selectors start with :root so they win over panel CSS loaded later.
+   ========================================================================== */
+
+/* ---- paper ---- */
+:root body {
+  background: var(--tex-grid), var(--bg);
+  background-attachment: fixed;
+}
+:root .app-main,
+:root .app {
+  background: transparent;
+}
+
+/* ---- annotations: every small label is a drafting note ---- */
+:root .panel-eyebrow,
+:root .stat-label,
+:root .kpi-label,
+:root .topbar-label,
+:root .card-subtitle,
+:root .table th,
+:root .field-label,
+:root .section-title,
+:root .progress-meta,
+:root .hub-blurb,
+:root .ticker-label {
+  font-family: var(--code);
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+:root .panel-eyebrow::before {
+  content: '§';
+  width: auto;
+  height: auto;
+  background: none;
+  border-radius: 0;
+  font-size: 13px;
+}
+
+/* ---- headlines and figures in the serif ---- */
+:root .panel-title {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 46px;
+  line-height: 1.02;
+  letter-spacing: -0.01em;
+  padding: 0 4px;
+  margin-left: -4px;
+  background: var(--tex-marker);
+  width: fit-content;
+}
+:root .card-title {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 23px;
+  letter-spacing: 0;
+}
+:root .stat-value,
+:root .kpi-value,
+:root .topbar-value {
+  font-family: var(--display);
+  font-weight: 400;
+  letter-spacing: 0;
+}
+:root .stat-value { font-size: 30px; line-height: 1.05; }
+:root .stat-sm .stat-value { font-size: 22px; }
+:root .stat-lg .stat-value { font-size: 40px; }
+
+/* ---- sheets: crisp paper with crop marks in the corners ---- */
+:root .card {
+  position: relative;
+  background: color-mix(in srgb, var(--bg-1) 94%, transparent);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  box-shadow: none;
+}
+:root .card::before,
+:root .card::after {
+  content: '';
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  pointer-events: none;
+  border-color: var(--line-2);
+  border-style: solid;
+}
+:root .card::before { top: -4px; left: -4px; border-width: 1.5px 0 0 1.5px; }
+:root .card::after { bottom: -4px; right: -4px; border-width: 0 1.5px 1.5px 0; }
+:root .card-flush > .card-header,
+:root .card-header {
+  border-bottom: 1px dashed var(--line);
+  padding-bottom: 10px;
+}
+:root .card-link:hover { border-color: var(--line-2); transform: translate(-2px, -2px); box-shadow: var(--shadow-hard); }
+:root .card-hot {
+  border-color: var(--hl);
+  box-shadow: var(--shadow-2);
+}
+:root .card-hot::before,
+:root .card-hot::after { border-color: var(--hl); }
+
+/* ---- buttons: tactile, uppercase, with a hard shadow you can press ---- */
+:root .btn {
+  font-family: var(--code);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-radius: var(--r-sm);
+  border: 1.5px solid var(--line-2);
+  background: var(--bg-1);
+  transition: transform var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease), border-color var(--t-fast) linear, background var(--t-fast) linear;
+}
+:root .btn:hover:not(:disabled) {
+  border-color: var(--fg-2);
+  color: var(--fg);
+  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow-hard);
+}
+:root .btn:active:not(:disabled) { transform: translate(1px, 1px); box-shadow: none; }
+:root .btn-primary {
+  background: var(--hl);
+  color: var(--on-hl);
+  border-color: var(--ink-shadow);
+  box-shadow: var(--shadow-hard);
+}
+:root .btn-primary:hover:not(:disabled) {
+  background: var(--hl);
+  color: var(--on-hl);
+  border-color: var(--ink-shadow);
+  box-shadow: 4px 4px 0 var(--ink-shadow);
+}
+:root .btn-primary:disabled { background: var(--bg-3); color: var(--fg-4); border-color: var(--line); box-shadow: none; }
+:root .btn-ghost { border-color: transparent; background: transparent; }
+:root .btn-ghost:hover:not(:disabled) { box-shadow: none; transform: none; background: var(--bg-2); }
+:root .btn.on { background: var(--hl-soft); color: var(--fg); border-color: var(--hl); }
+
+/* ---- tags are rubber stamps ---- */
+:root .pill {
+  font-family: var(--code);
+  font-weight: 700;
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: 1.5px solid currentColor;
+  border-radius: var(--r-sm);
+  background: transparent;
+  padding: 1px 6px;
+  transform: rotate(-2deg);
+}
+
+/* ---- progress is a ruler; the filled part is hatched marker ---- */
+:root .progress {
+  height: 10px;
+  border-radius: 0;
+  background: var(--tex-ruler), var(--bg-3);
+  border: 1px solid var(--line);
+}
+:root .progress-bar {
+  border-radius: 0;
+  background: var(--tex-hatch), var(--hl);
+}
+:root .progress-bar.good { background: var(--tex-hatch), var(--up); }
+:root .progress-bar.bad { background: var(--tex-hatch), var(--down); }
+:root .progress-bar.warn { background: var(--tex-hatch), var(--warn); }
+:root .progress-bar.info { background: var(--tex-hatch), var(--blue); }
+
+/* ---- tabs are binder index tabs ---- */
+:root .tabs {
+  background: transparent;
+  border-bottom: 1.5px solid var(--line-2);
+  border-radius: 0;
+  padding: 0;
+  gap: 2px;
+}
+:root .tab {
+  font-family: var(--code);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1.5px solid transparent;
+  border-bottom: 0;
+  border-radius: var(--r-md) var(--r-md) 0 0;
+  margin-bottom: -1.5px;
+}
+:root .tab:hover { background: var(--bg-2); }
+:root .tab.active {
+  background: var(--bg-1);
+  color: var(--fg);
+  border-color: var(--line-2);
+  box-shadow: inset 0 3px 0 var(--hub, var(--hl));
+}
+
+/* ---- ledgers ---- */
+:root .table th {
+  color: var(--fg-3);
+  border-bottom: 1.5px solid var(--line-2);
+}
+:root .table td { border-bottom: 1px dashed var(--line); }
+:root .table tr.me td { color: var(--fg); font-weight: 700; background: var(--hl-soft); }
+:root .table tr.sel td { background: var(--hl-soft); color: var(--fg); }
+:root .table tr.sel td:first-child { box-shadow: inset 3px 0 0 var(--hl); }
+
+/* ---- dialogs are title-blocked drawings ---- */
+:root .modal {
+  border: 1.5px solid var(--line-2);
+  border-radius: var(--r-sm);
+  box-shadow: var(--shadow-3);
+  background: var(--bg-1);
+}
+:root .modal-header {
+  background: var(--hl);
+  color: var(--on-hl);
+  border-bottom: 1.5px solid var(--ink-shadow);
+}
+:root .modal-header * { color: var(--on-hl); }
+:root .modal-title { font-family: var(--display); font-weight: 400; font-size: 28px; }
+
+/* ---- form controls ---- */
+:root .input,
+:root .select {
+  border-radius: var(--r-sm);
+  border: 1.5px solid var(--line-2);
+  background: var(--bg);
+}
+
+/* ---- HUD: a title block across the top of the drawing ---- */
+:root .topbar {
+  background: var(--bg);
+  border-bottom: 1.5px solid var(--line-2);
+  box-shadow: 0 3px 0 -1.5px var(--bg), 0 4px 0 -1.5px var(--line);
+}
+:root .brand-mark,
+:root .sn-logo {
+  border-radius: 50%;
+  background: transparent;
+  color: var(--accent);
+  border: 2px solid var(--accent);
+  box-shadow: inset 0 0 0 3px var(--bg), inset 0 0 0 4px var(--accent);
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 17px;
+  transform: rotate(-10deg);
+}
+:root .brand-company,
+:root .sn-brand-name {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 21px;
+  letter-spacing: 0;
+}
+:root .brand-date { font-family: var(--code); font-size: 11.5px; letter-spacing: 0.05em; }
+:root .topbar-stat {
+  background: transparent;
+  border-radius: 0;
+  border-left: 1px dashed var(--line-2);
+  padding: 0 16px;
+}
+:root .topbar-value { font-size: 23px; line-height: 1.1; font-weight: 400; }
+:root .topbar-stat.ts-cash .topbar-value { font-size: 26px; background: var(--tex-marker); padding: 0 3px; }
+:root .topbar-delta { font-family: var(--code); font-size: 11.5px; }
+
+/* ---- the run dock: two strips of drafting tape ---- */
+:root .rundock { background: transparent; border-bottom: 1px dashed var(--line-2); }
+:root .dock-cell {
+  border-radius: var(--r-sm);
+  border: 1.5px solid var(--line-2);
+  background: var(--bg-1);
+}
+:root .dock-k { font-family: var(--code); font-weight: 700; color: var(--accent); }
+
+/* ---- sidebar: binder dividers, one index colour per section ---- */
+:root .sidenav {
+  background: color-mix(in srgb, var(--bg) 70%, transparent);
+  border-right: 1.5px solid var(--line-2);
+}
+:root .sn-hubs { gap: 10px; }
+:root .hub-item {
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+  border: 1.5px solid transparent;
+  border-left: 6px solid color-mix(in srgb, var(--hub) 55%, transparent);
+  padding-left: 12px;
+  min-height: 64px;
+}
+:root .hub-item:hover { background: var(--bg-1); border-left-color: var(--hub); }
+:root .hub-item.active {
+  background: var(--bg-1);
+  border-color: var(--line-2);
+  border-left: 6px solid var(--hub);
+  box-shadow: var(--shadow-hard);
+  transform: translateX(4px);
+}
+:root .hub-label { font-family: var(--display); font-weight: 400; font-size: 23px; line-height: 1.05; }
+:root .hub-chip {
+  border-radius: var(--r-sm);
+  border: 1.5px solid var(--hub);
+  background: transparent;
+}
+:root .hub-item.active .hub-chip { background: var(--hub); color: var(--bg); border-color: var(--hub); }
+:root .hub-badge { border-radius: 0; transform: rotate(45deg); background: var(--hl); }
+
+/* ---- hub section tabs ---- */
+:root .hubtabs { background: var(--bg); border-bottom: 1.5px solid var(--line-2); }
+:root .hubtab {
+  border-radius: var(--r-sm);
+  font-family: var(--code);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  border: 1.5px solid transparent;
+}
+:root .hubtab:hover { border-color: var(--line-2); }
+:root .hubtab.active {
+  background: var(--hl);
+  color: var(--on-hl);
+  border-color: var(--ink-shadow);
+  box-shadow: var(--shadow-hard);
+  font-weight: 700;
+}
+
+/* ---- the wire: ticker tape ---- */
+:root .newsticker {
+  background: var(--bg);
+  border-top: 1.5px solid var(--line-2);
+  font-family: var(--code);
+  font-size: 12.5px;
+}
+:root .ticker-label {
+  border-radius: 0;
+  background: var(--hl);
+  color: var(--on-hl);
+  font-weight: 700;
+  transform: rotate(-2deg);
+}
+
+/* ---- toasts are notes pinned to the sheet ---- */
+:root .toast {
+  border-radius: var(--r-sm);
+  border: 1.5px solid var(--line-2);
+  box-shadow: var(--shadow-2);
+  background: var(--bg-1);
+}
+:root .toast-title { font-family: var(--code); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; }
+:root .toast-milestone { border-color: var(--hl); }
+
+/* ---- HQ: the advisor is a checklist in the margin ---- */
+:root .adv-item {
+  border-radius: var(--r-sm);
+  border: 1.5px solid var(--line);
+  background: var(--bg-1);
+}
+:root .adv-top {
+  border-color: var(--hl);
+  background: color-mix(in srgb, var(--hl) 9%, var(--bg-1));
+  box-shadow: var(--shadow-hard);
+}
+:root .adv-rank {
+  border-radius: var(--r-sm);
+  background: transparent;
+  border: 1.5px solid var(--fg-3);
+  color: var(--fg-2);
+  font-family: var(--display);
+  font-size: 20px;
+}
+:root .adv-top .adv-rank { background: var(--hl); color: var(--on-hl); border-color: var(--ink-shadow); }
+:root .adv-urgent { border-left: 5px solid var(--down); }
+:root .adv-text { font-family: var(--display); font-size: 21px; font-weight: 400; }
+:root .kpi { border-radius: var(--r-sm); }
+:root .kpi-value { font-size: 32px; line-height: 1.05; }
+
+/* ---- segmented switches are a row of drafting keys ---- */
+:root .segmented { border-radius: var(--r-sm); border: 1.5px solid var(--line-2); background: var(--bg); padding: 3px; }
+:root .seg { border-radius: 2px; font-family: var(--code); font-size: 11.5px; letter-spacing: 0.05em; text-transform: uppercase; }
+:root .seg.active { background: var(--hl); color: var(--on-hl); box-shadow: none; }
+
+/* ---- screen intros are sticky notes ---- */
+:root .panel-intro {
+  border-radius: var(--r-sm);
+  border: 1.5px dashed var(--line-2);
+  border-left: 5px solid var(--hl);
+  background: color-mix(in srgb, var(--hl) 6%, var(--bg-1));
+}
+:root .panel-intro-text { font-size: var(--fs); }
+
+/* ---- camera feeds are photos clipped to the sheet ---- */
+:root .office-view { border: 1.5px solid var(--line-2); border-radius: var(--r-sm); }
+
+/* ---- phones: the serif HUD has to fit 390px ---- */
+@media (max-width: 760px) {
+  :root .brand-company { font-size: 17px; max-width: 120px; overflow: hidden; text-overflow: ellipsis; }
+  :root .topbar-value { font-size: 18px; }
+  :root .topbar-stat.ts-cash .topbar-value { font-size: 19px; }
+  :root .topbar-stat { padding: 0 8px; }
+  :root .panel-title { font-size: 36px; }
+  :root .brand-mark { display: none; }
 }
