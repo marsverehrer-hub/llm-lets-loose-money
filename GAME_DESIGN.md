@@ -1684,10 +1684,10 @@ The bots never use stages, anneals, recipes or media, and none of those draw fro
 
 ## 29. Lab chapters (v17): one clear objective at a time
 Players found it unclear what the game wanted from them next, and the default Garage start had no goals at all.
-`systems/chapters.ts` gives every scenario a career of 13 chapters, completed strictly in order the day each condition
+`systems/chapters.ts` gives every scenario a career of 14 chapters, completed strictly in order the day each condition
 holds (several on one day if already met). Each pays XP (40 to 600, times the era multiplier) and posts a milestone
 toast naming the next chapter. Progress is `s.flags.chapter`. v17.2 reordered them to teach the real early path
-(train, release, raise, then sell) and replaced the unreachable "$10K a day" with "$1K a day".
+(train, release, raise, then sell); v17.3 made the first revenue step $250 a day and added $10K a day (14 chapters).
 
 | # | Chapter | Done when |
 |---|---|---|
@@ -1695,17 +1695,53 @@ toast naming the next chapter. Progress is `s.flags.chapter`. v17.2 reordered th
 | 2 | Release a model | any model is released |
 | 3 | Raise a funding round | a round is closed (the starting pre-seed does not count), or public, or the scenario forbids VC |
 | 4 | Launch your first product | a live LLM or media product |
-| 5 | First paying customers: $1K a day | daily revenue ≥ $1K |
+| 5 | First paying customers: $250 a day | daily revenue ≥ $250 |
 | 6 | Own your GPUs: build a datacenter | a finished datacenter holds GPUs |
-| 7 | Reach the top 3 on the Arena | arena rank 1–3 |
-| 8 | Earn $100K a day | |
-| 9 | Win a crown or a client contract | a class crown held, or a contract won or completed |
-| 10 | Earn $1M a day | |
-| 11 | Go public | public, or the scenario forbids an IPO |
-| 12 | Be number one on the Arena | arena rank 1 |
-| 13 | Reach a $1T valuation | |
+| 7 | Earn $10K a day | |
+| 8 | Reach the top 3 on the Arena | arena rank 1–3 |
+| 9 | Earn $100K a day | |
+| 10 | Win a crown or a client contract | a class crown held, or a contract won or completed |
+| 11 | Earn $1M a day | |
+| 12 | Go public | public, or the scenario forbids an IPO |
+| 13 | Be number one on the Arena | arena rank 1 |
+| 14 | Reach a $1T valuation | |
 
 UI: Headquarters leads with the current chapter (objective, why, progress bar for numeric goals, pips for the whole
 career, a button to the right screen). The advisor (`ui/panels/hq/nextStep.ts`) slots the chapter in after urgent and
 core-loop moves unless a move already points at the same screen, and the run dock shows the single most useful move
 on every screen ("Next", or "Urgent" in red).
+
+## 30. A rewarding loop and research for small labs (v17.3)
+Players found the loop no longer addictive and research hard to organise for a small lab. Measured cause: after the
+realism pass a launch earned ~$6/day a month in (v15: ~$500), launches did not spike, the leading chapter was stuck
+for 1–2 years, and the chat boom never came before rivals in 2022. Research had 119 equal topics, a cheapest-first
+"next", hidden payoffs and RP as the only source of progress.
+
+### 30.1 Money that moves (middle ground)
+- Developer adoption ceiling: 3% (2017), 6% (2020), 8% (2022), then as before; the starting market is seeded at 1%. A
+  decent API is a small real business from 2018 (about 6× below v15).
+- Launch spike: a product grows at the fast rate (0.03/day) for 60 days after launch and for 30 days after it moves
+  to a newer model (`Product.boostUntil`), then at 0.009/day.
+- A player chatbot starts the chat boom from overall 65 (`CHAT_MOMENT_MIN_OVERALL`, was 75).
+- Chapters: "First paying customers: $250 a day", and "Earn $10K a day" after "Own your GPUs" (14 chapters).
+- The funding auto-pause only fires below 180 days of runway; otherwise the offer waits in the Urgent chip.
+- Products sit in the Lab hub next to Models.
+- Balance targets: small lab profitable 2019–2022, specialist 2021–2024, frontier 2023–2029 (it spends every dollar
+  it raises on compute; 1 of 3 seeds stayed in the red for 12 years), IPO 2023–2028. The lean
+  bots (small, specialist) rent compute in step with revenue (cash term capped at $10K/day + half of revenue).
+
+### 30.2 Research tracks (`data/research.ts` `RESEARCH_TRACKS`)
+Five goals with plain labels and payoffs: Chat product, Bigger models, Developers & enterprise, Images & video,
+Cheaper to run. Other topics are "More upgrades". `recommendedResearch` follows the opening (Transformers, Mixed
+precision, Scaling laws, Instruction tuning) and then the track steps round by round, skipping what cannot start yet.
+
+### 30.3 Adopting published papers (`systems/research.ts` `adoptPaper`)
+A topic can be adopted from `minYear + 1` with its prerequisites done: price = today's diffused RP × $450 × 1.1^(year
+− 2017), time = 10 + RP/30 days (max 45). It finishes in parallel with your own topic, two at a time. Examples:
+Instruction tuning in 2020 ≈ $200K, Long context in 2020 ≈ $150K / 18 days.
+
+### 30.4 No idle lab, no lost work
+- Auto-pick (`research.autoPick`, on unless turned off): an idle lab with an empty queue starts the recommended topic.
+  A two-founder lab reaches Instruction tuning by late 2018 on its own.
+- Switching or pausing shelves progress (`research.partial`); coming back restores it.
+- Board research rewards earned while idle are banked (`research.banked`) for the next topic.

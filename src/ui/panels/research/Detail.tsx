@@ -6,13 +6,31 @@ import { DATASETS } from '../../../sim/data/datasets';
 import { SPECIALIZATIONS } from '../../../sim/data/specializations';
 import { TRAINING_OPTIONS } from '../../../sim/data/trainingOptions';
 import { RESEARCH } from '../../../sim/data/research';
+import { MEDIA_ARCHS } from '../../../sim/data/imageModels';
+import { MEMORY_TUNING } from '../../../sim/systems/scaleLimits';
+import { CLUSTER_TIERS } from '../../../sim/systems/compute';
+import { AdoptButton } from './Tracks';
 import { CAP_IDS } from '../../../sim/types';
 import type { Bonuses, CapId, GameState, Id, ProductKind, ResearchNode, Scores, TrainingOptionGroup } from '../../../sim/types';
-import { HelpTip, Pill } from '../../components';
+import { HelpTip, Pill, ProgressBar } from '../../components';
 import type { PillTone } from '../../components';
 import { BONUS_LABELS, SCORE_LABELS, fmtCount, fmtMult, fmtSigned } from '../panelKit';
 import { QueueAction } from '../ResearchQueue';
-import { BRANCH_LABEL, CHEAPER_PCT, FLOOR_PCT, NODE_BY_ID, NodeState, ResearchView, branchOf, etaText, isCheaperNow, opensIn } from './model';
+import { fmtDays } from '../panelKit';
+import {
+  BRANCH_LABEL,
+  CHEAPER_PCT,
+  FLOOR_PCT,
+  NODE_BY_ID,
+  NodeState,
+  ResearchView,
+  branchOf,
+  etaText,
+  isCheaperNow,
+  jokeName,
+  opensIn,
+  topicName,
+} from './model';
 
 const CAP_LABEL: Record<CapId, string> = {
   knowledge: 'Knowledge',
@@ -66,11 +84,13 @@ export interface DetailProps {
 }
 
 export function NodeDetail({ s, view, node, onPick, onStop }: DetailProps) {
-  const { done, current, progress, perDay, costOf, stateOf } = view;
+  const { done, current, progress, perDay, costOf, stateOf, partialOf } = view;
   const st = stateOf(node);
   const isCur = current?.id === node.id;
   const cost = costOf(node);
-  const remaining = isCur ? Math.max(0, cost - progress) : cost;
+  const remaining = view.leftOf(node);
+  const shelved = isCur ? 0 : partialOf(node);
+  const adopting = (s.research.adopting ?? []).find((a) => a.nodeId === node.id);
   const missing = node.prereqs.filter((p) => !isResearched(s, p));
   const prereqs = node.prereqs.map((p) => ({ id: p, node: NODE_BY_ID.get(p), ok: done.has(p) }));
 
@@ -82,7 +102,10 @@ export function NodeDetail({ s, view, node, onPick, onStop }: DetailProps) {
         : missing.length
           ? `Needs ${missing
               .slice(0, 2)
-              .map((p) => NODE_BY_ID.get(p)?.name ?? p)
+              .map((p) => {
+                const n = NODE_BY_ID.get(p);
+                return n ? topicName(n) : p;
+              })
               .join(', ')}${missing.length > 2 ? ` and ${missing.length - 2} more` : ''}`
           : st === 'early'
             ? `Opens in ${opensIn(node)}`
@@ -97,7 +120,11 @@ export function NodeDetail({ s, view, node, onPick, onStop }: DetailProps) {
   const datasets = DATASETS.filter((d) => d.requiresResearch === node.id);
   const centers = DATACENTER_TIERS.filter((t) => t.requiresResearch === node.id);
   const dependents = RESEARCH.filter((n) => n.prereqs.includes(node.id));
-  const hasUnlocks = training.length + specs.length + datasets.length + centers.length > 0 || !!node.unlocksProduct;
+  const media = MEDIA_ARCHS.filter((m) => m.requiresResearch === node.id);
+  const shard = MEMORY_TUNING.SHARD_DEGREE.find(([id]) => id === node.id)?.[1];
+  const cluster = CLUSTER_TIERS.find(([id]) => id === node.id)?.[1];
+  const hasUnlocks =
+    training.length + specs.length + datasets.length + centers.length + media.length > 0 || !!node.unlocksProduct || !!shard || !!cluster;
   const capRows = CAP_IDS.filter((c) => node.capBonus?.[c] !== undefined).map((c) => [CAP_LABEL[c], node.capBonus![c]!] as const);
   const scoreRows = Object.entries(node.scoreBonus ?? {}).map(([k, v]) => [SCORE_LABELS[k as keyof Scores], v as number] as const);
   const bonusLines = Object.entries(node.bonuses ?? {}).map(([k, m]) => `${fmtMult(m as number)} ${BONUS_LABELS[k as keyof Bonuses]}`);
@@ -105,7 +132,8 @@ export function NodeDetail({ s, view, node, onPick, onStop }: DetailProps) {
   return (
     <div class="rs-detail">
       <div class="rs-d-head">
-        <div class="rs-d-name">{node.name}</div>
+        <div class="rs-d-name">{topicName(node)}</div>
+        {jokeName(node) && <div class="rs-rec-joke">{jokeName(node)}</div>}
         <div class="rs-d-tags">
           <Pill tone={stMeta.tone}>{stMeta.label}</Pill>
           <span class="rs-d-meta">
@@ -121,9 +149,9 @@ export function NodeDetail({ s, view, node, onPick, onStop }: DetailProps) {
         <dd class="num">{fmtCount(cost, 0)} RP</dd>
         {st !== 'done' && (
           <>
-            <dt>{isCur ? 'Left' : 'Time'}</dt>
+            <dt>{isCur || shelved > 0 ? 'Left' : 'Time'}</dt>
             <dd class="num">
-              {isCur ? `${fmtCount(remaining, 0)} RP · ${etaText(remaining, perDay)}` : etaText(cost, perDay)}
+              {isCur || shelved > 0 ? `${fmtCount(remaining, 0)} RP · ${etaText(remaining, perDay)}` : etaText(cost, perDay)}
             </dd>
           </>
         )}
@@ -139,6 +167,10 @@ export function NodeDetail({ s, view, node, onPick, onStop }: DetailProps) {
         </div>
       )}
 
+      {shelved > 0 && st !== 'done' && (
+        <ProgressBar value={shelved} max={cost} height={4} label="Earlier progress kept" right={`${fmtCount(shelved, 0)} RP`} />
+      )}
+      {adopting && <div class="rs-reason">Adopting the published paper · {fmtDays(Math.max(0, adopting.doneDay - s.day))} left</div>}
       {blocked && <div class="rs-reason">{blocked}</div>}
 
       {prereqs.length > 0 && (
@@ -149,11 +181,51 @@ export function NodeDetail({ s, view, node, onPick, onStop }: DetailProps) {
               <li key={p.id}>
                 <button type="button" class={`rs-chip-btn${p.ok ? ' is-done' : ''}`} onClick={() => onPick(p.id)}>
                   {p.ok ? '✓ ' : ''}
-                  {p.node?.name ?? p.id}
+                  {p.node ? topicName(p.node) : p.id}
                 </button>
               </li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {hasUnlocks && (
+        <div class="rs-sec">
+          <div class="rs-sec-title">Unlocks</div>
+          <div class="rs-chips">
+            {node.unlocksProduct && <span class="rs-chip">The {PRODUCT_LABEL[node.unlocksProduct]} product</span>}
+            {shard && <span class="rs-chip">Bigger models: one model can span {shard.toLocaleString('en-US')} GPUs</span>}
+            {cluster && (
+              <span class="rs-chip">
+                {Number.isFinite(cluster) ? `Train efficiently on up to ${fmtCount(cluster, 0)} GPUs` : 'Train across datacenters, no cluster limit'}
+              </span>
+            )}
+            {media.map((m) => (
+              <span key={m.id} class="rs-chip" title={m.description}>
+                {m.kind === 'video' ? 'Video' : 'Image'} model: {m.name}
+              </span>
+            ))}
+            {training.map((o) => (
+              <span key={o.id} class="rs-chip" title={o.description}>
+                {o.name} <i>{GROUP_LABEL[o.group]}</i>
+              </span>
+            ))}
+            {specs.map((sp) => (
+              <span key={sp.id} class="rs-chip" title={sp.description}>
+                Spec: {sp.name} <i>{sp.suffix}</i>
+              </span>
+            ))}
+            {datasets.map((d) => (
+              <span key={d.id} class="rs-chip" title={d.flavor}>
+                Dataset: {d.name} <i>{d.kind}</i>
+              </span>
+            ))}
+            {centers.map((c) => (
+              <span key={c.id} class="rs-chip" title={c.flavor}>
+                Datacenter: {c.name}
+              </span>
+            ))}
+          </div>
         </div>
       )}
 
@@ -168,15 +240,20 @@ export function NodeDetail({ s, view, node, onPick, onStop }: DetailProps) {
             type="button"
             class="btn btn-primary"
             disabled={blocked !== null}
-            title={blocked ?? `Spend ${fmtCount(cost, 0)} RP on ${node.name}`}
+            title={blocked ?? `Spend ${fmtCount(remaining, 0)} RP on ${topicName(node)}`}
             onClick={() => dispatch({ type: 'setResearch', nodeId: node.id })}
           >
             Research
           </button>
         )}
         <QueueAction node={node} state={st} />
+        {!isCur && <AdoptButton s={s} node={node} />}
       </div>
-      {current && !isCur && st !== 'done' && <div class="rs-switch">Switching drops {fmtCount(progress, 0)} RP on {current.name}.</div>}
+      {current && !isCur && st !== 'done' && progress > 0 && (
+        <div class="rs-switch">
+          Switching shelves {fmtCount(progress, 0)} RP on {topicName(current)}. It is kept for when you come back.
+        </div>
+      )}
 
       <details class="rs-more">
         <summary>More</summary>
@@ -217,35 +294,6 @@ export function NodeDetail({ s, view, node, onPick, onStop }: DetailProps) {
           </div>
         )}
 
-        {hasUnlocks && (
-          <div class="rs-sec">
-            <div class="rs-sec-title">Unlocks</div>
-            <div class="rs-chips">
-              {node.unlocksProduct && <span class="rs-chip">Product: {PRODUCT_LABEL[node.unlocksProduct]}</span>}
-              {training.map((o) => (
-                <span key={o.id} class="rs-chip" title={o.description}>
-                  {o.name} <i>{GROUP_LABEL[o.group]}</i>
-                </span>
-              ))}
-              {specs.map((sp) => (
-                <span key={sp.id} class="rs-chip" title={sp.description}>
-                  Spec: {sp.name} <i>{sp.suffix}</i>
-                </span>
-              ))}
-              {datasets.map((d) => (
-                <span key={d.id} class="rs-chip" title={d.flavor}>
-                  Dataset: {d.name} <i>{d.kind}</i>
-                </span>
-              ))}
-              {centers.map((c) => (
-                <span key={c.id} class="rs-chip" title={c.flavor}>
-                  Datacenter: {c.name}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
         {dependents.length > 0 && (
           <div class="rs-sec">
             <div class="rs-sec-title">Leads to</div>
@@ -256,7 +304,7 @@ export function NodeDetail({ s, view, node, onPick, onStop }: DetailProps) {
                     <span class="rs-link-mark" aria-hidden="true">
                       {isResearched(s, n.id) ? '✓' : '›'}
                     </span>
-                    <span class="rs-link-name">{n.name}</span>
+                    <span class="rs-link-name">{topicName(n)}</span>
                     {branchOf(n) !== branchOf(node) && <span class="rs-link-branch">{BRANCH_LABEL[branchOf(n)]}</span>}
                   </button>
                 </li>

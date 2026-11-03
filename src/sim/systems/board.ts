@@ -304,7 +304,9 @@ function payReward(s: GameState, o: Objective): void {
     parts.push(`hype +${r.hype}`);
   }
   if (r.rp) {
+    // v17.3: a reward earned while idle is banked for the next topic instead of vanishing.
     if (s.research.current) s.research.progress += r.rp;
+    else s.research.banked = (s.research.banked ?? 0) + r.rp;
     parts.push(`${r.rp} RP`);
   }
   parts.push(`${r.xp} XP`);

@@ -44,4 +44,3 @@
 }
 
 /* v17.2: Accept is the primary choice; the confirm turns it red with the price. */
-.btn.fin-accept:not(.is-armed) { background: var(--hl); border-color: var(--hl); color: var(--on-hl); }

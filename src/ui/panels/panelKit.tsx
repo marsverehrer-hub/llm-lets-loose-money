@@ -218,8 +218,11 @@ export function ConfirmButton(props: {
   disabled?: boolean;
   class?: string;
   title?: string;
+  /** Resting look: 'danger' for destructive actions (default), 'default' or 'primary' for purchases. Armed is always red. */
+  tone?: 'danger' | 'default' | 'primary';
 }) {
   const [armed, setArmed] = useState(false);
+  const rest = props.tone === 'primary' ? 'btn-primary' : props.tone === 'default' ? '' : 'btn-danger';
   useEffect(() => {
     if (!armed) return;
     const t = setTimeout(() => setArmed(false), 3000);
@@ -228,7 +231,7 @@ export function ConfirmButton(props: {
   return (
     <button
       type="button"
-      class={`btn btn-danger ${armed ? 'is-armed' : ''} ${props.class ?? ''}`}
+      class={`btn ${armed ? 'btn-danger is-armed' : rest} ${props.class ?? ''}`}
       disabled={props.disabled}
       title={props.title}
       onClick={() => {

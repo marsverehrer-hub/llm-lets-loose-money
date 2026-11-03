@@ -9,13 +9,15 @@ import { RESEARCH } from '../sim/data/research';
 import { runwayDays } from '../sim/systems/finance';
 import { formatDays } from './components/format';
 
+/** v17.3: a funding offer pauses the game only below this runway. */
+const FUNDING_PAUSE_RUNWAY_DAYS = 180;
 export type AutoPauseTrigger = 'training' | 'research' | 'funding' | 'rival' | 'runway' | 'outage' | 'data';
 
 /** Menu order and labels. Sentence case; the menu shows them as checkboxes under "Pause when…". */
 export const AUTOPAUSE_TRIGGERS: { id: AutoPauseTrigger; label: string }[] = [
   { id: 'training', label: 'Training finishes' },
   { id: 'research', label: 'Research completes with an empty queue' },
-  { id: 'funding', label: 'Funding offer arrives' },
+  { id: 'funding', label: 'Funding offer arrives while runway is short' },
   { id: 'rival', label: 'A rival overtakes your best model' },
   { id: 'runway', label: 'Runway under 60 days' },
   { id: 'outage', label: 'A product has an outage' },
@@ -163,7 +165,8 @@ export function autoPauseCheck(s: GameState): { text: string; kind: NoticeKind }
     reasons.push({ text: `Research complete${node ? `: ${node.name}` : ''}, queue empty`, bad: false });
   }
 
-  if (on.funding && now.offerKey !== null && now.offerKey !== prev.offerKey && s.finance.pendingOffer) {
+  // v17.3: with cash to spare the offer waits in the Urgent chip and a toast; only a short runway stops the clock.
+  if (on.funding && now.offerKey !== null && now.offerKey !== prev.offerKey && s.finance.pendingOffer && now.runway < FUNDING_PAUSE_RUNWAY_DAYS) {
     const o = s.finance.pendingOffer;
     reasons.push({ text: `${o.investor} makes a ${o.roundName} offer`, bad: false });
   }

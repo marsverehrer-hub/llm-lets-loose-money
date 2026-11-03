@@ -674,7 +674,7 @@ function fleetPriorityStep(st: GameState): void {
   if (fleetPriority(st) !== want) dispatch(st, { type: 'setFleetPriority', priority: want });
 }
 
-function computeStep(st: GameState, cash: number): void {
+function computeStep(st: GameState, cash: number, strategy: BotStrategy): void {
   fleetPriorityStep(st);
   // Compute: rent newest GPU when rich, build datacenter when very rich
   if (st.day % 7 !== 0) return;
@@ -687,7 +687,10 @@ function computeStep(st: GameState, cash: number): void {
   // seed (v1.0 tuning). Early labs burn cash too but have years of runway, so they keep training.
   const netBurn = st.finance.dailyExpenses - st.finance.dailyRevenue;
   const shortRunway = netBurn > 0 && cash < 365 * netBurn;
-  const desired = 0.3 * st.finance.dailyRevenue + (shortRunway ? 0 : Math.max(0, cash) / 1500);
+  // v17.3: lean labs (small, specialist) rent in step with revenue, not with every dollar they raised; frontier burns it.
+  const lean = strategy === 'small' || strategy === 'specialist';
+  const cashTerm = Math.max(0, cash) / 1500;
+  const desired = 0.3 * st.finance.dailyRevenue + (shortRunway ? 0 : lean ? Math.min(cashTerm, 10_000 + 0.5 * st.finance.dailyRevenue) : cashTerm);
   if (newest && rentNow < desired * 0.8) {
     const n = Math.floor((desired - rentNow) / newest.rentPerDay);
     if (n > 0) dispatch(st, { type: 'rentGpus', gpuId: newest.id, count: Math.min(n, 100000) });
@@ -750,5 +753,5 @@ export function botDay(st: GameState, idle = false, strategy: BotStrategy = 'fro
   releaseStep(st, strategy);
   if (bestReleased(st)) productStep(st, strategy);
   staffStep(st, strategy, cash, net);
-  computeStep(st, cash);
+  computeStep(st, cash, strategy);
 }

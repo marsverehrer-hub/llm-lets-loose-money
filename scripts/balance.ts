@@ -246,9 +246,10 @@ function designChecks(byStrategy: Map<Strategy, Run[]>): Check[] {
   const fr = runsOf('frontier');
   if (fr) {
     const p = yearOfDayNum(medianOrNever(fr.map((r) => r.profitableDay)));
-    out.push({ label: '§27 first profitability 2023-2026 (frontier)', pass: inYears(p, 2023, 2027), detail: `median ${yearWord(p)}` });
+    // v17.3: the frontier bot spends every dollar it raises on compute; with bigger early rounds a seed may stay in the red.
+    out.push({ label: '§30 first profitability 2023-2029 (frontier)', pass: inYears(p, 2023, 2030), detail: `median ${yearWord(p)}` });
     const ipo = yearOfDayNum(medianOrNever(fr.map((r) => r.ipoDay)));
-    out.push({ label: '§27 IPO 2024-2028 (frontier)', pass: inYears(ipo, 2024, 2029), detail: `median ${yearWord(ipo)}` });
+    out.push({ label: '§30 IPO 2023-2028 (frontier)', pass: inYears(ipo, 2023, 2029), detail: `median ${yearWord(ipo)}` });
     const tr = yearOfDayNum(medianOrNever(fr.map((r) => r.trillionDay)));
     // yearsRun is days / 365.25, so a 20-year run ends at 19.99.
     const long = fr.every((r) => r.yearsRun >= 19.9);
@@ -282,14 +283,17 @@ function designChecks(byStrategy: Map<Strategy, Run[]>): Check[] {
   }
 
   // §19
+  // v17.3: the lean small lab turns a profit early; the specialist is a focused mid-size lab and keeps the v16 window.
+  const PROFIT_WINDOW = { small: [2019, 2022], specialist: [2021, 2024] } as const;
   for (const s of ['small', 'specialist'] as const) {
+    const [from, to] = PROFIT_WINDOW[s];
     const runs = runsOf(s);
     if (!runs) {
-      out.push({ label: `§27 ${s} profitable 2021-2024`, pass: null, detail: `${s} not run` });
+      out.push({ label: `§30 ${s} profitable ${from}-${to}`, pass: null, detail: `${s} not run` });
       continue;
     }
     const p = yearOfDayNum(medianOrNever(runs.map((r) => r.profitableDay)));
-    out.push({ label: `§27 ${s} profitable 2021-2024`, pass: p !== null && p >= 2021 && p < 2025, detail: `median ${yearWord(p)}` });
+    out.push({ label: `§30 ${s} profitable ${from}-${to}`, pass: p !== null && p >= from && p < to + 1, detail: `median ${yearWord(p)}` });
   }
   const small = runsOf('small');
   if (small) {

@@ -16,6 +16,11 @@ import { forecastTraining } from '../../../sim/systems/lab';
 import { RESEARCH } from '../../../sim/data/research';
 import { effectiveResearchCost, isResearched } from '../../../sim/systems/research';
 import { navigate } from '../../nav';
+import { memoryWall } from '../../../sim/systems/scaleLimits';
+import { trackStepOf } from '../../../sim/data/research';
+
+/** Parallelism research in the order it lifts the memory wall. */
+const SHARD_RESEARCH = ['zero_sharding', 'tensor_parallel', 'pipeline_parallel', 'parallelism_3d', 'cross_dc_training'];
 import { modelCaps } from '../../../sim/systems/capabilities';
 import {
   estimateMediaRun,
@@ -143,6 +148,23 @@ function PreTransformerTip() {
   );
 }
 
+/** v17.3: the memory wall in one line, and the research that lifts it, so "bigger next time" is always in sight. */
+function SizeLimitHint() {
+  const s = useGame();
+  const wall = memoryWall(s);
+  const next = SHARD_RESEARCH.find((id) => !isResearched(s, id));
+  if (wall.limitedBy !== 'research' || !next) return null;
+  const label = trackStepOf(next)?.label ?? next;
+  return (
+    <div class="tw-small tw-muted">
+      {`This cluster holds models up to ${formatParams(wall.maxParamsB)}. Research ${label} to train bigger ones.`}{' '}
+      <button type="button" class="btn btn-sm btn-ghost" onClick={() => navigate('research')}>
+        See research
+      </button>
+    </div>
+  );
+}
+
 function TextQuick({ pick, set, name }: { pick: QuickPick; set: (p: Partial<QuickPick>) => void; name: string }) {
   const s = useGame();
   const recipe = RECIPES.find((r) => r.id === pick.recipe) ?? RECIPES[0];
@@ -202,6 +224,7 @@ function TextQuick({ pick, set, name }: { pick: QuickPick; set: (p: Partial<Quic
         {a && plan ? (
           <>
             <div class="tw-readout num">{`${formatParams(a.paramsB)} params · ${tokensShort(a.tokensB)} tokens`}</div>
+            <SizeLimitHint />
             <NetView spec={netSpecOfText(a.paramsB, a.config, activeParamsFor(a.paramsB, a.config!), optionById(a.config!.context)?.contextK)} seed="draft" height={170} />
             <div class="tw-readout">{`Fits your compute in ${formatDays(plan.days)} · about ${quoteMoney(cost, formatMoney)} if rented in the cloud`}</div>
             {fc && <BandBar variant="mini" low={fc.low} mid={fc.mid} high={fc.high} label={`Forecast overall ${Math.round(fc.low)} to ${Math.round(fc.high)}`} />}

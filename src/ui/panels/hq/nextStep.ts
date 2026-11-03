@@ -2,6 +2,7 @@
 import type { PanelId } from '../../App';
 import type { Intent } from '../../nav';
 import { computeCapacity } from '../../../sim/systems/compute';
+import { adoptQuote, recommendedResearch } from '../../../sim/systems/research';
 import { runwayDays } from '../../../sim/systems/finance';
 import { unlockedProductKinds } from '../../../sim/systems/products';
 import { OFFICE_TIERS } from '../../../sim/data/roles';
@@ -125,11 +126,12 @@ export function nextSteps(s: GameState): Step[] {
       cta: 'Train',
       intent: { open: 'train' },
     });
+  const rec = recommendedResearch(s);
   if (s.research.current === null)
     add({
       priority: 'next',
-      text: 'Pick something to research',
-      why: 'Research unlocks better architectures, products and cheaper training.',
+      text: rec ? `Research ${rec.label}` : 'Pick something to research',
+      why: rec ? rec.why : 'Research unlocks better architectures, products and cheaper training.',
       panel: 'research',
       cta: 'Open Research',
     });
@@ -163,6 +165,16 @@ export function nextSteps(s: GameState): Step[] {
   const close = s.board?.objectives.find((o) => o.doneDay === null && objectiveProgress(o) >= 0.75);
   if (close)
     add({ priority: 'idea', text: `Finish a board goal: ${close.text}`, why: 'You are three quarters there, and the board pays on the day you hit it.', panel: 'lab', cta: 'See goals' });
+  // v17.3: a cheap published paper on the recommended topic, done alongside the lab's own research.
+  const adopt = rec && s.research.current !== null ? adoptQuote(s, rec.node) : null;
+  if (rec && adopt?.ok && adopt.price <= 0.1 * s.finance.cash)
+    add({
+      priority: 'idea',
+      text: `Adopt the ${rec.label} paper for ${formatMoney(adopt.price)}`,
+      why: `${rec.why} Done in ${adopt.days} days, while your researchers keep going.`,
+      panel: 'research',
+      cta: 'Open Research',
+    });
   const cup = s.cup?.open;
   if (cup && !cup.entrantModelId && released.length > 0)
     add({ priority: 'idea', text: 'Enter the Arena Cup', why: 'A free shot at prize money and hype for a released model.', panel: 'lab', cta: 'Enter' });

@@ -109,7 +109,7 @@ export const RESEARCH: ResearchNode[] = [
     technique: true,
     scoreBonus: { chat: 4, reasoning: 2 },
     capBonus: { longContext: 25 },
-    effectText: 'Technique: +25 long-context, +4 chat, +2 reasoning. Unlocks the 32K context option.',
+    effectText: 'Technique: +25 long-context, +4 chat, +2 reasoning. Unlocks 32K context; leads to Chain of Thought, RAG and Multimodal.',
     icon: '📜',
   },
   {
@@ -200,7 +200,7 @@ export const RESEARCH: ResearchNode[] = [
     prereqs: ['transformers'],
     minYear: 2018,
     tier: 1,
-    effectText: 'Cuts the uncertainty band on predicted scores (x0.6).',
+    effectText: 'Needed for Instruction Tuning (Chat) and Mixture of Experts. Tightens score forecasts (x0.6).',
     icon: '📈',
   },
   {
@@ -448,7 +448,7 @@ export const RESEARCH: ResearchNode[] = [
     prereqs: ['mixed_precision'],
     minYear: 2020,
     tier: 1,
-    effectText: 'Max efficient GPUs per run: 256 to 2,048.',
+    effectText: 'Bigger models: one model can span 32 GPUs (was 8). Max efficient GPUs per run: 256 to 2,048.',
     icon: '🍰',
   },
   {
@@ -460,7 +460,7 @@ export const RESEARCH: ResearchNode[] = [
     prereqs: ['zero_sharding'],
     minYear: 2021,
     tier: 2,
-    effectText: 'Max efficient GPUs per run: 16,000.',
+    effectText: 'Bigger models: one model can span 128 GPUs. Max efficient GPUs per run: 16,000.',
     icon: '🪓',
   },
   {
@@ -472,7 +472,7 @@ export const RESEARCH: ResearchNode[] = [
     prereqs: ['tensor_parallel'],
     minYear: 2022,
     tier: 3,
-    effectText: 'Max efficient GPUs per run: 64,000.',
+    effectText: 'Much bigger models: one model can span 1,024 GPUs. Max efficient GPUs per run: 64,000.',
     icon: '🚰',
   },
   {
@@ -484,7 +484,7 @@ export const RESEARCH: ResearchNode[] = [
     prereqs: ['pipeline_parallel'],
     minYear: 2023,
     tier: 4,
-    effectText: 'Max efficient GPUs per run: 500,000.',
+    effectText: 'Giant models: one model can span 8,192 GPUs. Max efficient GPUs per run: 500,000.',
     icon: '🧊',
   },
   {
@@ -1170,7 +1170,7 @@ export const RESEARCH: ResearchNode[] = [
     tier: 3,
     technique: true,
     capBonus: { vision: 8, reasoning: 2 },
-    effectText: 'Technique: +8 vision, +2 reasoning.',
+    effectText: 'Unlocks video models. Technique: +8 vision, +2 reasoning.',
     icon: '🎬',
   },
   {
@@ -1183,7 +1183,7 @@ export const RESEARCH: ResearchNode[] = [
     minYear: 2023,
     tier: 2,
     bonuses: { brand: 1.1 },
-    effectText: '+10% brand.',
+    effectText: 'Unlocks diffusion-transformer and flow-matching image models (the good ones). +10% brand.',
     icon: '🎨',
   },
   {
@@ -1587,3 +1587,96 @@ export const RESEARCH: ResearchNode[] = [
     icon: '🏗️',
   },
 ];
+
+// ---------------------------------------------------------------------------
+// v17.3 research tracks (GAME_DESIGN §30): five goals a small lab can follow instead of 119 equal topics. Each step has
+// a plain label and the payoff in player terms. Nodes in no track are "More upgrades". Order inside a track is the
+// order they open; prerequisites from other tracks are fine (the recommender skips what cannot start yet).
+// ---------------------------------------------------------------------------
+export type TrackId = 'chat' | 'scale' | 'business' | 'media' | 'efficiency';
+export interface TrackStep {
+  id: string;
+  label: string;
+  why: string;
+}
+export interface ResearchTrack {
+  id: TrackId;
+  name: string;
+  goal: string;
+  steps: TrackStep[];
+}
+export const RESEARCH_TRACKS: ResearchTrack[] = [
+  {
+    id: 'chat',
+    name: 'Chat product',
+    goal: 'Build models people want to talk to, then sell them a chatbot.',
+    steps: [
+      { id: 'transformers', label: 'Transformers', why: 'Real transformer models instead of LSTMs: much better quality.' },
+      { id: 'scaling_laws', label: 'Scaling laws', why: 'Predict how a run turns out; the step before Chat.' },
+      { id: 'instruction_tuning', label: 'Instruction tuning', why: 'Unlocks the Chat product.' },
+      { id: 'long_context', label: 'Long context', why: 'Longer memory for chat and the door to reasoning and images.' },
+      { id: 'rlhf', label: 'RLHF', why: 'Much better chat and safety; the step before Enterprise.' },
+      { id: 'chain_of_thought', label: 'Chain of thought', why: 'Models that reason step by step.' },
+    ],
+  },
+  {
+    id: 'scale',
+    name: 'Bigger models',
+    goal: 'Train faster and break the memory wall so each model can be bigger.',
+    steps: [
+      { id: 'mixed_precision', label: 'Mixed precision', why: '+25% training speed.' },
+      { id: 'flash_attention', label: 'Flash attention', why: '+50% training speed.' },
+      { id: 'bf16_training', label: 'BF16 training', why: 'Faster, stable runs.' },
+      { id: 'zero_sharding', label: 'ZeRO sharding', why: 'Models 4x bigger: one model spans 32 GPUs.' },
+      { id: 'tensor_parallel', label: 'Tensor parallelism', why: 'Models 4x bigger again: 128 GPUs.' },
+      { id: 'pipeline_parallel', label: 'Pipeline parallelism', why: 'Frontier-size models: 1,024 GPUs.' },
+      { id: 'parallelism_3d', label: '3D parallelism', why: 'Giant models: 8,192 GPUs.' },
+    ],
+  },
+  {
+    id: 'business',
+    name: 'Developers & enterprise',
+    goal: 'Win developers with code models, then sell to companies.',
+    steps: [
+      { id: 'code_models', label: 'Code models', why: '+12 coding: developers pay for code.' },
+      { id: 'data_filtering', label: 'Data filtering', why: '+10% data quality on every run.' },
+      { id: 'tool_use', label: 'Tool use', why: 'Models that call tools: coding and agents.' },
+      { id: 'enterprise_ready', label: 'Enterprise ready', why: 'Unlocks the Enterprise product.' },
+      { id: 'enterprise_sales', label: 'Enterprise sales', why: '+30% enterprise sales.' },
+    ],
+  },
+  {
+    id: 'media',
+    name: 'Images & video',
+    goal: 'Open a second business: image and video models.',
+    steps: [
+      { id: 'clip_contrastive', label: 'CLIP pretraining', why: 'Unlocks diffusion image models.' },
+      { id: 'multimodal', label: 'Multimodal', why: 'Models that see: +45 vision.' },
+      { id: 'image_generation', label: 'Image generation', why: 'Unlocks the best image architectures.' },
+      { id: 'vit_encoder', label: 'Vision transformers', why: '+8 vision; the step before video.' },
+      { id: 'video_understanding', label: 'Video', why: 'Unlocks video models.' },
+    ],
+  },
+  {
+    id: 'efficiency',
+    name: 'Cheaper to run',
+    goal: 'Serve more users per GPU so products earn more.',
+    steps: [
+      { id: 'kv_cache', label: 'KV cache', why: '+25% serving efficiency.' },
+      { id: 'quantization', label: 'Quantization', why: '+30% serving efficiency.' },
+      { id: 'moe', label: 'Mixture of experts', why: 'MoE models: x2.5 serving efficiency.' },
+      { id: 'speculative_decoding', label: 'Speculative decoding', why: '+40% serving efficiency.' },
+      { id: 'continuous_batching', label: 'Continuous batching', why: '+20% serving efficiency.' },
+      { id: 'distillation', label: 'Distillation', why: 'Small cheap models: x2 serving efficiency.' },
+    ],
+  },
+];
+
+/** The track step for a node, or undefined when it is a "More upgrades" topic. */
+export function trackStepOf(id: string): (TrackStep & { track: ResearchTrack }) | undefined {
+  for (const t of RESEARCH_TRACKS) {
+    const st = t.steps.find((x) => x.id === id);
+    if (st) return { ...st, track: t };
+  }
+  return undefined;
+}

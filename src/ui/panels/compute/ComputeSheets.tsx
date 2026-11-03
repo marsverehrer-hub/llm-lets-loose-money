@@ -374,6 +374,7 @@ export function BuildBody() {
                   {/* v17.2: a datacenter spends a big share of the cash, so it takes a second click. */}
                   <ConfirmButton
                     class="btn-sm cc-build"
+                    tone="default"
                     label="Build"
                     confirmLabel={`Spend ${formatMoney(t.buildCost)}${s.finance.cash > 0 ? ` (${Math.round((t.buildCost / s.finance.cash) * 100)}% of cash)` : ''}?`}
                     disabled={!can}
