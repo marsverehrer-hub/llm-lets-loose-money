@@ -4,18 +4,28 @@ import { useState } from 'preact/hooks';
 import type { ResearchNode } from '../../../sim/types';
 import { RESEARCH } from '../../../sim/data/research';
 import { dispatch } from '../../store';
-import { useIsMobile } from '../../components';
+import { ProgressBar, useIsMobile } from '../../components';
 import { fmtCount } from '../panelKit';
 import { QueueAction } from '../ResearchQueue';
-import { BRANCH_LABEL, ResearchView, branchOf, etaText, isCheaperNow } from './model';
+import { BRANCH_LABEL, ResearchView, branchOf, etaText, isCheaperNow, jokeName, topicName } from './model';
 
-
-
-export function ReadyCards({ view, onShow }: { view: ResearchView; onShow: (n: ResearchNode) => void }) {
+export function ReadyCards({
+  view,
+  onShow,
+  filter,
+}: {
+  view: ResearchView;
+  onShow: (n: ResearchNode) => void;
+  /** v17.3: which topics to show (the "More upgrades" list passes the topics in no track). */
+  filter?: (n: ResearchNode) => boolean;
+}) {
   const [all, setAll] = useState(false);
   // Phones show fewer cards so the search and the full list stay within reach.
   const COLLAPSED = useIsMobile() ? 3 : 6;
-  const ready = RESEARCH.filter((n) => view.stateOf(n) === 'available').sort((a, b) => view.costOf(a) - view.costOf(b));
+  const recId = view.rec?.node.id;
+  const ready = RESEARCH.filter((n) => view.stateOf(n) === 'available' && (!filter || filter(n))).sort(
+    (a, b) => Number(b.id === recId) - Number(a.id === recId) || view.leftOf(a) - view.leftOf(b),
+  );
   const shown = all ? ready : ready.slice(0, COLLAPSED);
 
   if (ready.length === 0) {
@@ -32,12 +42,16 @@ export function ReadyCards({ view, onShow }: { view: ResearchView; onShow: (n: R
               {isCheaperNow(view, n) && <span class="rs-ready-cheap">Cheaper now</span>}
             </div>
             <button type="button" class="rs-ready-name" onClick={() => onShow(n)} title="Show details">
-              {n.name}
+              {topicName(n)}
             </button>
+            {jokeName(n) && <div class="rs-rec-joke">{jokeName(n)}</div>}
             <div class="rs-ready-effect">{n.effectText ?? n.description}</div>
+            {view.partialOf(n) > 0 && (
+              <ProgressBar value={view.partialOf(n)} max={view.costOf(n)} height={4} label="Earlier progress kept" />
+            )}
             <div class="rs-ready-foot">
-              <span class="rs-ready-time num" title={`${fmtCount(view.costOf(n), 0)} research points`}>
-                {etaText(view.costOf(n), view.perDay)}
+              <span class="rs-ready-time num" title={`${fmtCount(view.leftOf(n), 0)} research points left`}>
+                {etaText(view.leftOf(n), view.perDay)}
               </span>
               <span class="rs-ready-acts">
                 {view.current ? (
@@ -46,7 +60,7 @@ export function ReadyCards({ view, onShow }: { view: ResearchView; onShow: (n: R
                     <button
                       type="button"
                       class="btn btn-sm btn-ghost"
-                      title={`Stops ${view.current.name}. Its progress is lost.`}
+                      title={`Pauses ${topicName(view.current)}. Its progress is kept for later.`}
                       onClick={() => dispatch({ type: 'setResearch', nodeId: n.id })}
                     >
                       Switch

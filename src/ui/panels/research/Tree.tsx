@@ -6,7 +6,7 @@ import { RESEARCH_BRANCHES } from '../../../sim/types';
 import { RESEARCH } from '../../../sim/data/research';
 import { Pill, clamp } from '../../components';
 import { fmtCount } from '../panelKit';
-import { BRANCH_LABEL, NODE_BY_ID, ResearchView, branchOf, etaText } from './model';
+import { BRANCH_LABEL, NODE_BY_ID, ResearchView, branchOf, etaText, topicName } from './model';
 import { stateTag } from './Detail';
 import { QueueAction } from '../ResearchQueue';
 
@@ -191,10 +191,10 @@ export function ResearchTree({ branch, view, selected, isPhone, queuePos, onPick
           const sel = selected?.id === n.id;
           const cross = st === 'done' ? [] : n.prereqs.filter((q) => !isDone(q) && branchOf(NODE_BY_ID.get(q)!) !== branch);
           const needs = cross.length
-            ? `Needs ${NODE_BY_ID.get(cross[0])?.name ?? cross[0]} (${BRANCH_LABEL[branchOf(NODE_BY_ID.get(cross[0])!)]})${cross.length > 1 ? ` +${cross.length - 1}` : ''}`
+            ? `Needs ${topicName(NODE_BY_ID.get(cross[0])!)} (${BRANCH_LABEL[branchOf(NODE_BY_ID.get(cross[0])!)]})${cross.length > 1 ? ` +${cross.length - 1}` : ''}`
             : '';
           const cost = costOf(n);
-          const costText = st === 'done' ? '' : st === 'active' ? `${etaText(remainingRP, perDay)} left` : etaText(cost, perDay);
+          const costText = st === 'done' ? '' : st === 'active' ? `${etaText(remainingRP, perDay)} left` : etaText(view.leftOf(n), perDay);
           const tag = stateTag(st, n);
           return (
             <div
@@ -209,7 +209,7 @@ export function ResearchTree({ branch, view, selected, isPhone, queuePos, onPick
               data-state={st}
               data-sel={sel ? 'true' : 'false'}
               style={`left:${p.x}px;top:${p.y}px;width:${NODE_W}px;height:${NODE_H}px`}
-              aria-label={`${n.name}. ${tag.label}. ${fmtCount(cost, 0)} RP.`}
+              aria-label={`${topicName(n)}. ${tag.label}. ${fmtCount(cost, 0)} RP.`}
               title={n.effectText ? `${n.name}: ${n.effectText}` : n.name}
               onClick={() => {
                 onPick(n);
@@ -219,8 +219,11 @@ export function ResearchTree({ branch, view, selected, isPhone, queuePos, onPick
               onKeyDown={(e) => onNodeKey(e, n)}
             >
               {st === 'active' && current && <span class="rs-node-fill" style={`width:${(progressFrac * 100).toFixed(1)}%`} />}
+              {st !== 'active' && st !== 'done' && view.partialOf(n) > 0 && (
+                <span class="rs-node-fill is-shelved" style={`width:${Math.min(100, (view.partialOf(n) / Math.max(1, cost)) * 100).toFixed(1)}%`} />
+              )}
               <span class="rs-node-head">
-                <span class="rs-node-name">{n.name}</span>
+                <span class="rs-node-name">{topicName(n)}</span>
                 {st === 'done' && (
                   <span class="rs-check" aria-hidden="true">
                     ✓

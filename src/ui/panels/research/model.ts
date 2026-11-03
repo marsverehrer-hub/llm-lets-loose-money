@@ -2,8 +2,9 @@
 // calendar the lab is. Every price here goes through effectiveResearchCost (knowledge diffusion), never the base price.
 import type { GameState, Id, ResearchBranch, ResearchNode } from '../../../sim/types';
 import { RESEARCH_BRANCHES } from '../../../sim/types';
-import { RESEARCH } from '../../../sim/data/research';
+import { RESEARCH, trackStepOf } from '../../../sim/data/research';
 import {
+  recommendedResearch,
   DIFFUSION_FLOOR,
   DIFFUSION_PER_YEAR,
   availableResearch,
@@ -12,6 +13,7 @@ import {
   researchPointsPerDay,
   RESEARCH_TUNING,
 } from '../../../sim/systems/research';
+import type { Recommendation } from '../../../sim/systems/research';
 import { calendarYear } from '../../../sim/util';
 import { fmtDays } from '../panelKit';
 
@@ -35,6 +37,11 @@ export const BRANCH_LABEL: Record<ResearchBranch, string> = {
 export const EARLY = RESEARCH_TUNING.EARLY_YEARS;
 export const NODE_BY_ID = new Map<Id, ResearchNode>(RESEARCH.map((n) => [n.id, n] as const));
 export const branchOf = (n: ResearchNode): ResearchBranch => n.branch ?? RESEARCH_BRANCHES[0];
+/** v17.3: a track topic leads with its plain label; other topics keep their name. */
+export const topicName = (n: ResearchNode): string => trackStepOf(n.id)?.label ?? n.name;
+/** The joke name as a subtitle, when it says more than the plain label. */
+export const jokeName = (n: ResearchNode): string | null => (topicName(n).toLowerCase() === n.name.toLowerCase() ? null : n.name);
+
 /** First calendar year the node can be started (the player may start one year ahead of minYear). */
 export const opensIn = (n: ResearchNode): number => n.minYear - EARLY;
 
@@ -62,7 +69,13 @@ export interface ResearchView {
   progressFrac: number;
   remainingRP: number;
   perDay: number;
-  /** Lag in years: the oldest open idea you have not finished, measured against today. 0 when up to date. */
+  /** v17.3: the topic the lab should do next (null when nothing can start). */
+  rec: Recommendation | null;
+  /** RP already spent on a topic: live progress for the current one, shelved progress for the rest. */
+  partialOf: (n: ResearchNode) => number;
+  /** RP still owed on a topic, after any progress. */
+  leftOf: (n: ResearchNode) => number;
+  /** Lag in years: the oldest open track step you have not finished, measured against today. 0 when up to date. */
   behind: number;
   oldestOpen: ResearchNode | null;
   /** RP still owed on every open node (minYear reached) that is not done, at today's prices. */
@@ -95,12 +108,20 @@ export function buildView(s: GameState): ResearchView {
     return 'locked';
   };
 
+  const partialOf = (n: ResearchNode) => (n.id === currentId ? progress : s.research.partial?.[n.id] ?? 0);
+  const leftOf = (n: ResearchNode) => Math.max(0, costOf(n) - partialOf(n));
+  const rec = recommendedResearch(s);
+
   const open = RESEARCH.filter((n) => n.minYear <= year && !done.has(n.id));
-  const oldestOpen = open.reduce<ResearchNode | null>((a, n) => (!a || n.minYear < a.minYear ? n : a), null);
+  // "Behind the field" counts the core (track steps) only: skipping a side upgrade is not falling behind.
+  const oldestOpen = open
+    .filter((n) => trackStepOf(n.id))
+    .reduce<ResearchNode | null>((a, n) => (!a || n.minYear < a.minYear ? n : a), null);
   const behind = oldestOpen ? Math.max(0, year - oldestOpen.minYear) : 0;
   const backlogRP = open.reduce((acc, n) => acc + costOf(n), 0);
 
   const nextNode =
+    rec?.node ??
     RESEARCH.filter((n) => avail.has(n.id) && n.id !== currentId).sort((a, b) => costOf(a) - costOf(b) || a.tier - b.tier)[0] ?? null;
 
   const stats = new Map<BranchTab, { done: number; total: number }>();
@@ -122,6 +143,9 @@ export function buildView(s: GameState): ResearchView {
     progressFrac,
     remainingRP,
     perDay,
+    rec,
+    partialOf,
+    leftOf,
     behind,
     oldestOpen,
     backlogRP,

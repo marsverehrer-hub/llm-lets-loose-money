@@ -1,7 +1,7 @@
 // v10 research timeline: years across, one cell per node in the year it came out, coloured by state. Click a cell to
 // select it. Tapping a year label selects the year (on phones the year's ideas list below the timeline).
 import type { Id, ResearchNode } from '../../../sim/types';
-import { NODES_BY_YEAR, NodeState, ResearchView, YEARS, BRANCH_LABEL, branchOf, etaText } from './model';
+import { NODES_BY_YEAR, NodeState, ResearchView, YEARS, BRANCH_LABEL, branchOf, etaText, topicName } from './model';
 import { fmtCount } from '../panelKit';
 
 const STATE_TEXT: Record<NodeState, string> = {
@@ -51,8 +51,8 @@ export function Timeline({ view, selected, yearSel, onPick, onYear }: TimelinePr
                       class={`tl-cell${selected === n.id ? ' is-sel' : ''}`}
                       data-state={st}
                       aria-pressed={selected === n.id}
-                      aria-label={`${n.name}, ${BRANCH_LABEL[branchOf(n)]}, idea from ${y}, ${STATE_TEXT[st]}, ${fmtCount(costOf(n), 0)} RP`}
-                      title={`${n.name} · idea from ${y} · ${STATE_TEXT[st]} · ${fmtCount(costOf(n), 0)} RP${st === 'done' || perDay <= 0 ? '' : ` · ${etaText(costOf(n), perDay)}`}`}
+                      aria-label={`${topicName(n)}, ${BRANCH_LABEL[branchOf(n)]}, idea from ${y}, ${STATE_TEXT[st]}, ${fmtCount(costOf(n), 0)} RP`}
+                      title={`${topicName(n)} · idea from ${y} · ${STATE_TEXT[st]} · ${fmtCount(costOf(n), 0)} RP${st === 'done' || perDay <= 0 ? '' : ` · ${etaText(costOf(n), perDay)}`}`}
                       onClick={() => onPick(n)}
                     />
                   );
