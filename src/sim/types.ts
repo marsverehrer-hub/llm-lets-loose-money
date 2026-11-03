@@ -761,6 +761,8 @@ export interface Product {
   /** v8: the same users split by buyer tier (sums to users). Refreshed by marketTick. Missing in older saves. */
   tierUsers?: Partial<Record<BuyerTier, number>>;
   launchedDay: number;
+  /** v17.3: grows at the fast rate until this day (launch, or a swap to a newer model). Missing = launch + 60 days. */
+  boostUntil?: number;
   satisfaction: number;        // 0..100
   servedFraction: number;      // 0..1 of demand served last tick (<1 = outage)
   mtokPerDay: number;          // demand in millions of tokens/day

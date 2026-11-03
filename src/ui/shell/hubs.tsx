@@ -17,9 +17,10 @@ export interface Hub {
 
 export const HUBS: Hub[] = [
   { id: 'home', label: 'Headquarters', short: 'Home', blurb: 'What to do next', ids: ['dashboard', 'vs'] },
-  { id: 'lab', label: 'Lab', short: 'Lab', blurb: 'Models, research, data', ids: ['models', 'research', 'data', 'benchmarks'] },
+  // v17.3: train and sell side by side, so the core loop (train, release, launch) stays in one hub.
+  { id: 'lab', label: 'Lab', short: 'Lab', blurb: 'Models, products, research', ids: ['models', 'products', 'research', 'data', 'benchmarks'] },
   { id: 'infra', label: 'Infrastructure', short: 'Infra', blurb: 'GPUs and people', ids: ['compute', 'staff'] },
-  { id: 'business', label: 'Business', short: 'Business', blurb: 'Products, market, money', ids: ['products', 'market', 'marketing', 'contracts', 'finance'] },
+  { id: 'business', label: 'Business', short: 'Business', blurb: 'Market, deals, money', ids: ['market', 'marketing', 'contracts', 'finance'] },
   { id: 'company', label: 'Company', short: 'Company', blurb: 'Level, perks, trophies', ids: ['lab', 'achievements'] },
 ];
 

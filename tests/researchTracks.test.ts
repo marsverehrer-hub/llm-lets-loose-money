@@ -30,6 +30,8 @@ describe('research tracks', () => {
     expect(recommendedResearch(s)?.node.id).toBe('transformers');
     s.research.completed.push('transformers');
     expect(recommendedResearch(s)?.node.id).toBe('mixed_precision');
+    s.research.completed.push('mixed_precision');
+    expect(recommendedResearch(s)?.node.id).toBe('scaling_laws'); // the road to Chat comes before the other tracks
   });
 });
 

@@ -49,9 +49,9 @@ The ~15 panels are grouped into five **hubs** (`src/ui/shell/hubs.tsx`). PanelId
 | Hub | Colour | Panels (tabs) |
 |---|---|---|
 | Headquarters | yellow | Overview (`dashboard`), Versus (`vs`, only during a match) |
-| Lab | silver | Models, Research, Data, Benchmarks |
+| Lab | silver | Models, Products, Research, Data, Benchmarks |
 | Infrastructure | amber | Compute, Staff |
-| Business | pale gold | Products, Market, Marketing, Contracts, Finance |
+| Business | pale gold | Market, Marketing, Contracts, Finance |
 | Company | steel | Level & perks (`lab`), Trophies (`achievements`) |
 
 - **Desktop:** the five hubs are the main nav bar across the top, under the HUD (livery icon, caps label, an underline

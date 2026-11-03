@@ -136,3 +136,24 @@ describe('v17.2 pitching investors', () => {
     expect(s.finance.pendingOffer).not.toBeNull();
   });
 });
+
+describe('v17.3 launch spike', () => {
+  it('a fresh product grows much faster in its first weeks than one without the boost', () => {
+    const run = (boost: boolean) => {
+      const s = createInitialState(42, 'Spike');
+      s.day = 365; // 2018: a real developer market
+      s.models.push(releasedModel());
+      dispatch(s, { type: 'launchProduct', kind: 'api', name: 'API', modelId: 'm1', price: 25 });
+      if (!boost) s.products[0].boostUntil = s.day;
+      for (let i = 0; i < 30; i++) {
+        s.events.pending = null;
+        tick(s);
+      }
+      return s.products[0].users;
+    };
+    const boosted = run(true);
+    const flat = run(false);
+    expect(boosted).toBeGreaterThan(1.8 * flat);
+    expect(boosted).toBeGreaterThan(0);
+  });
+});

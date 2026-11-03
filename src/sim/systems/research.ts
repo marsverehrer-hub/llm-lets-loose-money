@@ -177,9 +177,13 @@ function shelve(s: GameState): void {
 // v17.3 (GAME_DESIGN §30): recommended next topic and adopting published papers
 // ---------------------------------------------------------------------------
 
-/** Track steps interleaved round by round, so the recommendation advances every goal a little instead of one only. */
+/**
+ * The opening a small lab should follow (cheap speed-up, then the road to the Chat product), then the track steps
+ * interleaved round by round so every goal advances a little.
+ */
+const OPENING = ['transformers', 'mixed_precision', 'scaling_laws', 'instruction_tuning'];
 const RECOMMEND_ORDER: string[] = (() => {
-  const out: string[] = [];
+  const out: string[] = [...OPENING];
   const longest = Math.max(...RESEARCH_TRACKS.map((t) => t.steps.length));
   for (let i = 0; i < longest; i++) for (const t of RESEARCH_TRACKS) if (t.steps[i] && !out.includes(t.steps[i].id)) out.push(t.steps[i].id);
   return out;

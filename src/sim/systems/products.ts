@@ -8,7 +8,7 @@ import { getBonuses } from '../bonuses';
 import { addRevenue, clamp, newId, notify, pushNews, trySpend, yearOf } from '../util';
 import { RUN_TUNING } from '../data/trainingOptions';
 import { isResearched } from './research';
-import { frontierQuality, modelById, mtokPerUserDay, refPriceFor, segQuality, setProductUsers, triggerChatMoment, CHAT_MOMENT_MIN_OVERALL } from './market';
+import { frontierQuality, modelById, mtokPerUserDay, refPriceFor, segQuality, setProductUsers, triggerChatMoment, CHAT_MOMENT_MIN_OVERALL, MODEL_SWAP_BOOST_DAYS } from './market';
 import { openUserMult, previewDemandCap } from './release';
 
 /** One-off launch fee per product kind. */
@@ -197,7 +197,10 @@ export const handlers: ActionHandlers = {
       const old = modelById(s, p.modelId ?? '');
       const newer = !old || model.trainedDay > old.trainedDay;
       p.modelId = model.id;
-      if (newer) s.company.hype = clamp(s.company.hype + 4, 0, 100);
+      if (newer) {
+        s.company.hype = clamp(s.company.hype + 4, 0, 100);
+        p.boostUntil = Math.max(p.boostUntil ?? 0, s.day + MODEL_SWAP_BOOST_DAYS); // v17.3: a new model spikes too
+      }
       notify(s, `${p.name} now runs ${model.name}.`, 'good');
     }
     if (a.price !== undefined) p.price = a.price;
