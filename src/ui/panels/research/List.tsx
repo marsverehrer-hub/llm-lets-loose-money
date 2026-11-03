@@ -3,7 +3,7 @@ import type { Id, ResearchNode } from '../../../sim/types';
 import type { NodeState as NodeStateLike } from './model';
 import { Pill } from '../../components';
 import { fmtCount, fmtPct } from '../panelKit';
-import { BRANCH_LABEL, NODE_BY_ID, ResearchView, branchOf, etaText } from './model';
+import { BRANCH_LABEL, NODE_BY_ID, ResearchView, branchOf, etaText, topicName } from './model';
 import { QueueAction } from '../ResearchQueue';
 import { stateTag } from './Detail';
 
@@ -22,7 +22,14 @@ export interface ListProps {
 }
 
 export function ResearchList({ rows, view, selected, isPhone, showBranch, onPick, onStart, onOpen, emptyText }: ListProps) {
-  const { stateOf, costOf, progressFrac, remainingRP, perDay } = view;
+  const { stateOf, costOf, remainingRP, perDay, partialOf, leftOf } = view;
+  /** v17.3: shelved progress on a topic you switched away from, as a thin bar so the work does not look lost. */
+  const shelf = (n: ResearchNode, st: NodeStateLike) =>
+    st !== 'done' && st !== 'active' && partialOf(n) > 0 ? (
+      <span class="rs-shelf" title={`${fmtCount(partialOf(n), 0)} RP of earlier progress kept`}>
+        <span style={{ width: `${Math.min(100, (partialOf(n) / Math.max(1, costOf(n))) * 100)}%` }} />
+      </span>
+    ) : null;
   if (rows.length === 0) return <div class="rs-empty">{emptyText}</div>;
 
   const costText = (n: ResearchNode, st: string) =>
@@ -30,12 +37,13 @@ export function ResearchList({ rows, view, selected, isPhone, showBranch, onPick
       ? 'Done'
       : st === 'active'
         ? `${etaText(remainingRP, perDay)} left`
-        : etaText(costOf(n), perDay);
+        : etaText(leftOf(n), perDay);
   /** Status tag, but a locked topic names what it needs first. */
   const tagOf = (n: ResearchNode, st: NodeStateLike) => {
     if (st !== 'locked') return stateTag(st, n);
     const miss = n.prereqs.find((p) => !view.done.has(p));
-    return { tone: 'muted' as const, label: miss ? `Needs ${NODE_BY_ID.get(miss)?.name ?? miss}` : 'Locked' };
+    const mn = miss ? NODE_BY_ID.get(miss) : undefined;
+    return { tone: 'muted' as const, label: miss ? `Needs ${mn ? topicName(mn) : miss}` : 'Locked' };
   };
   const action = (n: ResearchNode, st: NodeStateLike) =>
     st === 'available' && !view.current ? (
@@ -73,7 +81,7 @@ export function ResearchList({ rows, view, selected, isPhone, showBranch, onPick
               >
                 <span class="rs-m-head">
                   <span class="rs-m-name">
-                    {n.name}
+                    {topicName(n)}
                     {st === 'done' && <span class="rs-check" aria-hidden="true">{' ✓'}</span>}
                   </span>
                   <Pill tone={tag.tone}>{tag.label}</Pill>
@@ -83,6 +91,7 @@ export function ResearchList({ rows, view, selected, isPhone, showBranch, onPick
                   <span class="rs-cost">{costText(n, st)}</span>
                 </span>
                 <span class="rs-m-effect">{n.effectText}</span>
+                {shelf(n, st)}
               </button>
               {st !== 'done' && st !== 'active' && <div class="rs-m-acts">{action(n, st)}</div>}
             </li>
@@ -123,15 +132,16 @@ export function ResearchList({ rows, view, selected, isPhone, showBranch, onPick
                 }}
               >
                 <td class="rs-td-name">
-                  {n.name}
+                  {topicName(n)}
                   {st === 'done' && <span class="rs-check" aria-hidden="true"> ✓</span>}
                   {showBranch && <div class="rs-td-branch">{BRANCH_LABEL[branchOf(n)]}</div>}
+                  {shelf(n, st)}
                 </td>
                 <td class="rs-td-effect">{n.effectText}</td>
                 <td class="rs-td-status">
                   <Pill tone={tag.tone}>{tag.label}</Pill>
                   {st !== 'done' && (
-                    <div class="rs-td-time num" title={`${fmtCount(costOf(n), 0)} research points`}>
+                    <div class="rs-td-time num" title={`${fmtCount(leftOf(n), 0)} research points left`}>
                       {costText(n, st)}
                     </div>
                   )}

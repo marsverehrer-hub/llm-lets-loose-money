@@ -8,6 +8,7 @@ import { yearOf } from '../../sim/util';
 import { Pill, ProgressBar } from '../components';
 import type { Id, ResearchNode } from '../../sim/types';
 import { fmtCount, fmtDays } from './panelKit';
+import { topicName } from './research/model';
 import './queue.css';
 
 const NODE_BY_ID = new Map<Id, ResearchNode>(RESEARCH.map((n) => [n.id, n] as const));
@@ -32,7 +33,7 @@ export function ResearchQueueStrip({ perDay }: { perDay: number }) {
   let acc = curRemaining;
   const rows = queue.map((id, i) => {
     const n = NODE_BY_ID.get(id);
-    acc += n ? effectiveResearchCost(s, n) : 0;
+    acc += n ? Math.max(0, effectiveResearchCost(s, n) - (s.research.partial?.[id] ?? 0)) : 0;
     const opens = n && yearOf(s.day) + RESEARCH_TUNING.EARLY_YEARS < n.minYear ? n.minYear - RESEARCH_TUNING.EARLY_YEARS : null;
     return { id, n, i, eta: acc, opens };
   });
@@ -66,7 +67,7 @@ export function ResearchQueueStrip({ perDay }: { perDay: number }) {
             <span class="q-idx" aria-hidden="true">·</span>
             <span class="q-namecol">
               <span class="q-name" title={cur.name}>
-                {cur.name}
+                {topicName(cur)}
               </span>
               <ProgressBar value={curFrac} height={6} />
             </span>
@@ -82,7 +83,7 @@ export function ResearchQueueStrip({ perDay }: { perDay: number }) {
             <span class="q-idx">{r.i + 1}</span>
             <span class="q-namecol">
               <span class="q-name" title={r.n?.name ?? r.id}>
-                {r.n?.name ?? r.id}
+                {r.n ? topicName(r.n) : r.id}
               </span>
             </span>
             {r.opens !== null && <Pill tone="muted">Opens {r.opens}</Pill>}

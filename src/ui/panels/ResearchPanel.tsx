@@ -2,19 +2,20 @@
 // detail pane. Search, the ready/done filter and branch chips sit right above the list. Styles in research.css (rs- prefix). Tokens only.
 import { useState } from 'preact/hooks';
 import { dispatch, useGame } from '../store';
-import { RESEARCH } from '../../sim/data/research';
+import { RESEARCH, trackStepOf } from '../../sim/data/research';
 import { RESEARCH_BRANCHES } from '../../sim/types';
 import type { Id, ResearchBranch, ResearchNode } from '../../sim/types';
 import { Card, PanelHeader, PanelIntro, Sheet, Tabs, useIsMobile } from '../components';
 import type { TabDef } from '../components';
-import { fmtCount, fmtPct } from './panelKit';
+import { fmtPct } from './panelKit';
 import { ResearchQueueStrip, queuePositions } from './ResearchQueue';
 import { Timeline } from './research/Timeline';
 import { NodeDetail } from './research/Detail';
 import { ResearchTree } from './research/Tree';
 import { ResearchList } from './research/List';
 import { ReadyCards } from './research/ReadyCards';
-import { BRANCH_LABEL, BranchTab, NODE_BY_ID, NODES_BY_YEAR, branchOf, buildView } from './research/model';
+import { BRANCH_LABEL, BranchTab, NODE_BY_ID, NODES_BY_YEAR, branchOf, buildView, jokeName, topicName } from './research/model';
+import { AdoptingStrip, AutoPick, RecommendedCard, TrackCards } from './research/Tracks';
 import './research.css';
 import { SceneView } from '../../scenes/SceneView';
 import { createScene as createLab, CAM as LAB_CAM } from '../../scenes/research';
@@ -92,6 +93,12 @@ export function ResearchPanel() {
     setPicked(n.id);
     if (isPhone) setSheetOpen(true);
   };
+  /** From the top cards: select the topic, then bring its details into view (the sheet on a phone). */
+  const showTopic = (n: ResearchNode) => {
+    jump(n.id);
+    if (isPhone) setSheetOpen(true);
+    else requestAnimationFrame(() => document.querySelector('.rs-body')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  };
   const start = (n: ResearchNode) => {
     if (v.stateOf(n) === 'available') dispatch({ type: 'setResearch', nodeId: n.id });
   };
@@ -146,29 +153,35 @@ export function ResearchPanel() {
 
   return (
     <div class="panel rs">
-      <PanelHeader title="Research" subtitle="Pick a topic and press Start. Queued topics start one after another." />
+      <PanelHeader title="Research" subtitle="Follow a track, or take the recommended topic. Switching keeps your progress." />
       <PanelIntro id="research">
-        Research unlocks techniques, model sizes and products, and old ideas get cheaper as papers spread. Queue a few topics so your researchers never sit
-        idle; search below finds anything, and locked topics show what they need first.
+        Five tracks lead to the things a small lab needs: a chat product, bigger models, paying developers, images and video, cheaper serving. Old ideas get
+        cheaper as papers spread, and a published paper can be adopted for cash while your own researchers work on something else.
       </PanelIntro>
 
       {!v.current && (s.research.queue ?? []).length === 0 && (
         <div class="rs-idle" role="alert">
-          {v.perDay > 0
-            ? 'Your researchers are idle. Start a topic below.'
-            : 'You have no researchers. Hire some in Staff to start research.'}
+          {v.perDay <= 0
+            ? 'You have no researchers. Hire some in Staff to start research.'
+            : v.rec
+              ? `Your researchers are idle. Start ${v.rec.label} below${s.research.autoPick === false ? ', or turn on auto-pick' : ''}.`
+              : 'Your researchers are idle, and nothing can start yet. New ideas open each year.'}
         </div>
       )}
 
       {(v.current || (s.research.queue ?? []).length > 0) && <ResearchQueueStrip perDay={v.perDay} />}
+      <AutoPick s={s} />
+      <AdoptingStrip s={s} onShow={showTopic} />
 
-      <Card
-        class="rs-ready-card-wrap"
-        title="Ready to research"
-        subtitle={`${fmtCount(v.perDay)} research points a day${v.behind > 0 ? ` · ${v.behind} year${v.behind === 1 ? '' : 's'} behind the field` : ' · up to date'}`}
-      >
-        <ReadyCards view={v} onShow={(n) => jump(n.id)} />
-      </Card>
+      <RecommendedCard s={s} view={v} onShow={showTopic} />
+      <TrackCards s={s} view={v} onShow={showTopic} />
+
+      <details class="disclosure rs-more-upgrades">
+        <summary>
+          More upgrades · {RESEARCH.filter((n) => !trackStepOf(n.id) && v.stateOf(n) === 'available').length} can start
+        </summary>
+        <ReadyCards view={v} onShow={showTopic} filter={(n) => !trackStepOf(n.id)} />
+      </details>
 
       <SceneView
         state={s}
@@ -303,8 +316,8 @@ export function ResearchPanel() {
       {isPhone && (
         <Sheet
           open={sheetOpen && selected !== null}
-          title={selected?.name ?? 'Research'}
-          subtitle={selected ? BRANCH_LABEL[branchOf(selected)] : undefined}
+          title={selected ? topicName(selected) : 'Research'}
+          subtitle={selected ? [jokeName(selected), BRANCH_LABEL[branchOf(selected)]].filter(Boolean).join(' · ') : undefined}
           onClose={() => setSheetOpen(false)}
         >
           {selected && <NodeDetail s={s} view={v} node={selected} onPick={jump} onStop={stopResearch} />}

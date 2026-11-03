@@ -3,7 +3,8 @@
 // slot or research desk shows as a call to action, because an idle lab is the one thing the player should never miss.
 import type { GameState } from '../../sim/types';
 import { RESEARCH } from '../../sim/data/research';
-import { effectiveResearchCost } from '../../sim/systems/research';
+import { effectiveResearchCost, recommendedResearch } from '../../sim/systems/research';
+import { topicName } from '../panels/research/model';
 import { levelProgress, progressOf } from '../../sim/systems/progression';
 import { quarterLabel } from '../../sim/systems/board';
 import { cupThemeLabel } from '../../sim/systems/tournament';
@@ -82,10 +83,16 @@ function ResearchCell({ s, phone }: { s: GameState; phone: boolean }) {
   const id = s.research.current;
   const node = id ? NODE_BY_ID.get(id) : undefined;
   if (!node) {
+    const rec = recommendedResearch(s);
     return (
-      <button type="button" class="dock-cell dock-idle" onClick={() => navigate('research')} title="Nobody is researching anything">
+      <button
+        type="button"
+        class="dock-cell dock-idle"
+        onClick={() => navigate('research')}
+        title={rec ? `Nobody is researching anything. Next: ${rec.label}. ${rec.why}` : 'Nobody is researching anything'}
+      >
         <span class="dock-k">{phone ? 'Res' : 'Research'}</span>
-        <span class="dock-v">{phone ? 'Idle' : 'Idle. Pick a topic'}</span>
+        <span class="dock-v">{phone ? 'Idle' : rec ? `Next: ${rec.label}` : 'Idle. Pick a topic'}</span>
         <span class="dock-go" aria-hidden="true">›</span>
       </button>
     );
@@ -95,9 +102,9 @@ function ResearchCell({ s, phone }: { s: GameState; phone: boolean }) {
   const ppd = s.research.pointsPerDay;
   const days = ppd > 0 ? Math.max(0, cost - s.research.progress) / ppd : Infinity;
   return (
-    <button type="button" class="dock-cell dock-res" onClick={() => navigate('research')} title={`${node.name}. ${node.effectText ?? ''}`}>
+    <button type="button" class="dock-cell dock-res" onClick={() => navigate('research')} title={`${topicName(node)} (${node.name}). ${node.effectText ?? ''}`}>
       <span class="dock-k">{phone ? 'Res' : 'Research'}</span>
-      {!phone && <span class="dock-name">{node.name}</span>}
+      {!phone && <span class="dock-name">{topicName(node)}</span>}
       <Bar frac={frac} tone="info" />
       <span class="dock-v muted num">{Number.isFinite(days) ? formatDays(days) : '—'}</span>
     </button>
