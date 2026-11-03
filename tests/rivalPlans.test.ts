@@ -72,7 +72,7 @@ describe('rival plans', () => {
     const s = world();
     const c = liveLabs(s)[0];
     c.plan = { id: 'price_war', year: 2023 };
-    expect(planEffects(c).apiPrice).toBe(0.7);
+    expect(planEffects(c).apiPrice).toBe(0.8);
     const before = c.prices.api;
     for (let i = 0; i < 200; i++) {
       s.day += 1;

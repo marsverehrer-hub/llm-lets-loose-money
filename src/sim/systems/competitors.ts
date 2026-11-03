@@ -80,7 +80,7 @@ export const COMP_TUNING = {
   /** Weekly standings check, in days. */
   STANDINGS_EVERY_DAYS: 7,
   /** v18 yearly plans (GAME_DESIGN §31): judged each 1 January. */
-  PLAN_SUCCESS_BRAND: 5,
+  PLAN_SUCCESS_BRAND: 2,
   PLAN_FOIL_BRAND: -5,
   PLAN_FOIL_RIVALRY: 10,
   PLAN_FOIL_HYPE: 3,

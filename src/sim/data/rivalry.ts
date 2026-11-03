@@ -470,7 +470,7 @@ export const RIVAL_PLANS: Record<RivalPlanId, RivalPlanDef> = {
     headline: "{lab}'s {year} plan: one giant model. The cluster has its own weather now.",
     foiled: "{lab}'s giant model landed behind yours. The cluster has been quietly renamed.",
     succeeded: "{lab}'s big bet paid off. Their giant model tops yours.",
-    effects: { quality: 1.5, cycle: 1.2 },
+    effects: { quality: 1, cycle: 1.2 },
   },
   ship_fast: {
     id: 'ship_fast',
@@ -488,7 +488,7 @@ export const RIVAL_PLANS: Record<RivalPlanId, RivalPlanDef> = {
     headline: "{lab}'s {year} plan: the cheapest API on earth. Their CFO declined to comment, audibly.",
     foiled: "{lab}'s price war fizzles. Developers stayed with you and the discount stays on their books.",
     succeeded: "{lab}'s price war worked. Developers follow the discount.",
-    effects: { apiPrice: 0.7, home: 'developer' },
+    effects: { apiPrice: 0.8, home: 'developer' },
   },
   consumer: {
     id: 'consumer',
@@ -497,7 +497,7 @@ export const RIVAL_PLANS: Record<RivalPlanId, RivalPlanDef> = {
     headline: "{lab}'s {year} plan: a chatbot in every pocket. Billboards have been booked.",
     foiled: "{lab}'s consumer push stalls. The billboards now advertise your app by accident.",
     succeeded: "{lab}'s consumer push worked. Their app is the one people's parents use.",
-    effects: { chatPrice: 0.85, home: 'consumer', brandPerDay: 0.03 },
+    effects: { chatPrice: 0.85, home: 'consumer', brandPerDay: 0.01 },
   },
   enterprise: {
     id: 'enterprise',
@@ -506,7 +506,7 @@ export const RIVAL_PLANS: Record<RivalPlanId, RivalPlanDef> = {
     headline: "{lab}'s {year} plan: enterprise. They have bought a lot of quarter-zips.",
     foiled: "{lab}'s enterprise push is over. The quarter-zips are being resold.",
     succeeded: "{lab}'s enterprise push worked. Procurement departments know their name.",
-    effects: { home: 'enterprise', brandPerDay: 0.02 },
+    effects: { home: 'enterprise', brandPerDay: 0.01 },
   },
   talent_raid: {
     id: 'talent_raid',

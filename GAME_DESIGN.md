@@ -1757,15 +1757,16 @@ did not reshuffle the rest of the game.
 
 | Plan | Effects for the year | Counter |
 |---|---|---|
-| Going bigger | releases +1.5 overall, cycle ×1.2 | Beat their model |
+| Going bigger | releases +1 overall, cycle ×1.2 | Beat their model |
 | Shipping every quarter | releases −1 overall, cycle ×0.7 | Beat their model |
-| Price war on developers | API price ×0.7, home segment developer | Lead the developer market |
-| Chat for everyone | chat price ×0.85, home segment consumer, brand +0.03/day | Lead the consumer market |
-| Enterprise deals | home segment enterprise, brand +0.02/day | Lead the enterprise market |
+| Price war on developers | API price ×0.8, home segment developer | Lead the developer market |
+| Chat for everyone | chat price ×0.85, home segment consumer, brand +0.01/day | Lead the consumer market |
+| Enterprise deals | home segment enterprise, brand +0.01/day | Lead the enterprise market |
 | Talent raid | poaching roll ×2.5 | Keep your researchers |
 
 Judging happens on 1 January, before the new plan (`planOutcome`):
-- **Won** (the lab leads the player in its target segment, holds the better model, or poached this year): lab brand +5, news.
+- **Won** (the lab leads the player in its target segment, holds the better model, or poached this year): lab brand +2, news. (It was +5 with stronger effects; the bots never foil plans, so rival brand
+  compounded and 2 of 6 specialist seeds went bankrupt.)
 - **Foiled** (the player beat it there): lab brand −5, rivalry +10, player hype +3, a notify.
 - **Fizzled** (it failed but the player never contested it, e.g. no product in that segment): nothing.
 
