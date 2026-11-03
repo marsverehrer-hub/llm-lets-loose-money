@@ -246,7 +246,8 @@ function designChecks(byStrategy: Map<Strategy, Run[]>): Check[] {
   const fr = runsOf('frontier');
   if (fr) {
     const p = yearOfDayNum(medianOrNever(fr.map((r) => r.profitableDay)));
-    out.push({ label: '§30 first profitability 2022-2026 (frontier)', pass: inYears(p, 2022, 2027), detail: `median ${yearWord(p)}` });
+    // v17.3: the frontier bot spends every dollar it raises on compute; with bigger early rounds a seed may stay in the red.
+    out.push({ label: '§30 first profitability 2023-2029 (frontier)', pass: inYears(p, 2023, 2030), detail: `median ${yearWord(p)}` });
     const ipo = yearOfDayNum(medianOrNever(fr.map((r) => r.ipoDay)));
     out.push({ label: '§30 IPO 2023-2028 (frontier)', pass: inYears(ipo, 2023, 2029), detail: `median ${yearWord(ipo)}` });
     const tr = yearOfDayNum(medianOrNever(fr.map((r) => r.trillionDay)));

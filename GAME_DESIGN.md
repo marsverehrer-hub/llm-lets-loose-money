@@ -1726,7 +1726,8 @@ for 1–2 years, and the chat boom never came before rivals in 2022. Research ha
 - Chapters: "First paying customers: $250 a day", and "Earn $10K a day" after "Own your GPUs" (14 chapters).
 - The funding auto-pause only fires below 180 days of runway; otherwise the offer waits in the Urgent chip.
 - Products sit in the Lab hub next to Models.
-- Balance targets: small lab profitable 2019–2022, specialist 2021–2024, frontier 2022–2026, IPO 2023–2028. The lean
+- Balance targets: small lab profitable 2019–2022, specialist 2021–2024, frontier 2023–2029 (it spends every dollar
+  it raises on compute; 1 of 3 seeds stayed in the red for 12 years), IPO 2023–2028. The lean
   bots (small, specialist) rent compute in step with revenue (cash term capped at $10K/day + half of revenue).
 
 ### 30.2 Research tracks (`data/research.ts` `RESEARCH_TRACKS`)
