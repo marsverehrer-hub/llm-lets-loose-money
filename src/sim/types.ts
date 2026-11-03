@@ -1038,6 +1038,14 @@ export interface GameState {
     queue?: Id[];
     /** v7: the player stopped research while a queue existed; the queue waits for Resume. */
     queuePaused?: boolean;
+    /** v17.3: progress on topics the player switched away from, restored when they come back. */
+    partial?: Record<Id, number>;
+    /** v17.3: research points earned while idle (board rewards), added to the next topic. */
+    banked?: number;
+    /** v17.3: published papers being adopted for cash (they finish in parallel with your own topic). */
+    adopting?: { nodeId: Id; doneDay: number }[];
+    /** v17.3: when idle with an empty queue, start the recommended topic. Missing = on. */
+    autoPick?: boolean;
   };
 
   staff: {
@@ -1255,6 +1263,8 @@ export type GameAction =
   | { type: 'ipo' }
   | { type: 'secondaryOffering' }
   | { type: 'pitchInvestors' } // v17.2: bring the next term sheet forward
+  | { type: 'adoptPaper'; nodeId: Id } // v17.3: buy a published paper's know-how
+  | { type: 'setResearchAutoPick'; on: boolean } // v17.3
   // events / ui
   | { type: 'resolveEvent'; choice: number }
   | { type: 'clearEventResult' }

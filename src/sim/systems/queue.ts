@@ -3,7 +3,7 @@
 // handlers, and switches products that opted in to a clearly better released model.
 import type { ActionHandlers, GameState, Id, Model, QueuedRun, ResearchNode, Rng } from '../types';
 import { RESEARCH } from '../data/research';
-import { handlers as researchHandlers, isResearched, RESEARCH_TUNING } from './research';
+import { handlers as researchHandlers, isResearched, recommendedResearch, RESEARCH_TUNING } from './research';
 import { handlers as trainingHandlers } from './training';
 import { handlers as productsHandlers } from './products';
 import { dailyComputeCost } from './compute';
@@ -73,7 +73,13 @@ function tickResearchQueue(s: GameState, rng: Rng): void {
   const cur = s.research.current;
   let q = researchQueue(s).filter((id) => !isResearched(s, id) && id !== cur);
   if (q.length !== (s.research.queue ?? []).length) s.research.queue = q;
-  if (cur || q.length === 0 || s.research.queuePaused) return;
+  if (cur || s.research.queuePaused) return;
+  if (q.length === 0) {
+    // v17.3: auto-pick (on unless the player turned it off) keeps a small lab from sitting idle.
+    const rec = s.research.autoPick === false ? null : recommendedResearch(s);
+    if (rec) researchHandlers.setResearch?.(s, { type: 'setResearch', nodeId: rec.node.id }, rng);
+    return;
+  }
   const next = q.find((id) => {
     const node = nodeOf(id);
     return !!node && readyToStart(s, node);
