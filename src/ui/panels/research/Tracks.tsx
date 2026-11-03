@@ -19,6 +19,7 @@ export function AdoptButton({ s, node, sm }: { s: GameState; node: ResearchNode;
   if (!q.ok) return null;
   return (
     <ConfirmButton
+      tone="default"
       class={sm ? 'btn-sm' : ''}
       label={`Adopt · ${formatMoney(q.price)}`}
       confirmLabel={`Pay ${formatMoney(q.price)}?`}

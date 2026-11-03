@@ -412,6 +412,7 @@ export function FinancePanel() {
           <div class="row-wrap">
             <ConfirmButton
               class="fin-accept"
+              tone="primary"
               label="Accept"
               confirmLabel={`Take ${money(offer.amount)}, stake ${formatPct(founder, 1)} → ${formatPct(founderAfter, 1)}`}
               title="Take the cash and the dilution"
