@@ -282,14 +282,17 @@ function designChecks(byStrategy: Map<Strategy, Run[]>): Check[] {
   }
 
   // §19
+  // v17.3: the lean small lab turns a profit early; the specialist is a focused mid-size lab and keeps the v16 window.
+  const PROFIT_WINDOW = { small: [2019, 2022], specialist: [2021, 2024] } as const;
   for (const s of ['small', 'specialist'] as const) {
+    const [from, to] = PROFIT_WINDOW[s];
     const runs = runsOf(s);
     if (!runs) {
-      out.push({ label: `§30 ${s} profitable 2019-2022`, pass: null, detail: `${s} not run` });
+      out.push({ label: `§30 ${s} profitable ${from}-${to}`, pass: null, detail: `${s} not run` });
       continue;
     }
     const p = yearOfDayNum(medianOrNever(runs.map((r) => r.profitableDay)));
-    out.push({ label: `§30 ${s} profitable 2019-2022`, pass: p !== null && p >= 2019 && p < 2023, detail: `median ${yearWord(p)}` });
+    out.push({ label: `§30 ${s} profitable ${from}-${to}`, pass: p !== null && p >= from && p < to + 1, detail: `median ${yearWord(p)}` });
   }
   const small = runsOf('small');
   if (small) {
