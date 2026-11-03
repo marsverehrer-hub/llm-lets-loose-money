@@ -4,15 +4,17 @@ import { useState } from 'preact/hooks';
 import { COMPETITORS } from '../../sim/data/competitors';
 import { bestPlayerModel, primaryProduct, segmentShares, tierBreakdown } from '../../sim/systems/market';
 import { provisionalElo } from '../../sim/systems/lab';
-import { arenaLeaderboard } from '../../sim/systems/competitors';
+import { RIVAL_PLANS } from '../../sim/data/rivalry';
+import { COMP_TUNING, acquireQuote, arenaLeaderboard, rivalryTier } from '../../sim/systems/competitors';
 import type { ArenaRow } from '../../sim/systems/competitors';
 import { labInfo } from '../../sim/systems/labs';
 import { MP_RIVAL_ID } from '../../sim/types';
 import type { BuyerTier, GameState, Segment } from '../../sim/types';
-import { formatNumber } from '../../sim/util';
+import { formatMoney, formatNumber } from '../../sim/util';
 import { BarList, Card, EmptyState, HelpTip, Meter, PanelHeader, PanelIntro, Stat, Tooltip, clamp, formatInt, formatPct, hypeLabel, monthYear } from '../components';
 import type { BarRow } from '../components';
-import { useGame } from '../store';
+import { dispatch, useGame } from '../store';
+import { ConfirmButton } from './panelKit';
 import { SEGMENT_NAME } from './marketing/campaignCopy';
 import { SceneView } from '../../scenes/SceneView';
 import { createScene as createTown, CAM as TOWN_CAM } from '../../scenes/market';
@@ -236,7 +238,80 @@ export function MarketPanel() {
         )}
         {stealth.length > 0 && <div class="nt-note">Not in the arena yet: {stealth.map((d) => d.name).join(', ')}.</div>}
       </Card>
+
+      <RivalLabs s={s} />
     </div>
+  );
+}
+
+const RIVALRY_WORD = ['Calm', 'Wary', 'Hostile', 'At war'];
+
+/** v18 (GAME_DESIGN §31): each lab's plan for the year, how much it has it in for you, and the labs you can buy. */
+function RivalLabs({ s }: { s: GameState }) {
+  const labs = COMPETITORS.map((def) => ({ def, c: s.competitors.find((c) => c.id === def.id) })).filter(
+    (x): x is { def: (typeof COMPETITORS)[number]; c: NonNullable<typeof x.c> } => !!x.c && !x.c.human,
+  );
+  const live = labs.filter((x) => x.c.active);
+  const acquired = labs.filter((x) => x.c.acquired);
+  if (live.length === 0) return null;
+  const buyable = live.some((x) => acquireQuote(s, x.def.id).ok);
+  const last = s.flags['acq.lastDay'];
+  const cooldown = last === undefined ? 0 : Math.max(0, COMP_TUNING.ACQ_COOLDOWN_DAYS - (s.day - last));
+  return (
+    <Card
+      class="mkt-rivals"
+      title={
+        <>
+          Rival labs{' '}
+          <HelpTip>
+            Every January each lab announces a plan. Foil it (beat their model, out-sell them in their target market, or keep your researchers) and you win hype
+            while they lose brand. A lab {COMP_TUNING.ACQ_GAP} points behind the frontier can be bought: it leaves the market and its staff and data join you.
+          </HelpTip>
+        </>
+      }
+      subtitle="This year's plans"
+    >
+      <div class="kv">
+        {live.map(({ def, c }) => {
+          const plan = c.plan ? RIVAL_PLANS[c.plan.id] : null;
+          const q = acquireQuote(s, def.id);
+          return (
+            <div class="kv-row" key={def.id}>
+              <span class="kv-k">
+                <span class="swatch" style={{ '--c': def.color } as any} /> {def.name}
+              </span>
+              <span class="kv-v">
+                {plan ? `${plan.label} (counter: ${plan.counter.toLowerCase()})` : 'No plan yet'} · {RIVALRY_WORD[rivalryTier(c.rivalry ?? 0)]} · {formatMoney(c.valuation)}
+                {q.ok && (
+                  <>
+                    {' '}
+                    <ConfirmButton
+                      class="btn-sm"
+                      tone="primary"
+                      label={`Buy ${formatMoney(q.price)}`}
+                      confirmLabel={`Buy ${def.name}? +${q.researchers} researchers`}
+                      disabled={s.finance.cash < q.price}
+                      title={s.finance.cash < q.price ? `Needs ${formatMoney(q.price)} in cash.` : `${q.researchers} researchers, ${q.engineers} engineers, a ${q.tokensB}B-token corpus`}
+                      onConfirm={() => dispatch({ type: 'acquireLab', labId: def.id })}
+                    />
+                  </>
+                )}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      {!buyable && (
+        <div class="nt-note">
+          {s.mp
+            ? 'Labs cannot be bought in a multiplayer match.'
+            : cooldown > 0
+              ? `Still digesting your last deal: the next one is possible in ${cooldown} days.`
+              : `No lab is for sale. One goes on the block when its model falls ${COMP_TUNING.ACQ_GAP} points behind the frontier.`}
+        </div>
+      )}
+      {acquired.length > 0 && <div class="nt-note">Acquired: {acquired.map((x) => x.def.name).join(', ')}.</div>}
+    </Card>
   );
 }
 

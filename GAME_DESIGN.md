@@ -1745,3 +1745,40 @@ Instruction tuning in 2020 ≈ $200K, Long context in 2020 ≈ $150K / 18 days.
   A two-founder lab reaches Instruction tuning by late 2018 on its own.
 - Switching or pausing shelves progress (`research.partial`); coming back restores it.
 - Board research rewards earned while idle are banked (`research.banked`) for the next topic.
+
+## 31. Rival plans and acquisitions (v18)
+Rival labs had personalities but no intent, and the player could do nothing to an AI lab except out-compete it. v18
+gives every lab a visible plan each year and lets the player buy a lab that has fallen behind.
+
+### 31.1 Yearly plans (`data/rivalry.ts` `RIVAL_PLANS`, `systems/competitors.ts` `rollPlans`)
+Each 1 January, and when a lab opens, it announces a plan (`Competitor.plan = {id, year}`), with a news line. The pick is
+weighted by personality (`PLAN_WEIGHTS`) and seeded by (game seed, lab, year), not the sim RNG stream, so adding plans
+did not reshuffle the rest of the game.
+
+| Plan | Effects for the year | Counter |
+|---|---|---|
+| Going bigger | releases +1.5 overall, cycle ×1.2 | Beat their model |
+| Shipping every quarter | releases −1 overall, cycle ×0.7 | Beat their model |
+| Price war on developers | API price ×0.7, home segment developer | Lead the developer market |
+| Chat for everyone | chat price ×0.85, home segment consumer, brand +0.03/day | Lead the consumer market |
+| Enterprise deals | home segment enterprise, brand +0.02/day | Lead the enterprise market |
+| Talent raid | poaching roll ×2.5 | Keep your researchers |
+
+Judging happens on 1 January, before the new plan (`planOutcome`):
+- **Won** (the lab leads the player in its target segment, holds the better model, or poached this year): lab brand +5, news.
+- **Foiled** (the player beat it there): lab brand −5, rivalry +10, player hype +3, a notify.
+- **Fizzled** (it failed but the player never contested it, e.g. no product in that segment): nothing.
+
+A multiplayer guest mirrors the host's labs, plans included; only the host judges them.
+
+### 31.2 Acquisitions (`acquireQuote`, `acquireLab`, action `acquireLab {labId}`)
+A lab is for sale when its model is at least `ACQ_GAP` (5) overall behind the frontier, at least `ACQ_MIN_LABS_LEFT` (4)
+AI labs would remain, the player's last deal was `ACQ_COOLDOWN_DAYS` (365) ago or more, and it is not a multiplayer
+match. Price: valuation × 1.3, at least $50M. Buying it:
+- removes it for good (`Competitor.acquired`; inactive labs drop out of the Arena and every segment, so its users go to the rest);
+- adds 4 + brand/10 researchers and 4 engineers, and a general corpus of 30B tokens × the data era (`yieldEra`), quality 0.75;
+- costs morale −5, reputation −3, and every other lab's rivalry +8.
+
+UI: a "Rival labs" card in Market lists each lab's plan and counter, rivalry tier (Calm, Wary, Hostile, At war),
+valuation, and a Buy `ConfirmButton` when a lab is for sale. Out of scope for now: buyout offers to the player, rival cash,
+partnerships, absorbing a rival's model line, and bots that acquire.

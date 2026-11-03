@@ -1,13 +1,15 @@
 // OWNER: COMP agent (GAME_DESIGN.md §18.1). Rival labs: releases, pricing, poaching, rivalry, trash talk, standings.
-import type { Capabilities, Competitor, CompetitorDef, GameState, NoticeKind, Personality, ProductKind, Rng, Scores, Segment } from '../types';
+import type { ActionHandlers, Capabilities, Competitor, CompetitorDef, GameState, NoticeKind, Personality, ProductKind, RivalPlanId, Rng, Scores, Segment } from '../types';
 import { CAP_IDS, KIND_OF, SEGMENT_OF } from '../types';
 import { COMPETITORS } from '../data/competitors';
-import { CEO_QUOTES, COUNTER_HEADLINES, REACTION_HEADLINES, RIVALRY_TIER_COUNT, fillTemplate } from '../data/rivalry';
-import { calendarYear, clamp, notify, pushNews, yearOf } from '../util';
+import { CEO_QUOTES, COUNTER_HEADLINES, PLAN_WEIGHTS, REACTION_HEADLINES, RIVAL_PLANS, RIVALRY_TIER_COUNT, fillTemplate, type RivalPlanEffects } from '../data/rivalry';
+import { calendarYear, clamp, formatMoney, notify, pushNews, trySpend, yearOf } from '../util';
 
 import { PLAYER_COLOR, SEGMENTS, bestPlayerModel, frontierQuality, lowestLivePrice, mtokPerUserDay, nudgeAiHype, segmentShares, type ShareRow } from './market';
 import { benchmarkById, benchmarkTable, competitorCaps, overallScore, scoresFromCaps, softCeilingInverse } from './capabilities';
 import { rivalExclusiveMalus } from './data';
+import { makeRng } from '../rng';
+import { ownDataset, yieldEra } from './dataOps';
 import { applyHostLabs } from './multiplayer';
 import { labInfo } from './labs';
 import { rivalQualityOffset } from './scenario'; // v9 scenario
@@ -77,6 +79,25 @@ export const COMP_TUNING = {
   BOOST_DECAY_DAYS: 180,
   /** Weekly standings check, in days. */
   STANDINGS_EVERY_DAYS: 7,
+  /** v18 yearly plans (GAME_DESIGN §31): judged each 1 January. */
+  PLAN_SUCCESS_BRAND: 5,
+  PLAN_FOIL_BRAND: -5,
+  PLAN_FOIL_RIVALRY: 10,
+  PLAN_FOIL_HYPE: 3,
+  /** v18 acquisitions: a lab this many overall points behind the frontier can be bought. */
+  ACQ_GAP: 5,
+  ACQ_MIN_LABS_LEFT: 4,
+  ACQ_COOLDOWN_DAYS: 365,
+  ACQ_PREMIUM: 1.3,
+  ACQ_MIN_PRICE: 50_000_000,
+  ACQ_RESEARCHERS: 4,
+  ACQ_ENGINEERS: 4,
+  /** Corpus size in 2017, scaled by the data era (dataOps yieldEra). */
+  ACQ_TOKENS_B_2017: 30,
+  ACQ_CORPUS_QUALITY: 0.75,
+  ACQ_MORALE: -5,
+  ACQ_REPUTATION: -3,
+  ACQ_RIVALRY_OTHERS: 8,
 };
 
 /** Highest overall a rival release may aim for (soft-ceiling units, GAME_DESIGN §18.2 v1.0 tuning). Stays below OVERALL_MAX. */
@@ -226,7 +247,9 @@ function updatePrices(s: GameState, def: CompetitorDef, c: Competitor, topSegs: 
     // Chat is a flat $20/month for everyone, so cheap-API personalities only partly discount it.
     const mult = kind === 'chat' ? CHAT_PRICE_COMPRESSION + (1 - CHAT_PRICE_COMPRESSION) * def.priceMult : def.priceMult;
     const seg = SEGMENT_OF[kind];
-    const base = s.market.segments[seg].refPrice * mult;
+    const e = planEffects(c);
+    const planMult = kind === 'api' ? e.apiPrice ?? 1 : kind === 'chat' ? e.chatPrice ?? 1 : 1;
+    const base = s.market.segments[seg].refPrice * mult * planMult;
     const playerPrice = lowestLivePrice(s, kind);
     let target = base;
     let rate = T.PRICE_RETURN_RATE;
@@ -343,7 +366,8 @@ function releaseModel(s: GameState, rng: Rng, def: CompetitorDef, c: Competitor)
   const floor = s.flags[counterKey];
   if (floor !== undefined) delete s.flags[counterKey];
 
-  let base = clamp(frontier + def.qualityOffset + rivalQualityOffset(s) + rivalCatchUp(s, year, frontier) + boost + rng.normal(0, 2), 0, BASE_MAX_OVERALL); // v9 scenario: difficulty
+  const plan = planEffects(c);
+  let base = clamp(frontier + def.qualityOffset + rivalQualityOffset(s) + rivalCatchUp(s, year, frontier) + boost + (plan.quality ?? 0) + rng.normal(0, 2), 0, BASE_MAX_OVERALL); // v9 scenario: difficulty
 
   // Spread the four scores around the overall according to personality, then centre so the weighted mean is `base`.
   const d = personalityOffsets(def.personality, rng);
@@ -362,7 +386,7 @@ function releaseModel(s: GameState, rng: Rng, def: CompetitorDef, c: Competitor)
   c.modelsReleased += 1;
   c.brand = clamp(c.brand + 2, 0, 100);
   // High rivalry shortens the release cycle by RIVALRY_CYCLE_MULT.
-  const cycleMult = (c.rivalry ?? 0) > COMP_TUNING.RIVALRY_HIGH ? COMP_TUNING.RIVALRY_CYCLE_MULT : 1;
+  const cycleMult = ((c.rivalry ?? 0) > COMP_TUNING.RIVALRY_HIGH ? COMP_TUNING.RIVALRY_CYCLE_MULT : 1) * (plan.cycle ?? 1);
   c.nextReleaseDay = s.day + Math.max(20, Math.round(def.releaseEveryDays * (1 + rng.range(-0.3, 0.3)) * cycleMult));
 
   const best = bestPlayerModel(s);
@@ -405,7 +429,9 @@ export function topShareSegments(s: GameState): Set<Segment> {
 }
 
 /** A lab's home segment. Chaos labs draw one at random the first time and keep it in s.flags. */
-function homeSegmentOf(s: GameState, def: CompetitorDef, rng: Rng): Segment {
+function homeSegmentOf(s: GameState, def: CompetitorDef, c: Competitor, rng: Rng): Segment {
+  const planHome = planEffects(c).home;
+  if (planHome) return planHome;
   if (def.personality !== 'chaos') return HOME_SEGMENT[def.personality];
   const key = flagKey.home(def.id);
   if (s.flags[key] === undefined) s.flags[key] = rng.int(0, SEGMENTS.length - 1);
@@ -582,7 +608,7 @@ function rollPoaching(s: GameState, rng: Rng, labs: Lab[]): void {
   for (const { def, c } of labs) {
     if (!c.active) continue;
     const rivalryWeight = (c.rivalry ?? 0) > T.RIVALRY_HIGH ? T.RIVALRY_POACH_MULT : 1;
-    const weight = (0.5 + c.brand / 100) * rivalryWeight * moraleWeight;
+    const weight = (0.5 + c.brand / 100) * rivalryWeight * moraleWeight * (planEffects(c).poach ?? 1);
     if (!rng.chance(T.POACH_CHANCE * weight)) continue;
 
     const hired = s.staff.stars.filter((st) => st.hiredDay !== null);
@@ -592,6 +618,7 @@ function rollPoaching(s: GameState, rng: Rng, labs: Lab[]): void {
       notify(s, `${star.name} left for ${def.name}. Their bonuses went with them.`, 'bad');
       pushNews(s, `${def.name} hires ${star.name}, ${star.title}, away from ${s.company.name}.`, 'bad');
       bumpRivalry(c, T.RIVALRY_POACHED);
+      if (c.plan) s.flags[raidKey(def.id)] = c.plan.year;
       continue;
     }
     // The two founders never leave: only researchers beyond them can be poached.
@@ -602,6 +629,7 @@ function rollPoaching(s: GameState, rng: Rng, labs: Lab[]): void {
     notify(s, `${def.name} poached ${n} of your ${n === 1 ? 'researcher' : 'researchers'}. Pay better or care more.`, 'bad');
     reaction(s, rng, 'poach', { lab: def.name, company: s.company.name, n }, 'bad');
     bumpRivalry(c, T.RIVALRY_POACHED);
+    if (c.plan) s.flags[raidKey(def.id)] = c.plan.year;
   }
 }
 
@@ -655,6 +683,146 @@ function decayBoosts(s: GameState): void {
   }
 }
 
+// ---- v18 yearly plans (GAME_DESIGN §31) ---------------------------------------------------------------
+
+const NO_EFFECTS: RivalPlanEffects = {};
+/** The effects of a lab's current plan. Plans are replaced each 1 January, so the stored one is always this year's. */
+export function planEffects(c: Competitor): RivalPlanEffects {
+  return c.plan ? RIVAL_PLANS[c.plan.id].effects : NO_EFFECTS;
+}
+const raidKey = (id: string) => `raid.${id}`;
+
+/** Seeded by (game seed, lab, year), not the sim stream, so adding plans did not reshuffle every later roll. */
+function pickPlan(s: GameState, def: CompetitorDef, year: number): RivalPlanId {
+  const entries = Object.entries(PLAN_WEIGHTS[def.personality]) as [RivalPlanId, number][];
+  let h = (s.seed ^ Math.imul(year, 0x9e3779b1)) | 0;
+  for (let i = 0; i < def.id.length; i++) h = Math.imul(h ^ def.id.charCodeAt(i), 0x01000193);
+  let r = makeRng({ rngState: h }).next() * entries.reduce((t, [, w]) => t + w, 0);
+  for (const [id, w] of entries) if ((r -= w) < 0) return id;
+  return entries[entries.length - 1][0];
+}
+
+export type PlanOutcome = 'won' | 'foiled' | 'fizzled';
+
+/**
+ * How a lab's plan went. 'won': it leads the player in its target segment, holds the better model, or poached.
+ * 'foiled': the player beat it there. 'fizzled': it failed without the player contesting it (no reward).
+ */
+export function planOutcome(s: GameState, c: Competitor): PlanOutcome {
+  if (!c.plan) return 'fizzled';
+  const e = RIVAL_PLANS[c.plan.id].effects;
+  if (c.plan.id === 'talent_raid') return s.flags[raidKey(c.id)] === c.plan.year ? 'won' : 'foiled';
+  if (e.home) {
+    const rows = segmentShares(s, e.home);
+    const lab = rows.find((r) => r.id === c.id)?.share ?? 0;
+    const mine = rows.reduce((t, r) => (r.isPlayer ? t + r.share : t), 0);
+    return lab > mine ? 'won' : mine > 0 ? 'foiled' : 'fizzled';
+  }
+  const best = bestPlayerModel(s);
+  if (!c.model) return best ? 'foiled' : 'fizzled';
+  return !best || c.model.overall >= best.overall ? 'won' : 'foiled';
+}
+
+/** Each 1 January (and when a lab opens): judge the old plan, then announce a new one. */
+function rollPlans(s: GameState, labs: Lab[]): void {
+  const T = COMP_TUNING;
+  const year = calendarYear(s.day);
+  let announced = 0;
+  for (const { def, c } of labs) {
+    if (c.plan?.year === year) continue;
+    if (c.plan) {
+      const plan = RIVAL_PLANS[c.plan.id];
+      const outcome = planOutcome(s, c);
+      if (outcome === 'won') {
+        c.brand = clamp(c.brand + T.PLAN_SUCCESS_BRAND, 0, 100);
+        pushNews(s, fillTemplate(plan.succeeded, { lab: def.name }), 'bad');
+      } else if (outcome === 'foiled') {
+        c.brand = clamp(c.brand + T.PLAN_FOIL_BRAND, 0, 100);
+        bumpRivalry(c, T.PLAN_FOIL_RIVALRY);
+        s.company.hype = clamp(s.company.hype + T.PLAN_FOIL_HYPE, 0, 100);
+        notify(s, fillTemplate(plan.foiled, { lab: def.name }), 'good');
+      }
+      announced += 1;
+    }
+    c.plan = { id: pickPlan(s, def, year), year };
+    pushNews(s, fillTemplate(RIVAL_PLANS[c.plan.id].headline, { lab: def.name, year }), 'info');
+  }
+  if (announced > 0) notify(s, `Rival plans for ${year} are out. Foil one to win hype: see Market.`, 'info');
+}
+
+// ---- v18 acquisitions (GAME_DESIGN §31) ----------------------------------------------------------------
+
+export type AcquireQuote =
+  | { ok: true; price: number; researchers: number; engineers: number; tokensB: number }
+  | { ok: false; reason: string };
+
+export function acquireQuote(s: GameState, labId: string): AcquireQuote {
+  const T = COMP_TUNING;
+  if (s.mp) return { ok: false, reason: 'Labs cannot be bought in a multiplayer match.' };
+  const c = s.competitors.find((x) => x.id === labId);
+  const def = COMPETITORS.find((d) => d.id === labId);
+  if (!c || !def || c.human || c.acquired || !c.active || !c.model) return { ok: false, reason: 'Not for sale.' };
+  const last = s.flags['acq.lastDay'];
+  if (last !== undefined && s.day - last < T.ACQ_COOLDOWN_DAYS) {
+    return { ok: false, reason: `Still digesting your last deal: ${T.ACQ_COOLDOWN_DAYS - (s.day - last)} days to go.` };
+  }
+  const left = s.competitors.filter((x) => x.active && !x.human).length - 1;
+  if (left < T.ACQ_MIN_LABS_LEFT) return { ok: false, reason: 'Regulators will not let the market shrink further.' };
+  if (c.model.overall >= frontierQuality(yearOf(s.day)) - T.ACQ_GAP) return { ok: false, reason: `${def.name} is too close to the frontier to sell.` };
+  return {
+    ok: true,
+    price: Math.max(T.ACQ_MIN_PRICE, c.valuation * T.ACQ_PREMIUM),
+    researchers: T.ACQ_RESEARCHERS + Math.round(c.brand / 10),
+    engineers: T.ACQ_ENGINEERS,
+    tokensB: Math.round(T.ACQ_TOKENS_B_2017 * yieldEra(calendarYear(s.day))),
+  };
+}
+
+/** Buy a lab: it leaves the market for good, its staff and corpus join you, and the other labs take note. */
+export function acquireLab(s: GameState, labId: string): void {
+  const T = COMP_TUNING;
+  const q = acquireQuote(s, labId);
+  if (!q.ok) {
+    notify(s, q.reason, 'bad');
+    return;
+  }
+  const c = s.competitors.find((x) => x.id === labId)!;
+  const def = COMPETITORS.find((d) => d.id === labId)!;
+  if (!trySpend(s, 'acquisition', q.price, def.name)) return;
+  const year = calendarYear(s.day);
+  c.active = false;
+  c.model = null;
+  c.acquired = true;
+  s.staff.roles.researcher.count += q.researchers;
+  s.staff.roles.engineer.count += q.engineers;
+  ownDataset(s, {
+    id: `lab_${def.id}`,
+    name: `${def.name} corpus`,
+    kind: 'web',
+    domain: 'general',
+    acquisition: 'purchase',
+    tokensB: q.tokensB,
+    quality: T.ACQ_CORPUS_QUALITY,
+    cost: 0,
+    legalRisk: 0.15,
+    unlockYear: year,
+    freshnessYear: year,
+    flavor: `Everything ${def.name} ever crawled, plus a folder named "do not train on this".`,
+    source: 'startup',
+    createdDay: s.day,
+  });
+  s.staff.morale = clamp(s.staff.morale + T.ACQ_MORALE, 0, 100);
+  s.company.reputation = clamp(s.company.reputation + T.ACQ_REPUTATION, 0, 100);
+  for (const o of s.competitors) if (o !== c && o.active && !o.human) bumpRivalry(o, T.ACQ_RIVALRY_OTHERS);
+  s.flags['acq.lastDay'] = s.day;
+  notify(s, `You bought ${def.name} for ${formatMoney(q.price)}. ${q.researchers} researchers, ${q.engineers} engineers and a ${q.tokensB}B-token corpus join you.`, 'good');
+  pushNews(s, `${s.company.name} acquires ${def.name}. Its models go dark and its staff get new badges.`, 'info');
+}
+
+export const handlers: ActionHandlers = {
+  acquireLab: (s, a) => acquireLab(s, a.labId),
+};
+
 export function competitorsTick(s: GameState, rng: Rng): void {
   const year = yearOf(s.day);
   // v12: a multiplayer guest does not run its own AI labs. It mirrors the host's (applyHostLabs), so both players see
@@ -684,7 +852,7 @@ export function competitorsTick(s: GameState, rng: Rng): void {
   const labs: Lab[] = [];
   for (const def of COMPETITORS) {
     const c = s.competitors.find((x) => x.id === def.id);
-    if (!c || c.human) continue;
+    if (!c || c.human || c.acquired) continue;
     if (!c.active) {
       if (year < def.foundedYear) continue;
       c.active = true;
@@ -694,13 +862,17 @@ export function competitorsTick(s: GameState, rng: Rng): void {
     labs.push({ def, c });
   }
 
+  // 1b. Yearly plans: judge last year's, announce this year's.
+  rollPlans(s, labs);
+
   // 2. Prices (price labs follow the player's price where the player leads a segment), home-segment brand, releases.
   const topSegs = topShareSegments(s);
   const released = new Set<string>();
   for (const { def, c } of labs) {
     c.rivalry = c.rivalry ?? 0;
     updatePrices(s, def, c, topSegs);
-    if (topSegs.has(homeSegmentOf(s, def, rng))) c.brand = clamp(c.brand + COMP_TUNING.HOME_BRAND_PER_DAY, 0, 100);
+    if (topSegs.has(homeSegmentOf(s, def, c, rng))) c.brand = clamp(c.brand + COMP_TUNING.HOME_BRAND_PER_DAY, 0, 100);
+    c.brand = clamp(c.brand + (planEffects(c).brandPerDay ?? 0), 0, 100);
     if (s.day >= c.nextReleaseDay) {
       releaseModel(s, rng, def, c);
       released.add(def.id);

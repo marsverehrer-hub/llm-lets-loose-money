@@ -29,8 +29,8 @@ This is a prioritised list of ideas, not promises. Each item notes why it matter
 11. **Spectate and replays (M).** Watch a friend's match, or replay the valuation race as a chart animation afterwards.
 
 ## Later: depth
-12. **Rival labs with visible strategies (M).** Each AI lab announces a yearly plan ("going all-in on agents"). Players can counter it, and the lab reacts if they do.
-13. **Acquisitions (M).** Buy a small lab for its staff, data or a model line, or get acquisition offers yourself.
+12. ~~**Rival labs with visible strategies (M).**~~ Done in v18 (GAME_DESIGN §31). Each AI lab announces a yearly plan ("going all-in on agents"). Players can counter it, and the lab reacts if they do.
+13. ~~**Acquisitions (M).**~~ Done in v18 for buying labs (GAME_DESIGN §31); offers to buy you are still open. Buy a small lab for its staff, data or a model line, or get acquisition offers yourself.
 14. **Open-weights community (M).** Release weights to get community forks that boost brand and data, but rivals can distil you.
 15. **Regulation and geopolitics arcs (L).** Multi-year storylines: export controls on GPUs, an AI act, compute caps. Each has choices that change the rules for everyone.
 16. **AGI endgames (L).** Several distinct endings (safe launch, race, regulation, merger) instead of the sandbox carrying on forever.

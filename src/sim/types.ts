@@ -830,7 +830,14 @@ export interface Competitor {
   human?: boolean;
   /** v7: how much this lab has it in for you (0..100). Drives aggression and CEO trash talk. */
   rivalry?: number;
+  /** v18: this calendar year's announced plan (GAME_DESIGN §31). Judged and replaced each 1 January. */
+  plan?: { id: RivalPlanId; year: number };
+  /** v18: bought by the player. Never reactivates. */
+  acquired?: boolean;
 }
+
+/** v18: a rival lab's plan for the year (data/rivalry.ts RIVAL_PLANS). */
+export type RivalPlanId = 'scale' | 'ship_fast' | 'price_war' | 'consumer' | 'enterprise' | 'talent_raid';
 
 // ---------------------------------------------------------------------------
 // v4 Online multiplayer (1v1). Each player runs their OWN sim; the other player
@@ -1257,6 +1264,7 @@ export type GameAction =
   | { type: 'distillRivalApi'; labId: Id; tokensB: number }
   | { type: 'digitizeArchive'; archiveId: Id }
   | { type: 'buyDataStartup'; startupId: Id }
+  | { type: 'acquireLab'; labId: Id }
   // finance
   | { type: 'acceptOffer' }
   | { type: 'declineOffer' }

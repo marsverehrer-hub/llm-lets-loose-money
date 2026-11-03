@@ -57,6 +57,7 @@ Saves live in the browser, so each device and address has its own game.
 - **Training recipes and media models:** start a run in one click from a recipe (balanced, reasoning, coder, chatty, cheap), or open every knob, including post-training stages and data annealing. Image and video models are a cheaper side business with their own data, arena, rivals and products.
 - **Model careers:** patch released models from user feedback, watch them gain mastery as they serve users, enter them in the Arena Cup every two months, route easy queries to a small model, and retire your best into a Hall of Fame that keeps paying.
 - **Clouds and neoclouds:** seven parody cloud providers with quotas, reserved terms, spot capacity and crunches; or dedicate your own halls and sell capacity to rival labs, startups and enterprises.
+- **Rival plans and acquisitions:** every January each rival lab announces a plan (a price war, a giant model, a talent raid). Foil it for hype, or buy a lab that has fallen behind for its staff and data.
 - **Multiplayer:** a 1v1 over the internet (Menu, then Multiplayer).
 
 ## Development

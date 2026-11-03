@@ -15,7 +15,7 @@ import {
 import { frontierQuality } from '../src/sim/systems/market';
 import { CAP_IDS, MP_RIVAL_ID } from '../src/sim/types';
 import type { Capabilities, Competitor, CompetitorModel, GameState, Model, Product } from '../src/sim/types';
-import { yearOf } from '../src/sim/util';
+import { calendarYear, yearOf } from '../src/sim/util';
 import { defaultConfig } from '../src/sim/data/trainingOptions';
 
 /** Day 2556 is 1 January 2024: the labs founded by then are live. Poaching rolls on days that are multiples of 30. */
@@ -31,6 +31,8 @@ function fresh(seed = 5, day = 100): GameState {
     const def = COMPETITORS.find((d) => d.id === c.id)!;
     c.active = yearOf(s.day) >= def.foundedYear;
     c.nextReleaseDay = 1e9;
+    // v18: pin a plan that only touches poaching, so these tests measure the base mechanics (plans: rivalPlans.test.ts).
+    c.plan = { id: 'talent_raid', year: calendarYear(s.day) };
   }
   return s;
 }
@@ -279,7 +281,7 @@ describe('poaching', () => {
       expect(n).toBeGreaterThanOrEqual(1);
       expect(n).toBeLessThanOrEqual(COMP_TUNING.POACH_MAX_RESEARCHERS);
     }
-    expect(s.notifications.some((n) => /poached \d+ of your researchers?/.test(n.text))).toBe(true);
+    expect((s.noticeLog ?? []).some((n) => /poached \d+ of your researchers?/.test(n.text))).toBe(true);
   });
 
   it('does nothing when morale is above 80', () => {

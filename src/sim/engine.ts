@@ -8,7 +8,7 @@ import { staffTick, handlers as staffHandlers } from './systems/staff';
 import { researchTick, handlers as researchHandlers } from './systems/research';
 import { trainingTick, handlers as trainingHandlers } from './systems/training';
 import { labTick, handlers as labHandlers } from './systems/lab';
-import { competitorsTick } from './systems/competitors';
+import { competitorsTick, handlers as competitorsHandlers } from './systems/competitors';
 import { benchmarksTick } from './systems/capabilities';
 import { marketTick, handlers as marketHandlers } from './systems/market';
 import { productsTick, handlers as productsHandlers } from './systems/products';
@@ -91,6 +91,7 @@ const HANDLERS: ActionHandlers = Object.assign(
   computeHandlers,
   dataHandlers,
   dataOpsHandlers,
+  competitorsHandlers,
   staffHandlers,
   researchHandlers,
   trainingHandlers,

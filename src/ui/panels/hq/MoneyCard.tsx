@@ -31,6 +31,7 @@ const EXPENSE_LABEL: Record<string, string> = {
   legal: 'Legal',
   interest: 'Interest',
   capex: 'Buildings',
+  acquisition: 'Acquisitions',
   events: 'Events',
   contracts: 'Contract delivery',
   sla: 'SLA credits',

@@ -287,7 +287,7 @@ function ensureCustom(s: GameState): CustomDataset[] {
   return s.data.custom;
 }
 
-function ownDataset(s: GameState, ds: CustomDataset): void {
+export function ownDataset(s: GameState, ds: CustomDataset): void {
   ensureCustom(s).push(ds);
   if (!s.data.owned.includes(ds.id)) s.data.owned.push(ds.id);
 }
