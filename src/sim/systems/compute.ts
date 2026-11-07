@@ -1,6 +1,7 @@
 // OWNER: Agent A. GPUs, cloud rental, datacenters, power, capacity split.
 // v10 (GAME_DESIGN §21.1): the fleet split lives here, next to the capacity readers, so compute and serving share one
 // set of numbers. Own GPUs serve products first; demand they cannot cover is bought from the cloud as burst capacity.
+import { freeSlots } from './supply'; // v19 pre-orders hold slots
 import { chipReady, customChipPrice } from './chipRnd'; // v19 own silicon
 import type { ActionHandlers, FleetBreakdown, FleetPriority, GameState, Id, Model, Rng, GpuDef, DatacenterTier, Datacenter, ServingSlice, Interconnect, SiteId } from '../types';
 import { BALANCE } from '../balance';
@@ -144,6 +145,12 @@ export function hallMegawatts(dc: Datacenter): number {
 /** v19: megawatts a hall may still draw under its site's cap (0 when full). Buying GPUs past it is refused. */
 export function siteMwLeft(_s: GameState, dc: Datacenter): number {
   return Math.max(0, SITES[siteOf(dc)].mwCap - hallMegawatts(dc));
+}
+
+/** v19: how many of `gpu` still fit under the hall's site megawatt cap. Every way in (buy, used, pre-order) checks it. */
+export function gpusThatFitMw(s: GameState, dc: Datacenter, gpu: GpuDef): number {
+  const perGpuMw = (gpu.powerKw * datacenterPue(dc)) / 1000;
+  return perGpuMw > 0 ? Math.floor(siteMwLeft(s, dc) / perGpuMw + 1e-9) : Infinity;
 }
 
 /** v19: a hall dark from a grid outage: its GPUs serve and train nothing until the day passes. */
@@ -303,7 +310,7 @@ export function ownGpuCount(s: GameState): number {
   let gpus = 0;
   for (const n of Object.values(s.compute.rented)) gpus += n;
   for (const n of Object.values(cloudLeaseGpus(s))) gpus += n;
-  for (const dc of s.compute.datacenters) if (inFleet(s, dc)) gpus += installedCount(dc);
+  for (const dc of s.compute.datacenters) if (inFleet(s, dc) && !hallOffline(s, dc)) gpus += installedCount(dc); // a dark hall trains nothing
   return gpus;
 }
 
@@ -696,7 +703,7 @@ export const handlers: ActionHandlers = {
       notify(s, 'Unknown GPU.', 'bad');
       return;
     }
-    if (calendarYear(s.day) < gpu.unlockYear) {
+    if (gpu.class !== 'custom' && calendarYear(s.day) < gpu.unlockYear) { // own silicon is gated by the programme instead
       notify(s, `${gpu.name} is not available until ${gpu.unlockYear}.`, 'bad');
       return;
     }
@@ -705,7 +712,7 @@ export const handlers: ActionHandlers = {
       return;
     }
     const tier = datacenterTierById(dc.tierId);
-    const free = (tier?.maxGpus ?? 0) - installedCount(dc);
+    const free = freeSlots(s, dc); // slots held by pre-orders are taken
     if (a.count > free) {
       notify(s, `Only ${Math.max(0, free).toLocaleString('en-US')} free slot${free === 1 ? '' : 's'} in ${dc.name}.`, 'bad');
       return;

@@ -176,6 +176,7 @@ function acquire(s: GameState, buyer: CompetitorDef, target: CompetitorDef, pric
     t.staff[k] -= moved;
   }
   a.research = [...new Set([...a.research, ...t.research])];
+  if (a.researching && a.research.includes(a.researching)) a.researching = null; // the bought lab already finished it
   a.datasets = [...new Set([...a.datasets, ...t.datasets])];
   a.models.push(...t.models);
   t.models = [];

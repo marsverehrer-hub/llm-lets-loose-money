@@ -246,7 +246,7 @@ export function buildSnapshot(s: GameState): RivalSnapshot {
     ...(s.mp?.role === 'host' ? { labs: JSON.parse(JSON.stringify(s.competitors.filter((c) => !c.human))) as Competitor[] } : {}),
     // v19: the lab companies, trimmed so a snapshot stays small (the Field screen shows recent models and log lines).
     ...(s.mp?.role === 'host' && s.rivals
-      ? { rivals: s.rivals.map((l) => ({ ...JSON.parse(JSON.stringify(l)), models: l.models.slice(-8), log: l.log.slice(-15) })) as RivalLab[] }
+      ? { rivals: s.rivals.map((l) => ({ ...JSON.parse(JSON.stringify(l)), log: l.log.slice(-15) })) as RivalLab[] }
       : {}),
   };
 }

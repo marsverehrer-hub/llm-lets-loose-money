@@ -78,7 +78,7 @@ const STEPS: Record<number, StepDef> = {
     go: 'finance',
     highlight: 'finance',
     title: "You're a real company now",
-    body: 'Funding offers show up when cash gets thin, and they come with terms nobody reads. Events will ask you to choose between bad options. IPO once valuation hits $2B and revenue $100M. AGI is the last research node. It is probably fine.',
+    body: 'Funding offers show up when cash gets thin, and they come with terms nobody reads. Events will ask you to choose between bad options. IPO once valuation hits $5B and revenue $2.5B a year. AGI is the last research node. It is probably fine.',
   },
 };
 

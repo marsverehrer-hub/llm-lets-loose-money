@@ -78,6 +78,14 @@ export const handlers: ActionHandlers = {
       notify(s, 'Pick a released model to quantize.', 'bad');
       return;
     }
+    if (parent.deprecated) {
+      notify(s, `${parent.name} is off sale. Quantizing it would quietly put it back on sale.`, 'bad');
+      return;
+    }
+    if (parent.releaseMode === 'preview') {
+      notify(s, `${parent.name} is in limited preview. Promote it to a full release before quantizing.`, 'bad');
+      return;
+    }
     if (parent.quant) {
       notify(s, `${parent.name} is already quantized. Quantize the full-precision model instead.`, 'bad');
       return;

@@ -145,7 +145,7 @@ export function TopBar() {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       const t = e.target as HTMLElement | null;
       if (t && (t.isContentEditable || t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT')) return;
-      if (document.querySelector('.modal-backdrop')) return;
+      if (document.querySelector('.modal-backdrop, .end-root')) return; // dialogs and the AGI ending own the keyboard
       if (e.code === 'Space' || e.key === ' ') {
         e.preventDefault();
         togglePause();

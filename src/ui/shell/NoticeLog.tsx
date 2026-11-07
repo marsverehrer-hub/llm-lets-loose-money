@@ -38,15 +38,19 @@ function markSeen(s: GameState): void {
   const log = s.noticeLog ?? [];
   seenEntry = log.length > 0 ? log[log.length - 1] : null;
   seenReady = true;
+  seenLog = s.noticeLog;
 }
 
 /**
  * Unread notices that the badge counts: only alerts and milestones. Good news and updates still sit in the drawer.
  * Capped entries that were seen count as read, so this never goes negative.
  */
+let seenLog: unknown = null;
+
 export function unreadCount(s: GameState): number {
   const log = s.noticeLog ?? [];
-  if (!seenReady) markSeen(s);
+  // A loaded save or new game brings a new log: start it as read instead of counting the old game's marker.
+  if (!seenReady || seenLog !== s.noticeLog) markSeen(s);
   const at = seenEntry ? log.lastIndexOf(seenEntry) : -1;
   let n = 0;
   for (let i = at + 1; i < log.length; i++) if (log[i].kind === 'bad' || log[i].kind === 'milestone') n++;

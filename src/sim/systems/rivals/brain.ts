@@ -97,7 +97,7 @@ function weeklyCosts(s: GameState, lab: RivalLab): number {
  * top-up, sovereigns a state grant, open labs a donation. Returns nothing; updates cash, totalRaised and the log.
  */
 function raiseWeek(s: GameState, lab: RivalLab, def: CompetitorDef, c: Competitor | undefined, rng: Rng, burn: number): void {
-  const runway = burn > 0 ? lab.cash / burn : Infinity;
+  const runway = lab.cash <= 0 ? 0 : burn > 0 ? lab.cash / burn : Infinity; // no cash, no runway, whatever the flow
   const key = `rivalRaise.${def.id}`;
   const last = s.flags[key];
   // Marquee labs, big tech and sovereigns always find money when they hit zero (a down round, the parent, the state).
@@ -134,17 +134,17 @@ function computeWeek(s: GameState, lab: RivalLab, def: CompetitorDef, mods: Retu
     const old = GPUS.find((x) => x.id === id);
     if (old && calendarYear(s.day) - old.unlockYear >= 4) delete lab.gpusRented[id];
   }
-  const runway = burn > 0 ? lab.cash / burn : Infinity;
+  const runway = lab.cash <= 0 ? 0 : burn > 0 ? lab.cash / burn : Infinity; // no cash, no runway, whatever the flow
   if (def.kind === 'open') {
     // Rent up to the fleet that the open budget pays for each week; spending grows only as cash does.
-    const target = Math.floor((Math.max(0, lab.cash - burn * T.COMPUTE_RESERVE_WEEKS) * T.OPEN_RENT_SHARE * mods.compute) / (g.rentPerDay * 7));
+    const target = Math.floor((Math.max(0, lab.cash - Math.max(0, burn) * T.COMPUTE_RESERVE_WEEKS) * T.OPEN_RENT_SHARE * mods.compute) / (g.rentPerDay * 7));
     const have = lab.gpusRented[g.id] ?? 0;
     if (target > have) lab.gpusRented[g.id] = target;
     return;
   }
   if (runway <= T.COMPUTE_RUNWAY_WEEKS) return;
   // Only cash above a two-year reserve goes on hardware, so a lab grows with its money instead of betting it all.
-  const spend = Math.max(0, lab.cash - burn * T.COMPUTE_RESERVE_WEEKS) * T.COMPUTE_SPEND_SHARE * mods.compute;
+  const spend = Math.max(0, lab.cash - Math.max(0, burn) * T.COMPUTE_RESERVE_WEEKS) * T.COMPUTE_SPEND_SHARE * mods.compute;
   const want = Math.floor(spend / g.buyPrice);
   if (want <= 0) return;
   const bought = Math.min(want, Math.floor(gpuAllocationLeft(s, g.id)));
@@ -164,7 +164,7 @@ function computeWeek(s: GameState, lab: RivalLab, def: CompetitorDef, mods: Retu
 
 /** Hiring: with a year of runway, researchers and engineers up to a ratio to the fleet (safety labs add safety staff). */
 function hireWeek(s: GameState, lab: RivalLab, def: CompetitorDef, rng: Rng, burn: number): void {
-  const runway = burn > 0 ? lab.cash / burn : Infinity;
+  const runway = lab.cash <= 0 ? 0 : burn > 0 ? lab.cash / burn : Infinity; // no cash, no runway, whatever the flow
   if (runway < T.HIRE_RUNWAY_WEEKS) return;
   const gpus = fleetSum(lab, (_g, n) => n);
   const wants: [keyof RivalLab['staff'], RoleId, number][] = [

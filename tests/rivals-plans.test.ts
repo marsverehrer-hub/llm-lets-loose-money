@@ -158,6 +158,7 @@ describe('counter events', () => {
     const notDue = world(5, 1200);
     const due = world(5, 1200);
     due.flags[key] = due.day;
+    due.flags['plan.react'] = s.flags['plan.react']; // the lab that reacts, stored when the chain was scheduled (it must still be live)
     expect(reaction.weight(notDue)).toBe(0);
     expect(reaction.weight(due)).toBeGreaterThan(0);
   });

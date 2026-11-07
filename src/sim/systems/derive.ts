@@ -1,5 +1,6 @@
 // OWNER: Agent VAULT-B. Distillation and merges. GAME_DESIGN §17.8.
 // Implemented by VAULT-B; the exported signatures are the UI contract.
+import { inheritOrigin } from './hub'; // v19 hub licenses travel with derived models
 import type { ActionHandlers, Capabilities, EvalReveal, Forecast, GameState, Id, MergeMethod, Model, Rng, TrainingConfig, TrainingRun } from '../types';
 import { CAP_IDS } from '../types';
 import { QUIRKS } from '../data/quirks';
@@ -415,6 +416,9 @@ export function finishDerived(s: GameState, run: TrainingRun, rng: Rng): void {
     forecast,
     derivedFrom,
   };
+  // A derived model keeps the strictest hub license of its parents (no laundering research weights into products).
+  const origin = inheritOrigin((derivedFrom?.ids ?? []).map((id) => s.models.find((m) => m.id === id)));
+  if (origin) model.origin = origin;
   evaluateModel(s, model);
   s.models.push(model);
   s.stats.modelsTrained += 1;

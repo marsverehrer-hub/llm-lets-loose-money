@@ -454,6 +454,7 @@ function finishFinetune(s: GameState, run: TrainingRun, rng: Rng): void {
     forecast,
     ...(run.persona ? { persona: { ...run.persona } } : {}),
     ...(parent.traits ? { traits: { ...parent.traits } } : {}),
+    ...(parent.origin ? { origin: { ...parent.origin } } : {}), // v19: a fine-tune keeps its hub license
   };
   evaluateModel(s, model);
   s.models.push(model);

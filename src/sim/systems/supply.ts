@@ -3,7 +3,7 @@
 import type { ActionHandlers, Datacenter, GameState, GpuPreorder, Rng } from '../types';
 import { GPUS } from '../data/gpus';
 import { addRevenue, calendarYear, clamp, formatMoney, newId, notify, trySpend } from '../util';
-import { datacenterTierById, gpuById, resaleFraction } from './compute';
+import { datacenterTierById, gpuById, gpusThatFitMw, resaleFraction } from './compute';
 import {
   consumeGpuAllocation,
   gpuAllocationBooked,
@@ -91,7 +91,7 @@ function installedCount(dc: Datacenter): number {
   return n;
 }
 /** Free slots in a finished hall once pre-orders take their share. */
-function freeSlots(s: GameState, dc: Datacenter): number {
+export function freeSlots(s: GameState, dc: Datacenter): number {
   const max = datacenterTierById(dc.tierId)?.maxGpus ?? 0;
   return max - installedCount(dc) - reservedSlots(s, dc);
 }
@@ -131,6 +131,10 @@ export const handlers: ActionHandlers = {
     }
     if (!Number.isInteger(a.count) || a.count < 1) {
       notify(s, 'Pre-order at least one GPU.', 'bad');
+      return;
+    }
+    if (a.count > gpusThatFitMw(s, dc, gpu)) {
+      notify(s, `${dc.name}'s site can power ${gpusThatFitMw(s, dc, gpu).toLocaleString('en-US')} more ${gpu.name}.`, 'bad');
       return;
     }
     const day = nextAllocationDay(s);
@@ -199,6 +203,10 @@ export const handlers: ActionHandlers = {
       notify(s, `Only ${Math.max(0, free).toLocaleString('en-US')} free slot${free === 1 ? '' : 's'} in ${dc.name}.`, 'bad');
       return;
     }
+    if (a.count > gpusThatFitMw(s, dc, gpu)) {
+      notify(s, `${dc.name}'s site can power ${gpusThatFitMw(s, dc, gpu).toLocaleString('en-US')} more ${gpu.name}.`, 'bad');
+      return;
+    }
     if (!trySpend(s, 'capex', a.count * market.price, `${a.count} used ${gpu.name}`)) return;
     s.flags[usedKey(gpu.id)] -= a.count;
     installGpus(dc, gpu.id, a.count, s.day - SUPPLY_PRICE.USED_AGE_YEARS * DAY_PER_YEAR);
@@ -221,7 +229,7 @@ function deliver(s: GameState, p: GpuPreorder): void {
   const unit = p.deposit / (SUPPLY_PRICE.DEPOSIT_SHARE * p.count);
   // Boxes this quarter: the order, the room left in the hall and what the vendor still sells.
   const room = dc ? (datacenterTierById(dc.tierId)?.maxGpus ?? 0) - installedCount(dc) : 0;
-  const n = gpu && dc ? Math.floor(Math.min(p.count, Math.max(0, room), gpuAllocationLeft(s, gpu.id))) : 0;
+  const n = gpu && dc ? Math.floor(Math.min(p.count, Math.max(0, room), gpuAllocationLeft(s, gpu.id), gpusThatFitMw(s, dc, gpu))) : 0;
   const name = gpu?.name ?? p.gpuId;
   const refundAll = () => addRevenue(s, 'other', p.deposit);
   if (!gpu || !dc || n <= 0) {
@@ -240,7 +248,7 @@ function deliver(s: GameState, p: GpuPreorder): void {
   const short = p.count - n;
   if (short > 0) {
     addRevenue(s, 'other', (p.deposit * short) / p.count);
-    notify(s, `${short.toLocaleString('en-US')} × ${name} from your pre-order did not fit (slots or allocation). Their deposit is refunded.`, 'bad');
+    notify(s, `${short.toLocaleString('en-US')} × ${name} from your pre-order did not fit (slots, power or allocation). Their deposit is refunded.`, 'bad');
   }
   notify(s, `${n.toLocaleString('en-US')} × ${name} delivered to ${dc.name}.`, 'good');
 }

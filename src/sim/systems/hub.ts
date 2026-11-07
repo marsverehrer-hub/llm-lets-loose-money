@@ -152,3 +152,18 @@ export function hubTick(s: GameState): void {
     notify(s, `${h.lab}'s ${h.model.name} is on the hub and beats your best. Download it, fine-tune it, sell it (license permitting).`, 'info');
   }
 }
+
+const LICENSE_RANK: Record<HubLicense, number> = { research: 0, noncommercial: 1, permissive: 2 };
+
+/**
+ * The origin a model built from others inherits: the strictest hub license among its parents, so fine-tuning,
+ * distilling or merging research or noncommercial weights never launders them into something sellable.
+ */
+export function inheritOrigin(parents: readonly (Model | undefined)[]): Model['origin'] | undefined {
+  let pick: Model['origin'] | undefined;
+  for (const p of parents) {
+    const o = p?.origin;
+    if (o && (!pick || LICENSE_RANK[o.license] < LICENSE_RANK[pick.license])) pick = { ...o };
+  }
+  return pick;
+}

@@ -80,7 +80,7 @@ function priceWarAim(s: GameState): Aim | undefined {
 function reactAim(s: GameState): Aim | undefined {
   const index = s.flags[REACT_FLAG];
   const def = index === undefined ? undefined : COMPETITORS[index];
-  const c = def && s.competitors.find((x) => x.id === def.id);
+  const c = def && s.competitors.find((x) => x.id === def.id && x.active); // a lab that folded or was bought cannot react
   return def && c ? { def, c, index: index! } : undefined;
 }
 
@@ -158,7 +158,7 @@ const RAW_EVENTS: EventDef[] = [
     title: 'The price war comes back',
     icon: '📉',
     body: (s) => `${nameOf(reactAim(s))} has seen your new prices and has opinions. Its latest ones are lower still, and it has invited you to a meeting about it.`,
-    weight: (s) => chainWeight(s, 'rival_price_react', 8),
+    weight: (s) => (reactAim(s) ? chainWeight(s, 'rival_price_react', 8) : 0),
     cooldownDays: 60,
     choices: [
       {

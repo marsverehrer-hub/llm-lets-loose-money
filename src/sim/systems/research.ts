@@ -260,6 +260,8 @@ export function adoptQuote(s: GameState, node: ResearchNode): AdoptQuote {
   const days = Math.min(T.MAX_DAYS, Math.round(T.BASE_DAYS + rp / T.RP_PER_DAY));
   const no = (reason: string) => ({ ok: false, reason, price, days });
   if (isResearched(s, node.id)) return no(`${node.name} is already done.`);
+  if (node.id === 'agi') return no('Nobody publishes AGI as a paper you can license. You have to build it.');
+  if (s.research.current === node.id) return no(`${node.name} is already being researched. Adopting it would throw away that progress.`);
   if ((s.research.adopting ?? []).some((a) => a.nodeId === node.id)) return no(`${node.name} is already being adopted.`);
   const published = node.minYear + T.PUBLISHED_AFTER_YEARS;
   if (calendarYear(s.day) < published) return no(`Nobody has published ${node.name} yet. Papers come out in ${published}.`);

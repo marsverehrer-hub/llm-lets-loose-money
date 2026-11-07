@@ -74,7 +74,7 @@ describe('ending gates', () => {
     s.pendingEnding = { day: s.day, by: 'player' };
     expect(DEF('safe_launch').available(s).ok).toBe(true);
     s.company.reputation = 50;
-    expect(DEF('safe_launch').available(s)).toEqual({ ok: false, why: 'The safety case is thin and everybody knows it.' });
+    expect(DEF('safe_launch').available(s)).toEqual({ ok: false, why: 'Nobody trusts you enough to believe it is safe.' });
     s.company.reputation = 70;
     s.research.completed = safetyNodes.slice(0, 3);
     expect(DEF('safe_launch').available(s).ok).toBe(false);

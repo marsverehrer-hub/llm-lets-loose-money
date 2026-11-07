@@ -48,7 +48,14 @@ export const ENDINGS: EndingDef[] = [
       const best = releasedModels(s).sort((a, b) => b.overall - a.overall)[0];
       const caseOk = !!best && safetyCase(s, best) >= 70;
       const ok = !rivalFirst(s) && caseOk && s.company.reputation >= 60 && safetyNodesDone(s) >= 4;
-      return { ok, why: 'The safety case is thin and everybody knows it.' };
+      const why = rivalFirst(s)
+        ? 'Someone else launched first. Safely is no longer the question.'
+        : !caseOk
+          ? 'The safety case is thin and everybody knows it.'
+          : s.company.reputation < 60
+            ? 'Nobody trusts you enough to believe it is safe.'
+            : 'Too little safety research to write the case at all.';
+      return { ok, why: ok ? '' : why };
     },
   },
   {
