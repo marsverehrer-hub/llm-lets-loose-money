@@ -3,6 +3,7 @@
 import type { PillTone } from '../../components';
 import type { GameState, Id, Model } from '../../../sim/types';
 import { benchPending } from '../../../sim/systems/vault';
+import { specById } from '../../../sim/systems/capabilities';
 import { tdate } from '../../shell/fmt';
 
 /** What "Take off sale" (the deprecateModel action) does, for its button and tooltip. */
@@ -107,9 +108,9 @@ export function benchEtaFor(s: GameState, m: Model, id: Id): number | null {
   return job ? Math.max(0, Math.ceil(job.doneDay - s.day)) : null;
 }
 
-/** "Base › Instruct › Companion", from the spec lineage. */
-export function lineageText(s: GameState, m: Model): string {
-  const names = (m.lineage ?? []).map((id) => s.models.find((x) => x.id === id)?.name ?? id);
+/** "Base › Instruct › Companion". The lineage holds spec ids, so each one maps to its specialisation name. */
+export function lineageText(m: Model): string {
+  const names = (m.lineage ?? []).map((id) => specById(id)?.name ?? id);
   return ['Base', ...names].join(' › ');
 }
 

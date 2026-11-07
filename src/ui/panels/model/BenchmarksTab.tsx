@@ -9,8 +9,9 @@ import { BENCHMARKS } from '../../../sim/data/benchmarks';
 import { bestResults } from '../../../sim/systems/capabilities';
 import { benchTuneQuote } from '../../../sim/systems/classes';
 import { benchQuote, bestPublic, benchPending, knownBenchmarks } from '../../../sim/systems/vault';
-import type { BenchmarkDef, GameState, Id, Model } from '../../../sim/types';
-import { Pill, formatDays } from '../../components';
+import type { BenchmarkDef, GameState, Id, Model, TraitId } from '../../../sim/types';
+import { Check, Pill, formatDays } from '../../components';
+import { TRAIT_NAME, traitLabel } from '../../../sim/systems/traits';
 import { benchEtaFor } from './status';
 import { Section } from './parts';
 import '../classes.css';
@@ -62,6 +63,7 @@ export function BenchmarksTab({ s, m }: { s: GameState; m: Model }) {
 
   return (
     <div class="mpg-stack">
+      {m.traits && <BehaviourBlock traits={m.traits} />}
       {!released && (
         <p class="mpg-desc">
           Eval day runs a standard suite. Anything else needs a run here. Results are the true score with small noise.
@@ -95,17 +97,7 @@ export function BenchmarksTab({ s, m }: { s: GameState; m: Model }) {
                   <tr class={notRun ? 'dim' : ''}>
                     {!released && (
                       <td class="mpg-check-col" data-label="Select">
-                        {notRun ? (
-                          <label class="mpg-check-hit">
-                            <input
-                              type="checkbox"
-                              class="check"
-                              aria-label={`Select ${def.name}`}
-                              checked={picked.includes(def.id)}
-                              onChange={() => togglePick(def.id)}
-                            />
-                          </label>
-                        ) : null}
+                        {notRun ? <Check ariaLabel={`Select ${def.name}`} checked={picked.includes(def.id)} onChange={() => togglePick(def.id)} /> : null}
                       </td>
                     )}
                     <td class="mpg-bench-name" title={def.fullName}>{def.name}</td>
@@ -190,6 +182,38 @@ export function BenchmarksTab({ s, m }: { s: GameState; m: Model }) {
 
       {released && <p class="mpg-desc">Public results. The best rival is the strongest other lab's released score on the same benchmark.</p>}
     </div>
+  );
+}
+
+/** Who each side effect helps or hurts (the appeal multipliers in traits.ts, in words). */
+const TRAIT_BUYER: Record<TraitId, string> = {
+  sycophancy: 'consumers like it, developers and enterprises dislike it',
+  rewardHacking: 'developers and enterprises dislike it',
+  overRefusal: 'consumers dislike it, enterprises like it',
+};
+
+/** Post-training side effects the model picked up, with how each one lands with buyers. */
+function BehaviourBlock({ traits }: { traits: Partial<Record<TraitId, number>> }) {
+  const rows = (Object.keys(TRAIT_BUYER) as TraitId[]).flatMap((id) => {
+    const v = traits[id];
+    return typeof v === 'number' && v > 0 ? [{ id, v }] : [];
+  });
+  return (
+    <Section title="Behaviour" aside="Side effects of post-training">
+      {rows.length === 0 ? (
+        <span class="mpg-desc">No side effects found. Suspiciously well behaved.</span>
+      ) : (
+        <ul class="mpg-behaviour">
+          {rows.map((r) => (
+            <li key={r.id}>
+              <span class="mpg-behaviour-k">{TRAIT_NAME[r.id]}</span>
+              <span class="mpg-behaviour-v">{traitLabel(r.v)}</span>
+              <span class="mpg-desc">{TRAIT_BUYER[r.id]}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Section>
   );
 }
 

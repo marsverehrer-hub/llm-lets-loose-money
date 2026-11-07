@@ -45,7 +45,8 @@ export interface Exchange {
   grade: ResponseGrade;
 }
 
-export function ModelPage({ s, m }: { s: GameState; m: Model }) {
+/** `onPick` lets the vault (Overview tab) select another model in the Models panel. */
+export function ModelPage({ s, m, onPick }: { s: GameState; m: Model; onPick?: (id: Id) => void }) {
   const [tab, setTab] = useState<TabId>('overview');
   const [chat, setChat] = useState<Exchange[]>([]);
   return (
@@ -53,7 +54,7 @@ export function ModelPage({ s, m }: { s: GameState; m: Model }) {
       <Header s={s} m={m} />
       <Tabs tabs={TABS} value={tab} onChange={setTab} class="mpg-tabs" />
       <div class="mpg-body" role="tabpanel">
-        {tab === 'overview' && <OverviewTab s={s} m={m} />}
+        {tab === 'overview' && <OverviewTab s={s} m={m} onPick={onPick} />}
         {tab === 'benchmarks' && <BenchmarksTab s={s} m={m} />}
         {tab === 'playground' && <PlaygroundTab s={s} m={m} chat={chat} setChat={setChat} />}
         {tab === 'arena' && <ArenaTab s={s} m={m} />}
@@ -78,7 +79,7 @@ function Header({ s, m }: { s: GameState; m: Model }) {
         {codename && <span class="mpg-codename">{`codename ${codename}`}</span>}
       </div>
       <div class="mpg-lineage">
-        <span>{lineageText(s, m)}</span>
+        <span>{lineageText(m)}</span>
         {derived && <span class="mpg-faint"> · {derived}</span>}
       </div>
       <div class="mpg-pills">

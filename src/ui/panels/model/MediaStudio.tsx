@@ -2,7 +2,7 @@
 // notebook and benchmarks, the products that sell them, the media arena and the data shop. Never reads run.hidden.
 import { useState } from 'preact/hooks';
 import { dispatch } from '../../store';
-import { Card, NetView, Pill, ProgressBar, clamp, formatDays, netSpecOfMedia } from '../../components';
+import { Card, NetView, Pill, ProgressBar, Select, clamp, formatDays, netSpecOfMedia } from '../../components';
 import { formatMoney, formatParams } from '../../../sim/util';
 import { mediaArchById } from '../../../sim/data/imageModels';
 import {
@@ -116,13 +116,12 @@ export function MediaStudio({ s }: { s: GameState }) {
                     <tr key={p.id}>
                       <td>{p.name}</td>
                       <td>
-                        <select class="input" value={p.modelId} onChange={(e) => dispatch({ type: 'updateMediaProduct', productId: p.id, modelId: (e.currentTarget as HTMLSelectElement).value })}>
-                          {choices.map((m) => (
-                            <option key={m.id} value={m.id}>
-                              {m.name}
-                            </option>
-                          ))}
-                        </select>
+                        <Select
+                          ariaLabel={`Model for ${p.name}`}
+                          value={p.modelId}
+                          options={choices.map((m) => ({ value: m.id, label: m.name }))}
+                          onChange={(v) => dispatch({ type: 'updateMediaProduct', productId: p.id, modelId: v })}
+                        />
                       </td>
                       <td class="num">
                         <span class="tw-chips">

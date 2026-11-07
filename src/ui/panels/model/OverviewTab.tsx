@@ -6,15 +6,18 @@ import { emergenceById } from '../../../sim/data/emergences';
 import { describeConfig, optionById, RUN_TUNING } from '../../../sim/data/trainingOptions';
 import { mixRows } from '../../../sim/systems/trainingMath';
 import { modelCaps } from '../../../sim/systems/capabilities';
-import type { GameState, Model } from '../../../sim/types';
+import type { GameState, Id, Model } from '../../../sim/types';
+import { useState } from 'preact/hooks';
 import { NetView, Pill, Radar, netSpecOfText } from '../../components';
+import { SceneView } from '../../../scenes/SceneView';
+import { createScene as createVault, CAM as VAULT_CAM } from '../../../scenes/models';
 import { plain } from '../../shell/fmt';
 import { BandBar } from '../train/kit';
 import { KIND_LABEL, optionName, pct, r0, tokensShort } from '../train/model';
 import { CAP_AXES, bestRival } from './rival';
 import { Bipolar, LatentQuirks, Section } from './parts';
 
-export function OverviewTab({ s, m }: { s: GameState; m: Model }) {
+export function OverviewTab({ s, m, onPick }: { s: GameState; m: Model; onPick?: (id: Id) => void }) {
   return (
     <div class="mpg-cols">
       <div class="mpg-col">
@@ -54,8 +57,39 @@ export function OverviewTab({ s, m }: { s: GameState; m: Model }) {
         <Section title="Configuration">
           <Config s={s} m={m} />
         </Section>
+        <Vault s={s} onPick={onPick} />
       </div>
     </div>
+  );
+}
+
+/** The vault scene, closed by default: it is a 3D view, so it only mounts once opened. */
+function Vault({ s, onPick }: { s: GameState; onPick?: (id: Id) => void }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Section
+      title="Vault"
+      aside={
+        <button type="button" class="btn btn-sm btn-ghost" aria-expanded={open} onClick={() => setOpen(!open)}>
+          {open ? 'Hide' : 'Show'}
+        </button>
+      }
+    >
+      {open ? (
+        <SceneView
+          state={s}
+          make={createVault}
+          cam={VAULT_CAM}
+          camId="CAM-06"
+          label="Your model vault: each model on a pedestal, live ones lit, unreleased ones behind glass, the training run under a crane"
+          onSelect={(hit) => {
+            if (hit.id.startsWith('model:')) onPick?.(hit.id.slice(6));
+          }}
+        />
+      ) : (
+        <span class="mpg-desc">Every model on its pedestal, live ones lit. Open it to look over the lineup.</span>
+      )}
+    </Section>
   );
 }
 

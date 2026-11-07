@@ -2,17 +2,16 @@
 // Fog of training (GAME_DESIGN §16): the UI shows forecasts, never the hidden truths. It must not read
 // run.hidden, lab.lrOffsets, lab.emergenceJitter or model.vibes. Use the lab.ts API only.
 // Body: header, then one of: the pre-training wizard, the fine-tune wizard, or the release, distill and merge wizards
-// (all full width, replacing the body), or the live run (or a "New model" call to action), the model table,
-// the model page (src/ui/panels/model/) for the selected model, and the lab notebook.
+// (all full width, replacing the body), or the sub-tabs: Language models (the live run strip, the training queue, the
+// model list and, on desktop, the model page beside it), Image & video (the media studio) and Notebook (the lab notebook).
 import { NetView, netSpecOfText } from '../components';
-import { useState } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
 import { dispatch, getState, useGame } from '../store';
-import { formatFlops, formatParams } from '../../sim/util';
+import { formatFlops } from '../../sim/util';
 import { emergenceById } from '../../sim/data/emergences';
 import { currentRunBand, emergenceJournal, labStats, provisionalElo } from '../../sim/systems/lab';
 import type { JournalRow } from '../../sim/systems/lab';
-import { specById, specOf } from '../../sim/systems/capabilities';
-import { weightClassOf } from '../../sim/systems/classes';
+import { specById } from '../../sim/systems/capabilities';
 import { datasetTokensOf, estimateTraining, trainingRatePerDay, TRAINING_TUNING } from '../../sim/systems/training';
 import { liveRunEta } from '../../sim/systems/tempo'; // v13
 import { TempoControl } from './lab/TempoControl'; // v13
@@ -20,7 +19,8 @@ import './lab/lab.css';
 import { activeParamsFor, resolveRun, runConfig } from '../../sim/systems/trainingMath';
 import { RUN_TUNING, optionById } from '../../sim/data/trainingOptions';
 import type { GameState, Id, Model, TrainingConfig, TrainingRun } from '../../sim/types';
-import { Card, PanelHeader, PanelIntro, Pill, ProgressBar, Stat, Tabs, clamp, formatDays, useIsMobile } from '../components';
+import { Card, PanelHeader, PanelIntro, Pill, Popover, ProgressBar, Select, Sheet, Stat, Tabs, clamp, formatDays } from '../components';
+import type { SelectOption, TabDef } from '../components';
 import { plain, tdate } from '../shell/fmt';
 import { BandBar, LossChart } from './train/kit';
 import { FinetuneWizard } from './train/FinetuneWizard';
@@ -31,15 +31,15 @@ import { MergeWizard } from './train/MergeWizard';
 import { TrainingQueue } from './train/TrainingQueue';
 import { getView, setView, useDraftStore } from './train/draft';
 import { useIntent } from '../nav';
-import { arenaTop, bandText, fmtCtx, lineageRows, optionName, pct, r0, tokensShort } from './train/model';
-import { CLASS_NAME, ModelPage } from './model/ModelPage';
+import { arenaTop, bandText, lineageRows, optionName, pct, r0 } from './train/model';
+import type { TreeRow } from './train/model';
+import { ModelPage } from './model/ModelPage';
 import { OFF_SALE_TIP, statusPills } from './model/status';
 import { MediaStudio } from './model/MediaStudio'; // v16 image and video models
 import './models.css';
 import { ConfirmButton } from './panelKit';
-import { SceneView } from '../../scenes/SceneView';
-import { createScene as createVault, CAM as VAULT_CAM } from '../../scenes/models';
 import './models-rows.css';
+
 // ---------------------------------------------------------------------------
 // panel
 // ---------------------------------------------------------------------------
@@ -49,21 +49,58 @@ function scrollToSoon(id: string): void {
   requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
 }
 
+/** Desktop: the model page sits beside the list. Narrower: the page opens in a sheet. */
+const WIDE_QUERY = '(min-width: 1101px)';
+const isWide = (): boolean => typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia(WIDE_QUERY).matches;
+
+function useWide(): boolean {
+  const [wide, setWide] = useState(isWide);
+  useEffect(() => {
+    if (!window.matchMedia) return;
+    const mq = window.matchMedia(WIDE_QUERY);
+    const on = () => setWide(mq.matches);
+    mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
+  }, []);
+  return wide;
+}
+
+type PanelTab = 'lm' | 'media' | 'notebook';
+const PANEL_TABS: TabDef<PanelTab>[] = [
+  { id: 'lm', label: 'Language models' },
+  { id: 'media', label: 'Image & video' },
+  { id: 'notebook', label: 'Notebook' },
+];
+
 export function ModelsPanel() {
   const s = useGame();
   useDraftStore();
   const view = getView();
+  const wide = useWide();
   const [selId, setSelId] = useState<Id | null>(null);
+  const [sheet, setSheet] = useState(false);
+  const [tab, setTab] = useState<PanelTab>('lm');
+  const [runOpen, setRunOpen] = useState(false);
   // v17.2: buttons elsewhere land here on the thing they name (train sheet, release wizard, a model, the live run).
   useIntent('models', (i) => {
     if (!('open' in i)) return;
     if (i.open === 'train') return setView({ kind: 'train' });
     if (i.open === 'release') return setView({ kind: 'release', modelId: i.modelId });
     setView({ kind: 'list' });
-    if (i.open === 'model') setSelId(i.modelId);
+    if (i.open === 'model') {
+      setSelId(i.modelId);
+      setTab('lm');
+      if (!isWide()) setSheet(true);
+      return scrollToSoon('md-detail');
+    }
     // With only an image or video run live, "the run" is the one in the studio.
     const g = getState();
-    scrollToSoon(i.open === 'model' ? 'md-detail' : !g.training && g.media?.run ? 'md-media' : 'md-run');
+    if (!g.training && g.media?.run) {
+      setTab('media');
+      return scrollToSoon('md-media');
+    }
+    setTab('lm');
+    scrollToSoon('md-run');
   });
 
   // A model awaiting its eval-day reveal stays off the list so the scores aren't spoiled behind the modal.
@@ -126,38 +163,56 @@ export function ModelsPanel() {
     );
   }
 
+  const pick = (id: Id) => {
+    setSelId(id);
+    if (!wide) setSheet(true);
+  };
+
   return (
     <div class="panel md-panel">
       {header}
       <PanelIntro id="models">Pick a model to see its profile. New model starts a training run; release the ones that hold up.</PanelIntro>
-      <div id="md-run">{s.training ? <LiveRun s={s} run={s.training} /> : <StartCard s={s} />}</div>
-      <TrainingQueue />
-      <ModelList s={s} models={models} selId={detail?.id ?? null} onSelect={setSelId} />
-      <SceneView
-        state={s}
-        make={createVault}
-        cam={VAULT_CAM}
-        camId="CAM-06"
-        label="Your model vault: each model on a pedestal, live ones lit, unreleased ones behind glass, the training run under a crane"
-        onSelect={(hit) => {
-          if (hit.id.startsWith('model:')) setSelId(hit.id.slice(6));
-        }}
-      />
-      {detail && (
-        <div id="md-detail">
-          <ModelPage key={detail.id} s={s} m={detail} />
+      <Tabs<PanelTab> tabs={PANEL_TABS} value={tab} onChange={setTab} class="md-subtabs" />
+      {tab === 'lm' && (
+        <>
+          <div class="md-split">
+            <div class="md-list-col">
+              <div id="md-run">
+                {s.training ? (
+                  <LiveRun s={s} run={s.training} open={runOpen} onToggle={() => setRunOpen(!runOpen)} />
+                ) : (
+                  <StartCard />
+                )}
+              </div>
+              <TrainingQueue />
+              <ModelList s={s} models={models} selId={detail?.id ?? null} onSelect={pick} />
+            </div>
+            {wide && detail && (
+              <div class="md-page-col" id="md-detail">
+                <ModelPage key={detail.id} s={s} m={detail} onPick={pick} />
+              </div>
+            )}
+          </div>
+          {!wide && sheet && detail && (
+            <Sheet open title={detail.name} subtitle="Model profile" onClose={() => setSheet(false)} width={920}>
+              <ModelPage key={detail.id} s={s} m={detail} onPick={pick} />
+            </Sheet>
+          )}
+        </>
+      )}
+      {tab === 'media' && (
+        <div id="md-media">
+          <MediaStudio s={s} />
         </div>
       )}
-      <LabNotebook s={s} />
-      <div id="md-media">
-        <MediaStudio s={s} />
-      </div>
+      {tab === 'notebook' && <LabNotebook s={s} />}
     </div>
   );
 }
 
 /** Compact call to action when nothing trains: one line of lab context and the New model button. */
-function StartCard({ s }: { s: GameState }) {
+function StartCard() {
+  const s = useGame();
   const stats = labStats(s);
   const runs = Object.values(stats.runsByArch).reduce((a, n) => a + n, 0);
   const line =
@@ -195,7 +250,11 @@ function extendPreview(s: GameState, run: TrainingRun, cfg: TrainingConfig, frac
   return { headroom, addDays, addOverall: next - now };
 }
 
-function LiveRun({ s, run }: { s: GameState; run: TrainingRun }) {
+/**
+ * The live run as a strip: progress and ETA always, the full readout (network, controls, curves, log) behind Show run.
+ * A decision waiting for the player shows even when the strip is folded.
+ */
+function LiveRun({ s, run, open, onToggle }: { s: GameState; run: TrainingRun; open: boolean; onToggle: () => void }) {
   const cfg = runConfig(s, run);
   const isFt = run.kind === 'finetune';
   const progress = run.totalFlops > 0 ? clamp(run.doneFlops / run.totalFlops, 0, 1) : 0;
@@ -229,8 +288,14 @@ function LiveRun({ s, run }: { s: GameState; run: TrainingRun }) {
     <Card
       title={isFt ? 'Fine-tuning' : 'Training'}
       subtitle={run.name}
-      glow
-      actions={<ConfirmButton class="btn-sm" label="Cancel run" confirmLabel="Discard progress?" onConfirm={() => dispatch({ type: 'cancelTraining' })} />}
+      actions={
+        <>
+          <button type="button" class="btn btn-sm btn-ghost" aria-expanded={open} onClick={onToggle}>
+            {open ? 'Hide run' : 'Show run'}
+          </button>
+          <ConfirmButton class="btn-sm" label="Cancel run" confirmLabel="Discard progress?" onConfirm={() => dispatch({ type: 'cancelTraining' })} />
+        </>
+      }
     >
       <div class="md-stack">
         <ProgressBar
@@ -239,149 +304,153 @@ function LiveRun({ s, run }: { s: GameState; run: TrainingRun }) {
           right={`${(progress * 100).toFixed(1)}% · ETA ${formatDays(eta)}`}
           height={8}
         />
+        {pending && <div class="md-warn">Paused. A decision is waiting for you.</div>}
 
-        {/* v16: the network taking shape, layer by layer, as the FLOPs land. */}
-        <NetView spec={netSpecOfText(run.paramsB, cfg, activeParamsFor(run.paramsB, cfg), optionById(cfg.context)?.contextK)} progress={progress} seed={run.name} height={190} />
+        {open && (
+          <>
+            {/* v16: the network taking shape, layer by layer, as the FLOPs land. */}
+            <NetView spec={netSpecOfText(run.paramsB, cfg, activeParamsFor(run.paramsB, cfg), optionById(cfg.context)?.contextK)} progress={progress} seed={run.name} height={190} />
 
-        {/* v13: push or protect the run while it is live. */}
-        <div class="md-tempo">
-          <span class="md-label">Tempo</span>
-          <TempoControl s={s} />
-          <span class="md-desc">Crunch is faster but doubles incidents and drains morale. Careful halves incidents.</span>
-        </div>
-
-        <div class="md-readouts">
-          <Stat label="Elapsed" value={`${elapsed} day${elapsed === 1 ? '' : 's'}`} size="sm" />
-          <Stat
-            label="Loss"
-            value={lastLoss !== undefined ? lastLoss.toFixed(3) : '—'}
-            hint={hasForecastLoss ? `Forecast ${(forecastLoss as number).toFixed(3)}` : undefined}
-            size="sm"
-          />
-          <Stat label="Stalled" value={`${Math.ceil(run.stallDays ?? 0)} days`} size="sm" />
-          <Stat label="Incidents" value={String((run.incidents ?? []).length)} size="sm" />
-        </div>
-
-        {band && (
-          <div class="md-live-band">
-            <div class="md-row-between md-wrap">
-              <span class="md-label">Current band</span>
-              <span class="md-desc">{band.source === 'checkpoint' ? 'Narrowed by the last checkpoint' : 'From the launch forecast'}</span>
+            {/* v13: push or protect the run while it is live. */}
+            <div class="md-tempo">
+              <span class="md-label">Tempo</span>
+              <TempoControl s={s} />
+              <span class="md-desc">Crunch is faster but doubles incidents and drains morale. Careful halves incidents.</span>
             </div>
-            <BandBar low={band.low} mid={band.mid} high={band.high} label={`Current band ${r0(band.low)} to ${r0(band.high)}`} />
-            {run.forecast && (
-              <div class="md-desc">
-                Launched as <span class="num">{`${r0(run.forecast.low)} to ${r0(run.forecast.high)}`}</span>, {run.forecast.confidence}.
-              </div>
-            )}
-          </div>
-        )}
 
-        {run.lossHistory.length >= 2 ? (
-          <LossChart
-            history={run.lossHistory}
-            forecastEnd={hasForecastLoss ? (forecastLoss as number) : null}
-            totalDays={elapsedAndLeft}
-          />
-        ) : (
-          <div class="md-desc">The loss curve starts after the first simulated day.</div>
-        )}
+            <div class="md-readouts">
+              <Stat label="Elapsed" value={`${elapsed} day${elapsed === 1 ? '' : 's'}`} size="sm" />
+              <Stat
+                label="Loss"
+                value={lastLoss !== undefined ? lastLoss.toFixed(3) : '—'}
+                hint={hasForecastLoss ? `Forecast ${(forecastLoss as number).toFixed(3)}` : undefined}
+                size="sm"
+              />
+              <Stat label="Stalled" value={`${Math.ceil(run.stallDays ?? 0)} days`} size="sm" />
+              <Stat label="Incidents" value={String((run.incidents ?? []).length)} size="sm" />
+            </div>
 
-        <div class="md-section-title">Checkpoints</div>
-        <div class="md-cps">
-          {[0.25, 0.5, 0.75].map((at) => {
-            const c = checkpoints.find((r) => Math.abs(r.at - at) < 1e-6);
-            const reached = progress >= at;
-            return (
-              <div class={`md-cp ${c ? 'is-done' : ''}`} key={at}>
-                <span class="md-label">{`${Math.round(at * 100)}%`}</span>
-                {c ? (
-                  <>
-                    <span class="num md-cp-val">{`${r0(c.reading)} ± ${bandText(c.band)}`}</span>
-                    {c.note && <span class="md-desc">{plain(c.note)}</span>}
-                  </>
-                ) : (
-                  <span class="md-desc">{reached ? 'Evaluating' : 'Pending'}</span>
+            {band && (
+              <div class="md-live-band">
+                <div class="md-row-between md-wrap">
+                  <span class="md-label">Current band</span>
+                  <span class="md-desc">{band.source === 'checkpoint' ? 'Narrowed by the last checkpoint' : 'From the launch forecast'}</span>
+                </div>
+                <BandBar low={band.low} mid={band.mid} high={band.high} label={`Current band ${r0(band.low)} to ${r0(band.high)}`} />
+                {run.forecast && (
+                  <div class="md-desc">
+                    Launched as <span class="num">{`${r0(run.forecast.low)} to ${r0(run.forecast.high)}`}</span>, {run.forecast.confidence}.
+                  </div>
                 )}
               </div>
-            );
-          })}
-        </div>
+            )}
 
-        {emergeLines.length > 0 && (
-          <div class="md-emerge-list">
-            {emergeLines.map(({ def, day }) => {
-              const at = day !== undefined && elapsedAndLeft > 0 ? clamp((day - run.startedDay) / elapsedAndLeft, 0, 1) : null;
-              return (
-                <div class="md-emerge" key={def.id}>
-                  <span class="num md-emerge-at">{at === null ? 'Found' : `At ${Math.round(at * 100)}%`}</span>
-                  <span class="md-emerge-text">
-                    <strong>{def.name}.</strong> {plain(def.description)}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {pending && <div class="md-warn">Paused. A decision is waiting for you.</div>}
-        {run.benchmaxx && <div class="md-warn">Benchmaxx. Test sets are in the training data.</div>}
-
-        {isFt ? (
-          <div class="md-desc">Fine-tunes run to completion. They can't be stopped early or extended.</div>
-        ) : (
-          <div class="md-controls">
-            <div class="md-action">
-              <div>
-                <div class="md-label">Stop early</div>
-                <div class="md-desc">
-                  Finishes now at {pct(progress)} and keeps {pct(keepNow)} of full-run quality. Saves about {formatDays(eta)}.
-                </div>
-              </div>
-              <ConfirmButton
-                label="Stop early"
-                confirmLabel="Stop it now?"
-                disabled={progress <= 0 || pending}
-                title={progress <= 0 ? 'Nothing trained yet. Cancel instead.' : undefined}
-                onConfirm={() => dispatch({ type: 'earlyStopTraining' })}
+            {run.lossHistory.length >= 2 ? (
+              <LossChart
+                history={run.lossHistory}
+                forecastEnd={hasForecastLoss ? (forecastLoss as number) : null}
+                totalDays={elapsedAndLeft}
               />
+            ) : (
+              <div class="md-desc">The loss curve starts after the first simulated day.</div>
+            )}
+
+            <div class="md-section-title">Checkpoints</div>
+            <div class="md-cps">
+              {[0.25, 0.5, 0.75].map((at) => {
+                const c = checkpoints.find((r) => Math.abs(r.at - at) < 1e-6);
+                const reached = progress >= at;
+                return (
+                  <div class={`md-cp ${c ? 'is-done' : ''}`} key={at}>
+                    <span class="md-label">{`${Math.round(at * 100)}%`}</span>
+                    {c ? (
+                      <>
+                        <span class="num md-cp-val">{`${r0(c.reading)} ± ${bandText(c.band)}`}</span>
+                        {c.note && <span class="md-desc">{plain(c.note)}</span>}
+                      </>
+                    ) : (
+                      <span class="md-desc">{reached ? 'Evaluating' : 'Pending'}</span>
+                    )}
+                  </div>
+                );
+              })}
             </div>
-            {[0.25, 0.5].map((f) => {
-              const ext = extendPreview(s, run, cfg, f);
-              const ok = ext.headroom && !pending;
-              return (
-                <div class="md-action" key={f}>
+
+            {emergeLines.length > 0 && (
+              <div class="md-emerge-list">
+                {emergeLines.map(({ def, day }) => {
+                  const at = day !== undefined && elapsedAndLeft > 0 ? clamp((day - run.startedDay) / elapsedAndLeft, 0, 1) : null;
+                  return (
+                    <div class="md-emerge" key={def.id}>
+                      <span class="num md-emerge-at">{at === null ? 'Found' : `At ${Math.round(at * 100)}%`}</span>
+                      <span class="md-emerge-text">
+                        <strong>{def.name}.</strong> {plain(def.description)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {run.benchmaxx && <div class="md-warn">Benchmaxx. Test sets are in the training data.</div>}
+
+            {isFt ? (
+              <div class="md-desc">Fine-tunes run to completion. They can't be stopped early or extended.</div>
+            ) : (
+              <div class="md-controls">
+                <div class="md-action">
                   <div>
-                    <div class="md-label">{`Extend +${Math.round(f * 100)}%`}</div>
+                    <div class="md-label">Stop early</div>
                     <div class="md-desc">
-                      {!ext.headroom
-                        ? 'Not enough data headroom. Buy more data to extend this far.'
-                        : `Adds about ${Number.isFinite(ext.addDays) ? formatDays(ext.addDays) : '—'} and ${ext.addOverall >= 0 ? '+' : ''}${ext.addOverall.toFixed(1)} overall.`}
+                      Finishes now at {pct(progress)} and keeps {pct(keepNow)} of full-run quality. Saves about {formatDays(eta)}.
                     </div>
                   </div>
-                  <button type="button" class="btn" disabled={!ok} onClick={() => dispatch({ type: 'extendTraining', fraction: f })}>
-                    {`Extend +${Math.round(f * 100)}%`}
-                  </button>
+                  <ConfirmButton
+                    label="Stop early"
+                    confirmLabel="Stop it now?"
+                    disabled={progress <= 0 || pending}
+                    title={progress <= 0 ? 'Nothing trained yet. Cancel instead.' : undefined}
+                    onConfirm={() => dispatch({ type: 'earlyStopTraining' })}
+                  />
                 </div>
-              );
-            })}
-          </div>
-        )}
+                {[0.25, 0.5].map((f) => {
+                  const ext = extendPreview(s, run, cfg, f);
+                  const ok = ext.headroom && !pending;
+                  return (
+                    <div class="md-action" key={f}>
+                      <div>
+                        <div class="md-label">{`Extend +${Math.round(f * 100)}%`}</div>
+                        <div class="md-desc">
+                          {!ext.headroom
+                            ? 'Not enough data headroom. Buy more data to extend this far.'
+                            : `Adds about ${Number.isFinite(ext.addDays) ? formatDays(ext.addDays) : '—'} and ${ext.addOverall >= 0 ? '+' : ''}${ext.addOverall.toFixed(1)} overall.`}
+                        </div>
+                      </div>
+                      <button type="button" class="btn" disabled={!ok} onClick={() => dispatch({ type: 'extendTraining', fraction: f })}>
+                        {`Extend +${Math.round(f * 100)}%`}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
 
-        <div class="md-section-title">Run log</div>
-        {log.length === 0 ? (
-          <div class="md-desc">Nothing yet. Incidents and rollbacks land here.</div>
-        ) : (
-          <table class="table md-log">
-            <tbody>
-              {log.map((l, i) => (
-                <tr key={`${l.day}-${i}`}>
-                  <td class="num faint">{`Day ${Math.max(1, l.day - run.startedDay)}`}</td>
-                  <td class={l.kind === 'good' ? 'good' : l.kind === 'bad' ? 'bad' : ''}>{plain(l.text)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+            <div class="md-section-title">Run log</div>
+            {log.length === 0 ? (
+              <div class="md-desc">Nothing yet. Incidents and rollbacks land here.</div>
+            ) : (
+              <table class="table md-log">
+                <tbody>
+                  {log.map((l, i) => (
+                    <tr key={`${l.day}-${i}`}>
+                      <td class="num faint">{`Day ${Math.max(1, l.day - run.startedDay)}`}</td>
+                      <td class={l.kind === 'good' ? 'good' : l.kind === 'bad' ? 'bad' : ''}>{plain(l.text)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </>
         )}
       </div>
     </Card>
@@ -389,14 +458,10 @@ function LiveRun({ s, run }: { s: GameState; run: TrainingRun }) {
 }
 
 // ---------------------------------------------------------------------------
-// model table
-// ---------------------------------------------------------------------------
-
-// ---------------------------------------------------------------------------
 // model list
 // ---------------------------------------------------------------------------
 
-/** The four capability scores shown as mini bars on every model row. */
+/** The four capability scores shown as a tiny bar chart on every model row. */
 const KEY_SCORES: { key: 'reasoning' | 'coding' | 'chat' | 'safety'; label: string }[] = [
   { key: 'reasoning', label: 'Reasoning' },
   { key: 'coding', label: 'Coding' },
@@ -404,44 +469,47 @@ const KEY_SCORES: { key: 'reasoning' | 'coding' | 'chat' | 'safety'; label: stri
   { key: 'safety', label: 'Safety' },
 ];
 
-type ListMode = 'cards' | 'table';
+type Filter = 'all' | 'live' | 'unreleased' | 'off';
+type Sort = 'newest' | 'overall' | 'elo';
+const FILTERS: TabDef<Filter>[] = [
+  { id: 'all', label: 'All' },
+  { id: 'live', label: 'Live' },
+  { id: 'unreleased', label: 'Unreleased' },
+  { id: 'off', label: 'Off sale' },
+];
+const SORTS: SelectOption[] = [
+  { value: 'newest', label: 'Newest' },
+  { value: 'overall', label: 'Overall' },
+  { value: 'elo', label: 'Elo' },
+];
 
-/** One score as a labelled bar on a 0 to 100 scale. Unreleased models have no measured capability scores yet. */
-function MiniBar({ label, value, hidden, tone }: { label: string; value: number; hidden?: boolean; tone?: 'accent' }) {
-  const w = hidden || !isFinite(value) ? 0 : clamp(value, 0, 100);
-  return (
-    <span class={`md-mini ${tone === 'accent' ? 'is-accent' : ''}`}>
-      <span class="md-mini-k">{label}</span>
-      <span class="md-mini-track" aria-hidden="true">
-        <span class="md-mini-fill" style={{ width: `${w.toFixed(1)}%` }} />
-      </span>
-      <span class="md-mini-v num">{hidden || !isFinite(value) ? '—' : Math.round(value)}</span>
-    </span>
-  );
-}
-
-/** Take a released model off sale: one small button with a confirm step (v10.1: no "More" menu). */
-function MoreMenu({ m }: { m: Model }) {
-  return (
-    <ConfirmButton class="btn-sm" label="Take off sale" confirmLabel="Take it off sale?" title={OFF_SALE_TIP} onConfirm={() => dispatch({ type: 'deprecateModel', modelId: m.id })} />
-  );
-}
-
-/** One model as a visual row: name, status, mini bars for the overall and the four key scores, then Elo and spec. */
-function ModelRow({ s, m, prefix, selected, onSelect }: { s: GameState; m: Model; prefix: string; selected: boolean; onSelect: (id: Id) => void }) {
-  const spec = specOf(m);
+/** One model on one line: name, status, overall, Elo and the score sparkbar. Row actions sit in a small ⋯ menu. */
+function ModelRow({
+  s,
+  m,
+  prefix,
+  selected,
+  onSelect,
+  tutRelease,
+}: {
+  s: GameState;
+  m: Model;
+  prefix: string;
+  selected: boolean;
+  onSelect: (id: Id) => void;
+  tutRelease?: boolean;
+}) {
   const elo = provisionalElo(s, m);
-  const emergent = m.emergences?.length ?? 0;
   const hidden = m.releasedDay === null;
+  const unreleased = hidden && !m.deprecated;
   return (
     <li class={`md-row ${selected ? 'sel' : ''} ${m.deprecated ? 'dim' : ''}`}>
       <button type="button" class="md-row-main" aria-pressed={selected} onClick={() => onSelect(m.id)}>
-        <span class="md-row-head">
+        <span class="md-row-name">
           {prefix && <span class="md-lin">{prefix}</span>}
-          <span class="md-row-name">{m.name}</span>
-          <Pill tone="cyan" title="Weight class: active size against the frontier of this year">
-            {CLASS_NAME[weightClassOf(s, m)]}
-          </Pill>
+          {m.name}
+        </span>
+        <span class="md-row-pills">
           {statusPills(m).map((p) => (
             <Pill key={p.label} tone={p.tone} title={p.title}>
               {p.label}
@@ -449,135 +517,138 @@ function ModelRow({ s, m, prefix, selected, onSelect }: { s: GameState; m: Model
           ))}
           {elo.provisional && <Pill tone="muted">Provisional</Pill>}
         </span>
-        <span class="md-row-bars">
-          <MiniBar label="Overall" value={m.overall} tone="accent" />
+        <span class="md-row-stat num" title="Overall">
+          {Math.round(m.overall)}
+        </span>
+        <span class="md-row-stat num" title="Elo">
+          {Math.round(elo.elo)}
+          {elo.provisional && <span class="faint md-band-inline">{` ±${Math.round(elo.band)}`}</span>}
+        </span>
+        <span class="md-spark" aria-hidden="true">
           {KEY_SCORES.map((k) => (
-            <MiniBar key={k.key} label={k.label} value={m.scores[k.key]} hidden={hidden} />
+            <span key={k.key} class="md-spark-bar" style={{ height: `${hidden || !isFinite(m.scores[k.key]) ? 0 : clamp(m.scores[k.key], 0, 100).toFixed(1)}%` }} />
           ))}
         </span>
-        <span class="md-row-meta">
-          <span>
-            <span class="md-label">Elo</span> <span class="num">{Math.round(elo.elo)}</span>
-            {elo.provisional && <span class="faint md-band-inline">{` ±${Math.round(elo.band)}`}</span>}
-          </span>
-          <span class={spec ? '' : 'faint'}>{spec ? spec.name : 'Base'}</span>
-          {emergent > 0 && <span class="md-quirk-count">{`${emergent} emergent`}</span>}
-        </span>
       </button>
-      {!m.deprecated && (
-        <div class="md-row-foot">
-          {m.releasedDay === null ? (
-            <button type="button" class="btn btn-sm btn-primary" data-tut="release" onClick={() => setView({ kind: 'release', modelId: m.id })}>
-              Release
-            </button>
-          ) : (
-            <MoreMenu m={m} />
-          )}
-        </div>
-      )}
+      <span class="md-row-act">
+        {unreleased && (
+          <button type="button" class="btn btn-sm btn-primary" data-tut={tutRelease ? 'release' : undefined} onClick={() => setView({ kind: 'release', modelId: m.id })}>
+            Release
+          </button>
+        )}
+        {!m.deprecated && (
+          <Popover label="⋯" align="right" width={200} class="md-more">
+            {(close) => (
+              <div class="md-menu">
+                <button
+                  type="button"
+                  class="btn btn-sm"
+                  onClick={() => {
+                    onSelect(m.id);
+                    close();
+                  }}
+                >
+                  Open
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-sm"
+                  onClick={() => {
+                    close();
+                    setView({ kind: 'finetune', parentId: m.id });
+                  }}
+                >
+                  Fine-tune
+                </button>
+                {!hidden && (
+                  <ConfirmButton class="btn-sm" label="Take off sale" confirmLabel="Take it off sale?" title={OFF_SALE_TIP} onConfirm={() => dispatch({ type: 'deprecateModel', modelId: m.id })} />
+                )}
+              </div>
+            )}
+          </Popover>
+        )}
+      </span>
     </li>
   );
 }
 
-/** The same models as a dense table, behind the Table toggle. Scores and Elo only; the profile is one click away. */
-function ModelTable({ s, rows, selId, onSelect }: { s: GameState; rows: { m: Model; prefix: string }[]; selId: Id | null; onSelect: (id: Id) => void }) {
-  return (
-    <div class="table-wrap">
-      <table class="table md-models">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th class="num">Overall</th>
-            <th class="num">Reasoning</th>
-            <th class="num">Coding</th>
-            <th class="num">Chat</th>
-            <th class="num">Safety</th>
-            <th class="num">Elo</th>
-            <th>Status</th>
-            <th aria-label="Actions" />
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map(({ m, prefix }) => {
-            const selected = m.id === selId;
-            const elo = provisionalElo(s, m);
-            // Unreleased: the capability scores are not measured yet. Only the overall is known (after eval day).
-            const hidden = m.releasedDay === null;
-            const score = (v: number) => (hidden ? '—' : String(Math.round(v)));
-            return (
-              <tr key={m.id} class={`${selected ? 'sel' : ''} ${m.deprecated ? 'dim' : ''}`} onClick={() => onSelect(m.id)} aria-selected={selected}>
-                <td>
-                  {prefix && <span class="md-lin">{prefix}</span>}
-                  {m.name}
-                  <Pill tone="cyan" title="Weight class: active size against the frontier of this year">
-                    {CLASS_NAME[weightClassOf(s, m)]}
-                  </Pill>
-                </td>
-                <td class="num">{Math.round(m.overall)}</td>
-                <td class="num">{score(m.scores.reasoning)}</td>
-                <td class="num">{score(m.scores.coding)}</td>
-                <td class="num">{score(m.scores.chat)}</td>
-                <td class="num">{score(m.scores.safety)}</td>
-                <td class="num">
-                  {Math.round(elo.elo)}
-                  {elo.provisional && <span class="faint md-band-inline">{` ±${Math.round(elo.band)}`}</span>}
-                </td>
-                <td>
-                  <span class="md-status">
-                    {statusPills(m).map((p) => (
-                      <Pill key={p.label} tone={p.tone} title={p.title}>
-                        {p.label}
-                      </Pill>
-                    ))}
-                  </span>
-                </td>
-                <td class="actions" onClick={(e) => e.stopPropagation()}>
-                  {m.releasedDay === null && !m.deprecated ? (
-                    <button type="button" class="btn btn-sm btn-primary" data-tut="release" onClick={() => setView({ kind: 'release', modelId: m.id })}>
-                      Release
-                    </button>
-                  ) : !m.deprecated ? (
-                    <MoreMenu m={m} />
-                  ) : null}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-/** The model list: visual rows by default, the table behind a toggle (desktop only; phones always get rows). */
+/**
+ * The model list. Unreleased models are pinned under "Ready to release". Everything else is grouped by base model,
+ * with its derivatives folded under a "+N variants" toggle. The list scrolls inside its column on desktop.
+ */
 function ModelList({ s, models, selId, onSelect }: { s: GameState; models: Model[]; selId: Id | null; onSelect: (id: Id) => void }) {
-  const isPhone = useIsMobile();
-  const [mode, setMode] = useState<ListMode>('cards');
-  const rows = lineageRows(models);
-  const showTable = !isPhone && mode === 'table';
+  const [filter, setFilter] = useState<Filter>('all');
+  const [sort, setSort] = useState<Sort>('newest');
+  const [openGroups, setOpenGroups] = useState<Record<Id, boolean>>({});
+  const keep = (m: Model): boolean => {
+    if (filter === 'live') return m.releasedDay !== null && !m.deprecated;
+    if (filter === 'unreleased') return m.releasedDay === null && !m.deprecated;
+    if (filter === 'off') return m.deprecated;
+    return true;
+  };
+  const elo = new Map<Id, number>(models.map((m) => [m.id, provisionalElo(s, m).elo]));
+  const shown = models.filter(keep);
+  const sorted =
+    sort === 'newest'
+      ? shown
+      : [...shown].sort((a, b) => (sort === 'overall' ? b.overall - a.overall : (elo.get(b.id) ?? 0) - (elo.get(a.id) ?? 0)));
+  const isReady = (m: Model) => m.releasedDay === null && !m.deprecated;
+  const ready = sorted.filter(isReady);
+  // Groups: each root (a base model, or a model whose parent is not in view) with its derivatives beneath it.
+  const groups: { root: TreeRow; kids: TreeRow[] }[] = [];
+  for (const row of lineageRows(sorted.filter((m) => !isReady(m)))) {
+    if (row.prefix === '') groups.push({ root: row, kids: [] });
+    else groups[groups.length - 1]?.kids.push(row);
+  }
+
   return (
-    <Card
-      title="Models"
-      subtitle={`${models.length} trained`}
-      flush
-      actions={
-        models.length > 0 && !isPhone ? (
-          <Tabs<ListMode> variant="segmented" value={mode} onChange={setMode} tabs={[{ id: 'cards', label: 'Cards' }, { id: 'table', label: 'Table' }]} />
-        ) : undefined
-      }
-    >
+    <Card title="Models" subtitle={`${models.length} trained`} flush>
       {models.length === 0 ? (
         <div class="md-pad">
           <div class="md-empty-line">No models yet. Start a new model to train one.</div>
         </div>
-      ) : showTable ? (
-        <ModelTable s={s} rows={rows} selId={selId} onSelect={onSelect} />
       ) : (
-        <ul class="md-rows" aria-label="Models">
-          {rows.map(({ m, prefix }) => (
-            <ModelRow key={m.id} s={s} m={m} prefix={prefix} selected={m.id === selId} onSelect={onSelect} />
-          ))}
-        </ul>
+        <>
+          <div class="md-list-tools">
+            <Tabs<Filter> variant="segmented" value={filter} onChange={setFilter} tabs={FILTERS} />
+            <Select ariaLabel="Sort models" value={sort} onChange={(v) => setSort(v as Sort)} options={SORTS} />
+          </div>
+          <div class="md-list-scroll">
+            {sorted.length === 0 && (
+              <div class="md-pad">
+                <div class="md-empty-line">Nothing matches this filter.</div>
+              </div>
+            )}
+            {ready.length > 0 && (
+              <section class="md-group">
+                <h5 class="md-group-h">Ready to release</h5>
+                <ul class="md-rows">
+                  {ready.map((m, i) => (
+                    <ModelRow key={m.id} s={s} m={m} prefix="" selected={m.id === selId} onSelect={onSelect} tutRelease={i === 0} />
+                  ))}
+                </ul>
+              </section>
+            )}
+            {groups.map(({ root, kids }) => {
+              const open = !!openGroups[root.m.id] || kids.some((k) => k.m.id === selId);
+              return (
+                <section class="md-group" key={root.m.id}>
+                  <ul class="md-rows">
+                    <ModelRow s={s} m={root.m} prefix="" selected={root.m.id === selId} onSelect={onSelect} />
+                    {kids.length > 0 && (
+                      <li class="md-variants">
+                        <button type="button" class="btn btn-sm btn-ghost" aria-expanded={open} onClick={() => setOpenGroups({ ...openGroups, [root.m.id]: !open })}>
+                          {open ? 'Hide variants' : `+${kids.length} variant${kids.length === 1 ? '' : 's'}`}
+                        </button>
+                      </li>
+                    )}
+                    {open && kids.map((k) => <ModelRow key={k.m.id} s={s} m={k.m} prefix={k.prefix} selected={k.m.id === selId} onSelect={onSelect} />)}
+                  </ul>
+                </section>
+              );
+            })}
+          </div>
+        </>
       )}
     </Card>
   );
@@ -681,4 +752,3 @@ function LabNotebook({ s }: { s: GameState }) {
     </Card>
   );
 }
-

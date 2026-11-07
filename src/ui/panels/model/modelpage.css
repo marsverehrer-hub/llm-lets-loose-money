@@ -452,3 +452,13 @@ p.mpg-desc {
 .career-field li { display: flex; justify-content: space-between; gap: 10px; padding: 4px 0; border-bottom: 1px solid var(--line); color: var(--fg-2); }
 .career-field li:last-child { border-bottom: 0; }
 .career-field li.is-me { color: var(--fg); font-weight: 600; }
+
+/* Benchmarks tab: post-training side effects, one per row. */
+.mpg-behaviour { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.mpg-behaviour li { display: grid; grid-template-columns: max-content max-content minmax(0, 1fr); gap: 4px 12px; align-items: baseline; }
+.mpg-behaviour-k { font-weight: 600; color: var(--fg); }
+.mpg-behaviour-v { font-size: var(--fs-sm); color: var(--fg-2); }
+@media (max-width: 560px) {
+  .mpg-behaviour li { grid-template-columns: minmax(0, 1fr) max-content; }
+  .mpg-behaviour li > .mpg-desc { grid-column: 1 / -1; }
+}
