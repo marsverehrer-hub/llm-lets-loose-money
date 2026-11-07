@@ -6,3 +6,4 @@ release/
 scratch*
 # Internal agent briefs (local paths)
 *_AGENTS.md
+screens/

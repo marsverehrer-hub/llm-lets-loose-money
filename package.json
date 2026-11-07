@@ -11,6 +11,7 @@
     "simulate": "tsx scripts/simulate.ts",
     "relay": "node server/relay.mjs",
     "serve:dist": "node scripts/serve-dist.mjs 5381 dist",
+    "screens": "node scripts/screens.mjs",
     "package": "vite build && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package.ps1"
   },
   "dependencies": {
