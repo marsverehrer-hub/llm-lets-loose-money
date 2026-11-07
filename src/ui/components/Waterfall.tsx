@@ -70,7 +70,7 @@ export function Waterfall({ start, steps, end = { label: 'Total' }, format = (v)
     run = next;
   }
   if (end) {
-    rows.push({ id: '__end', label: end.label, kind: 'end', from: 0, to: run, delta: run, running: run, color: end.color ?? (run >= 0 ? 'var(--amber)' : 'var(--down)') });
+    rows.push({ id: '__end', label: end.label, kind: 'end', from: 0, to: run, delta: run, running: run, color: end.color ?? (run >= 0 ? 'var(--accent)' : 'var(--down)') });
   }
   if (rows.length === 0) return null;
 

@@ -4,7 +4,7 @@ export interface BarRow {
   id: string;
   label: ComponentChildren;
   value: number;
-  /** Bar color. Default var(--fg-3); the player's row (me) defaults to var(--amber). */
+  /** Bar color. Default var(--fg-3); the player's row (me) defaults to var(--accent). */
   color?: string;
   /** Dim second line under the label. */
   sub?: ComponentChildren;
@@ -54,7 +54,7 @@ export function BarList({ rows, format = (v) => String(Math.round(v)), max, onSe
           <div class="barlist-track">
             <div
               class="barlist-fill"
-              style={{ width: `${Math.max(0, (r.value / top) * 100).toFixed(2)}%`, '--c': r.color ?? (r.me ? 'var(--amber)' : 'var(--fg-3)') } as any}
+              style={{ width: `${Math.max(0, (r.value / top) * 100).toFixed(2)}%`, '--c': r.color ?? (r.me ? 'var(--accent)' : 'var(--fg-3)') } as any}
             />
           </div>
           <div class="barlist-val num">{format(r.value)}</div>

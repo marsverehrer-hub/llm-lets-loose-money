@@ -8,7 +8,7 @@ import { MP_COLORS, hostGame, joinGame, leaveGame, reconnect, resumeMatch, saveM
 import type { SessionInfo } from '../../net/session';
 import { activeMpSaveId, deleteMpSave, listMpSaves, onMpSavesChange, renameMpSave, type MpSaveMeta } from '../../net/mpSave';
 import { formatDate, formatMoney } from '../../sim/util';
-import { ConfirmButton } from '../panels/panelKit';
+import { Banner, ConfirmButton } from '../panels/panelKit';
 import { navigate } from '../nav';
 import { closeLobby } from './lobbyState';
 import './mp.css';
@@ -422,8 +422,8 @@ function NewMatch() {
       </details>
 
       {shownErr && (
-        <div class="mp-error" role="alert">
-          {shownErr}
+        <div role="alert">
+          <Banner tone="bad">{shownErr}</Banner>
         </div>
       )}
 
@@ -538,8 +538,8 @@ function SavedMatches() {
         Each player keeps their own copy. To carry on, the host presses Resume first, then the guest does the same.
       </p>
       {err && (
-        <div class="mp-error" role="alert">
-          {err}
+        <div role="alert">
+          <Banner tone="bad">{err}</Banner>
         </div>
       )}
       {saves.length === 0 ? (

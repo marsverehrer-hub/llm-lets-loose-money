@@ -14,6 +14,7 @@ import { MP_RIVAL_ID } from '../../sim/types';
 import type { RivalAttackKind, Segment } from '../../sim/types';
 import { formatMoney, formatNumber } from '../../sim/util';
 import { plain, tdateShort } from '../shell/fmt';
+import { Banner } from '../panels/panelKit';
 import { openLobby } from './lobbyState';
 import './mp.css';
 
@@ -200,9 +201,7 @@ export function VsPanel() {
       />
 
       {!rival && (
-        <div class="mp-note" role="status">
-          Waiting for {rivalName} to report. Their side of every number fills in after the first snapshot.
-        </div>
+        <Banner tone="muted">Waiting for {rivalName} to report. Their side of every number fills in after the first snapshot.</Banner>
       )}
 
       <div class="mp-vs-grid">

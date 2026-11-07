@@ -269,7 +269,7 @@ function draw(canvas: HTMLCanvasElement, w: number, h: number, series0: LineSeri
   // hover crosshair + markers
   if (opts.hover !== null && isFinite(opts.hover)) {
     const hx = Math.round(X(opts.hover)) + 0.5;
-    ctx.strokeStyle = tok('--amber', '#f2a94e');
+    ctx.strokeStyle = tok('--accent', '#1f47a0');
     ctx.setLineDash([2, 2]);
     ctx.beginPath();
     ctx.moveTo(hx, PAD.t);

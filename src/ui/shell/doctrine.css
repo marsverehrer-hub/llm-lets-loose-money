@@ -72,9 +72,10 @@
 .dp-tile:hover {
   border-color: var(--fg-3);
 }
+/* The chosen focus is highlighted, like a selected passage. */
 .dp-tile[aria-checked='true'] {
-  border-color: var(--amber);
-  background: var(--bg-2);
+  border-color: var(--fg);
+  background: var(--tex-marker);
 }
 .dp-tile[aria-disabled='true'] {
   cursor: default;
@@ -96,7 +97,7 @@
 }
 .dp-tile-now {
   font-size: var(--fs-xs);
-  color: var(--amber);
+  color: var(--accent);
 }
 
 .dp-list {
@@ -158,7 +159,7 @@
   cursor: pointer;
 }
 .dp-link:hover {
-  color: var(--amber);
+  color: var(--accent);
 }
 
 /* Lab focus card on HQ. Perks and drawbacks each take one line. */

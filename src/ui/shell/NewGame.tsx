@@ -6,10 +6,11 @@ import { DIFFICULTIES, SCENARIOS, type ScenarioDef, type ScenarioRules } from '.
 import { BALANCE } from '../../sim/balance';
 import { doctrineById } from '../../sim/data/doctrines';
 import { formatMoney } from '../../sim/util';
-import { Button, Pill } from '../components';
+import { Button, Check, Pill } from '../components';
 import { FIRST_RUN, newGame } from '../store';
 import { listSlots } from '../../sim/save';
 import { saveMessage } from '../saveText';
+import { Banner } from '../panels/panelKit';
 import { openSaves } from './SavesSheet';
 import './newgame.css';
 
@@ -254,20 +255,28 @@ export function NewGame() {
           <h3 class="ng-h" id="ng-h-opts">
             Options
           </h3>
-          <label class="ng-check">
-            <input type="checkbox" checked={sandbox} onChange={(e) => setSandbox((e.target as HTMLInputElement).checked)} />
-            <span class="ng-check-text">
-              <span>Sandbox</span>
-              <span class="small muted">No bankruptcy, no goals.</span>
-            </span>
-          </label>
-          <label class="ng-check">
-            <input type="checkbox" checked={skipTutorial} onChange={(e) => setSkipTutorial((e.target as HTMLInputElement).checked)} />
-            <span class="ng-check-text">
-              <span>Skip tutorial</span>
-              <span class="small muted">{midEra ? 'Mid-era starts skip it anyway. You get a briefing on HQ.' : 'No coach marks.'}</span>
-            </span>
-          </label>
+          <Check
+            class="ng-check"
+            checked={sandbox}
+            onChange={setSandbox}
+            label={
+              <span class="ng-check-text">
+                <span>Sandbox</span>
+                <span class="small muted">No bankruptcy, no goals.</span>
+              </span>
+            }
+          />
+          <Check
+            class="ng-check"
+            checked={skipTutorial}
+            onChange={setSkipTutorial}
+            label={
+              <span class="ng-check-text">
+                <span>Skip tutorial</span>
+                <span class="small muted">{midEra ? 'Mid-era starts skip it anyway. You get a briefing on HQ.' : 'No coach marks.'}</span>
+              </span>
+            }
+          />
           <div class="field">
             <label class="field-label" for="ng-seed">
               Seed (optional)
@@ -293,9 +302,9 @@ export function NewGame() {
             {sandbox ? ' · Sandbox' : ''}
           </span>
           {err && (
-            <p class="small bad" role="alert">
-              {err}
-            </p>
+            <div role="alert">
+              <Banner tone="bad">{err}</Banner>
+            </div>
           )}
         </div>
         <div class="ng-actions">

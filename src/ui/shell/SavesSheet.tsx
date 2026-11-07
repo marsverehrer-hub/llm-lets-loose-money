@@ -6,6 +6,7 @@ import { DIFFICULTIES, SCENARIOS } from '../../sim/data/scenarios';
 import { deleteSlot, exportSlot, getActiveSlotId, importSave, listSlots, storageBytes, type SlotMeta } from '../../sim/save';
 import { dayToDate, formatMoney } from '../../sim/util';
 import { Button, Pill, Sheet } from '../components';
+import { Banner } from '../panels/panelKit';
 import { loadSlotIntoGame, renameSlot, saveAsNew } from '../store';
 import { saveMessage } from '../saveText';
 import './saves.css';
@@ -208,16 +209,8 @@ function SavesBody({ onClose }: { onClose: () => void }) {
       <p class="sv-usage small muted">
         <span class="num">{megabytes(bytes)} MB</span> of about <span class="num">5 MB</span> used
       </p>
-      {nearFull && (
-        <p class="sv-notice small bad" role="status">
-          Storage is nearly full. Delete or export a save before the next one.
-        </p>
-      )}
-      {notice && (
-        <p class={`sv-notice small ${notice.tone}`} role={notice.tone === 'bad' ? 'alert' : 'status'}>
-          {notice.text}
-        </p>
-      )}
+      {nearFull && <Banner tone="warn">Storage is nearly full. Delete or export a save before the next one.</Banner>}
+      {notice && <Banner tone={notice.tone}>{notice.text}</Banner>}
 
       {rows.length === 0 ? (
         <p class="sv-empty muted">No saves yet. A new company is saved here as soon as it starts.</p>
@@ -264,9 +257,7 @@ function SavesBody({ onClose }: { onClose: () => void }) {
                       onCancel={() => setPending(null)}
                     />
                     <div class="sv-actions">
-                      <Button variant="primary" onClick={() => rename(m.id, p.text)}>
-                        Save name
-                      </Button>
+                      <Button onClick={() => rename(m.id, p.text)}>Save name</Button>
                       <Button onClick={() => setPending(null)}>Cancel</Button>
                     </div>
                   </div>
@@ -298,7 +289,7 @@ function SavesBody({ onClose }: { onClose: () => void }) {
                 )}
                 {!p && (
                   <div class="sv-actions">
-                    <Button variant="primary" disabled={active} onClick={() => load(m.id)}>
+                    <Button disabled={active} onClick={() => load(m.id)}>
                       Load
                     </Button>
                     <Button onClick={() => setPending({ kind: 'rename', id: m.id, text: m.name })}>Rename</Button>

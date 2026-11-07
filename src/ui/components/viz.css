@@ -12,7 +12,7 @@
 .radar-svg:focus-visible,
 .wf-row:focus-visible,
 .helptip-mark:focus-visible {
-  outline: 2px solid var(--amber);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
@@ -23,7 +23,7 @@
 .popover-caret { color: var(--fg-3); font-size: 12px; }
 .popover-panel {
   position: fixed; z-index: 40;
-  background: var(--bg-1); border: 1px solid var(--line-2); border-radius: var(--r-lg); box-shadow: var(--shadow-3); padding: 14px;
+  background: var(--bg-1); border: 1px solid var(--line-2); border-radius: var(--r-sm); box-shadow: var(--shadow-3); padding: 14px;
   display: flex; flex-direction: column; gap: 10px; max-height: 70vh; overflow: auto;
   max-width: calc(100vw - 16px);
 }
@@ -42,8 +42,8 @@
 /* PanelIntro */
 .panel-intro {
   display: flex; align-items: center; gap: 12px; padding: 12px 14px 12px 18px;
-  border-radius: var(--r-md); background: color-mix(in srgb, var(--blue) 9%, var(--bg-1));
-  border: 1px solid color-mix(in srgb, var(--blue) 25%, transparent); box-shadow: inset 4px 0 0 var(--blue);
+  border-radius: var(--r-sm); background: var(--bg-1);
+  border: 1px solid var(--line-2);
 }
 .panel-intro-body { flex: 1; min-width: 0; }
 .panel-intro-text { color: var(--fg); line-height: 1.6; }
@@ -108,7 +108,7 @@
 .radar-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; color: var(--fg-2); }
 .radar-key { display: inline-flex; align-items: center; gap: 6px; }
 .radar-key-mark {
-  display: inline-block; width: 14px; height: 0; border-top: 2px solid var(--c, var(--amber)); flex-shrink: 0;
+  display: inline-block; width: 14px; height: 0; border-top: 2px solid var(--c, var(--accent)); flex-shrink: 0;
 }
 .radar-key-mark.dashed { border-top-style: dashed; }
 .radar-svg { display: block; width: 100%; height: auto; margin: 0 auto; overflow: visible; cursor: crosshair; touch-action: pan-y; }
@@ -116,10 +116,10 @@
 .radar-ring.outer { stroke: var(--line-2); stroke-dasharray: none; }
 .radar-spoke { stroke: var(--line); stroke-width: 1; }
 .radar-spoke.on { stroke: var(--fg-2); stroke-width: 1.5; }
-.radar-shape { fill: var(--c, var(--amber)); fill-opacity: 0.16; stroke: var(--c, var(--amber)); stroke-width: 2; stroke-linejoin: round; }
+.radar-shape { fill: var(--c, var(--accent)); fill-opacity: 0.16; stroke: var(--c, var(--accent)); stroke-width: 2; stroke-linejoin: round; }
 .radar-shape.dashed { fill-opacity: 0; stroke-dasharray: 5 4; }
-.radar-dot { fill: var(--c, var(--amber)); }
-.radar-dot.on { fill: var(--bg-1); stroke: var(--c, var(--amber)); stroke-width: 2; }
+.radar-dot { fill: var(--c, var(--accent)); }
+.radar-dot.on { fill: var(--bg-1); stroke: var(--c, var(--accent)); stroke-width: 2; }
 .radar-label { fill: var(--fg-2); font-family: var(--font); font-size: 12px; }
 .radar-label.on { fill: var(--fg); font-weight: 600; }
 .radar-value { font-family: var(--mono); font-size: 12px; font-variant-numeric: tabular-nums; font-weight: 600; }
@@ -142,7 +142,7 @@
 .wf-start .wf-label, .wf-subtotal .wf-label, .wf-end .wf-label { color: var(--fg); font-weight: 600; }
 .wf-track { position: relative; height: 12px; border-radius: 4px; background: var(--bg-3); }
 .wf-zero { position: absolute; top: -3px; bottom: -3px; width: 1px; background: var(--fg-3); }
-.wf-bar { position: absolute; top: 0; bottom: 0; border-radius: 4px; background: var(--c, var(--amber)); }
+.wf-bar { position: absolute; top: 0; bottom: 0; border-radius: 4px; background: var(--c, var(--accent)); }
 .wf-val { text-align: right; color: var(--fg); white-space: nowrap; }
 .wf-readout { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; min-height: 1.5em; color: var(--fg-2); }
 .wf-readout-label { color: var(--fg); font-weight: 600; }
@@ -208,7 +208,6 @@
   color: var(--fg-3);
   font-family: var(--code);
   font-size: 11px;
-  letter-spacing: 0.03em;
 }
 .netview-stats span:first-child { color: var(--fg); }
 /* The size ruler under a NetView: 100M to 10T on a log scale, landmarks above, this model marked in marker yellow. */

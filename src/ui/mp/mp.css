@@ -28,13 +28,6 @@
   gap: 6px;
   color: var(--c, var(--fg-2));
 }
-.mp-note {
-  color: var(--fg-3);
-  font-size: var(--fs-sm);
-  padding: 8px 12px;
-  border: 1px solid var(--line-2);
-  border-radius: var(--r-md);
-}
 
 /* ---------- lobby --------------------------------------------------------- */
 .mp-swatches {
@@ -55,15 +48,13 @@
   border-color: var(--fg-2);
 }
 .mp-swatch[aria-pressed='true'] {
-  outline: 2px solid var(--amber);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 .mp-code-input {
   height: 34px;
   font-family: var(--mono);
   font-size: 16px;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
 }
 .mp-advanced {
   border-top: 1px solid var(--line);
@@ -76,20 +67,13 @@
   user-select: none;
 }
 .mp-advanced > summary:hover {
-  color: var(--amber);
+  color: var(--accent);
 }
 .mp-advanced[open] > summary {
   margin-bottom: 10px;
 }
 .mp-advanced .field {
   margin-top: 0;
-}
-.mp-error {
-  color: var(--down);
-  font-size: var(--fs-sm);
-  border: 1px solid var(--down);
-  padding: 6px 10px;
-  border-radius: var(--r-md);
 }
 .mp-room-block {
   display: flex;
@@ -99,13 +83,12 @@
   padding: 14px;
   border: 1px solid var(--line-2);
   background: var(--bg);
-  border-radius: var(--r-md);
+  border-radius: var(--r-sm);
 }
 .mp-code {
   font-family: var(--mono);
   font-size: 34px;
   font-weight: 600;
-  letter-spacing: 0.24em;
   color: var(--fg);
   line-height: 1.2;
   user-select: all;
@@ -120,7 +103,7 @@
   color: var(--up);
 }
 .mp-status-warn {
-  color: var(--amber);
+  color: var(--accent);
 }
 .mp-status-bad {
   color: var(--down);
@@ -146,8 +129,8 @@
   border-radius: var(--r-sm);
 }
 .mp-room:hover {
-  border-color: var(--amber);
-  color: var(--amber);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 @media (max-width: 1180px) {
   .mp-room-code { display: none; }
@@ -204,14 +187,10 @@
 
 /* Crowns: the leading side gets a coloured edge on the benchmark name. */
 .mp-crown.mp-lead-me > td:first-child {
-  border-left: 2px solid var(--blue);
+  font-weight: 700;
 }
 .mp-crown.mp-lead-rival > td:first-child {
-  border-left: 2px solid var(--c, var(--fg-3));
-}
-.mp-crown.mp-lead-tie > td:first-child,
-.mp-crown.mp-lead-none > td:first-child {
-  border-left: 2px solid transparent;
+  color: var(--c, var(--fg-2));
 }
 .mp-crowns td.num,
 .mp-crowns th.num {
@@ -264,10 +243,10 @@
   color: var(--fg);
   text-align: left;
   cursor: pointer;
-  border-radius: var(--r-md);
+  border-radius: var(--r-sm);
 }
 .mp-attack:hover:not(:disabled) {
-  border-color: var(--amber);
+  border-color: var(--accent);
 }
 .mp-attack:active:not(:disabled) {
   background: var(--bg-3);
@@ -318,7 +297,7 @@
   background: var(--bg);
   border: 1px solid var(--line);
   padding: 6px 0;
-  border-radius: var(--r-md);
+  border-radius: var(--r-sm);
 }
 .mp-feed-empty {
   margin: auto;
@@ -440,7 +419,7 @@
   font-family: var(--mono);
   font-size: var(--fs-xs);
   padding: 2px 6px;
-  background: var(--amber);
+  background: var(--accent);
   color: var(--on-accent);
 }
 .mps-title {
@@ -480,7 +459,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  border-radius: var(--r-md);
+  border-radius: var(--r-sm);
 }
 .mps-live {
   border-color: var(--amber-3);
@@ -492,9 +471,8 @@
 .mps-kicker {
   font-family: var(--mono);
   font-size: var(--fs-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--amber);
+  font-variant: all-small-caps;
+  color: var(--accent);
 }
 .mps-live-head {
   display: flex;
@@ -525,7 +503,7 @@
   padding: 12px;
   background: var(--bg-2);
   border: 1px solid var(--line);
-  border-radius: var(--r-md);
+  border-radius: var(--r-sm);
 }
 .mps-plate {
   display: flex;
@@ -577,7 +555,7 @@
   font-family: var(--mono);
   font-weight: 700;
   font-size: 22px;
-  color: var(--amber);
+  color: var(--accent);
 }
 
 /* Valuation tug of war. */
@@ -618,7 +596,7 @@
   font-size: 24px;
   font-weight: 700;
   color: var(--fg);
-  border-radius: var(--r-md);
+  border-radius: var(--r-sm);
 }
 .mps-tile.is-blank {
   border-style: dashed;
@@ -638,7 +616,7 @@
   cursor: text;
 }
 .mps-code-entry:focus-within .mps-tile {
-  border-color: var(--amber);
+  border-color: var(--accent);
 }
 
 /* Numbered steps. */
@@ -661,7 +639,7 @@
   display: grid;
   place-items: center;
   border: 1px solid var(--amber-3);
-  color: var(--amber);
+  color: var(--accent);
   font-family: var(--mono);
   font-size: var(--fs-sm);
 }
@@ -693,7 +671,7 @@
   padding: 10px 12px 10px 0;
   background: var(--bg-2);
   border: 1px solid var(--line);
-  border-radius: var(--r-md);
+  border-radius: var(--r-sm);
 }
 .mps-save.is-live {
   border-color: var(--up-3);
@@ -729,7 +707,7 @@
   text-decoration: underline dotted;
 }
 .mps-save-name:focus-visible {
-  outline: 2px solid var(--amber);
+  outline: 2px solid var(--accent);
 }
 .mps-rename {
   height: 28px;
@@ -766,7 +744,7 @@
   border: 1px dashed var(--line-2);
   color: var(--fg-3);
   font-size: var(--fs-sm);
-  border-radius: var(--r-md);
+  border-radius: var(--r-sm);
 }
 .mps-empty-seats {
   display: flex;
@@ -874,7 +852,7 @@
   background: var(--bg-1);
   border: 1px solid var(--line-2);
   font-size: var(--fs-sm);
-  border-radius: var(--r-md);
+  border-radius: var(--r-sm);
 }
 .mp-vote.is-ask,
 .mp-vote.is-count {
@@ -894,7 +872,7 @@
   font-family: var(--mono);
   font-weight: 700;
   font-size: 18px;
-  color: var(--amber);
+  color: var(--accent);
   min-width: 40px;
 }
 .mp-vote-clock {
@@ -902,7 +880,7 @@
   font-weight: 700;
   font-size: 26px;
   line-height: 1;
-  color: var(--amber);
+  color: var(--accent);
   min-width: 40px;
   text-align: center;
 }
@@ -928,7 +906,7 @@
   padding: 2px 8px;
   border: 1px solid var(--line-2);
   color: var(--fg-3);
-  border-radius: var(--r-md);
+  border-radius: var(--r-sm);
 }
 .mp-ready-chip::before {
   content: '';
@@ -955,7 +933,7 @@
   position: absolute;
   inset: 0 auto 0 0;
   width: calc(var(--f) * 100%);
-  background: var(--amber);
+  background: var(--accent);
   transition: width 250ms linear;
 }
 @media (max-width: 760px) {

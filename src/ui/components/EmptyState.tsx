@@ -10,7 +10,7 @@ export interface EmptyStateProps {
   class?: string;
 }
 
-/** One dim uppercase line (plus optional detail and action) for empty lists. */
+/** One dim line (plus optional detail and action) for empty lists. */
 export function EmptyState({ title, text, action, class: cls }: EmptyStateProps) {
   return (
     <div class={`empty ${cls ?? ''}`}>

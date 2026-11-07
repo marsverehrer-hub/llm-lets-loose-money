@@ -9,21 +9,8 @@
   margin: 0 0 10px;
 }
 
-.sv-notice {
+.sv-sheet .pn-banner {
   margin: 0 0 10px;
-  padding: 8px 10px;
-  border: 1px solid var(--line-2);
-  border-radius: 2px;
-  background: var(--bg-2);
-  color: var(--fg-2);
-}
-.sv-notice.bad {
-  border-color: var(--down);
-  color: var(--down);
-}
-.sv-notice.good {
-  border-color: var(--up);
-  color: var(--up);
 }
 
 .sv-empty {
@@ -46,11 +33,11 @@
   min-width: 0;
   padding: 12px;
   border: 1px solid var(--line);
-  border-radius: 2px;
+  border-radius: var(--r-sm);
   background: var(--bg-1);
 }
 .sv-row.is-active {
-  border-color: var(--amber);
+  border-color: var(--fg);
 }
 
 .sv-head {

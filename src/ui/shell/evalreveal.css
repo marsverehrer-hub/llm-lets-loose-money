@@ -29,6 +29,7 @@
 .ev-label {
   color: var(--fg-3);
   font-size: var(--fs-xs);
+  font-variant: all-small-caps;
 }
 .ev-none {
   color: var(--fg-3);
@@ -73,8 +74,7 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  background: var(--blue);
-  opacity: 0.4;
+  background: var(--tex-hatch), var(--blue);
   border-left: 1px solid var(--blue);
   border-right: 1px solid var(--blue);
 }
@@ -85,14 +85,14 @@
   width: 1px;
   background: var(--fg-2);
 }
-/* The overall marker: the one amber mark on the reveal, the key result. */
+/* The overall marker: the one ink mark on the reveal, the key result. */
 .ev-marker {
   position: absolute;
   top: -5px;
   bottom: -5px;
   width: 2px;
   margin-left: -1px;
-  background: var(--amber);
+  background: var(--fg);
 }
 .ev-scale {
   display: flex;
@@ -264,11 +264,28 @@
   font-size: var(--fs-sm);
   line-height: 1.5;
 }
-/* A discovery gets a yellow rule so it reads as news, not a plain entry. */
-.ev-discovery {
-  padding-left: 10px;
-  border-left: 2px solid var(--yellow);
+/* Behaviour: a footnote under the results, like the table notes in a paper. */
+.ev-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line-2);
+  font-size: var(--fs-xs);
+  color: var(--fg-2);
+  min-width: 0;
 }
+.ev-foot-title {
+  color: var(--fg-3);
+  font-variant: all-small-caps;
+}
+.ev-foot-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 2px 0;
+}
+.ev-muted { color: var(--fg-3); }
 .ev-data-row {
   display: flex;
   align-items: baseline;

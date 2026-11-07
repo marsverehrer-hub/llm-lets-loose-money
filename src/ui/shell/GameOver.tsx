@@ -3,6 +3,7 @@ import type { ComponentChildren } from 'preact';
 import { ACHIEVEMENTS } from '../../sim/data/achievements';
 import { formatMoney } from '../../sim/util';
 import { Button, formatInt } from '../components';
+import { Banner } from '../panels/panelKit';
 import { newGame, useGame, useGameSelect } from '../store';
 import { saveMessage } from '../saveText';
 import { openNewGame } from './NewGame';
@@ -78,7 +79,11 @@ function GameOverBody() {
             <Button onClick={() => openNewGame()}>Pick a scenario</Button>
             <Button onClick={() => openSaves()}>Load a save</Button>
           </div>
-          {err && <p class="small bad" role="alert">{err}</p>}
+          {err && (
+            <div role="alert">
+              <Banner tone="bad">{err}</Banner>
+            </div>
+          )}
         </div>
       </div>
     </div>

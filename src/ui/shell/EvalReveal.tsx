@@ -3,6 +3,7 @@ import { emergenceById } from '../../sim/data/emergences';
 import { VERDICT_LABEL } from '../../sim/data/evalCopy';
 import { BENCHMARKS } from '../../sim/data/benchmarks';
 import { quirkById } from '../../sim/data/quirks';
+import { TRAIT_NAME, traitLabel } from '../../sim/systems/traits';
 import { datasetById } from '../../sim/systems/data';
 import type { EmergenceDef, EvalReveal as Reveal, Forecast, GameState, Id } from '../../sim/types';
 import { Pill, clamp } from '../components';
@@ -256,6 +257,10 @@ function Then({ s, r }: { s: GameState; r: Reveal }) {
   const found = r.emerged.map((id) => emergenceById(id)).filter((d): d is EmergenceDef => d !== undefined);
   const quirks = r.quirks.map((id) => ({ id, def: quirkById(id) }));
   const surprises = Object.entries(r.dataSurprises).map(([id, delta]) => ({ id, delta, def: datasetById(s, id) }));
+  const traits = (Object.keys(TRAIT_NAME) as (keyof typeof TRAIT_NAME)[]).flatMap((id) => {
+    const v = r.traits?.[id];
+    return v === undefined ? [] : [[id, v] as const];
+  });
 
   return (
     <div class="ev-then">
@@ -296,6 +301,18 @@ function Then({ s, r }: { s: GameState; r: Reveal }) {
           </div>
         ))}
       </section>
+
+      {traits.length > 0 && (
+        <section class="ev-foot" aria-label="Behaviour">
+          <div class="ev-foot-title">Behaviour</div>
+          {traits.map(([id, v]) => (
+            <div key={id} class="ev-foot-row">
+              <span>{TRAIT_NAME[id]}</span>
+              <span class={v >= 0.5 ? 'ev-down' : v >= 0.2 ? 'ev-flat' : 'ev-muted'}>{traitLabel(v)}</span>
+            </div>
+          ))}
+        </section>
+      )}
 
       <section class="ev-group" aria-label="Data surprises">
         <div class="section-title">Data surprises</div>
