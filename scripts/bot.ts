@@ -29,7 +29,7 @@ import { unlockedProductKinds, defaultPrice, liveLines } from '../src/sim/system
 import { canIpo, pitchReadiness, runwayDays } from '../src/sim/systems/finance';
 import { activeBenchmarks, availableSpecs, isSaturated, productFitFor, specById } from '../src/sim/systems/capabilities';
 import { segQuality } from '../src/sim/systems/market';
-import { defaultConfig, isOptionUnlocked } from '../src/sim/data/trainingOptions';
+import { bestPrecision, defaultConfig, isOptionUnlocked, tokenizerFor } from '../src/sim/data/trainingOptions';
 import { runIncidentById } from '../src/sim/data/runIncidents';
 import { OFFICE_TIERS } from '../src/sim/data/roles';
 import { sweepPointsFor, sweepQuote, sweepRunning } from '../src/sim/systems/lab';
@@ -194,8 +194,8 @@ export function informedLr(st: GameState, cfg: TrainingConfig): TrainingConfig {
 }
 
 /**
- * The bot's run sheet: the default (best unlocked) with a few picks. MoE with 16 experts when unlocked, FP8 when
- * unlocked (fast, a bit unstable at lr 0.5), WSD schedule (default when unlocked). Never anything exotic.
+ * The bot's run sheet: the default (best unlocked) with a few picks. MoE with 16 experts when unlocked, the best precision
+ * the fleet supports (bestPrecision), WSD schedule (default when unlocked). Never anything exotic.
  */
 export function botConfig(st: GameState): TrainingConfig {
   const cfg = informedLr(st, defaultConfig(st));
@@ -203,7 +203,7 @@ export function botConfig(st: GameState): TrainingConfig {
     cfg.arch = 'moe';
     cfg.moeExperts = 16;
   }
-  if (isOptionUnlocked(st, 'fp8')) cfg.precision = 'fp8';
+  cfg.precision = bestPrecision(st);
   if (isOptionUnlocked(st, 'wsd')) cfg.schedule = 'wsd';
   return cfg;
 }
@@ -260,7 +260,7 @@ export function sizeBotRun(
   }
   if (opts.maxActiveB !== undefined) N = Math.min(N, opts.maxActiveB / activeParamsFor(1, cfg));
   // The sim rejects runs outside its parameter range (10T at most), so a bigger plan would fail every week after it.
-  N = Math.min(Math.max(N, TRAINING_TUNING.MIN_PARAMS_B), TRAINING_TUNING.MAX_PARAMS_B, memoryWall(st).maxParamsB * 0.999); // v16 memory wall
+  N = Math.min(Math.max(N, TRAINING_TUNING.MIN_PARAMS_B), TRAINING_TUNING.MAX_PARAMS_B, memoryWall(st, cfg).maxParamsB * 0.999); // v16 memory wall
   return { paramsB: N, tokensB: tokensFor(N) };
 }
 
@@ -459,6 +459,7 @@ function planPretrain(st: GameState, strategy: BotStrategy): void {
   const owned = st.data.owned;
   const cfg = botConfig(st);
   const { paramsB, tokensB } = sizeBotRun(st, owned, [], cfg, pretrainTarget(st, strategy));
+  cfg.tokenizer = tokenizerFor(st, paramsB);
   // Informed play: before the first big run on an architecture, measure its learning rate (cheap, a few days).
   const sweep = sweepQuote(st, paramsB, tokensB, owned, cfg, BOT_SWEEP_LRS);
   const needSweep = sweepPointsFor(st, cfg.arch).length === 0 && !sweepRunning(st, cfg.arch);

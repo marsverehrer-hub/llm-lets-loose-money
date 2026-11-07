@@ -1745,3 +1745,106 @@ Instruction tuning in 2020 ≈ $200K, Long context in 2020 ≈ $150K / 18 days.
   A two-founder lab reaches Instruction tuning by late 2018 on its own.
 - Switching or pausing shelves progress (`research.partial`); coming back restores it.
 - Board research rewards earned while idle are banked (`research.banked`) for the next topic.
+
+## 31. v18: Preprint, deeper training
+
+The v18 pass makes training a set of real trade-offs, lets the lab's run ask for decisions mid-way, gives post-training
+side effects a face, and re-skins the screens as a research preprint (see `DESIGN.md`). Numbers below are the sim's
+constants (`data/trainingOptions.ts`, `RUN_TUNING`, `RESEARCH_TUNING`); the spec sheet is the source of truth.
+
+### 31.1 Trade-offs on every knob (`data/trainingOptions.ts`)
+Nothing is a free upgrade. Each non-baseline option has at least one downside (`tests/tradeoffs.test.ts`).
+
+| group | option | quality | speed | instability | memory | LR curve | serving |
+|---|---|---|---|---|---|---|---|
+| tokenizer | 100K / 256K multilingual / byte latent | no free quality bonus | | | | | 0.98 / 0.94 / 0.85 |
+| optimizer | SGD / Adam / AdamW / Lion / Shampoo / Muon | 0.88 / 1 / 1.04 / 0.99 / 1.07 / 1.08 | 1.05 / 1 / 1 / 1.15 / 0.82 / 0.93 | −0.15 / 0 / 0 / 0.3 / −0.05 / 0.2 | 0.75 / 1 / 1 / 0.75 / 1.3 / 0.875 | 0.6 / 1 / **1.6** / 1.7 / 0.9 / 1.25 | |
+| precision | fp32 / fp16 / bf16 / fp8 / fp4 | – / – / – / 0.985 / 0.95 | 1 / 1.7 / 1.8 / 2.6 / 3.6 | −0.1 / 0.3 / 0 / 0.5 / 1.2 | 1.25 / 1 / 1 / 0.85 / 0.75 | | 1 / 1 / 1 / 1.15 / 1.3 |
+| schedule | cosine / constant / WSD | 1.02 / 0.98 / 1.01 | | | | | |
+| arch | recurrent depth | | | | | | 0.75 |
+
+- **Context:** long windows cost serving (10M is 0.70×, 128K is 0.90×). The default context is now the longest
+  unlocked of 128K, 32K, 8K, 2K (no more 10M by default).
+- **Precision follows the hardware.** Each GPU lists its formats (`data/gpus.ts`): P100, GTX 1080, V1000 and T4 run
+  fp32/fp16 only; A100, MI250 and Ascend add bf16; H100, H200, MI300 add fp8; Blackwell-class and newer add fp4. Without
+  hardware support a format is emulated at the speed of the best format it can run, and keeps its quality and
+  instability costs. The precision speed factor is the PFLOPS-weighted mean over the lab's own fleet
+  (`fleetFormatSpeed` in `systems/scaleLimits.ts`). A P100 fleet trains fp16 faster than bf16; an A100 fleet, bf16.
+  `bestPrecision` picks the fastest unlocked format with instability ≤ 0.5.
+- **Byte latent** tokens cost 10% more tokens and 18% more FLOPs, and the byte latent tokenizer is never picked by default.
+- **Tokenizer crossover.** From 8B parameters `tokenizerFor` picks the largest unlocked vocabulary (256K multilingual,
+  then 100K); below that, 32K. The forecast charges an embedding tax on the vocabulary size (`resolveRun` only, so bot
+  sizing is unchanged) and the tokenizer's token multiplier applies to the tokens the loss sees.
+
+### 31.2 Shape and mixture of experts
+- **Shape** (−1 wide and shallow … +1 deep and narrow, steps of 0.5): speed × (1 − 0.10x) and serving × (1 − 0.10x).
+  Deep shifts capability towards reasoning and away from knowledge and multilingual; any extreme costs raw quality
+  (× (1 − 0.03x²)) and adds instability when deep. LSTM models have no shape.
+- **Top-k routing** for MoE: k = 1, 2 (default), 4 or 8 experts per token. Small k is faster and less knowledgeable;
+  large k adds reasoning and chat at a small speed cost, and it is more stable. The active parameter fraction grows
+  with k, so top-4 has more active parameters and less instability than top-2.
+
+### 31.3 Data mix: epochs and repetition
+- Each data kind has a share, unique tokens and **epochs** (`tokensB × share / unique`). Leaving a kind out costs
+  the full capability swing (`MIX_SWING` 12); the cost is concave in the share.
+- Repetition is per kind: past four epochs (`OVER_REPEAT_EPOCHS`) a kind loses 3% per extra pass, weighted by its
+  share, with a floor of 0.85 (`OVER_REPEAT_FLOOR`). The forecast names the kind and count ("Code repeated 9×: past
+  four passes the model memorises.").
+- Contamination follows the mix: web 25%, science 12%, code 10%, synthetic 30% (`CONTAM_RATE`), zero with the
+  decontamination filter.
+- Long-context windows need books or code: the context gain scales with their share, unless the run anneals long.
+
+### 31.4 Mid-run decision calls (`data/runCalls.ts`)
+A pretrain raises up to three calls, planned at launch (none under 12 days; one under 40; two under 100; three after).
+Calls use the incident machinery, so the sim pauses for them, but **choice 0 is always "carry on, nothing changes"**:
+a passive player is never worse off for ignoring one.
+
+| call | raised at | when | the choices |
+|---|---|---|---|
+| Checkpoint verdict | 85% | any pretrain | finish · stop now · extend 25% (needs data headroom) |
+| Loss spikes | 50% | instability ≥ 0.4 | decide each time · always roll back · always skip the batch · lower LR by 0.1 |
+| Synthetic data | 50% | synthetic share ≥ 25% | keep · halve the synthetic weight for the rest of the run · judge-model filter (a stall, then recovery) |
+| When to decay? | 60% | WSD schedule | decay on schedule · decay now and finish at 80% · stay hot and extend 25% (risk of a stall) |
+| Learning rate | 40% | not WSD | leave · lower by 0.1 · raise by 0.1, against the believed optimum |
+| Mix review | 30% | 2+ kinds | keep · lean into the lowest-share kind · curriculum, hardest last |
+
+- Tie-breaks use a hash of seed, run and call (no RNG draws), so the same seed plans the same calls and the bot's random
+  stream is unchanged. Calls are never raised on fine-tunes, distills or merges.
+- **Spike policy:** a loss spike that happens after you pick "always roll back" or "always skip" is applied at once and
+  never pauses the run.
+- Stopping early and extending use the same helpers as the run controls (`truncateRun`, `extendRun`). Extending a cosine
+  run costs quality (× (1 − 0.08·fraction)); WSD and constant runs are free to extend.
+
+### 31.5 Post-training traits (`systems/traits.ts`)
+Post-training stages leave hidden side effects, scaled by how well the stage took:
+- **Sycophancy** (SFT, RLHF, DPO, agentic RL) and **reward hacking** (reasoning and verifiable RL, agentic RL) and
+  **over-refusal** (SFT, the constitution, the toxicity filter). A constitution lowers sycophancy and raises
+  over-refusal.
+- Reward hacking grows when verifiable data (code, science, synthetic) is scarce. Sycophancy grows with dialogue share.
+- Traits are severities from 0 to 1 with noise. "mild" below 0.2, "noticeable" below 0.5, "severe" above.
+- **Market:** a trait changes appeal by segment (`traitAppeal`, floor 0.3). Sycophancy helps consumers and hurts
+  developers and enterprise; reward hacking hurts developers most; over-refusal hurts consumers and helps enterprise.
+  Traits also feed the product sycophancy drain. Traits are shown as risk arrows in the training wizard before launch.
+
+### 31.6 Research backlog, notifications and pacing
+- **Research backlog:** an idle lab banks 75% of its research points per day, up to 120 days of its current rate.
+  Overflow from a finished topic carries into the bank. The next topic you choose takes the bank.
+- **Notification diet:** background news goes to the Inbox only. Toasts are for what you did, for bad news, for
+  milestones, and for the four events that need you (funding offer, contract signed, renewal offer, "You pass …").
+- **Pacing:** 1× is 0.6 sim days per second, 3× is 2, 10× is 6. Rival news autopause is off by default; outage autopause
+  is on.
+
+### 31.7 One advisor, Models master-detail, launch moment
+- Headquarters has **one** advisor (`panels/hq/nextStep.ts`): the chapter goal, then Urgent, Next and Idea moves.
+- **Models** is master-detail: the list on the left, the selected model on the right (a sheet on phones).
+- A release is a **launch moment**: one inked Release button, the arena board, and the model's shape (`NetView`).
+
+### 31.8 Preprint UI
+The screens are typeset as a research preprint: `DESIGN.md` has the rules (small caps, booktabs tables, red pen for
+what needs the reader, highlighter for selection, hatched bars, numbered sections). The chrome is played straight; the
+satire is in the content.
+
+### 31.10 Balance (`scripts/balance.ts`)
+- New check: §31 median 1–3 decision calls per pretrain (the bot always picks choice 0).
+- Every earlier check still applies with `--all --years=20`. The bot uses the best unlocked precision (no forced
+  fp8), sizes against the memory wall for its own run sheet, and sets the tokenizer after sizing.

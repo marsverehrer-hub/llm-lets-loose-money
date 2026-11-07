@@ -43,6 +43,9 @@ interface Run {
   nanoSmallYears: Record<number, boolean>;
   /** Ticks where the sim did not advance (blocked by a pending prompt the bot did not clear). */
   blockedTicks: number;
+  /** v18: pretraining runs started, and decision calls raised during them (§31). */
+  pretrains: number;
+  callsRaised: number;
 }
 
 function bestReleasedOverall(s: GameState): number {
@@ -71,6 +74,17 @@ function runOne(strategy: Strategy, seed: number, years: number): Run {
     maxGap1719: null,
     nanoSmallYears: {},
     blockedTicks: 0,
+    pretrains: 0,
+    callsRaised: 0,
+  };
+  const seenRuns = new Set<string>();
+  // v18: count pretrains by the run ids the bot sees, sampled before and after each tick (a run can end inside a tick).
+  const noteRun = () => {
+    const t = s.training;
+    if (t && (t.kind ?? 'pretrain') === 'pretrain' && !seenRuns.has(t.id)) {
+      seenRuns.add(t.id);
+      run.pretrains += 1;
+    }
   };
   let profitStreak = 0;
   let wasPublic = false;
@@ -80,7 +94,9 @@ function runOne(strategy: Strategy, seed: number, years: number): Run {
   for (let iter = 0; s.day < totalDays && !s.gameOver && iter < cap; iter++) {
     const before = s.day;
     botDay(s, strategy === 'idle', strategy === 'idle' ? 'frontier' : strategy);
+    noteRun();
     tick(s);
+    noteRun();
     if (s.day === before) {
       run.blockedTicks += 1;
       continue;
@@ -119,6 +135,7 @@ function runOne(strategy: Strategy, seed: number, years: number): Run {
   run.activeContractsEnd = s.contracts?.active.length ?? 0;
   run.contractShare = totalRev > 0 ? contractRev / totalRev : 0;
   run.bestEnd = bestReleasedOverall(s);
+  run.callsRaised = s.flags['callsRaised'] ?? 0;
   return run;
 }
 
@@ -164,6 +181,9 @@ function cell(vals: Num[], fmt: (v: number) => string): string {
   return reached < vals.length ? `${base} ${reached}/${vals.length}` : base;
 }
 
+/** v18: decision calls per pretrain (a seed with no pretrain counts as 0). */
+const callsPerPretrain = (r: Run): number => (r.pretrains > 0 ? r.callsRaised / r.pretrains : 0);
+
 /** Metric rows of the comparison table. `better` is the direction used for the dominance check. */
 interface Metric {
   label: string;
@@ -186,6 +206,7 @@ const METRICS: Metric[] = [
   { label: 'best overall at end', values: (r) => r.bestEnd, fmt: (v) => v.toFixed(1), better: 'high' },
   { label: 'first best overall >= 95', values: (r) => r.first95Day, fmt: (v) => yearOf(v).toFixed(1) },
   { label: 'maxGap 2017-19 (pts)', values: (r) => r.maxGap1719, fmt: (v) => (v >= 0 ? '+' : '') + v.toFixed(1) },
+  { label: 'calls per pretrain', values: (r) => callsPerPretrain(r), fmt: (v) => v.toFixed(1) },
 ];
 
 function bankruptCount(runs: Run[]): string {
@@ -328,6 +349,19 @@ function designChecks(byStrategy: Map<Strategy, Run[]>): Check[] {
     });
   } else {
     out.push({ label: '§19 no strategy dominates every column', pass: null, detail: 'needs all four strategies (use --all)' });
+  }
+
+  // §31: a pretrain raises one to three decision calls on average (the bot always picks carry on).
+  const pooled = BOT_STRATEGIES.flatMap((s) => runsOf(s) ?? []).filter((r) => r.pretrains > 0);
+  if (pooled.length) {
+    const med = medianOf(pooled.map(callsPerPretrain));
+    out.push({
+      label: '§31 median 1-3 calls per pretrain',
+      pass: med !== null && med >= 1 && med <= 3,
+      detail: `median ${med === null ? 'n/a' : med.toFixed(2)} over ${pooled.length} runs with a pretrain`,
+    });
+  } else {
+    out.push({ label: '§31 median 1-3 calls per pretrain', pass: null, detail: 'no pretrain ran' });
   }
 
   // Overall must not saturate early.

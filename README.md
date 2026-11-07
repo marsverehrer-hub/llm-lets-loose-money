@@ -54,9 +54,13 @@ Saves live in the browser, so each device and address has its own game.
 - **Lab levels and perks:** everything you do earns XP. Levels give perk points for a five-branch tree (Scale, Craft, Hype, Data, Trust), and you may own only one capstone.
 - **Board goals:** three goals every quarter (easy, fair, stretch), each paid the day you hit it.
 - **Run tempo:** push a live run (crunch), protect it (careful), or leave it at standard. Land runs at or above forecast to build a hot streak.
-- **Training recipes and media models:** start a run in one click from a recipe (balanced, reasoning, coder, chatty, cheap), or open every knob, including post-training stages and data annealing. Image and video models are a cheaper side business with their own data, arena, rivals and products.
+- **Training recipes and media models:** start a run in one click from a recipe (balanced, reasoning, coder, chatty, cheap), or open every knob: optimizer, precision (the formats your GPUs support), shape (deep or wide), mixture-of-experts top-k, tokenizer, context, post-training stages and data annealing. Every knob trades something off, and the memory wall caps model size. Image and video models are a cheaper side business with their own data, arena, rivals and products.
+- **Decisions mid-run:** a long pretrain can pause for a call: stop or extend a checkpoint, handle a loss spike (and set a standing policy), decide when to decay the learning rate, or review the data mix. Doing nothing is always a valid choice.
+- **Post-training side effects:** alignment stages leave hidden traits (sycophancy, reward hacking, over-refusal). They change how each market segment likes your model, and the training wizard shows them as risk arrows before you launch.
+- **Research and the Inbox:** an idle lab banks research points for its next topic, and background news goes to the Inbox instead of popping up as toasts.
 - **Model careers:** patch released models from user feedback, watch them gain mastery as they serve users, enter them in the Arena Cup every two months, route easy queries to a small model, and retire your best into a Hall of Fame that keeps paying.
 - **Clouds and neoclouds:** seven parody cloud providers with quotas, reserved terms, spot capacity and crunches; or dedicate your own halls and sell capacity to rival labs, startups and enterprises.
+- **Look:** the game is typeset as a research preprint (paper, small caps, booktabs tables, red pen for what needs you). Night print is the same paper under a desk lamp.
 - **Multiplayer:** a 1v1 over the internet (Menu, then Multiplayer).
 
 ## Development
