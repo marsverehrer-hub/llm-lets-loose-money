@@ -98,14 +98,17 @@ export function niceScale(min: number, max: number, target = 4): { lo: number; h
   return { lo, hi, step, ticks };
 }
 
-/** Chart series colours as theme tokens, so they follow dark and light. LineChart resolves var() at draw time. */
+/**
+ * Chart series colours as theme tokens, so they follow paper and night print. LineChart resolves var() at draw time.
+ * v18: figures use the matplotlib default cycle (--mpl-1..6), like every paper; the old names map onto it.
+ */
 export const SERIES = {
-  amber: 'var(--amber)',
-  fg: 'var(--fg-2)',
-  blue: 'var(--blue)',
+  amber: 'var(--mpl-1)',
+  fg: 'var(--mpl-2)',
+  blue: 'var(--mpl-3)',
   up: 'var(--up)',
   down: 'var(--down)',
   dim: 'var(--fg-3)',
-  yellow: 'var(--yellow)',
+  yellow: 'var(--mpl-5)',
 } as const;
-export const SERIES_ORDER = [SERIES.amber, SERIES.fg, SERIES.blue, SERIES.up, SERIES.down, SERIES.yellow];
+export const SERIES_ORDER = ['var(--mpl-1)', 'var(--mpl-2)', 'var(--mpl-3)', 'var(--mpl-4)', 'var(--mpl-5)', 'var(--mpl-6)'];

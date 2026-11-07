@@ -1,55 +1,70 @@
-# LLM: Lets Loose Money: UI design rules ("Signal", v18)
+# LLM: Lets Loose Money: UI design rules ("Preprint", v18)
 
-The UI is a **calm lab console**: blue-black surfaces stepped by lightness, one violet accent for the thing you should
-do next, status colours used only for meaning, sentence case, soft corners and tabular figures. It must stay easy to read
-for hours and easy to learn. Every screen says what it is for, the home screen gives one answer to "what next", and
-jargon gets a plain-language tip.
+The lab's screens are typeset like the papers the lab keeps publishing. Warm paper, a LaTeX-ish serif (STIX Two),
+§ sections with a double rule, numbered subsections, booktabs tables, figures in the matplotlib colours, hatched
+monochrome bars, a **red pen** for what needs attention and a **highlighter** for what is selected. The tutorial is a
+sticky note, the HUD is the paper's running header ("Lets Loose Labs et al."), and the screen tip is the Abstract.
+Night print (dark) is the same paper under a desk lamp. Paper is the default.
 
-The satire lives in the **content** (names, news, events, descriptions, advisor copy). The chrome is played straight.
+The satire lives in the **content** (names, news, events, descriptions, advisor copy) and in the paper conventions.
+The chrome is played straight, like a carefully typeset preprint about a deeply unserious company.
 
 `scripts/lint-style.mjs` enforces the hard rules. `node scripts/lint-style.mjs --strict` must print `style lint: OK`.
 
 ## Hard rules (lint-enforced)
-1. **No emoji** anywhere in UI source (`src/ui`, `src/office`, `src/scenes`). Simple glyphs such as `▲ ▼ ● › ×` are
-   fine. Icons are inline SVG line drawings (see `shell/hubs.tsx`). The sim's `icon` fields are never rendered.
+1. **No emoji** anywhere in UI source (`src/ui`, `src/office`, `src/scenes`). Simple glyphs such as `▲ ▼ ● › × § ✓`
+   are fine. Icons are inline SVG line drawings. The sim's `icon` fields are never rendered.
 2. **Colours, gradients and textures are tokens.** No raw hex in CSS outside `src/ui/theme.css` and no `gradient()`
-   outside it. Every `box-shadow` references a token or a `var()` colour. Data-driven colours (lab colours) come in
-   through `--c`.
+   outside it. Every `box-shadow` references a token or a `var()` colour. Data-driven colours come in through `--c`.
 3. **No glow or glass:** no `text-shadow`, `backdrop-filter`, blur or `drop-shadow`.
-4. **Radii are tokens:** `--r-sm` (6), `--r-md` (8), `--r-lg` (10), `--r-xl` (12), `--r-pill` for dots and chips. No slanted
+4. **Paper is square:** radii are `--r-sm` (2) or `--r-lg` (3), plus `--r-pill` for dots and switches. No slanted
    `clip-path` shapes.
-5. **Sentence case.** `text-transform: uppercase` only on pills, eyebrows, keys and chips.
-6. **House controls only:** checkboxes and switches are `components/Check`, dropdowns are `components/Select`. Never a raw
-   `<input type="checkbox">` or `<select>` outside `components/`.
-7. **Motion** is short and functional: hover colour changes, a 1px press, panel/modal/toast entrances, the news crawl,
-   the tutorial ring. `prefers-reduced-motion` switches it off.
+5. **No uppercase.** Labels, tabs and tags use small caps (`font-variant: all-small-caps`, the `.caps` / `.smallcaps`
+   classes). `text-transform: uppercase` is allowed only on pills, eyebrows, keys and chips, and even there small caps
+   are preferred.
+6. **House controls only:** checkboxes and switches are `components/Check` (a hand-drawn red tick), dropdowns are
+   `components/Select`. Never a raw `<input type="checkbox">` or `<select>` outside `components/`.
+7. **Motion** is short and functional. `prefers-reduced-motion` switches it off.
 8. Inline styles in TSX follow the same rules.
 
 ## Emphasis
-- **One accent per view.** The primary button (`btn-primary`, violet) is the single thing to do here. Everything else
-  is a secondary button (surface plus hairline) or a ghost.
-- **Status colours mean something:** green for good or money in, red for bad or money out, amber for caution, gold for
-  best in the world, sky for info. Never decorative.
-- **Depth** comes from surface steps (`--bg` up to `--bg-3`) and 1px hairlines (`--line`, `--line-2`), not coloured
-  edges or glows.
-- **Destructive actions** are quiet until armed: `ConfirmButton` rests as an outlined danger button and only fills red
-  when armed. Never repeat a red button down a list; put it in a row's overflow menu.
+- **One inked button per view.** The primary button (`btn-primary`) is solid ink with paper text: the single thing to
+  do here. Secondary buttons are boxed like hyperref links. Ghost buttons read as blue links.
+- **Red pen** (`--pen`, `.pen` in the hand font) is for what needs the reader: urgent advisor items, the § mark, bad
+  news, armed destructive buttons. Never decorative.
+- **Highlighter** (`--tex-marker`, `.marker`) marks what is selected: the current tab, hub, your row in a table.
+- **Status colours mean something:** green ink for good or money in, red pen for bad or money out, ochre for caution,
+  plum and **bold** for best in the world (as in a results table), steel blue for info.
+- **Depth** is a sheet on a desk: cards are flat paper with a hairline. Only dialogs and toasts lift with a shadow.
+- **Destructive actions** are a dashed red-pen box until armed (`ConfirmButton`). Never repeat a red button down a
+  list; put it in a row's overflow menu.
 
 ## Tokens (`src/ui/theme.css`)
-| token | dark | light | use |
+| token | paper (default) | night print | use |
 |---|---|---|---|
-| `--bg` / `--bg-1..3` | #0d0f14 up to #242a37 | paper #f6f5f1, white cards | app, cards, raised rows, buttons |
-| `--accent` / `--hl` / `--on-hl` | violet #9d90ff / #8b7cff / white | #5b4ee0 | primary action, selection, focus, progress |
-| `--sota` | gold | dark gold | best in the world |
-| `--up` / `--down` / `--warn` / `--info` | green / red / amber / sky | darker versions | meaning only |
-| `--hub-*` | quiet tints | | the hub icon only |
+| `--bg` / `--bg-1..3` | desk #f1ece1, sheet #fffdf7 | #12100c up to #2d281f | page, cards, raised rows |
+| `--fg` / `--hl` / `--on-hl` | ink #1c1915 / ink / paper | cream / cream / ink | text, primary button, bar fill |
+| `--accent` | fountain-pen blue #1f47a0 | #93b2ff | links, focus, accent text |
+| `--pen` | red pen #c0261c | #ff8a78 | attention, the § mark, urgent |
+| `--marker`, `--tex-marker` | highlighter yellow | dim yellow | selection |
+| `--note` | sticky-note yellow | dark yellow | tutorial card |
+| `--mpl-1..6` | matplotlib tab10 | brightened | chart series (`SERIES_ORDER`) and hub tints |
+| `--tex-hatch` | diagonal hatch | | laid over any solid bar fill |
 | `--amber`, `--yellow` | legacy aliases | | resolve to the accent / warn; do not use in new code |
 
 **Type:**
-- `Inter` (`--font`) for reading text and labels (12–14.5px, weights 400–600).
-- `Space Grotesk` (`--display`, `--figure`) for page titles, card figures and KPIs.
-- `JetBrains Mono` (`--code`) for table figures.
-- Base 14.5px, minimum 12px.
+- `STIX Two Text` (`--font`, `--display`, `--figure`) for everything, with lining tabular figures.
+- `Caveat` (`--hand`) for the red pen and the sticky note.
+- `JetBrains Mono` (`--code`) for code and prompts.
+- Base 15.5px, minimum 12.5px.
+
+## Paper conventions
+- **Screen title:** `§ Title`, italic subtitle on the same line, a double rule under it.
+- **Subsections:** card titles are numbered 1, 2, 3 per screen (a CSS counter), like 3.1, 3.2 in a paper.
+- **Abstract:** the one-time screen tip (`PanelIntro`) starts with a small-caps "Abstract.".
+- **Tables:** booktabs (heavy top and bottom rules, a thin rule under the head, no zebra, no verticals).
+- **Figures:** charts use the matplotlib cycle; camera scenes are framed plates.
+- **Table of contents:** the hub nav is numbered 1–5.
 
 ## Navigation (information architecture)
 About 15 panels are grouped into five **hubs** (`src/ui/shell/hubs.tsx`). `PanelId` values never change, and
@@ -63,13 +78,13 @@ About 15 panels are grouped into five **hubs** (`src/ui/shell/hubs.tsx`). `Panel
 | Business | Market, Marketing, Contracts, Finance |
 | Company | Level & perks (`lab`), Trophies (`achievements`) |
 
-- **Desktop:** the hubs run across the top under the HUD, with a 2px accent underline on the active one. The hub's
-  panels are tabs at the top of the main area.
+- **Desktop:** the hubs run across the top under the HUD as a numbered table of contents; the active one is
+  highlighted. The hub's panels are small-caps tabs at the top of the main area.
 - **Phones (≤ 760px):** a bottom tab bar.
 - Locked panels (`ui/unlocks.ts`) are absent until they open. A batch of unlocks is one notice.
 
 ## The frame
-- **HUD:** company mark and name, date, status pill, then Cash (with today's net), Runway and Valuation, a "More"
+- **HUD (running header):** company mark and "Name et al.", date in italics, status pill, then Cash (with today's net), Runway and Valuation, a "More"
   popover, the speed control, Inbox and Menu.
 - **Run dock:** three chips: Training, Research and Lab (level, Cup and board quarter in a popover).
 - **News ticker:** a quiet strip at the bottom.
@@ -86,14 +101,14 @@ It answers "what is going on, and what should I do next" with **one voice**:
 5. The office camera, collapsible.
 
 ## Screens
-- **Compact header:** a 22px title with a short line of context on the same row, and actions on the right.
+- **Compact header:** `§ Title` with an italic line of context on the same row, actions on the right, a double rule under it.
 - **Actions first:** the card or list the player acts on comes first. Camera scenes go into a collapsible "View" card.
 - **Short screens:** secondary sections go behind tabs or disclosures. Targets at 1440×900: HQ ≤ 1,400px, Research
   and Data ≤ 1,800px, everything else ≤ 1,500px.
 - **Master-detail for collections:** Models shows its list on the left and the selected model on the right (a sheet
   on phones).
-- **Tips:** `PanelIntro` is one quiet line, shown on the first visit only.
-- **Alerts:** `Banner` from `panels/panelKit.tsx` (tinted strip with a status dot).
+- **Tips:** `PanelIntro` is the Abstract: one italic line, shown on the first visit only.
+- **Alerts:** `Banner` from `panels/panelKit.tsx` (a margin annotation: tinted strip with a coloured rule on the left).
 
 ## Copy
 - Plain and friendly: "Runway 3.1 years", "Start training", "Your next moves".
