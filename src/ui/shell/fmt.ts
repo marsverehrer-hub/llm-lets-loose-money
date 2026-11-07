@@ -24,11 +24,11 @@ export function bareMoney(v: number, digits = 1): string {
 export const RUNWAY_WARMUP_DAYS = 7;
 
 /**
- * Runway in words: "14 days", "7 months", "2.3 years", "Profitable". v18: pass the game day and the first week reads
+ * Runway in words: "14 days", "7 months", "2.3 years", "Profitable". v18: pass the days into the game and the first week reads
  * "—" instead of a reassuring "Profitable" built on zero revenue and zero costs.
  */
-export function runwayLabel(days: number, gameDay?: number): string {
-  if (gameDay !== undefined && gameDay < RUNWAY_WARMUP_DAYS) return '—';
+export function runwayLabel(days: number, daysIn?: number): string {
+  if (daysIn !== undefined && daysIn < RUNWAY_WARMUP_DAYS) return '—';
   if (!isFinite(days)) return 'Profitable';
   const a = Math.abs(days);
   if (a < 60) return `${Math.max(0, Math.round(a))} days`;
@@ -37,8 +37,8 @@ export function runwayLabel(days: number, gameDay?: number): string {
 }
 
 /** v18: one colour rule for runway everywhere (HUD, HQ, finance scene, board goals). */
-export function runwayTone(days: number, gameDay?: number): 'good' | 'warn' | 'bad' | 'muted' {
-  if (gameDay !== undefined && gameDay < RUNWAY_WARMUP_DAYS) return 'muted';
+export function runwayTone(days: number, daysIn?: number): 'good' | 'warn' | 'bad' | 'muted' {
+  if (daysIn !== undefined && daysIn < RUNWAY_WARMUP_DAYS) return 'muted';
   if (days < 180) return 'bad';
   if (days < 540) return 'warn';
   return 'good';

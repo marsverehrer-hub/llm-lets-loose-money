@@ -4,11 +4,16 @@ import { announce, flashCash } from './banner';
 import { plain } from '../shell/fmt';
 import { playSfx } from './sound';
 
+const TRILLION = 1e12;
+
 interface Snapshot {
   notices: Set<number>;
   released: number;
   isPublic: boolean;
   event: string | null;
+  /** Player crowns held, and whether the valuation has reached $1T. */
+  crowns: number;
+  trillion: boolean;
 }
 
 /**
@@ -29,6 +34,8 @@ export function FxDirector() {
       released: s.stats.modelsReleased,
       isPublic: s.company.isPublic,
       event: eventKey,
+      crowns: (s.classes?.crowns ?? []).filter((c) => c.holder === 'player').length,
+      trillion: s.finance.valuation >= TRILLION,
     };
 
     const p = prev.current;
@@ -66,6 +73,9 @@ export function FxDirector() {
       }
       if (eventKey && eventKey !== p.event) playSfx('sting');
     }
+    // Crowns and the $1T mark arrive as news or moments, not toasts, so the Director listens to the state itself.
+    if (next.crowns > p.crowns) playSfx('cash');
+    if (next.trillion && !p.trillion) playSfx('fanfare');
   });
 
   return null;

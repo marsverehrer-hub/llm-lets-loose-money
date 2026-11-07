@@ -4,6 +4,8 @@ import type { Intent } from '../../nav';
 import { computeCapacity } from '../../../sim/systems/compute';
 import { adoptQuote, recommendedResearch } from '../../../sim/systems/research';
 import { runwayDays } from '../../../sim/systems/finance';
+import { daysIntoGame } from '../../../sim/systems/scenario';
+import { RUNWAY_WARMUP_DAYS } from '../../shell/fmt';
 import { unlockedProductKinds } from '../../../sim/systems/products';
 import { OFFICE_TIERS } from '../../../sim/data/roles';
 import type { GameState } from '../../../sim/types';
@@ -60,7 +62,7 @@ export function nextSteps(s: GameState): Step[] {
       cta: 'Fix cash',
       intent: { focus: 'pitch' },
     });
-  else if (runway < 120)
+  else if (runway < 120 && daysIntoGame(s) >= RUNWAY_WARMUP_DAYS)
     add({
       priority: 'urgent',
       text: `Runway is ${formatDays(runway)}. Raise money or cut burn`,

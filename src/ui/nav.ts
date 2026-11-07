@@ -13,7 +13,8 @@ export type Intent =
   | { open: 'launch'; kind?: ProductKind }
   | { open: 'hire'; role?: RoleId }
   | { tab: 'rent' | 'cloud' | 'build' | 'neocloud' }
-  | { focus: 'offer' | 'pitch' };
+  | { focus: 'offer' | 'pitch' }
+  | { lab: Id }; // The Field: open that rival lab's sheet
 
 type L = (id: PanelId) => void;
 const ls = new Set<L>();

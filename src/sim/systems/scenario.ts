@@ -128,13 +128,18 @@ export function startDayOf(year: number): number {
   return Math.round((Date.UTC(year, 0, 1) - Date.UTC(BALANCE.START_YEAR, 0, 1)) / 86_400_000);
 }
 
+/** Days since the scenario began (the 2017 start is day 0). Warm-ups count from here, not from the absolute day. */
+export function daysIntoGame(s: GameState): number {
+  return s.day - (s.flags[SCENARIO_FLAG.startDay] ?? 0);
+}
+
 // ---------------------------------------------------------------------------
 // Score and goals
 // ---------------------------------------------------------------------------
 
 /** Victory score: a base for the company, scaled by pace (faster is better) and the difficulty multiplier. */
 export function scenarioScore(s: GameState): { score: number; days: number; crowns: number; valuation: number; mult: number } {
-  const days = Math.max(1, s.day - (s.flags[SCENARIO_FLAG.startDay] ?? 0));
+  const days = Math.max(1, daysIntoGame(s));
   const crowns = (s.classes?.crowns ?? []).filter((c) => c.holder === 'player').length;
   const valuation = Math.max(0, s.finance.valuation);
   const mult = difficulty(s).scoreMult;

@@ -426,3 +426,17 @@ describe('leak and open-weights boosts', () => {
     expect(boosted.flags.openBoost).toBeCloseTo(openNow * Math.pow(1 - 1 / 180, 180), 6);
   });
 });
+
+describe('release headlines before the player has a model', () => {
+  it('never address the player (no your/you, no gap line)', () => {
+    const headlines: string[] = [];
+    for (let seed = 1; seed <= 60; seed++) {
+      const s = fresh(seed, DAY_2024);
+      for (const c of s.competitors) if (c.active && !c.human) c.nextReleaseDay = s.day;
+      competitorsTick(s, makeRng(s));
+      headlines.push(...s.news.filter((n) => n.text.includes('(overall')).map((n) => n.text));
+    }
+    expect(headlines.length).toBeGreaterThan(20);
+    expect(headlines.filter((t) => /\byou(r)?\b/i.test(t))).toEqual([]);
+  });
+});

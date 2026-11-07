@@ -1,4 +1,6 @@
 import type { NewsItem } from '../../sim/types';
+import { rivalDef } from '../../sim/systems/rivals';
+import { navigate } from '../nav';
 import { sameItems, useGameSelect } from '../store';
 import { plain, tdateShort } from './fmt';
 
@@ -10,12 +12,28 @@ interface TickerData {
   news: NewsItem[];
   paused: boolean;
   day: number;
+  /** Ids of the rival labs in the game, so a headline that names one can link to its sheet. */
+  labs: string[];
 }
-const sameTicker = (a: TickerData, b: TickerData): boolean => a.paused === b.paused && a.day === b.day && sameItems(a.news, b.news);
+const sameTicker = (a: TickerData, b: TickerData): boolean =>
+  a.paused === b.paused && a.day === b.day && sameItems(a.news, b.news) && sameItems(a.labs, b.labs);
+
+const escapeRe = (t: string) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+/** The rival lab a headline names, if any. Whole words only, so "Adapt" does not match "Adaptive". */
+function labNamedIn(text: string, labs: string[]): { id: string; name: string } | undefined {
+  for (const id of labs) {
+    const name = rivalDef(id)?.name;
+    if (name && new RegExp(`\\b${escapeRe(name)}\\b`).test(text)) return { id, name };
+  }
+  return undefined;
+}
 
 export function NewsTicker() {
   // Re-renders when headlines change or the clock pauses, not on every simulated day.
-  const d = useGameSelect<TickerData>((s) => ({ news: s.news.slice(-30).reverse(), paused: s.speed === 0, day: s.news.length ? 0 : s.day }), sameTicker);
+  const d = useGameSelect<TickerData>(
+    (s) => ({ news: s.news.slice(-30).reverse(), paused: s.speed === 0, day: s.news.length ? 0 : s.day, labs: (s.rivals ?? []).map((l) => l.id) }),
+    sameTicker,
+  );
   const newestFirst = d.news;
   const base = newestFirst.length ? newestFirst : [{ ...PLACEHOLDER, day: d.day }];
 
@@ -30,13 +48,26 @@ export function NewsTicker() {
 
   const group = (key: string, hidden: boolean) => (
     <div class="ticker-group" aria-hidden={hidden || undefined}>
-      {items.map((n, i) => (
+      {items.map((n, i) => {
+        const text = plain(n.text);
+        const lab = labNamedIn(text, d.labs);
+        return (
         <span class={`ticker-item ${n.kind}`} key={`${key}-${n.id}-${i}`}>
           <span class="ticker-day">{tdateShort(n.day)}</span>
-          <span class="ticker-text">{plain(n.text)}</span>
+          <span class="ticker-text">
+            {lab ? (
+              // The duplicate copy in the hidden group is not focusable.
+              <button type="button" class="ticker-link" tabIndex={hidden ? -1 : undefined} onClick={() => navigate('field', { lab: lab.id })}>
+                {text}
+              </button>
+            ) : (
+              text
+            )}
+          </span>
           <span class="ticker-mark">■</span>
         </span>
-      ))}
+        );
+      })}
     </div>
   );
 

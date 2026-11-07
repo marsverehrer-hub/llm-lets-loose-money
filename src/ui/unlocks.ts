@@ -139,12 +139,12 @@ export function syncUnlocks(s: GameState): boolean {
     if (first || all) s.flags[SEEN + r.id] = s.day;
     else news.push(r.id);
   }
-  // One notice per sync, however many screens opened: "New screens: Products, Market." or the one-screen form.
+  // One notice per sync, however many screens opened: "New screens: Products, Market." or the one-screen form. Inbox only: no toast.
   if (news.length === 1) {
     const info = PANEL_INFO[news[0]];
-    notify(s, `New screen: ${info.label}.${info.tagline ? ` ${info.tagline}` : ''}`, 'info');
+    notify(s, `New screen: ${info.label}.${info.tagline ? ` ${info.tagline}` : ''}`, 'info', { toast: false });
   } else if (news.length > 1) {
-    notify(s, `New screens: ${news.map((id) => PANEL_INFO[id].label).join(', ')}.`, 'info');
+    notify(s, `New screens: ${news.map((id) => PANEL_INFO[id].label).join(', ')}.`, 'info', { toast: false });
   }
   if (changed) announce();
   return changed;

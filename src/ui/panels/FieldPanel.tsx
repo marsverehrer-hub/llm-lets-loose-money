@@ -11,6 +11,7 @@ import { Card, EmptyState, PanelHeader, Pill, ProgressBar, Sheet, Stat, Tabs, fo
 import type { PillTone } from '../components';
 import { dispatch, useGame } from '../store';
 import { ConfirmButton } from './panelKit';
+import { useIntent } from '../nav';
 import './field.css';
 
 type Tab = 'active' | 'all' | 'gone';
@@ -123,6 +124,10 @@ export function FieldPanel() {
   const s: GameState = useGame();
   const [tab, setTab] = useState<Tab>('active');
   const [sel, setSel] = useState<Id | null>(null);
+  // A headline in the news ticker opens that lab's sheet.
+  useIntent('field', (i) => {
+    if ('lab' in i) setSel(i.lab);
+  });
 
   const rows = buildRows(s);
   const shown = rows.filter((r) => inTab(r, tab));

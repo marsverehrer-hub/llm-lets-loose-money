@@ -161,6 +161,7 @@ const RELEASE_COPY_GENERIC: Record<ReleaseTone, string[]> = {
     '{lab} releases {model} (overall {overall}), {gap} points ahead of your best. The arena is not amused.',
     '{lab} releases {model} (overall {overall}). Your best model is second now, in a sentence nobody wanted to read.',
     '{lab} releases {model} (overall {overall}) and the leaderboard has been reshuffled around your name. The arena is not amused.',
+    '{lab} releases {model} (overall {overall}) and takes a new name to the top of the board. The arena is not amused.',
   ],
   holds: [
     '{lab} releases {model} (overall {overall}), still {gap} points behind your best. Your arena position survives, for now.',
@@ -182,12 +183,15 @@ function fillRelease(text: string, vars: { lab: string; model: string; overall: 
     .replace(/\{gap\}/g, vars.gap === undefined ? 'a few' : String(Math.max(1, Math.round(vars.gap))));
 }
 
-/** Pick release news copy: personality lines plus generic lines for the tone, gap lines only when the player has a model. */
+/** Drops lines that address the player (gap, your, you) when the player has no released model yet. */
+function releaseLines(pool: string[], hasBest: boolean): string[] {
+  return hasBest ? pool : pool.filter((t) => !t.includes('{gap}') && !/\byou(r)?\b/i.test(t));
+}
+
+/** Pick release news copy: personality lines plus generic lines for the tone. */
 function releaseCopy(def: CompetitorDef, rng: Rng, beats: boolean, hasBest: boolean): string {
   const tone: ReleaseTone = beats ? 'beats' : 'holds';
-  const pool = [...RELEASE_COPY_BY_PERSONALITY[def.personality][tone], ...RELEASE_COPY_GENERIC[tone]];
-  const usable = hasBest ? pool : pool.filter((t) => !t.includes('{gap}'));
-  return rng.pick(usable);
+  return rng.pick(releaseLines([...RELEASE_COPY_BY_PERSONALITY[def.personality][tone], ...RELEASE_COPY_GENERIC[tone]], hasBest));
 }
 
 /** LLM Arena leaderboard: best released model per lab incl. player, sorted by elo desc. */
@@ -372,11 +376,11 @@ function releaseModel(s: GameState, rng: Rng, def: CompetitorDef, c: Competitor)
   const beatsUs = !best || overall > best.overall;
   const shock = SHOCK_LABS.has(def.id) && c.modelsReleased === 1;
   const vars = { lab: def.name, model: name, overall, gap: best ? Math.abs(overall - best.overall) : undefined };
-  const copy = shock ? rng.pick(SHOCK_RELEASE_COPY) : releaseCopy(def, rng, beatsUs, !!best);
-  pushNews(s, fillRelease(copy, vars), shock || beatsUs ? 'bad' : 'info');
+  const copy = shock ? rng.pick(releaseLines(SHOCK_RELEASE_COPY, !!best)) : releaseCopy(def, rng, beatsUs, !!best);
+  const open = onRivalRelease(s, def, c); // v19: the lab's catalogue, open weights
+  pushNews(s, fillRelease(copy, vars) + (open ? ' Weights are open.' : ''), shock || beatsUs ? 'bad' : 'info');
   if (overall >= frontier) nudgeAiHype(s, 1.5);
   if (shock) nudgeAiHype(s, -12);
-  onRivalRelease(s, def, c); // v19: the lab's catalogue, open weights
 }
 
 /** Rival valuation: 25 x annualised revenue + brand x $50M x aiHype/50. */

@@ -440,10 +440,11 @@ export function rivalReleaseName(s: GameState, def: CompetitorDef, overall: numb
   return fitNameToSize(houseName, size.paramsB, size.arch, yearOf(s.day));
 }
 
-export function onRivalRelease(s: GameState, def: CompetitorDef, c: Competitor): void {
+/** Logs the release in the lab's catalogue and returns whether its weights are open (the release headline says so). */
+export function onRivalRelease(s: GameState, def: CompetitorDef, c: Competitor): boolean {
   const lab = labOf(s, def);
   const mdl = c.model;
-  if (!lab || !mdl) return;
+  if (!lab || !mdl) return false;
   const size = releaseSize(s, lab, mdl.overall);
   const open = hashUniform(s.seed, `${def.id}:${mdl.name}`) < (def.openBias ?? 0) + planMods(lab).open;
   const license: RivalModel['license'] = open ? (def.kind === 'open' ? 'permissive' : 'noncommercial') : 'research';
@@ -466,7 +467,6 @@ export function onRivalRelease(s: GameState, def: CompetitorDef, c: Competitor):
   });
   lab.ready = null;
   logLab(s, lab, `Releases ${mdl.name}${open ? ' with open weights' : ''}.`);
-  if (open) pushNews(s, `${def.name} releases the weights of ${mdl.name}.`, 'info');
   // Keep the catalogue short: drop the oldest model, but never the best one.
   while (lab.models.length > T.MODEL_CAP) {
     let best = 0;
@@ -475,4 +475,5 @@ export function onRivalRelease(s: GameState, def: CompetitorDef, c: Competitor):
     });
     lab.models.splice(best === 0 ? 1 : 0, 1);
   }
+  return open;
 }

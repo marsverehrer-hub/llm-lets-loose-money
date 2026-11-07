@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'preact/hooks';
+import { clamp } from '../../sim/util';
 
 // ---------------------------------------------------------------------------
 // Tiny WebAudio synth. Every sound is generated on the fly: no audio files.
@@ -8,6 +9,7 @@ import { useEffect, useState } from 'preact/hooks';
 export type Sfx = 'click' | 'cash' | 'bonk' | 'sting' | 'fanfare';
 
 const MUTE_KEY = 'llm-lets-loose-money/muted';
+const VOLUME_KEY = 'llm-lets-loose-money/volume';
 const MASTER_VOLUME = 0.2;
 /** Minimum gap between two plays of the same sound, in ms. Stops pile-ups. */
 const MIN_GAP: Record<Sfx, number> = { click: 45, cash: 260, bonk: 260, sting: 900, fanfare: 900 };
@@ -28,8 +30,29 @@ function writeMuted(m: boolean): void {
   }
 }
 
+/** Sound volume in percent, 0 to 100. */
+function readVolume(): number {
+  try {
+    const raw = localStorage.getItem(VOLUME_KEY);
+    const n = raw === null ? NaN : Number(raw);
+    return Number.isFinite(n) ? clamp(n, 0, 100) : 100;
+  } catch {
+    return 100;
+  }
+}
+
+function writeVolume(v: number): void {
+  try {
+    localStorage.setItem(VOLUME_KEY, String(v));
+  } catch {
+    // storage blocked: the setting simply lasts for this page view
+  }
+}
+
 let muted = readMuted();
+let volume = readVolume();
 const muteListeners = new Set<(m: boolean) => void>();
+const volumeListeners = new Set<(v: number) => void>();
 let gestured = false;
 let inited = false;
 let ctx: AudioContext | null = null;
@@ -51,6 +74,25 @@ export function toggleMuted(): void {
   setMuted(!muted);
 }
 
+export function setVolume(v: number): void {
+  volume = v;
+  writeVolume(v);
+  if (out) out.gain.value = MASTER_VOLUME * (v / 100);
+  for (const l of volumeListeners) l(v);
+}
+
+/** Re-renders the component whenever the volume changes. */
+export function useVolume(): number {
+  const [v, setV] = useState(volume);
+  useEffect(() => {
+    volumeListeners.add(setV);
+    return () => {
+      volumeListeners.delete(setV);
+    };
+  }, []);
+  return v;
+}
+
 /** Re-renders the component whenever the mute setting changes. */
 export function useMuted(): boolean {
   const [m, setM] = useState(muted);
@@ -70,7 +112,7 @@ function audio(): AudioContext | null {
     if (!AC) return null;
     ctx = new AC();
     out = ctx.createGain();
-    out.gain.value = MASTER_VOLUME;
+    out.gain.value = MASTER_VOLUME * (volume / 100);
     out.connect(ctx.destination);
   } catch {
     ctx = null;

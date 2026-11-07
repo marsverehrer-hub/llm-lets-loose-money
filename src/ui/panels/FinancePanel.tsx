@@ -10,6 +10,7 @@ import { liveHistory } from '../components/derive';
 import { dispatch, getState, useGame } from '../store';
 import { useIntent } from '../nav';
 import { runwayLabel, runwayTone } from '../shell/fmt';
+import { daysIntoGame } from '../../sim/systems/scenario';
 import { Banner, ConfirmButton } from './panelKit';
 import './panels-a.css';
 import './finance.css';
@@ -594,8 +595,8 @@ export function FinancePanel() {
             />
             <Stat
               label="Runway"
-              value={runwayLabel(runway, s.day)}
-              tone={runwayTone(runway, s.day)}
+              value={runwayLabel(runway, daysIntoGame(s))}
+              tone={runwayTone(runway, daysIntoGame(s))}
               hint={fin.negativeCashDays > 0 ? `${fin.negativeCashDays} day(s) in the red` : 'At current burn'}
               size="sm"
             />

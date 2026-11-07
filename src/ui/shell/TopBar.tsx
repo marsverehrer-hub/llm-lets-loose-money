@@ -1,16 +1,17 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Speed } from '../../sim/types';
-import { AnimatedNumber, Button, Modal, Popover, Tooltip, clamp, formatCount, resetPanelIntros } from '../components';
+import { AnimatedNumber, Button, Modal, Popover, Slider, Tooltip, clamp, formatCount, resetPanelIntros } from '../components';
 import { Check } from '../components/Check';
 import { dispatch, getState, saveNow, useGame } from '../store';
 import { hiddenPanels, showAllScreens, showNotice } from '../unlocks';
 import { saveMessage } from '../saveText';
-import { playSfx, toggleMuted, useMuted } from '../fx/sound';
+import { playSfx, setVolume, toggleMuted, useMuted, useVolume } from '../fx/sound';
 import { openShortcuts } from './Shortcuts';
 import { readTheme, setTheme, type Theme } from './theme';
 import { CAMERA_MODE_LABEL, NEXT_CAMERA_MODE, setCameraMode, useCameraMode } from '../cameraPref'; // v13
 import { InterfaceSizeRow } from './InterfaceSize';
 import { runwayLabel, runwayTone, tdate } from './fmt';
+import { daysIntoGame } from '../../sim/systems/scenario';
 import { runwayDays } from '../../sim/systems/finance';
 import { formatMoney } from '../../sim/util';
 import { requestMatchSpeed, useSession, type NetStatus } from '../../net/session';
@@ -126,6 +127,7 @@ export function TopBar() {
   const [saveErr, setSaveErr] = useState('');
   const savedTimer = useRef(0);
   const muted = useMuted();
+  const volume = useVolume();
   const [theme, setThemeState] = useState<Theme>(readTheme);
   const camMode = useCameraMode();
   const autoPause = useAutoPause();
@@ -272,11 +274,11 @@ export function TopBar() {
           </span>
         </div>
         <div
-          class={`topbar-stat ts-runway ${runwayTone(runway, s.day)}`}
+          class={`topbar-stat ts-runway ${runwayTone(runway, daysIntoGame(s))}`}
           title={broke ? `${s.finance.negativeCashDays} days in the red. Bankruptcy at 30.` : 'How long the cash lasts at today\'s burn'}
         >
           <span class="topbar-label">Runway</span>
-          <span class="topbar-value">{broke ? `${s.finance.negativeCashDays}d in the red` : runwayLabel(runway, s.day)}</span>
+          <span class="topbar-value">{broke ? `${s.finance.negativeCashDays}d in the red` : runwayLabel(runway, daysIntoGame(s))}</span>
         </div>
         <div class="topbar-stat ts-val" title={s.company.isPublic ? 'Public market capitalisation' : 'Private valuation'}>
           <span class="topbar-label">{valLabel}</span>
@@ -427,6 +429,10 @@ export function TopBar() {
                 <span>{muted ? 'Turn sound on' : 'Mute sound'}</span>
                 <span class="kbd">M</span>
               </button>
+              <div class="menu-field">
+                <span>Sound volume</span>
+                <Slider value={volume} min={0} max={100} step={10} label="Sound volume" onChange={setVolume} />
+              </div>
               <button
                 type="button"
                 class="menu-item tb-desk"

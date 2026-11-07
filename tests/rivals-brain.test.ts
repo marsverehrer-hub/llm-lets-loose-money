@@ -102,13 +102,12 @@ describe('training and release', () => {
     expect(lab.models[lab.models.length - 1].paramsB).toBe(30);
   });
 
-  it('an open release is announced in the news', () => {
+  it('an open release reports open weights for the headline', () => {
     const { s, lab, c } = setup();
     const def: CompetitorDef = { ...COMPETITORS[0], kind: 'open', openBias: 1 };
     c.model = { name: 'Open-1', scores: { reasoning: 60, coding: 60, chat: 60, safety: 60 }, overall: 60, elo: 1000, releasedDay: s.day };
-    onRivalRelease(s, def, c);
+    expect(onRivalRelease(s, def, c)).toBe(true); // releaseModel folds this into the release headline
     expect(lab.models[lab.models.length - 1].open).toBe(true);
-    expect(s.news.some((n) => n.text.includes('releases the weights of Open-1'))).toBe(true);
   });
 
   it('the catalogue is capped and keeps the best model', () => {
