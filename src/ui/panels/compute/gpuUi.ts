@@ -1,13 +1,13 @@
-// v19 D5: pure helpers for the GPU, hall and silicon screens. Mirrors the D1-D4 rules for display only; the engine
-// does the real charging and refusing. Sites and interconnect costs are a local copy of the spec's table until
-// src/sim/data/sites.ts lands (D3), so the UI can show them now.
+// v19: helpers for the GPU, hall and silicon screens. Display only; the engine does the charging and refusing.
 import { calendarYear, dayToDate } from '../../../sim/util';
-import { SUPPLY_TUNING, gpuAllocationLeft } from '../../../sim/systems/scaleLimits';
+import { SUPPLY_TUNING, gpuAllocationLeft, isAllocationExempt } from '../../../sim/systems/scaleLimits';
+import { customChipPrice } from '../../../sim/systems/chipRnd';
 import { datacenterPue, gpuById } from '../../../sim/systems/compute';
 import { gpuPriceMult } from '../../../sim/systems/supply';
 import { isResearched, researchPointsPerDay } from '../../../sim/systems/research';
 import { RESEARCH } from '../../../sim/data/research';
 import type { Datacenter, GameState, GpuDef, Interconnect, SiteId } from '../../../sim/types';
+import { SITES } from '../../../sim/data/sites';
 
 export interface SiteInfo {
   name: string;
@@ -20,13 +20,7 @@ export interface SiteInfo {
   flavor: string;
 }
 
-/** shortcut: local copy of the D3 SITES table, swap for sim/data/sites.ts once it exists. */
-export const SITE_TABLE: Record<SiteId, SiteInfo> = {
-  grid: { name: 'Grid', powerPriceMult: 1, buildDaysMult: 1, mwCap: 50, outagePerDay: 0.0005, unlockYear: 0, flavor: 'Plugged into the utility, which is plugged into everyone.' },
-  hydro: { name: 'Hydro', powerPriceMult: 0.55, buildDaysMult: 1.4, mwCap: 120, outagePerDay: 0.001, unlockYear: 2017, flavor: 'A dam nobody asked about.' },
-  solar: { name: 'Solar', powerPriceMult: 0.7, buildDaysMult: 0.9, mwCap: 60, outagePerDay: 0.004, unlockYear: 2020, flavor: 'Sunny most days, cloudy on the quarterly review.' },
-  nuclear: { name: 'Nuclear', powerPriceMult: 0.8, buildDaysMult: 2.5, mwCap: 2000, outagePerDay: 0.0002, unlockYear: 0, requiresResearch: 'nuclear_power', flavor: 'Thirty years to build, and it runs all night.' },
-};
+export const SITE_TABLE: Record<SiteId, SiteInfo> = SITES;
 
 export const SITE_IDS: SiteId[] = ['grid', 'hydro', 'solar', 'nuclear'];
 
@@ -79,23 +73,20 @@ export function fmtDay(day: number): string {
 
 /** First day of the next allocation quarter: when pre-orders are delivered. */
 export function nextQuarterDay(day: number): number {
-  return (Math.floor(day / SUPPLY_TUNING.QUARTER_DAYS) + 1) * SUPPLY_TUNING.QUARTER_DAYS;
+  return (Math.floor(day / SUPPLY_TUNING.QUARTER_DAYS) + 1) * SUPPLY_TUNING.QUARTER_DAYS; // same rule as supply.ts nextAllocationDay
 }
 
 /** Only datacenter (vendor) cards are rationed; consumer, workstation and custom cards are not. */
-export function allocationExempt(g: GpuDef): boolean {
-  return g.class === 'consumer' || g.class === 'workstation' || g.class === 'custom';
-}
+export const allocationExempt = isAllocationExempt;
 
-/** GPUs of this card the vendor can still sell this quarter (Infinity when exempt). */
+/** GPUs of this card the vendor can still sell this quarter (Infinity when exempt; the engine's own rule). */
 export function allocationLeft(s: GameState, g: GpuDef): number {
-  return allocationExempt(g) ? Infinity : gpuAllocationLeft(s, g.id);
+  return gpuAllocationLeft(s, g.id);
 }
 
 /** List price for one card right now: the buy price times the demand multiplier (D1). */
 export function unitPrice(s: GameState, g: GpuDef): number {
-  const base = g.class === 'custom' && s.chip?.yieldRate ? g.buyPrice / s.chip.yieldRate : g.buyPrice;
-  return base * gpuPriceMult(s, g.id);
+  return g.class === 'custom' ? customChipPrice(s, g.id) : g.buyPrice * gpuPriceMult(s, g.id); // what buyGpus charges
 }
 
 /** Pre-order deposit: 30% of the price at order time (D1). */

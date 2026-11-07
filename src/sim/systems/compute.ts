@@ -1,6 +1,7 @@
 // OWNER: Agent A. GPUs, cloud rental, datacenters, power, capacity split.
 // v10 (GAME_DESIGN §21.1): the fleet split lives here, next to the capacity readers, so compute and serving share one
 // set of numbers. Own GPUs serve products first; demand they cannot cover is bought from the cloud as burst capacity.
+import { chipReady, customChipPrice } from './chipRnd'; // v19 own silicon
 import type { ActionHandlers, FleetBreakdown, FleetPriority, GameState, Id, Model, Rng, GpuDef, DatacenterTier, Datacenter, ServingSlice, Interconnect, SiteId } from '../types';
 import { BALANCE } from '../balance';
 import { GPUS, DATACENTER_TIERS } from '../data/gpus';
@@ -536,7 +537,7 @@ export function applyPriority(s: GameState, priority: FleetPriority): void {
 export function availableGpus(s: GameState): GpuDef[] {
   const year = calendarYear(s.day);
   // v19: custom silicon is on offer only once your own programme has produced it.
-  return GPUS.filter((g) => (g.class === 'custom' ? s.chip?.gpuId === g.id && s.chip.phase === 'ready' : year >= g.unlockYear));
+  return GPUS.filter((g) => (g.class === 'custom' ? chipReady(s, g.id) : year >= g.unlockYear));
 }
 
 /** Datacenter tiers whose year and research gates are open. */
@@ -721,7 +722,8 @@ export const handlers: ActionHandlers = {
       notify(s, `${SITES[siteOf(dc)].name} can feed ${dc.name} ${mwLeft.toFixed(1)} more MW. ${a.count} × ${gpu.name} needs ${mw.toFixed(1)} MW.`, 'bad');
       return;
     }
-    const price = gpu.buyPrice * gpuPriceMult(s, gpu.id);
+    // Your own silicon costs its unit price over the yield; everything else pays the market's demand multiplier.
+    const price = gpu.class === 'custom' ? customChipPrice(s, gpu.id) : gpu.buyPrice * gpuPriceMult(s, gpu.id);
     if (!trySpend(s, 'capex', a.count * price, `${a.count} × ${gpu.name}`)) return;
     consumeGpuAllocation(s, gpu.id, a.count);
     // v14: track the batch's age as a count-weighted average purchase day.

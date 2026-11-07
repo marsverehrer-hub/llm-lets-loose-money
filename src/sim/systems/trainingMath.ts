@@ -221,7 +221,9 @@ export function instabilityFor(s: GameState, cfg: TrainingConfig): number {
 /** Expected incidents per day for a run: instability, hardware failures, scaled by safety and engineers. */
 export function incidentRateFor(s: GameState, instability: number, usedGpus: number): number {
   const hardwareFactor = isResearched(s, 'fault_tolerant_training') ? RUN_TUNING.FAULT_TOLERANT_HARDWARE_LEFT : 1;
-  const hardware = RUN_TUNING.HARDWARE_COEF * Math.sqrt(Math.max(0, usedGpus) / 1000) * hardwareFactor;
+  // v19: big clusters fail more (the same curve compute.ts clusterFailureMult shows the player).
+  const clusterMult = 1 + 0.15 * Math.log10(Math.max(1, usedGpus / 1000));
+  const hardware = RUN_TUNING.HARDWARE_COEF * Math.sqrt(Math.max(0, usedGpus) / 1000) * hardwareFactor * clusterMult;
   const base = RUN_TUNING.INCIDENT_BASE + RUN_TUNING.INCIDENT_PER_INSTAB * instability + hardware;
   const safety = Math.max(0.2, getBonuses(s).safety);
   const engineers = 1 + RUN_TUNING.ENGINEER_INCIDENT_COEF * Math.sqrt(roleStrength(s, 'engineer'));

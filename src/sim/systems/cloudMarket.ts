@@ -170,6 +170,7 @@ export function rentFromProvider(s: GameState, providerId: Id, gpuId: Id, count:
   const g = gpuDef(gpuId);
   if (!p) return notify(s, 'Unknown cloud provider.', 'bad');
   if (!g) return notify(s, 'Unknown GPU.', 'bad');
+  if (g.class === 'custom') return notify(s, 'Nobody rents out your chips. You own the fab slot; buy them for your halls.', 'bad'); // v19
   if (!Number.isInteger(count) || count === 0 || Math.abs(count) > T.MAX_ORDER) {
     return notify(s, 'Rent a whole number of GPUs (negative to give them back).', 'bad');
   }
