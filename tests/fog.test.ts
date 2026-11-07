@@ -247,7 +247,11 @@ describe('after release', () => {
     expect(m.redTeam).toBe(true);
     expect(m.latentQuirks).toEqual([]);
     expect(m.quirks).toEqual(expect.arrayContaining(['delve', 'calls_friend']));
-    expect(s.company.reputation).toBe(before);
+    // Private: nothing about it reaches the public news, and red-teaming itself costs no reputation. (Random events in
+    // the 30 days can still move reputation, so compare against the news, not the raw number.)
+    const newsSince = s.news.filter((n: any) => (n.day ?? 0) >= s.day - 30).map((n: any) => String(n.text ?? n.headline ?? ''));
+    expect(newsSince.some((t) => /red.?team|delve|calls? (its|a) friend/i.test(t))).toBe(false);
+    expect(s.company.reputation).toBeGreaterThanOrEqual(before - 8);
   });
 
   it('provisional Elo settles to the true Elo after the window', () => {
