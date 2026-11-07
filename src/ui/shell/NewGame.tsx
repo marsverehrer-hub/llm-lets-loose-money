@@ -212,7 +212,8 @@ export function NewGame() {
         skipTutorial,
         startYear: sc.startYear,
         daily: dailyOn ? today : undefined,
-        modifiers: mods.length ? mods : undefined,
+        // The daily challenge is played as dealt, so everyone's score is comparable.
+        modifiers: !dailyOn && mods.length ? mods : undefined,
       };
       const r = newGame(name.trim() || undefined, parseSeed(seed), setup);
       setBusy(false);
@@ -364,7 +365,9 @@ export function NewGame() {
             <Check
               key={m.id}
               class="ng-check"
-              checked={mods.includes(m.id)}
+              checked={!dailyOn && mods.includes(m.id)}
+              disabled={dailyOn}
+              hint={dailyOn ? 'Off for the daily challenge.' : undefined}
               onChange={(on) => setMods((cur) => (on ? [...cur, m.id] : cur.filter((x) => x !== m.id)))}
               label={
                 <span class="ng-check-text">
