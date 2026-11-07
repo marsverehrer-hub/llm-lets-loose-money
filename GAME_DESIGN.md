@@ -1913,3 +1913,55 @@ satire is in the content.
 - second place
 
 Each is scored. Afterwards the game continues as a sandbox.
+
+## 33. v21: thirty improvements
+
+**Fixes.**
+- Rival release headlines never address the player before the player has a released model (`releaseLines`), and an
+  open release is one headline ("Weights are open.") instead of two.
+- Runway warm-ups count from the scenario start (`daysIntoGame`), so the advisor no longer raises an urgent runway
+  alarm on day one and later-era starts get the same grace.
+- Unlock notices go to the Inbox only. Rival headlines in the ticker open that lab's sheet in The Field.
+
+**Rivals you can deal with** (`systems/rivals/lifecycle.ts`, `licensing.ts`, `staff.ts`).
+- **Buy a lab** (`acquireLab`): active, non-marquee labs only, at the rival takeover price (valuation × 1.3), halved
+  while the lab is short of cash. It leaves the field like a rival takeover; its staff join as far as the office has
+  desks; its owned GPUs go to the used market; its catalogue datasets transfer.
+- **Get bought:** a yearly Big Tech offer while private and worth $1B–$200B. Taking the call settles the game on the
+  **Acquired** ending (base score 1700). It never opens the AGI Conclusion and does not count as AGI for the thesis.
+- **Poaching:** 40% of star candidates work at a rival lab; hiring one costs twice the fee and takes a researcher from
+  that lab. When a rival poaches one of your stars you decide: match the offer (half a salary in cash, salary +20%,
+  loyalty up) or let them go.
+- **Licensing** (`licenseModel`): license a released, commercially licensable model to an active lab whose best model
+  is weaker. It pays 2% of the lab's valuation a year (at least $5M) for 365 days, one deal per lab, and the
+  licensee's releases get +1.5 quality while it runs.
+
+**Commitments the world judges** (`systems/playerPlans.ts`, `board.ts`).
+- **Yearly plan** (`announcePlan`, once a calendar year): ship twice, a profitable year, open weights, or top 3.
+  Judged on 1 January from the Annual Report's ledger: kept is brand +3 and board confidence +4, broken the reverse.
+- **Earnings guidance** (`setGuidance`, public companies): conservative / in line / aggressive, a target of today's
+  daily revenue × the quarter's days × 0.9 / 1.0 / 1.15. It can only be changed in the first 14 days of a quarter.
+  At quarter end a beat moves board confidence by +2 / +4 / +8, a miss by the same amount down.
+
+**The story of the run.**
+- **Annual Report** (`systems/annual.ts`): filed each 1 January from the second calendar year; revenue, expenses,
+  valuation, releases, crowns, best arena rank, a headline and a rival move. Opened from the Inbox or Finance.
+- The bankruptcy and ending windows chart valuation over the run (`RunChart`), marking the first release and the IPO.
+- Tap the valuation in the top bar, or Users on the HQ strip, for a breakdown (`valuationBreakdown`, which
+  `computeValuation` now returns the target of).
+
+**Learning and replay.**
+- **Missions** (Menu, Learn): five short, replayable lessons (training, product, compute, funding, contract). Progress
+  is UI state, never saved in the game.
+- **Personal records** per scenario and difficulty, a **daily challenge** (seed and setup from the UTC date, played
+  without modifiers, with a share line), **run modifiers** (GPU drought ×1.35 GPU prices, tight money ×0.75 rounds,
+  hype cycle ×2 hype swings), and cosmetic **titles** at 10 / 25 / 40 lifetime trophies.
+
+**Multiplayer.**
+- Invite links (`?join=CODE`) and a Copy invite link button.
+- `VITE_ICE_SERVERS` (build time, a JSON array of RTCIceServer) adds TURN servers after PeerJS's defaults. It is inlined
+  into the public bundle, so use short-lived credentials from a CI secret.
+- **Month by month** (host option): both clocks hold on the 1st of each month until both players press Ready.
+
+**Tech.** Panels, scenes, overlays and the tutorial are lazy-loaded (first paint ~375 kB gzip, was ~610 kB). A crash
+box offers a copyable report and the last save. `scripts/balance.ts` runs strategies and seeds in worker threads.

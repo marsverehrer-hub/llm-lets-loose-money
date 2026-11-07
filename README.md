@@ -70,7 +70,15 @@ Saves live in the browser, so each device and address has its own game.
 - **GPUs:** 56 cards from parody vendors, pre-orders, a used market, interconnect and site choices, and your own
   silicon. A tiny studio on 16 GPUs can win Garage Prodigy.
 - **AGI endings:** six ways it ends, including someone else getting there first.
-- **Multiplayer:** a 1v1 over the internet (Menu, then Multiplayer).
+- **Deal with rivals (v21):** buy a struggling lab, poach its stars (and fight for yours), license it your model, or
+  take a Big Tech buyout as an ending.
+- **Commitments (v21):** announce a yearly plan, and once public set quarterly earnings guidance. Both are judged.
+- **Your run's story (v21):** an Annual Report every January, and a valuation chart when the game ends.
+- **Replay (v21):** five short missions under Menu, Learn; personal records; a daily challenge; run modifiers.
+- **Multiplayer:** a 1v1 over the internet (Menu, then Multiplayer). Send an invite link (`?join=CODE`), and pick
+  "Month by month" to play one month at a time. For players on strict networks, build with
+  `VITE_ICE_SERVERS='[{"urls":"turn:…","username":"…","credential":"…"}]'` to add a TURN server (it ends up in the public
+  bundle, so use short-lived credentials).
 
 ## Development
 | Command | What it does |
