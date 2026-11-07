@@ -6,6 +6,7 @@ import { INVESTORS } from '../data/competitors';
 import { addExpense, clamp, formatMoney, notify, pushNews, yearOf } from '../util';
 import { arenaLeaderboard } from './competitors';
 import { bestPlayerModel, frontierQuality } from './market';
+import { headcount } from './staff';
 import { isSandbox, scenarioRule, vcGenerosity } from './scenario'; // v9 scenario
 
 /** Funding ladder after the pre-seed. Stays on the last rung once reached. */
@@ -76,6 +77,15 @@ export const VALUATION_TUNING = {
   PREMIUM_EXP: 4,
   PREMIUM_MIN: 0.4,
   PREMIUM_MAX: 1.2,
+  /** Multiple per revenue category. Contracts and enterprise are sticky; cloud and data are commodity; grants are not revenue. */
+  MIX_MULT: { contracts: 1.3, enterprise: 1.3, api: 1.0, chat: 0.9, media: 0.9, cloud: 0.7, data: 0.7, other: 0.8, grant: 0 } as Record<string, number>,
+  /** Revenue per head (ARR / staff) where the lean premium starts and tops out. */
+  LEAN_MIN_RPH: 1e6,
+  LEAN_MAX_RPH: 10e6,
+  LEAN_MAX: 1.5,
+  /** Each rival fine-tune of your open weights adds this much to the multiple, up to ECO_MAX. */
+  ECO_PER_DERIVATIVE: 0.008,
+  ECO_MAX: 1.4,
 };
 
 /** Capability premium on the revenue multiple, from the best released model's overall against the world frontier. */
@@ -85,12 +95,51 @@ export function frontierPremium(s: GameState, bestOverall: number): number {
   return clamp((bestOverall / ref) ** VALUATION_TUNING.PREMIUM_EXP, VALUATION_TUNING.PREMIUM_MIN, VALUATION_TUNING.PREMIUM_MAX);
 }
 
+/** Revenue-weighted average of MIX_MULT over yesterday's split. Unknown categories count as 'other'. */
+export function revenueMixMult(s: GameState): number {
+  let sum = 0;
+  let total = 0;
+  for (const [cat, v] of Object.entries(s.finance.revenueBreakdown)) {
+    if (!(v > 0)) continue;
+    const m = VALUATION_TUNING.MIX_MULT[cat] ?? VALUATION_TUNING.MIX_MULT.other;
+    sum += v * m;
+    total += v;
+  }
+  return total > 0 ? sum / total : 1;
+}
+
+/** Revenue per head against the lean band: a small team earning a lot per person is worth more. */
+export function leanPremium(s: GameState): number {
+  const hc = headcount(s);
+  const rph = hc > 0 ? annualRevenue(s) / hc : 0;
+  const t = clamp((rph - VALUATION_TUNING.LEAN_MIN_RPH) / (VALUATION_TUNING.LEAN_MAX_RPH - VALUATION_TUNING.LEAN_MIN_RPH), 0, 1);
+  return rph > 0 ? 1 + (VALUATION_TUNING.LEAN_MAX - 1) * t : 1;
+}
+
+/** Rival fine-tunes of the player's open weights, capped. */
+export function ecosystemPremium(s: GameState): number {
+  return Math.min(VALUATION_TUNING.ECO_MAX, 1 + VALUATION_TUNING.ECO_PER_DERIVATIVE * (s.ecosystem?.derivatives ?? 0));
+}
+
+/** The parts of the revenue multiple, for the finance panel. Product = the multiple. */
+export function valuationParts(s: GameState): { base: number; premium: number; mix: number; lean: number; ecosystem: number } {
+  const best = bestPlayerModel(s);
+  return {
+    base: 4 + s.market.aiHype / 8,
+    premium: frontierPremium(s, best ? best.overall : 0),
+    mix: revenueMixMult(s),
+    lean: leanPremium(s),
+    ecosystem: ecosystemPremium(s),
+  };
+}
+
 /** Fundamental (target) private valuation: max(decaying floor, revenue multiple + potential). */
 export function computeValuation(s: GameState): number {
   const aiHype = s.market.aiHype;
   const best = bestPlayerModel(s);
   const bestOverall = best ? best.overall : 0;
-  const multiple = (4 + aiHype / 8) * frontierPremium(s, bestOverall);
+  const p = valuationParts(s);
+  const multiple = p.base * p.premium * p.mix * p.lean * p.ecosystem;
   const rank = playerArenaRank(s);
   const arenaFactor = rank > 0 ? clamp(1 - 0.15 * (rank - 1), 0.2, 1) : 0.2;
   const potential = (bestOverall / 100) ** 3 * POTENTIAL_SCALE * (aiHype / 50) * arenaFactor;

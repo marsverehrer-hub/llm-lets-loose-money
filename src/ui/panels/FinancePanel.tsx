@@ -1,7 +1,7 @@
 import type { ComponentChildren } from 'preact';
 import { useState } from 'preact/hooks';
 import { BALANCE } from '../../sim/balance';
-import { SECONDARY_TUNING, canIpo, canSecondary, computeValuation, maxLoan, pitchReadiness, runwayDays } from '../../sim/systems/finance';
+import { SECONDARY_TUNING, canIpo, canSecondary, computeValuation, maxLoan, pitchReadiness, runwayDays, valuationParts } from '../../sim/systems/finance';
 import type { FinanceSample, GameState } from '../../sim/types';
 import { dayToDate, formatMoney } from '../../sim/util';
 import { Button, Card, Donut, HelpTip, LineChart, Modal, PanelHeader, PanelIntro, Pill, ProgressBar, SERIES, Slider, Stat, Tabs, Waterfall, clamp, formatDays, formatPct, signedMoney } from '../components';
@@ -148,6 +148,12 @@ function dailyMove(s: GameState, hist: FinanceSample[]): { pct: number; days: nu
   }
   if (!ref) return null;
   return { pct: now / ref.price - 1, days: s.day - ref.day };
+}
+
+/** "14.2x = 10.5 base x 1.10 frontier x ..." so the player can see what moves the valuation. */
+function multipleText(p: ReturnType<typeof valuationParts>): string {
+  const x = p.base * p.premium * p.mix * p.lean * p.ecosystem;
+  return `${x.toFixed(1)}x = ${p.base.toFixed(1)} base x ${p.premium.toFixed(2)} frontier x ${p.mix.toFixed(2)} mix x ${p.lean.toFixed(2)} lean x ${p.ecosystem.toFixed(2)} ecosystem`;
 }
 
 /** One key/value row. Tone colours the value. */
@@ -612,6 +618,10 @@ export function FinancePanel() {
               label="The treasury: your cash in the vault, money flowing in and out by category, investors at the table and the stock board"
             />
           </ViewFold>
+
+          <div class="pa-kv">
+            <Kv k="Revenue multiple" v={multipleText(valuationParts(s))} />
+          </div>
 
           <Card
             title={METRIC_TITLE_FIN[metric]}
