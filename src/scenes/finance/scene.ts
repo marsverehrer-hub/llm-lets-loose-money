@@ -10,6 +10,7 @@ import { person } from '../../office/kit/person';
 import { addWorldBox, arrangePods, drawGround, emptyBox, feedMargins, fitTo, hud, tag } from '../../office/kit/frame';
 import { runwayDays } from '../../sim/systems/finance';
 import { runwayLabel } from '../../ui/shell/fmt';
+import { runwayTone } from '../../ui/panels/hq/runway';
 import type { Scene, SceneHit } from '../types';
 import { EXP_LABEL, logCount, tipFor, VAULT_FULL } from './model';
 import type { Lane } from './plan';
@@ -271,7 +272,7 @@ export class TreasuryScene implements Scene {
     const runway = runwayDays(s);
     const rows: [string, string, string][] = [
       ['CASH', formatMoney(f.cash), f.cash < 0 ? T.down : T.fg],
-      ['RUNWAY', runwayLabel(runway).toUpperCase(), !isFinite(runway) ? T.up : runway < 180 ? T.down : runway < 540 ? T.warn : T.up],
+      ['RUNWAY', runwayLabel(runway).toUpperCase(), runwayTone(runway) === 'bad' ? T.down : runwayTone(runway) === 'warn' ? T.warn : T.up],
       ['VALUE', formatMoney(f.valuation), T.fg],
     ];
     // Text in the board's own plane: skewed with its top edge, so rows read level on the board.

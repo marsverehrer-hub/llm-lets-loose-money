@@ -1,5 +1,5 @@
-// OWNER: ONBOARD (v10 agent 7). Headquarters "Details": the charts, lab focus and full product numbers.
-// v10.1: shown inline. Players found the closed drawer one submenu too many.
+// OWNER: ONBOARD (v10 agent 7). Headquarters "Details": the charts, lab focus and company numbers, behind one disclosure.
+// v10.1: shown inline. v18: collapsed by default so the screen stays short; the body mounts only when opened.
 import { useState } from 'preact/hooks';
 import type { GameState } from '../../../sim/types';
 import { formatMoney, formatNumber } from '../../../sim/util';
@@ -61,15 +61,21 @@ function CompanyCard({ s }: { s: GameState }) {
   );
 }
 
-/** The lower half of Headquarters: the money chart, lab focus and company numbers. Always shown, no disclosure. */
+/** The lower half of Headquarters: the money chart, lab focus and company numbers, behind "Charts and lab focus". */
 export function DetailsSection({ s }: { s: GameState }) {
+  const [open, setOpen] = useState(false);
   return (
-    <div class="hq-details-body">
-      <ChartCard s={s} />
-      <div class="hq-details-grid">
-        <LabFocusCard s={s} />
-        <CompanyCard s={s} />
-      </div>
-    </div>
+    <details class="disclosure hq-details" onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)}>
+      <summary>Charts and lab focus</summary>
+      {open && (
+        <div class="hq-details-body">
+          <ChartCard s={s} />
+          <div class="hq-details-grid">
+            <LabFocusCard s={s} />
+            <CompanyCard s={s} />
+          </div>
+        </div>
+      )}
+    </details>
   );
 }

@@ -5,10 +5,12 @@ import type { PanelId } from '../../App';
 import { runwayDays } from '../../../sim/systems/finance';
 import type { FinanceSample, GameState } from '../../../sim/types';
 import { formatMoney, formatNumber } from '../../../sim/util';
-import { HelpTip, Sparkline, formatDays, signedMoney } from '../../components';
+import { HelpTip, Sparkline, signedMoney } from '../../components';
 import { liveHistory } from '../../components/derive';
 import { navigate } from '../../nav';
 import { PANEL_INFO } from '../../unlocks';
+import { runwayLabel } from '../../shell/fmt';
+import { runwayTone } from './runway';
 
 /** Samples are weekly: the trend covers about six months, the change compares with four weeks ago. */
 const TREND = 26;
@@ -71,8 +73,8 @@ export function KpiStrip({ s }: { s: GameState }) {
       id: 'runway',
       label: 'Runway',
       help: 'How long your cash lasts at today’s burn. Under four months, raise money or cut costs.',
-      value: isFinite(runway) ? formatDays(runway) : 'Profitable',
-      tone: !isFinite(runway) ? 'good' : runway < 180 ? 'bad' : runway < 540 ? 'warn' : undefined,
+      value: runwayLabel(runway),
+      tone: runwayTone(runway) === 'good' ? undefined : runwayTone(runway),
       trend: cash,
       panel: 'finance',
     },
@@ -104,6 +106,19 @@ export function KpiStrip({ s }: { s: GameState }) {
       panel: 'finance',
     },
   ];
+
+  // A fresh game has no history yet: one row of plain figures reads better than six empty trend cards.
+  if (s.finance.history.length === 0)
+    return (
+      <div class="kpi-plain">
+        {tiles.map((t) => (
+          <div key={t.id} class="kpi-plain-item">
+            <span class="kpi-plain-label">{t.label}</span>
+            <span class={`kpi-plain-value num ${t.tone ?? ''}`}>{t.value}</span>
+          </div>
+        ))}
+      </div>
+    );
 
   return (
     <div class="kpi-strip">

@@ -3,6 +3,7 @@ import type { GameState } from '../../sim/types';
 import { BALANCE } from '../../sim/balance';
 import { canIpo, maxLoan, runwayDays } from '../../sim/systems/finance';
 import { formatDate, formatMoney } from '../../sim/util';
+import { runwayLabel } from '../../ui/shell/fmt';
 
 /** A vault holding this much is full. Beyond it the vault stays full and shows x N. */
 export const VAULT_FULL = 1e12;
@@ -68,13 +69,6 @@ function pct(part: number, whole: number): string {
   return whole > 0 ? `${((part / whole) * 100).toFixed(0)}%` : '0%';
 }
 
-function duration(days: number): string {
-  if (!isFinite(days)) return 'no end in sight';
-  if (days < 60) return `${Math.round(days)} days`;
-  if (days < 730) return `${Math.round(days / 30)} months`;
-  return `${(days / 365).toFixed(1)} years`;
-}
-
 /** Hover text for a SceneHit id. Values are read fresh from the state the scene last drew. */
 export function tipFor(id: string, s: GameState): string {
   const f = s.finance;
@@ -84,7 +78,7 @@ export function tipFor(id: string, s: GameState): string {
     }
     const net = f.dailyRevenue - f.dailyExpenses;
     const runway = runwayDays(s);
-    const outlook = isFinite(runway) ? `Runway ${duration(runway)}` : 'Profitable at this run-rate';
+    const outlook = isFinite(runway) ? `Runway ${runwayLabel(runway)}` : 'Profitable at this run-rate';
     return `Cash ${formatMoney(f.cash)}\nNet ${signed(net)}/day\n${outlook}`;
   }
   if (id === 'revenue') {

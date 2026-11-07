@@ -1,8 +1,10 @@
 // OWNER: ONBOARD (v10 agent 7). Headquarters "Money": where last day's revenue came from and where the cash went.
 import { useState } from 'preact/hooks';
 import type { FlowSegment } from '../../components';
-import { Card, FlowBar, HelpTip, SERIES_ORDER, Stat, formatDays, signedMoney } from '../../components';
+import { Card, FlowBar, HelpTip, SERIES_ORDER, Stat, signedMoney } from '../../components';
 import { runwayDays } from '../../../sim/systems/finance';
+import { runwayLabel } from '../../shell/fmt';
+import { runwayTone } from './runway';
 import type { GameState } from '../../../sim/types';
 import { formatMoney } from '../../../sim/util';
 
@@ -71,7 +73,6 @@ export function MoneyCard({ s }: { s: GameState }) {
   const outRows = slices(s.finance.expenseBreakdown, EXPENSE_LABEL);
   const net = s.finance.dailyRevenue - s.finance.dailyExpenses;
   const runway = runwayDays(s);
-  const runwayTone = !isFinite(runway) ? 'good' : runway < 180 ? 'bad' : runway < 540 ? 'warn' : 'good';
 
   return (
     <Card title="Money" subtitle="Last day">
@@ -87,8 +88,8 @@ export function MoneyCard({ s }: { s: GameState }) {
                 <HelpTip>Days until cash runs out at today's burn. Profit means the lab pays for itself.</HelpTip>
               </>
             }
-            value={isFinite(runway) ? formatDays(runway) : 'Profit'}
-            tone={runwayTone}
+            value={runwayLabel(runway)}
+            tone={runwayTone(runway)}
           />
         </div>
       </div>

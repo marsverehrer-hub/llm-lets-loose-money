@@ -1,19 +1,23 @@
-/* OWNER: ONBOARD (v10 agent 7). Headquarters. Tokens only (DESIGN.md). Phone stacking is in the 760px block. */
+/* OWNER: ONBOARD (v10 agent 7), v18 Signal look. Headquarters. Tokens only (DESIGN.md). Phone stacking is in the 760px block. */
 
-/* Top row: the advisor, and the goals column (board goals, scenario goals). */
-.hq-top {
-  display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
-  gap: 16px;
-  align-items: start;
-}
-.hq-goals { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
-@media (max-width: 1150px) {
-  .hq-top { grid-template-columns: minmax(0, 1fr); }
-}
-
-/* Advisor */
+/* Advisor: the chapter row, the goals popover, then up to three moves. */
 .hq-advisor.has-urgent { border-color: color-mix(in srgb, var(--down) 40%, var(--line)); }
+.adv-chap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+.adv-chap-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.adv-chap-num { color: var(--fg-3); font-size: var(--fs-sm); font-weight: 600; }
+.adv-chap-title { color: var(--fg); font-family: var(--display); font-size: 17px; font-weight: 700; line-height: 1.25; }
+.adv-chap-progress { display: flex; align-items: center; gap: 10px; flex: 0 1 260px; min-width: 160px; }
+.adv-chap-bar { flex: 1; min-width: 0; }
+.adv-goals { display: flex; flex-direction: column; gap: 12px; max-height: 70vh; overflow: auto; }
 .adv-list {
   display: flex;
   flex-direction: column;
@@ -30,15 +34,16 @@
   padding: 12px 14px;
   border-radius: var(--r-md);
   background: var(--bg-2);
-  border: 1px solid transparent;
+  border: 1px solid var(--line);
 }
 .adv-item.adv-top {
-  background: color-mix(in srgb, var(--accent) 10%, var(--bg-2));
-  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg-2));
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
 }
+.adv-item.adv-urgent { border-color: color-mix(in srgb, var(--down) 35%, var(--line)); }
 .adv-item.adv-urgent.adv-top {
-  background: color-mix(in srgb, var(--down) 10%, var(--bg-2));
-  border-color: color-mix(in srgb, var(--down) 40%, transparent);
+  background: color-mix(in srgb, var(--down) 8%, var(--bg-2));
+  border-color: color-mix(in srgb, var(--down) 45%, var(--line));
 }
 .adv-rank {
   display: grid;
@@ -116,17 +121,43 @@
 .kpi-change { padding: 0 14px; font-size: var(--fs-xs); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .kpi-spark { margin-top: 6px; }
 
-/* Hero row: training and the lab level. */
-.hq-hero {
+/* A fresh game: the same figures as one plain row. */
+.kpi-plain {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  padding: 12px 16px;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+}
+.kpi-plain-item { display: flex; flex-direction: column; min-width: 0; }
+.kpi-plain-label { color: var(--fg-3); font-size: var(--fs-sm); font-weight: 600; }
+.kpi-plain-value { color: var(--fg); font-size: 18px; font-weight: 800; white-space: nowrap; }
+.kpi-plain-value.good { color: var(--up); }
+.kpi-plain-value.bad { color: var(--down); }
+.kpi-plain-value.warn { color: var(--warn); }
+
+/* Live strip: training and research side by side. */
+.hq-live {
   display: grid;
   grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
   gap: 16px;
   align-items: start;
 }
 @media (max-width: 1000px) {
-  .hq-hero { grid-template-columns: minmax(0, 1fr); }
+  .hq-live { grid-template-columns: minmax(0, 1fr); }
 }
 .hq-train-tempo { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; }
+.hq-res { display: flex; flex-direction: column; gap: 8px; }
+.hq-res-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; min-width: 0; }
+.hq-res-name { min-width: 0; overflow: hidden; color: var(--fg); text-overflow: ellipsis; white-space: nowrap; }
+.hq-res-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+
+/* Office and details: disclosures in sentence case (the theme's summary is a caps label). */
+.hq-office > summary,
+.hq-details > summary { font-size: 15px; font-weight: 700; letter-spacing: 0; text-transform: none; color: var(--fg); }
+.hq-office-sub { color: var(--fg-3); font-size: var(--fs-sm); font-weight: 400; }
 .hq-office .office-view,
 .hq-office canvas { display: block; }
 
@@ -181,38 +212,13 @@
   color: var(--fg-2);
 }
 
-/* Details: a closed drawer under the screen. */
-.hq-details {
-  border: 1px solid var(--line);
-  background: var(--bg-1);
-}
-.hq-details-sum {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 4px 10px;
-  min-height: 40px;
-  padding: 8px 12px;
-  color: var(--fg);
-  font-weight: 600;
-  cursor: pointer;
-  list-style: none;
-}
-.hq-details-sum::-webkit-details-marker { display: none; }
-.hq-details-sum::before {
-  content: '▸';
-  color: var(--fg-3);
-  font-weight: 400;
-}
-.hq-details[open] > .hq-details-sum::before { content: '▾'; }
-.hq-details-sum:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: -2px;
-}
+/* Details: the charts and lab focus, behind one disclosure. */
+.hq-details { margin-top: 4px; }
 .hq-details-body {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  padding-top: 12px;
 }
 .hq-details-grid {
   display: grid;
@@ -227,24 +233,22 @@
 .hq-prod-kind {
   color: var(--fg-3);
   font-size: var(--fs-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
 }
 
 @media (max-width: 760px) {
-  .hq-top,
   .hq-details-grid { grid-template-columns: minmax(0, 1fr); }
   .kpi-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .kpi-value { font-size: 20px; }
   .kpi-label { padding: 10px 12px 0; }
   .kpi-value, .kpi-change { padding: 0 12px; }
+  .kpi-plain { gap: 8px 16px; padding: 10px 12px; }
+  .adv-chap-progress { flex: 1 1 100%; }
   .adv-item { grid-template-columns: 28px minmax(0, 1fr); gap: 10px; padding: 12px; }
   .adv-rank { width: 28px; height: 28px; }
   .adv-item > .btn { grid-column: 2; justify-self: start; }
 
   /* The intro repeats the advisor, so it is hidden here. */
   .hq > .panel-intro { display: none; }
-  .hq-hero { grid-template-columns: minmax(0, 1fr); }
   .hq-money { gap: 10px; }
   .hq-money-foot { padding-top: 10px; }
   /* The legend becomes a two-column grid without the share column (the bar shows the shares). */
@@ -260,47 +264,4 @@
   .hq-money .flowbar-key .pct { display: none; }
   .btn.hq-flow-more { display: flex; width: 100%; margin-top: 6px; }
   .hq-flow:not(.is-open) .flowbar-key:nth-child(n + 5) { display: none; }
-}
-
-/* v17: the current lab chapter leads Headquarters. */
-.chap {
-  display: flex;
-  align-items: center;
-  gap: 16px 24px;
-  padding: 18px 22px;
-  background: var(--tex-head), var(--bg-1);
-  border: 1px solid var(--line);
-  box-shadow: inset 4px 0 0 var(--hl);
-}
-.chap-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
-.chap-num {
-  color: var(--accent);
-  font-family: var(--display);
-  font-weight: 700;
-  font-size: 12px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-.chap-of { color: var(--fg-3); }
-.chap-title {
-  font-family: var(--display);
-  font-weight: 900;
-  font-style: italic;
-  font-size: 28px;
-  line-height: 1.05;
-  text-transform: uppercase;
-}
-.chap-why { color: var(--fg-2); max-width: 70ch; }
-.chap-progress { display: flex; align-items: center; gap: 10px; max-width: 420px; }
-.chap-bar { flex: 1; height: 8px; background: var(--bg-3); }
-.chap-bar-fill { display: block; height: 100%; background: var(--tex-hatch), var(--hl); }
-.chap-pct { color: var(--fg-2); font-size: 15px; }
-.chap-pips { display: flex; gap: 4px; margin-top: 4px; }
-.chap-pip { width: 22px; height: 6px; background: var(--bg-3); transform: skewX(-24deg); }
-.chap-pip.done { background: var(--hl); }
-.chap-pip.now { background: transparent; box-shadow: inset 0 0 0 1.5px var(--hl); }
-@media (max-width: 760px) {
-  .chap { flex-direction: column; align-items: stretch; padding: 14px; }
-  .chap-title { font-size: 22px; }
-  .chap-pip { width: 14px; }
 }

@@ -1,28 +1,30 @@
 // OWNER: ONBOARD. Headquarters: the first screen. It answers "what is going on and what should I do next":
-// the advisor (./hq/NextCard), goals, key numbers with trends, the live run, money, products, rivals and the office.
+// the advisor (./hq/AdvisorCard), the live run and research, key numbers, money, products, rivals, the office, charts.
+import { useState } from 'preact/hooks';
 import { OfficeView } from '../../office/OfficeView';
 import { OFFICE_TIERS } from '../../sim/data/roles';
 import type { GameState } from '../../sim/types';
 import { dayToDate } from '../../sim/util';
-import { Card, PanelHeader, PanelIntro, useIsMobile } from '../components';
+import { Card, PanelHeader, useIsMobile } from '../components';
 import { headcount } from '../components/derive';
 import { useGame } from '../store';
-import { GoalsCard } from './GoalsCard'; // v9 scenario: renders only when the scenario has goals
+import { AdvisorCard } from './hq/AdvisorCard';
 import { DetailsSection } from './hq/DetailsSection';
-import { MoneyCard } from './hq/MoneyCard';
-import { NextCard } from './hq/NextCard';
-import { ChapterBanner } from './hq/ChapterBanner'; // v17
 import { KpiStrip } from './hq/KpiStrip';
+import { MoneyCard } from './hq/MoneyCard';
 import { ProductsCard } from './hq/ProductsCard';
 import { RaceCard } from './hq/RaceCard';
+import { ResearchLine } from './hq/ResearchLine';
 import { TrainingCard } from './hq/TrainingCard';
-import { BoardCard } from './lab/BoardCard'; // v13
-import { LevelCard } from './lab/LevelCard'; // v13
 import './lab/lab.css';
 import './panels-a.css';
 import './hq/hq.css';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+/** Remembers whether the office picture is open. */
+const OFFICE_KEY = 'llm-lets-loose-money/hq-office-open';
+/** Below this width the office picture starts closed. */
+const OFFICE_WIDE = 1200;
 
 /** "14 Mar 2019" from a day number. */
 function dateTag(day: number): string {
@@ -30,9 +32,45 @@ function dateTag(day: number): string {
   return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 }
 
+/** The saved choice, else open only on wide screens. Storage can be blocked, so every access is guarded. */
+function readOfficeOpen(): boolean {
+  try {
+    const saved = localStorage.getItem(OFFICE_KEY);
+    if (saved !== null) return saved === '1';
+  } catch {
+    /* no storage: fall through to the width rule */
+  }
+  return window.innerWidth >= OFFICE_WIDE;
+}
+
+function OfficeDisclosure({ s, subtitle }: { s: GameState; subtitle: string }) {
+  const [open, setOpen] = useState(readOfficeOpen);
+  const isPhone = useIsMobile();
+  const onToggle = (e: Event) => {
+    const next = (e.currentTarget as HTMLDetailsElement).open;
+    setOpen(next);
+    try {
+      localStorage.setItem(OFFICE_KEY, next ? '1' : '0');
+    } catch {
+      /* not remembered */
+    }
+  };
+  return (
+    <details class="disclosure hq-office" open={open} onToggle={onToggle}>
+      <summary>
+        Office <span class="hq-office-sub">{subtitle}</span>
+      </summary>
+      {open && (
+        <Card flush>
+          <OfficeView state={s} height={isPhone ? 190 : 260} />
+        </Card>
+      )}
+    </details>
+  );
+}
+
 export function DashboardPanel() {
   const s: GameState = useGame();
-  const isPhone = useIsMobile();
   const office = OFFICE_TIERS.find((t) => t.id === s.company.officeTierId);
   const seats = office?.capacity ?? 0;
   const heads = headcount(s);
@@ -41,27 +79,16 @@ export function DashboardPanel() {
   return (
     <div class="panel hq">
       <PanelHeader title={s.company.name} subtitle={`${dateTag(s.day)} · ${office?.name ?? 'Unknown office'}`} />
-      <PanelIntro id="hq">
-        Your lab at a glance. The advisor lists what to do next, most urgent first. Every number links to the screen where you change it.
-      </PanelIntro>
 
-      <ChapterBanner s={s} />
+      <AdvisorCard s={s} />
 
-      <div class="hq-top">
-        <NextCard s={s} />
-        <div class="hq-goals">
-          <BoardCard s={s} />
-          <GoalsCard />
-        </div>
+      {/* The loop on one row: the live run (with its tempo) and the research topic. */}
+      <div class="hq-live">
+        <TrainingCard s={s} />
+        <ResearchLine s={s} />
       </div>
 
       <KpiStrip s={s} />
-
-      {/* The loop on one row: the live run (with its tempo) and the lab level. */}
-      <div class="hq-hero">
-        <TrainingCard s={s} />
-        <LevelCard s={s} />
-      </div>
 
       <div class="grid-3 hq-numbers">
         <MoneyCard s={s} />
@@ -69,9 +96,7 @@ export function DashboardPanel() {
         <RaceCard s={s} />
       </div>
 
-      <Card title="Office" class="hq-office" subtitle={`${office?.name ?? 'Unknown office'} · ${heads}/${seats} seats · ${datacenters} datacenter${datacenters === 1 ? '' : 's'}`} flush>
-        <OfficeView state={s} height={isPhone ? 190 : 260} />
-      </Card>
+      <OfficeDisclosure s={s} subtitle={`${office?.name ?? 'Unknown office'} · ${heads}/${seats} seats · ${datacenters} datacenter${datacenters === 1 ? '' : 's'}`} />
 
       <DetailsSection s={s} />
     </div>
