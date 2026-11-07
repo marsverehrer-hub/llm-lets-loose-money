@@ -1,6 +1,8 @@
 // OWNER: UI-PAGE. Overview tab: capabilities, quirks, emergences, persona, forecast vs actual, configuration, lineage.
 // Unreleased models show the expected shape from the launch forecast. True capabilities wait for release.
-import { formatParams } from '../../../sim/util';
+import { formatMoney, formatParams } from '../../../sim/util';
+import { latencyMs, quantPreview } from '../../../sim/systems/quantize';
+import { dispatch } from '../../store';
 import { quirkById } from '../../../sim/data/quirks';
 import { emergenceById } from '../../../sim/data/emergences';
 import { describeConfig, optionById, RUN_TUNING } from '../../../sim/data/trainingOptions';
@@ -57,6 +59,7 @@ export function OverviewTab({ s, m, onPick }: { s: GameState; m: Model; onPick?:
         <Section title="Configuration">
           <Config s={s} m={m} />
         </Section>
+        <Serving s={s} m={m} />
         <Vault s={s} onPick={onPick} />
       </div>
     </div>
@@ -167,6 +170,38 @@ function Config({ s, m }: { s: GameState; m: Model }) {
         <Row k="Modalities" v={(m.modalities ?? ['text']).join(', ')} />
       </div>
     </div>
+  );
+}
+
+/** Serving: latency, and the quantized variants with their quality and speed trade-off (released models only). */
+function Serving({ s, m }: { s: GameState; m: Model }) {
+  if (m.releasedDay === null) return null;
+  const ms = latencyMs(s, m);
+  const quantized = m.quant !== undefined;
+  return (
+    <Section title="Serving" aside="Quantize to serve it cheaper and faster">
+      <div class="mpg-stack">
+        <div class="kv">
+          <Row k="Latency" v={`${r0(ms)} ms per token`} num />
+        </div>
+        {([8, 4] as const).map((bits) => {
+          const p = quantPreview(s, m, bits);
+          const exists = s.models.some((x) => x.quant === bits && x.derivedFrom?.kind === 'quant' && x.derivedFrom.ids[0] === m.id);
+          return (
+            <div class="mpg-stack" key={bits}>
+              <button type="button" class="btn btn-sm" disabled={quantized || exists} onClick={() => dispatch({ type: 'quantizeModel', modelId: m.id, bits })}>
+                {`Quantize int${bits}`}
+              </button>
+              <span class="mpg-desc">
+                {exists
+                  ? `The int${bits} variant is already in your lab.`
+                  : `${formatMoney(p.cost)}, done at once. Overall ${r0(m.overall)} to ${r0(p.overall)}, latency ${r0(ms)} to ${r0(p.latency)} ms.`}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </Section>
   );
 }
 

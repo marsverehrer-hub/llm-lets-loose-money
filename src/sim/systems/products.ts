@@ -11,6 +11,7 @@ import { isResearched } from './research';
 import { frontierQuality, modelById, mtokPerUserDay, refPriceFor, segQuality, setProductUsers, triggerChatMoment, CHAT_MOMENT_MIN_OVERALL, MODEL_SWAP_BOOST_DAYS } from './market';
 import { openUserMult, previewDemandCap } from './release';
 import { productRefusal } from './hub';
+import { latencyMs } from './quantize';
 
 /** One-off launch fee per product kind. */
 export const LAUNCH_FEE: Record<ProductKind, number> = { api: 20_000, chat: 200_000, enterprise: 500_000 };
@@ -36,6 +37,14 @@ const OUTAGE_THRESHOLD = 0.98;
 const OUTAGE_NEWS_GAP_DAYS = 10;
 const CHURN_PER_DAY_AT_TOTAL_OUTAGE = 0.06;
 const SATISFACTION_RELAX = 0.05;
+/** v19 (C3): ms per output token each product kind tolerates before users feel the wait. */
+export const LATENCY_TOLERANCE_MS: Record<ProductKind, number> = { chat: 60, api: 120, enterprise: 200 };
+
+/** Satisfaction multiplier for a model slower than its product's latency tolerance: (tolerance / ms)^0.3, else 1. */
+export function latencySatisfactionMult(kind: ProductKind, ms: number): number {
+  const tol = LATENCY_TOLERANCE_MS[kind];
+  return ms <= tol ? 1 : Math.pow(tol / ms, 0.3);
+}
 
 /** Served fraction an incident has set for this product (1 when none). Events write flags['incidentServed.<id>']. */
 export function incidentServedFraction(s: GameState, p: Product): number {
@@ -111,7 +120,7 @@ export function productsTick(s: GameState, _rng: Rng): void {
       }
     } else {
       const quality = segQuality(seg, model.scores, model.overall);
-      const target = clamp(70 + (quality - frontier) / 2, 0, 100);
+      const target = clamp(70 + (quality - frontier) / 2, 0, 100) * latencySatisfactionMult(p.kind, latencyMs(s, model));
       p.satisfaction = clamp(p.satisfaction + (target - p.satisfaction) * SATISFACTION_RELAX, 0, 100);
     }
   }
