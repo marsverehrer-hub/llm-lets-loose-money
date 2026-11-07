@@ -28,7 +28,7 @@ export function gpuFormats(g: GpuSpec): HwFormat[] {
 // memGB (v16) is HBM per GPU: it caps how big a model a cluster can hold (systems/scaleLimits.ts).
 export const GPUS: GpuSpec[] = [
   { id: 'p100', memGB: 16, name: 'NVidiot P100', unlockYear: 2017, pflops: 0.012, buyPrice: 9_000, rentPerDay: 30, powerKw: 0.3, flavor: 'It can render Doom. Mostly.', formats: [] },
-  { id: 'gtx1080', memGB: 11, name: 'NVidiot GTX 1080 Tie', unlockYear: 2017, pflops: 0.006, buyPrice: 4_500, rentPerDay: 15, powerKw: 0.25, flavor: 'A gaming card in a lab coat. Loud, cheap, and short on memory.', formats: [] },
+  { id: 'gtx1080', memGB: 11, name: 'NVidiot GTX 1080 Tie', unlockYear: 2017, pflops: 0.006, buyPrice: 4_500, rentPerDay: 15, powerKw: 0.25, flavor: 'A gaming card in a lab coat. Loud, cheap, and short on memory.', formats: [], class: 'consumer' },
   { id: 'k80', memGB: 24, name: 'NVidiot K80', unlockYear: 2017, pflops: 0.004, buyPrice: 3_600, rentPerDay: 12, powerKw: 0.3, flavor: 'Two GPUs glued together in 2014. The glue is the fastest part.', formats: [], class: 'datacenter' },
   { id: 'p40', memGB: 24, name: 'NVidiot P40', unlockYear: 2017, pflops: 0.01, buyPrice: 8_400, rentPerDay: 28, powerKw: 0.25, flavor: 'Built for inference before anyone knew what to infer.', formats: [], class: 'datacenter' },
   { id: 'v1000', memGB: 32, name: 'NVidiot V100', unlockYear: 2018, pflops: 0.03, buyPrice: 16_500, rentPerDay: 55, powerKw: 0.3, flavor: '40% more tensor cores, 0% more fan noise.', formats: [] },

@@ -1,5 +1,6 @@
 // Sheets for the Compute screen (GAME_DESIGN §21.5): manage a block, rent GPUs, build a datacenter.
 // They hold the same actions as before (buy, sell, return, rent, build), only tidier and off the main screen.
+import { calendarYear } from '../../../sim/util';
 import { useState } from 'preact/hooks';
 import { dispatch, useGame } from '../../store';
 import { formatMoney } from '../../../sim/util';
@@ -411,7 +412,11 @@ function BuyGpus({ s, b }: { s: GameState; b: RoomBlock }) {
 
 export function RentBody() {
   const s = useGame();
-  const gpus = availableGpus(s);
+  // Cards older than six years drop off the shelf unless you still rent some; the newest are listed first.
+  const year = calendarYear(s.day);
+  const gpus = availableGpus(s)
+    .filter((g) => year - g.unlockYear <= 6 || (s.compute.rented[g.id] ?? 0) > 0)
+    .reverse();
   if (gpus.length === 0) return <Empty title="No GPUs listed">Nothing in the catalogue for this year yet.</Empty>;
   return (
     <ul class="cc-rows">
