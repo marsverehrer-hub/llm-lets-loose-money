@@ -23,8 +23,6 @@ import './hq/hq.css';
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 /** Remembers whether the office picture is open. */
 const OFFICE_KEY = 'llm-lets-loose-money/hq-office-open';
-/** Below this width the office picture starts closed. */
-const OFFICE_WIDE = 1200;
 
 /** "14 Mar 2019" from a day number. */
 function dateTag(day: number): string {
@@ -32,15 +30,16 @@ function dateTag(day: number): string {
   return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 }
 
-/** The saved choice, else open only on wide screens. Storage can be blocked, so every access is guarded. */
+/**
+ * The saved choice, else closed: the office is a picture, so v18 keeps Headquarters short by default.
+ * Storage can be blocked, so every access is guarded.
+ */
 function readOfficeOpen(): boolean {
   try {
-    const saved = localStorage.getItem(OFFICE_KEY);
-    if (saved !== null) return saved === '1';
+    return localStorage.getItem(OFFICE_KEY) === '1';
   } catch {
-    /* no storage: fall through to the width rule */
+    return false;
   }
-  return window.innerWidth >= OFFICE_WIDE;
 }
 
 function OfficeDisclosure({ s, subtitle }: { s: GameState; subtitle: string }) {

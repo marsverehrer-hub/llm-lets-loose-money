@@ -18,6 +18,12 @@ import { createScene as createTreasury, CAM as TREASURY_CAM } from '../../scenes
 import { ViewFold } from './ViewFold';
 
 type Metric = 'cash' | 'valuation' | 'flow';
+type FinTab = 'overview' | 'funding' | 'stock';
+const FIN_TABS: { id: FinTab; label: string }[] = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'funding', label: 'Funding' },
+  { id: 'stock', label: 'Stock' },
+];
 
 const METRIC_TITLE_FIN: Record<Metric, string> = { cash: 'Cash', flow: 'Revenue vs burn', valuation: 'Valuation' };
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -344,9 +350,12 @@ export function FinancePanel() {
   const [loanAmt, setLoanAmt] = useState(1_000_000);
   const [confirmIpo, setConfirmIpo] = useState(false);
   const [showBooks, setShowBooks] = useState(false);
+  // v18: a pending term sheet opens on Funding; the tab is kept in state only.
+  const [tab, setTab] = useState<FinTab>(() => (s.finance.pendingOffer ? 'funding' : 'overview'));
   // v17.2: the advisor's "Answer the term sheet" and "Pitch investors" land on those cards.
   useIntent('finance', (i) => {
     if (!('focus' in i)) return;
+    setTab('funding');
     const id = i.focus === 'offer' && getState().finance.pendingOffer ? 'fin-offer' : 'fin-pitch';
     requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
   });
@@ -453,6 +462,113 @@ export function FinancePanel() {
     </div>
   );
 
+  const ownership = (
+    <Card title="Ownership">
+      <div class="stack">
+        <Donut
+          items={[
+            { label: 'Founders', value: founder, color: SERIES.amber },
+            { label: 'Investors & staff', value: 1 - founder, color: SERIES.fg },
+          ]}
+          centerValue={formatPct(founder, 1)}
+          centerLabel="Founders"
+        />
+        <div class="pa-kv kv">
+          <Kv k="Your stake" v={money(fin.valuation * founder)} />
+        </div>
+      </div>
+    </Card>
+  );
+
+  const loansCard = (
+    <Card title="Loans" subtitle={`Up to ${money(maxL)} at ${formatPct(fin.loanRatePerYear, 0)} a year`}>
+      <div class="stack">
+        <div class="pa-kv kv">
+          <Kv k="Outstanding" v={money(fin.debt)} />
+          <Kv k="Amount" v={money(amt)} />
+        </div>
+        <Slider
+          label="Loan amount"
+          min={0}
+          max={sliderMax}
+          step={Math.max(1000, Math.round(sliderMax / 200))}
+          value={amt}
+          disabled={maxL <= 0}
+          onChange={setLoanAmt}
+        />
+        <div class="row-wrap">
+          <Button
+            disabled={amt <= 0 || amt > maxL}
+            title={maxL <= 0 ? 'Banks want revenue before they lend' : amt <= 0 ? 'Pick an amount first' : `Borrow ${money(amt)}`}
+            onClick={() => dispatch({ type: 'takeLoan', amount: amt })}
+          >
+            Borrow
+          </Button>
+          <Button
+            disabled={fin.debt <= 0 || amt <= 0}
+            title={fin.debt <= 0 ? 'No debt to repay' : amt <= 0 ? 'Pick an amount first' : `Repay ${money(Math.min(amt, fin.debt))}`}
+            onClick={() => dispatch({ type: 'repayLoan', amount: Math.min(amt, fin.debt) })}
+          >
+            Repay
+          </Button>
+        </div>
+        {maxL <= 0 && <Banner tone="warn">Banks want revenue before they lend. Sell something first.</Banner>}
+      </div>
+    </Card>
+  );
+
+  // Private: the road to a listing. Public: the secondary offering. Both live on Stock.
+  const listingCard = (
+    <Card
+      title={s.company.isPublic ? 'Investor relations' : 'Go public'}
+      glow={!s.company.isPublic && ipo.ok}
+      subtitle={s.company.isPublic ? 'Shareholders watching' : 'Listing thresholds'}
+    >
+      {s.company.isPublic ? (
+        <div class="stack">
+          <div class="pa-kv kv">
+            <Kv k="Founder stake" v={`${(founder * 100).toFixed(1)}%`} />
+            <Kv k="Public float" v={`${((1 - founder) * 100).toFixed(1)}%`} />
+          </div>
+          <Button
+            size="sm"
+            block
+            disabled={!sec.ok}
+            title={sec.ok ? `Sell ${(SECONDARY_TUNING.SHARE_FRACTION * 100).toFixed(0)}% new shares` : sec.reason}
+            onClick={() => dispatch({ type: 'secondaryOffering' })}
+          >
+            Secondary offering
+          </Button>
+          <div class="small muted">
+            Sells {(SECONDARY_TUNING.SHARE_FRACTION * 100).toFixed(0)}% new shares at a {(SECONDARY_TUNING.PRICE_DISCOUNT * 100).toFixed(0)}% discount.
+          </div>
+          {!sec.ok && <div class="small muted">{sec.reason}</div>}
+        </div>
+      ) : (
+        <div class="stack">
+          <ProgressBar
+            label="Valuation"
+            value={fin.valuation}
+            max={BALANCE.IPO_MIN_VALUATION}
+            tone={fin.valuation >= BALANCE.IPO_MIN_VALUATION ? 'good' : 'accent'}
+            right={`${money(fin.valuation)} / ${money(BALANCE.IPO_MIN_VALUATION)}`}
+          />
+          <ProgressBar
+            label="Annual revenue"
+            value={annualRevenue}
+            max={BALANCE.IPO_MIN_ANNUAL_REVENUE}
+            tone={annualRevenue >= BALANCE.IPO_MIN_ANNUAL_REVENUE ? 'good' : 'accent'}
+            right={`${money(annualRevenue)} / ${money(BALANCE.IPO_MIN_ANNUAL_REVENUE)}`}
+          />
+          <div class={`small ${ipo.ok ? 'good' : 'muted'}`}>{ipo.ok ? 'Ready. Roadshow can be booked.' : ipo.reason}</div>
+          <Button block disabled={!ipo.ok} title={ipo.ok ? 'Ring the IPO bell' : ipo.reason} onClick={() => setConfirmIpo(true)}>
+            Ring the bell
+          </Button>
+        </div>
+      )}
+    </Card>
+  );
+
   return (
     <div class="panel fin-panel">
       <PanelHeader
@@ -482,154 +598,70 @@ export function FinancePanel() {
           </>
         }
       />
-      {offerCard}
       <PanelIntro id="finance">Where the money comes from and goes. Cash and runway tell you how long you can keep going.</PanelIntro>
+      <Tabs<FinTab> class="fin-tabs" value={tab} onChange={setTab} tabs={FIN_TABS} />
 
-      <div class="grid-split fin-row-funding">
-        {s.company.isPublic ? <StockCard s={s} hist={hist} /> : pitchCard}
-
-        <Card title="Ownership">
-          <div class="stack">
-            <Donut
-              items={[
-                { label: 'Founders', value: founder, color: SERIES.amber },
-                { label: 'Investors & staff', value: 1 - founder, color: SERIES.fg },
-              ]}
-              centerValue={formatPct(founder, 1)}
-              centerLabel="Founders"
+      {tab === 'overview' && (
+        <>
+          <ViewFold panel="finance">
+            <SceneView
+              state={s}
+              make={createTreasury}
+              cam={TREASURY_CAM}
+              camId="CAM-09"
+              label="The treasury: your cash in the vault, money flowing in and out by category, investors at the table and the stock board"
             />
-            <div class="pa-kv kv">
-              <Kv k="Your stake" v={money(fin.valuation * founder)} />
-            </div>
-          </div>
-        </Card>
-      </div>
+          </ViewFold>
 
-      <ViewFold panel="finance">
-        <SceneView
-          state={s}
-          make={createTreasury}
-          cam={TREASURY_CAM}
-          camId="CAM-09"
-          label="The treasury: your cash in the vault, money flowing in and out by category, investors at the table and the stock board"
-        />
-      </ViewFold>
-
-      <div class="grid-split fin-row-chart">
-        <Card
-          title={METRIC_TITLE_FIN[metric]}
-          subtitle="Weekly samples, hover or tap"
-          actions={<Tabs<Metric> variant="segmented" value={metric} onChange={setMetric} tabs={tabs} />}
-        >
-          <LineChart series={series} height={270} yFormat={money} emptyText="Not enough history. First point lands after a week." />
-        </Card>
-
-        <div class="stack">
-          <Card title="Loans" subtitle={`Up to ${money(maxL)} at ${formatPct(fin.loanRatePerYear, 0)} a year`}>
-            <div class="stack">
-              <div class="pa-kv kv">
-                <Kv k="Outstanding" v={money(fin.debt)} />
-                <Kv k="Amount" v={money(amt)} />
-              </div>
-              <Slider
-                label="Loan amount"
-                min={0}
-                max={sliderMax}
-                step={Math.max(1000, Math.round(sliderMax / 200))}
-                value={amt}
-                disabled={maxL <= 0}
-                onChange={setLoanAmt}
-              />
-              <div class="row-wrap">
-                <Button
-                  disabled={amt <= 0 || amt > maxL}
-                  title={maxL <= 0 ? 'Banks want revenue before they lend' : amt <= 0 ? 'Pick an amount first' : `Borrow ${money(amt)}`}
-                  onClick={() => dispatch({ type: 'takeLoan', amount: amt })}
-                >
-                  Borrow
-                </Button>
-                <Button
-                  disabled={fin.debt <= 0 || amt <= 0}
-                  title={fin.debt <= 0 ? 'No debt to repay' : amt <= 0 ? 'Pick an amount first' : `Repay ${money(Math.min(amt, fin.debt))}`}
-                  onClick={() => dispatch({ type: 'repayLoan', amount: Math.min(amt, fin.debt) })}
-                >
-                  Repay
-                </Button>
-              </div>
-              {maxL <= 0 && <Banner tone="warn">Banks want revenue before they lend. Sell something first.</Banner>}
-            </div>
+          <Card
+            title={METRIC_TITLE_FIN[metric]}
+            subtitle="Weekly samples, hover or tap"
+            actions={<Tabs<Metric> variant="segmented" value={metric} onChange={setMetric} tabs={tabs} />}
+          >
+            <LineChart series={series} height={270} yFormat={money} emptyText="Not enough history. First point lands after a week." />
           </Card>
 
           <Card
-            title={s.company.isPublic ? 'Investor relations' : 'Go public'}
-            glow={!s.company.isPublic && ipo.ok}
-            subtitle={s.company.isPublic ? 'Shareholders watching' : 'Listing thresholds'}
+            class="fin-books-card"
+            title="Revenue to profit"
+            subtitle="Per day"
+            actions={
+              <button type="button" class="btn btn-sm btn-ghost" aria-expanded={showBooks} onClick={() => setShowBooks(!showBooks)}>
+                {showBooks ? 'Hide details' : 'Details'}
+              </button>
+            }
           >
-            {s.company.isPublic ? (
-              <div class="stack">
-                <div class="pa-kv kv">
-                  <Kv k="Founder stake" v={`${(founder * 100).toFixed(1)}%`} />
-                  <Kv k="Public float" v={`${((1 - founder) * 100).toFixed(1)}%`} />
-                </div>
-                <Button
-                  size="sm"
-                  block
-                  disabled={!sec.ok}
-                  title={sec.ok ? `Sell ${(SECONDARY_TUNING.SHARE_FRACTION * 100).toFixed(0)}% new shares` : sec.reason}
-                  onClick={() => dispatch({ type: 'secondaryOffering' })}
-                >
-                  Secondary offering
-                </Button>
-                <div class="small muted">
-                  Sells {(SECONDARY_TUNING.SHARE_FRACTION * 100).toFixed(0)}% new shares at a {(SECONDARY_TUNING.PRICE_DISCOUNT * 100).toFixed(0)}% discount.
-                </div>
-                {!sec.ok && <div class="small muted">{sec.reason}</div>}
-              </div>
-            ) : (
-              <div class="stack">
-                <ProgressBar
-                  label="Valuation"
-                  value={fin.valuation}
-                  max={BALANCE.IPO_MIN_VALUATION}
-                  tone={fin.valuation >= BALANCE.IPO_MIN_VALUATION ? 'good' : 'accent'}
-                  right={`${money(fin.valuation)} / ${money(BALANCE.IPO_MIN_VALUATION)}`}
-                />
-                <ProgressBar
-                  label="Annual revenue"
-                  value={annualRevenue}
-                  max={BALANCE.IPO_MIN_ANNUAL_REVENUE}
-                  tone={annualRevenue >= BALANCE.IPO_MIN_ANNUAL_REVENUE ? 'good' : 'accent'}
-                  right={`${money(annualRevenue)} / ${money(BALANCE.IPO_MIN_ANNUAL_REVENUE)}`}
-                />
-                <div class={`small ${ipo.ok ? 'good' : 'muted'}`}>{ipo.ok ? 'Ready. Roadshow can be booked.' : ipo.reason}</div>
-                <Button block disabled={!ipo.ok} title={ipo.ok ? 'Ring the IPO bell' : ipo.reason} onClick={() => setConfirmIpo(true)}>
-                  Ring the bell
-                </Button>
-              </div>
-            )}
+            <div class="stack">
+              <Waterfall steps={wf.steps} end={{ label: 'Profit per day' }} format={money} />
+              {showBooks && <BooksTables s={s} />}
+            </div>
           </Card>
-        </div>
-      </div>
+        </>
+      )}
 
-      <Card class="fin-rounds-card" title="Funding rounds" subtitle={`${fin.roundsRaised.length} closed`}>
-        <RoundsTimeline s={s} />
-      </Card>
+      {tab === 'funding' && (
+        <>
+          {offerCard}
+          <div class="grid-3 fin-row-funding">
+            {!s.company.isPublic && pitchCard}
+            {ownership}
+            {loansCard}
+          </div>
+          <Card class="fin-rounds-card" title="Funding rounds" subtitle={`${fin.roundsRaised.length} closed`}>
+            <RoundsTimeline s={s} />
+          </Card>
+        </>
+      )}
 
-      <Card
-        class="fin-books-card"
-        title="Revenue to profit"
-        subtitle="Per day"
-        actions={
-          <button type="button" class="btn btn-sm btn-ghost" aria-expanded={showBooks} onClick={() => setShowBooks(!showBooks)}>
-            {showBooks ? 'Hide details' : 'Details'}
-          </button>
-        }
-      >
-        <div class="stack">
-          <Waterfall steps={wf.steps} end={{ label: 'Profit per day' }} format={money} />
-          {showBooks && <BooksTables s={s} />}
-        </div>
-      </Card>
+      {tab === 'stock' &&
+        (s.company.isPublic ? (
+          <div class="grid-split fin-row-stock">
+            <StockCard s={s} hist={hist} />
+            {listingCard}
+          </div>
+        ) : (
+          <div class="fin-narrow">{listingCard}</div>
+        ))}
 
       <Modal
         open={confirmIpo}

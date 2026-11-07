@@ -4,6 +4,7 @@ import type { LineSeries } from '../components';
 import { useGame } from '../store';
 import { CampaignShop } from './marketing/CampaignSheet';
 import { CampaignTimeline } from './marketing/CampaignTimeline';
+import { Fold } from './marketing/Fold';
 import { Funnel } from './marketing/Funnel';
 import { MarketingTeam } from './marketing/MarketingTeam';
 import { MAX_RUNNING_CAMPAIGNS } from './marketing/campaignCopy';
@@ -66,10 +67,6 @@ export function MarketingPanel() {
         </Card>
       )}
 
-      <Card class="mk-hero-card" title="Brand and hype" subtitle="Weekly samples, your company">
-        <LineChart series={series} height={190} yFormat={(v) => String(Math.round(v))} emptyText="Trend starts after the first weekly sample." />
-      </Card>
-
       <ViewFold panel="marketing">
         <SceneView
           state={s}
@@ -86,9 +83,18 @@ export function MarketingPanel() {
       </ViewFold>
 
       <div class="mk-lower">
-        <Card title="Funnel" subtitle="Market size to your users, per segment">
-          <Funnel s={s} />
-        </Card>
+        <div class="stack">
+          <Fold class="mk-hero-fold" summary="Brand and hype over time">
+            <Card class="mk-hero-card" title="Brand and hype" subtitle="Weekly samples, your company">
+              <LineChart series={series} height={190} yFormat={(v) => String(Math.round(v))} emptyText="Trend starts after the first weekly sample." />
+            </Card>
+          </Fold>
+          <Fold class="mk-funnel-fold" summary="Funnel: market size to your users">
+            <Card title="Funnel" subtitle="Market size to your users, per segment">
+              <Funnel s={s} />
+            </Card>
+          </Fold>
+        </div>
         <MarketingTeam s={s} />
       </div>
     </div>

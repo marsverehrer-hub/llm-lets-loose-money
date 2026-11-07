@@ -6,6 +6,7 @@ import { marketingTeamEffect } from '../../../sim/systems/market';
 import { marketSalary } from '../../../sim/systems/staff';
 import { Button, Card, HelpTip } from '../../components';
 import { navigate } from '../../nav';
+import { Fold } from './Fold';
 
 /** Person glyph: a circle head over a rect body. Flat, token-coloured. */
 function Person() {
@@ -75,9 +76,11 @@ export function MarketingTeam({ s }: { s: GameState }) {
             <span class="kv-v num">{brandMult.toFixed(2)}×</span>
           </div>
         </div>
-        <p class="mk-team-what">
-          It costs salaries, and in return it makes campaigns stronger and adds a little brand every day. Marketing stars add more brand gain on top.
-        </p>
+        <Fold summary="How the team works">
+          <p class="mk-team-what">
+            It costs salaries, and in return it makes campaigns stronger and adds a little brand every day. Marketing stars add more brand gain on top.
+          </p>
+        </Fold>
         {stars.length > 0 && (
           <ul class="mk-stars">
             {stars.map((st) => (

@@ -21,6 +21,9 @@
 .fin-tl-name { color: var(--fg); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .fin-tl-date { color: var(--fg-3); font-size: var(--fs-xs); }
 
+/* v18 tabs: a private company's listing card is a column, not a full-width strip. */
+.fin-narrow { max-width: 620px; }
+
 /* Waterfall sits in its own card; the details table opens under it. */
 .fin-panel .wf { margin-top: 2px; }
 
