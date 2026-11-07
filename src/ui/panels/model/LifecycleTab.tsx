@@ -1,11 +1,13 @@
 // OWNER: UI-PAGE. Lifecycle tab: release (opens ReleaseWizard), preview, internal use, build-on actions, take off sale.
 // Wizards open as views in the Models panel (train/draft.ts). Previews come from releasePreview.
+import { useState } from 'preact/hooks';
 import { dispatch } from '../../store';
 import { formatMoney } from '../../../sim/util';
 import { internalCostPerDay, internalResearchMult, releasePreview } from '../../../sim/systems/release';
+import { isOwnBase, nextVersionName } from '../../../sim/systems/derive';
 import { provisionalElo } from '../../../sim/systems/lab';
 import type { GameState, Model, ReleaseMode } from '../../../sim/types';
-import { Pill, Stat, formatDays } from '../../components';
+import { Pill, Select, Stat, formatDays } from '../../components';
 import { tdate } from '../../shell/fmt';
 import { arenaTop, flagshipOf } from '../train/model';
 import { setView } from '../train/draft';
@@ -64,6 +66,16 @@ export function LifecycleTab({ s, m }: { s: GameState; m: Model }) {
               onClick={() => setView({ kind: 'merge', aId: m.id })}
               disabled={m.deprecated}
             />
+            {isOwnBase(m) && released && (
+              <BuildRow
+                title="Distil a family"
+                desc="Three students in a row: nano (4% of the size), mini (12%) and pro (35%)."
+                label="Distil a family"
+                onClick={() => dispatch({ type: 'distilFamily', teacherId: m.id })}
+                disabled={m.deprecated || !!s.training}
+              />
+            )}
+            {isOwnBase(m) && <ContinueRow s={s} m={m} />}
           </div>
         </Section>
 
@@ -194,6 +206,50 @@ function InternalUse({ s, m }: { s: GameState; m: Model }) {
           onClick={() => dispatch({ type: 'deployInternally', modelId: m.id, on: !m.internal })}
         >
           {m.internal ? 'Stop internal use' : 'Deploy internally'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** v19: keep training your own base on new tokens (the run keeps its params and sheet). */
+function ContinueRow({ s, m }: { s: GameState; m: Model }) {
+  const [share, setShare] = useState('0.5');
+  const extra = m.tokensB * Number(share);
+  return (
+    <div class="mpg-row-between mpg-wrap">
+      <div class="mpg-col-tight">
+        <span class="mpg-label">Continue pretraining…</span>
+        <span class="mpg-desc">Train on new tokens from this base. Only the new tokens cost compute.</span>
+      </div>
+      <div class="mpg-row-between mpg-wrap">
+        <Select
+          ariaLabel="Extra tokens"
+          value={share}
+          onChange={setShare}
+          options={[
+            { value: '0.25', label: '+25% tokens' },
+            { value: '0.5', label: '+50% tokens' },
+            { value: '1', label: '+100% tokens' },
+          ]}
+        />
+        <button
+          type="button"
+          class="btn btn-sm"
+          disabled={m.deprecated || !!s.training}
+          onClick={() =>
+            dispatch({
+              type: 'startTraining',
+              name: nextVersionName(m.name),
+              paramsB: m.paramsB,
+              tokensB: extra,
+              datasetIds: [...m.datasetIds],
+              techniques: [...m.techniques],
+              continueFrom: m.id,
+            })
+          }
+        >
+          Continue pretraining
         </button>
       </div>
     </div>

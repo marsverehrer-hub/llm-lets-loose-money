@@ -114,9 +114,25 @@ function archOf(m: Model): string {
 /** The base model a model descends from: follow fine-tune parents and derivation sources back to the root. */
 function familyRoot(s: GameState, m: Model, depth = 0): Id {
   if (depth > 32) return m.id;
-  const parentId = m.parentId ?? m.derivedFrom?.ids[0] ?? null;
+  const parentId = m.parentId ?? m.derivedFrom?.ids[0] ?? m.continuedFrom ?? null;
   const parent = parentId ? s.models.find((x) => x.id === parentId) : undefined;
   return parent ? familyRoot(s, parent, depth + 1) : m.id;
+}
+
+/** v19: one of the player's own pretrained base models (not a fine-tune, merge, distill, quant or hub download). */
+export function isOwnBase(m: Model | undefined): m is Model {
+  return !!m && !m.parentId && !m.specId && !m.derivedFrom && !m.origin && !m.quant;
+}
+
+/** v19: the next version of a model name: "X 2" becomes "X 2.5", "X 2.5" becomes "X 3", "X v1.5" becomes "X v2", else " v1.5" is appended. */
+export function nextVersionName(name: string): string {
+  const num = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
+  const bump = (n: number) => (Number.isInteger(n) ? n + 0.5 : Math.ceil(n));
+  const v = /^(.*\s)v(\d+(?:\.\d+)?)$/.exec(name);
+  if (v) return `${v[1]}v${num(bump(Number(v[2])))}`;
+  const bare = /^(.*\s)(\d+(?:\.\d+)?)$/.exec(name);
+  if (bare) return `${bare[1]}${num(bump(Number(bare[2])))}`;
+  return `${name} v1.5`;
 }
 
 // ---------------------------------------------------------------------------
@@ -441,6 +457,7 @@ export function finishDerived(s: GameState, run: TrainingRun, rng: Rng): void {
   } else {
     notify(s, `${run.name} finished distilling. The eval report is in.`, 'milestone');
     pushNews(s, `${s.company.name} distills ${ps[0].name} into ${run.name}. The teacher was not consulted.`, 'info');
+    continueFamily(s, ps[0], run);
   }
 }
 
@@ -479,25 +496,86 @@ function runBase(s: GameState, name: string, paramsB: number, tokensB: number, d
   };
 }
 
+/** Put a distill of `teacher` at `paramsB` into the training slot. Notifies and returns false when it can't start. */
+function beginDistill(s: GameState, teacher: Model, paramsB: number, name: string): boolean {
+  const q = distillQuote(s, teacher.id, paramsB);
+  if (!q.ok || !q.forecast) {
+    notify(s, q.reason ?? 'Distillation is not possible.', 'bad');
+    return false;
+  }
+  if (!name) {
+    notify(s, 'Give the model a name first.', 'bad');
+    return false;
+  }
+  const plan = planDistill(s, teacher, paramsB);
+  const run = runBase(s, name, paramsB, plan.tokensB, [...teacher.datasetIds], [...teacher.techniques], plan.cfg, plan.flops, q.forecast, teacher.finalLoss, 'distill');
+  run.distill = { teacherId: teacher.id };
+  s.training = run;
+  notify(s, `Distilling ${teacher.name} into ${name}: about ${q.days} days.`, 'info');
+  return true;
+}
+
+/** v19 distil family: target sizes as a share of the teacher's params, in order. */
+const FAMILY = [
+  { suffix: 'nano', share: 0.04 },
+  { suffix: 'mini', share: 0.12 },
+  { suffix: 'pro', share: 0.35 },
+] as const;
+const familyKey = (teacherId: Id) => `family.${teacherId}`;
+const familySize = (teacher: Model, i: number) => Math.round(teacher.paramsB * FAMILY[i].share * 10) / 10;
+const familyName = (teacher: Model, i: number) => `${teacher.name} ${FAMILY[i].suffix}`.slice(0, 40);
+
+/**
+ * v19: a finished distill that belongs to a family starts the next member. s.flags[familyKey] holds the index of the
+ * next member, and is dropped with the last one. The run name must match, so a stray distill never continues a family.
+ */
+function continueFamily(s: GameState, teacher: Model, run: TrainingRun): void {
+  const key = familyKey(teacher.id);
+  const next = s.flags[key];
+  if (next === undefined || run.name !== familyName(teacher, next - 1)) return;
+  if (next + 1 < FAMILY.length) s.flags[key] = next + 1;
+  else delete s.flags[key];
+  if (!beginDistill(s, teacher, familySize(teacher, next), familyName(teacher, next))) delete s.flags[key];
+}
+
 export const handlers: ActionHandlers = {
   startDistill: (s, a) => {
-    const q = distillQuote(s, a.teacherId, a.paramsB);
-    if (!q.ok || !q.forecast) {
-      notify(s, q.reason ?? 'Distillation is not possible.', 'bad');
-      return;
-    }
     const name = (a.name ?? '').trim().slice(0, 40);
-    if (!name) {
-      notify(s, 'Give the model a name first.', 'bad');
+    const teacher = s.models.find((m) => m.id === a.teacherId);
+    if (!teacher) {
+      notify(s, 'That teacher model no longer exists.', 'bad');
       return;
     }
+    beginDistill(s, teacher, a.paramsB, name);
+  },
+
+  distilFamily: (s, a) => {
     const teacher = s.models.find((m) => m.id === a.teacherId);
-    if (!teacher) return;
-    const plan = planDistill(s, teacher, a.paramsB);
-    const run = runBase(s, name, a.paramsB, plan.tokensB, [...teacher.datasetIds], [...teacher.techniques], plan.cfg, plan.flops, q.forecast, teacher.finalLoss, 'distill');
-    run.distill = { teacherId: teacher.id };
-    s.training = run;
-    notify(s, `Distilling ${teacher.name} into ${name}: about ${q.days} days.`, 'info');
+    if (!teacher) {
+      notify(s, 'That teacher model no longer exists.', 'bad');
+      return;
+    }
+    if (teacher.releasedDay === null) {
+      notify(s, `Release ${teacher.name} before distilling a family from it.`, 'bad');
+      return;
+    }
+    if (s.training?.kind === 'distill' && s.training.distill?.teacherId === teacher.id) {
+      notify(s, `${teacher.name} is already being distilled into a family. Let it finish.`, 'info');
+      return;
+    }
+    if (s.training) {
+      notify(s, `${s.training.name} is still training. Cancel it first.`, 'bad');
+      return;
+    }
+    // Check all three sizes up front, so a family never starts half-way.
+    for (let i = 0; i < FAMILY.length; i++) {
+      const q = distillQuote(s, teacher.id, familySize(teacher, i));
+      if (!q.ok) {
+        notify(s, `No family from ${teacher.name}: ${q.reason ?? 'a size is not possible'}`, 'bad');
+        return;
+      }
+    }
+    if (beginDistill(s, teacher, familySize(teacher, 0), familyName(teacher, 0))) s.flags[familyKey(teacher.id)] = 1;
   },
 
   startMerge: (s, a) => {

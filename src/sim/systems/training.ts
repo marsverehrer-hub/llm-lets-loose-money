@@ -76,7 +76,7 @@ import {
   LAB_TUNING,
 } from './lab';
 import { emergenceById } from '../data/emergences';
-import { finishDerived } from './derive';
+import { finishDerived, isOwnBase, nextVersionName } from './derive';
 import { pickCopy, VERDICT_NEWS } from '../data/evalCopy';
 
 export { lossToQuality, overallScore, trainingRatePerDay } from './capabilities';
@@ -263,9 +263,11 @@ function finishPretrain(s: GameState, run: TrainingRun, rng: Rng): void {
   const yolo = cfg.lr >= 0.9 && !(run.incidents ?? []).includes('divergence');
   if (yolo) s.flags['yoloClean'] = 1;
 
+  // v19: a continued run is the next version of its base model.
+  const base = run.parentId ? s.models.find((m) => m.id === run.parentId) : undefined;
   const model: Model = {
     id: newId(s, 'm'),
-    name: run.name,
+    name: base ? nextVersionName(base.name) : run.name,
     paramsB: run.paramsB,
     tokensB: run.tokensB,
     datasetIds: [...run.datasetIds],
@@ -295,6 +297,7 @@ function finishPretrain(s: GameState, run: TrainingRun, rng: Rng): void {
     emergences: [...(run.emerged ?? [])],
     forecast,
     ...(hidden.traits ? { traits: { ...hidden.traits } } : {}),
+    ...(base ? { continuedFrom: base.id } : {}),
   };
   evaluateModel(s, model);
   s.models.push(model);
@@ -709,10 +712,17 @@ export const handlers: ActionHandlers = {
       notify(s, 'Give the model a name first.', 'bad');
       return;
     }
-    const cfg = a.config ?? defaultConfig(s);
+    // v19: continued pretraining keeps the base's params and run sheet; a.tokensB is then the extra data.
+    const base = a.continueFrom === undefined ? undefined : s.models.find((m) => m.id === a.continueFrom);
+    if (a.continueFrom !== undefined && !isOwnBase(base)) {
+      notify(s, 'Only your own pretrained base model can continue pretraining.', 'bad');
+      return;
+    }
+    const paramsB = base ? base.paramsB : a.paramsB;
+    const cfg = base ? (base.config ?? legacyConfig(s, base.datasetIds, base.contextK)) : (a.config ?? defaultConfig(s));
     const datasetIds = [...new Set(a.datasetIds)];
     const techniques = [...new Set(a.techniques)];
-    const err = validateSpec(s, a.paramsB, a.tokensB, datasetIds, techniques, cfg);
+    const err = validateSpec(s, paramsB, a.tokensB, datasetIds, techniques, cfg);
     if (err) {
       notify(s, err, 'bad');
       return;
@@ -721,10 +731,16 @@ export const handlers: ActionHandlers = {
       notify(s, 'No compute is allocated to training. Rent GPUs or set Fleet priority in Compute to favour training.', 'bad');
       return;
     }
+    // The loss sees the base's tokens plus the new ones; the FLOPs are only the new ones.
+    const tokensB = base ? base.tokensB + a.tokensB : a.tokensB;
     // The run itself uses the true world; the forecast the player sees uses the lab's belief.
-    const phys = resolveRun(s, a.paramsB, a.tokensB, datasetIds, techniques, cfg, 'true');
-    const believed = resolveRun(s, a.paramsB, a.tokensB, datasetIds, techniques, cfg, 'belief');
-    const forecast = forecastTraining(s, a.paramsB, a.tokensB, datasetIds, techniques, cfg);
+    const phys = resolveRun(s, paramsB, tokensB, datasetIds, techniques, cfg, 'true');
+    if (base) {
+      phys.totalFlops = 6 * phys.activeParamsB * 1e9 * a.tokensB * 1e9 * phys.flopsMult;
+      phys.days = phys.rate > 0 ? phys.totalFlops / phys.rate + phys.overheadDays : Infinity;
+    }
+    const believed = resolveRun(s, paramsB, tokensB, datasetIds, techniques, cfg, 'belief');
+    const forecast = forecastTraining(s, paramsB, tokensB, datasetIds, techniques, cfg);
     const accidental = rng.chance(phys.contaminationChance);
     const hidden = rollPretrainHidden(s, rng, cfg, datasetIds, phys);
     // v16: each stage's take moves the TRUE caps away from what the sheet shows (the forecast assumes a take of 1).
@@ -742,8 +758,8 @@ export const handlers: ActionHandlers = {
     s.training = {
       id: newId(s, 'run'),
       name,
-      paramsB: a.paramsB,
-      tokensB: a.tokensB,
+      paramsB,
+      tokensB,
       datasetIds,
       techniques,
       dataQuality: phys.dataQuality,
@@ -769,6 +785,7 @@ export const handlers: ActionHandlers = {
       accidentallyContaminated: accidental,
       incidents: [],
       overheadLeft: phys.overheadDays,
+      ...(base ? { parentId: base.id } : {}),
     };
     s.training.calls = planRunCalls(s, s.training, phys.days);
     if (s.training.calls.length > 0) s.flags['callRuns'] = (s.flags['callRuns'] ?? 0) + 1;
@@ -776,7 +793,7 @@ export const handlers: ActionHandlers = {
     const days = Number.isFinite(phys.days) ? Math.ceil(phys.days) : 0;
     notify(
       s,
-      `Training ${name} (${describeConfig(cfg)}): about ${days} days.${a.benchmaxx ? ' Test sets are in the training data. Nobody said that.' : ''}`,
+      `Training ${name} (${describeConfig(cfg)}): about ${days} days.${base ? ` Continuing ${base.name} on ${a.tokensB}B new tokens.` : ''}${a.benchmaxx ? ' Test sets are in the training data. Nobody said that.' : ''}`,
       'info',
     );
   },

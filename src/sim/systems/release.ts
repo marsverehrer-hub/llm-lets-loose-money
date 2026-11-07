@@ -13,6 +13,7 @@ import { frontierQuality } from './market';
 import { onRelease } from './vault';
 import { releaseMoment } from './moments';
 import { enforceOpenRelease } from './scenario'; // v9 scenario
+import { modelAllows } from './hub'; // v19: the hub licence gate
 
 /**
  * Latent-quirk and arena constants that mirror LAB_TUNING in lab.ts. They are copied rather than imported: lab.ts
@@ -253,6 +254,15 @@ export const handlers: ActionHandlers = {
     const mode: ReleaseMode = enforceOpenRelease(s, a.mode ?? 'full'); // v9 scenario: open-only scenarios
     if (!RELEASE_MODES.includes(mode)) {
       notify(s, 'Pick a release mode: full, preview or open.', 'bad');
+      return;
+    }
+    // v19: hub licences. Research weights can't be released; noncommercial weights only as open weights.
+    if (!modelAllows(m, 'release')) {
+      notify(s, `${m.name} has ${m.origin?.license} weights. Those can't be released.`, 'bad');
+      return;
+    }
+    if (m.origin?.license === 'noncommercial' && mode !== 'open') {
+      notify(s, `${m.name} has noncommercial weights. They can only be released as open weights.`, 'bad');
       return;
     }
     const rename = a.publicName?.trim().slice(0, 40);
