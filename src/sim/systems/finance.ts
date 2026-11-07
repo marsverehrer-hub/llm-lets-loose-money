@@ -137,8 +137,20 @@ export function valuationParts(s: GameState): { base: number; premium: number; m
   };
 }
 
-/** Fundamental (target) private valuation: max(decaying floor, revenue multiple + potential). */
-export function computeValuation(s: GameState): number {
+/**
+ * The pieces of the fundamental (target) valuation, for the valuation popover. The pieces add up to `target`:
+ * revenue + potential, lifted to the floor if the floor is higher, then scaled by the bonuses.
+ */
+export interface ValuationBreakdown {
+  multiple: number;
+  revenue: number;
+  potential: number;
+  floorTopUp: number;
+  bonuses: number;
+  target: number;
+}
+
+export function valuationBreakdown(s: GameState): ValuationBreakdown {
   const aiHype = s.market.aiHype;
   const best = bestPlayerModel(s);
   const bestOverall = best ? best.overall : 0;
@@ -147,8 +159,17 @@ export function computeValuation(s: GameState): number {
   const rank = playerArenaRank(s);
   const arenaFactor = rank > 0 ? clamp(1 - 0.15 * (rank - 1), 0.2, 1) : 0.2;
   const potential = (bestOverall / 100) ** 3 * POTENTIAL_SCALE * (aiHype / 50) * arenaFactor;
+  const revenue = annualRevenue(s) * multiple;
+  const floor = valuationFloor(s);
+  const pre = Math.max(floor, revenue + potential);
   // v8 doctrine: the valuation multiplier (1 at neutral). Feeds the private round and the stock's fundamental price.
-  return Math.max(valuationFloor(s), annualRevenue(s) * multiple + potential) * (getBonuses(s).valuation ?? 1);
+  const target = pre * (getBonuses(s).valuation ?? 1);
+  return { multiple, revenue, potential, floorTopUp: Math.max(0, floor - (revenue + potential)), bonuses: target - pre, target };
+}
+
+/** Fundamental (target) private valuation: max(decaying floor, revenue multiple + potential), times the bonuses. */
+export function computeValuation(s: GameState): number {
+  return valuationBreakdown(s).target;
 }
 
 /** Records the day a priced round closed, so the valuation floor restarts its decay. */

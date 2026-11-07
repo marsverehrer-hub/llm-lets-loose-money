@@ -172,7 +172,11 @@
 }
 .topbar-more-row .num { color: var(--fg); font-weight: 700; }
 /* Lower-priority readouts drop out as the window narrows. Revenue, users and hype live behind More. */
-@media (max-width: 1220px) { .topbar-stats .topbar-stat.ts-val { display: none; } }
+@media (max-width: 1220px) { .topbar-stats .topbar-stat.ts-val, .topbar-stats .topbar-val { display: none; } }
+/* The valuation is a stat that opens its breakdown: the trigger keeps the stat's look (paper overrides in theme.css). */
+.topbar-val .popover-trigger { flex-direction: column; align-items: flex-start; justify-content: center; gap: 0; height: 46px; padding: 0 22px 0 14px; background: var(--bg-2); border: 0; border-radius: var(--r-md); }
+.topbar-val .popover-caret { position: absolute; right: 8px; top: 50%; translate: 0 -50%; }
+:root .topbar-val .popover-trigger { background: transparent; border-radius: 0; border-left: 1px solid var(--line); padding: 0 22px 0 16px; height: 42px; }
 @media (max-width: 1100px) { .brand { min-width: 0; } }
 @media (max-width: 900px) { .topbar-stats .topbar-stat.ts-runway { display: none; } }
 @media (max-width: 1000px) { .topbar .tb-text { display: none; } }

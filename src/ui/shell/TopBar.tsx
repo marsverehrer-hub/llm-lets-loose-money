@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import type { Speed } from '../../sim/types';
-import { AnimatedNumber, Button, Modal, Popover, Slider, Tooltip, clamp, formatCount, resetPanelIntros } from '../components';
+import type { GameState, Speed } from '../../sim/types';
+import { AnimatedNumber, Button, Modal, Popover, Slider, Tooltip, Waterfall, clamp, formatCount, resetPanelIntros } from '../components';
+import type { WaterfallStep } from '../components';
 import { Check } from '../components/Check';
 import { dispatch, getState, saveNow, useGame } from '../store';
 import { hiddenPanels, showAllScreens, showNotice } from '../unlocks';
@@ -12,7 +13,7 @@ import { CAMERA_MODE_LABEL, NEXT_CAMERA_MODE, setCameraMode, useCameraMode } fro
 import { InterfaceSizeRow } from './InterfaceSize';
 import { runwayLabel, runwayTone, tdate } from './fmt';
 import { daysIntoGame } from '../../sim/systems/scenario';
-import { runwayDays } from '../../sim/systems/finance';
+import { annualRevenue, runwayDays, valuationBreakdown } from '../../sim/systems/finance';
 import { formatMoney } from '../../sim/util';
 import { requestMatchSpeed, useSession, type NetStatus } from '../../net/session';
 import { openLobby } from '../mp/lobbyState';
@@ -110,6 +111,25 @@ function roomDot(status: NetStatus): string {
   if (status === 'waiting' || status === 'connecting') return 'dot-warn dot-pulse';
   if (status === 'disconnected' || status === 'error') return 'dot-bad';
   return '';
+}
+
+/** The valuation popover: the pieces of the target valuation, and how the shown number moves toward it. */
+function ValuationWaterfall({ s }: { s: GameState }) {
+  const b = valuationBreakdown(s);
+  const steps: WaterfallStep[] = [
+    { id: 'revenue', label: 'Revenue times multiple', value: b.revenue, detail: `${formatMoney(annualRevenue(s), 1)} a year at ${b.multiple.toFixed(1)}× revenue.` },
+    { id: 'potential', label: 'Model quality', value: b.potential, detail: 'Your best model against the frontier, AI hype and your arena rank.' },
+    { id: 'floor', label: 'Floor', value: b.floorTopUp, detail: 'The last round’s price, fading over a year, when revenue and quality fall short of it.' },
+    { id: 'bonuses', label: 'Bonuses', value: b.bonuses, detail: 'Board confidence, doctrine, perks, Hall of Fame and events.' },
+  ].filter((st) => st.value !== 0);
+  return (
+    <>
+      <Waterfall steps={steps} end={{ label: s.company.isPublic ? 'Fundamental value' : 'Target' }} />
+      <p class="small muted">
+        {s.company.isPublic ? 'The share price is pulled toward this estimate, and the market cap follows the price.' : 'The valuation drifts toward this target a little each day.'}
+      </p>
+    </>
+  );
 }
 
 /** Top bar: LLM <GO> block, company name (click to rename), date, ticker-style readouts, speed keys, sound, MENU. */
@@ -279,12 +299,22 @@ export function TopBar() {
           <span class="topbar-label">Runway</span>
           <span class="topbar-value">{broke ? `${s.finance.negativeCashDays}d in the red` : runwayLabel(runway, daysIntoGame(s))}</span>
         </div>
-        <div class="topbar-stat ts-val" title={s.company.isPublic ? 'Public market capitalisation' : 'Private valuation'}>
-          <span class="topbar-label">{valLabel}</span>
-          <span class="topbar-value">
-            <AnimatedNumber value={s.finance.valuation} format={(v) => formatMoney(v, 0)} />
-          </span>
-        </div>
+        <Popover
+          class="topbar-val"
+          title={valLabel}
+          width={320}
+          align="right"
+          label={
+            <>
+              <span class="topbar-label">{valLabel}</span>
+              <span class="topbar-value">
+                <AnimatedNumber value={s.finance.valuation} format={(v) => formatMoney(v, 0)} />
+              </span>
+            </>
+          }
+        >
+          <ValuationWaterfall s={s} />
+        </Popover>
         <Popover label="More" width={260} align="right" class="topbar-more">
           <div class="topbar-more-list">
             <div class="topbar-more-row">

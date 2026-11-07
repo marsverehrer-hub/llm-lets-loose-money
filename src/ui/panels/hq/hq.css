@@ -84,6 +84,9 @@
   transition: border-color var(--t-fast) linear, transform var(--t-fast) var(--ease);
 }
 .kpi:hover { border-color: var(--line-2); transform: translateY(-1px); }
+/* A transform makes the tile the containing block of its fixed popover, so the tile stays still while one is open. */
+.kpi:has(.popover.open) { transform: none; }
+.kpi-users-pop .popover-trigger { height: 22px; padding: 0 6px; background: transparent; border-color: transparent; font-size: 12px; }
 .kpi-label {
   display: flex;
   align-items: center;

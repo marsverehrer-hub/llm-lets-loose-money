@@ -5,7 +5,8 @@ import type { PanelId } from '../../App';
 import { runwayDays } from '../../../sim/systems/finance';
 import type { FinanceSample, GameState } from '../../../sim/types';
 import { formatMoney, formatNumber } from '../../../sim/util';
-import { HelpTip, Sparkline, signedMoney } from '../../components';
+import { HelpTip, Popover, Sparkline, Waterfall, signedMoney } from '../../components';
+import type { WaterfallStep } from '../../components';
 import { liveHistory } from '../../components/derive';
 import { navigate } from '../../nav';
 import { PANEL_INFO } from '../../unlocks';
@@ -35,6 +36,17 @@ function change(series: number[], fmt: (v: number) => string, upIsGood = true): 
   const d = now - then;
   if (!isFinite(d) || Math.abs(d) < 1e-9) return undefined;
   return { text: fmt(Math.abs(d)), up: d > 0, good: d > 0 === upIsGood };
+}
+
+/** Users by product, live. The tile shows the last weekly sample, so the total here can run a little ahead of it. */
+function UsersByProduct({ s }: { s: GameState }) {
+  const steps: WaterfallStep[] = s.products.filter((p) => p.active && p.users > 0).map((p) => ({ id: String(p.id), label: p.name, value: p.users }));
+  return (
+    <>
+      <Waterfall steps={steps} end={{ label: 'Total' }} format={(v) => formatNumber(v, 1)} />
+      <p class="small muted">Active products, right now.</p>
+    </>
+  );
 }
 
 export function KpiStrip({ s }: { s: GameState }) {
@@ -127,6 +139,11 @@ export function KpiStrip({ s }: { s: GameState }) {
           <span class="kpi-label">
             {t.label}
             <HelpTip>{t.help}</HelpTip>
+            {t.id === 'users' && (
+              <Popover label="By product" width={300} align="right" class="kpi-users-pop">
+                <UsersByProduct s={s} />
+              </Popover>
+            )}
           </span>
           <button type="button" class="kpi-hit" onClick={() => navigate(t.panel)} aria-label={`${t.label} ${t.value}. Open ${PANEL_INFO[t.panel].label}`}>
             <span class={`kpi-value num ${t.tone ?? ''}`}>{t.value}</span>

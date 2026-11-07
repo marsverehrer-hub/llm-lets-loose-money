@@ -48,6 +48,10 @@
 .panel-intro-body { flex: 1; min-width: 0; }
 .panel-intro-text { color: var(--fg); line-height: 1.6; }
 .panel-intro-steps { margin: 6px 0 0; padding-left: 20px; color: var(--fg-2); line-height: 1.6; }
+/* Seen once: the abstract folds to one line and opens on a click. */
+.panel-intro-line { width: 100%; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.panel-intro-line .panel-intro-text { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.panel-intro-caret { color: var(--fg-3); font-size: 12px; }
 
 /* FlowBar */
 .flowbar { display: flex; flex-direction: column; gap: 8px; }

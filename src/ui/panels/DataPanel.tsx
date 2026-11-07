@@ -6,7 +6,7 @@ import { useGame } from '../store';
 import { calendarYear } from '../../sim/util';
 import { DATA_TUNING, availableDatasetsV2, collapsePenalty, dataStats, syntheticShare, type DatasetRow } from '../../sim/systems/data';
 import type { GameState, Id } from '../../sim/types';
-import { Card, HelpTip, PanelHeader, PanelIntro, Tabs } from '../components';
+import { Card, HelpTip, PanelHeader, PanelIntro, Tabs, useIsMobile } from '../components';
 import type { TabDef } from '../components';
 import './panels.css';
 import './data.css';
@@ -30,6 +30,7 @@ const PARTS: TabDef<DataPart>[] = [
 
 export function DataPanel() {
   const s = useGame();
+  const phone = useIsMobile();
   const rows: DatasetRow[] = availableDatasetsV2(s);
   const year = calendarYear(s.day);
   const hero = heroNumbers(s);
@@ -45,6 +46,61 @@ export function DataPanel() {
   };
   const selRow = selId ? rows.find((r) => r.def.id === selId) : undefined;
   const patch = (p: Partial<CatalogueView>) => setView((v) => ({ ...v, ...p }));
+
+  const figures = (
+    <section class="dt-figures" aria-label="Your numbers">
+      <DataFacts s={s} onTool={openTool} />
+    </section>
+  );
+  const camera = (
+    <ViewFold panel="data" defaultOpen={false}>
+      <SceneView
+        state={s}
+        make={createWarehouse}
+        cam={WAREHOUSE_CAM}
+        camId="CAM-04"
+        label="Your data warehouse: shelves of datasets by domain, the crawler, the refinery and jobs in flight"
+        onSelect={(hit) => {
+          if (hit.id.startsWith('domain:')) {
+            patch({ domain: hit.id.slice(7) as CatalogueView['domain'], status: 'owned' as CatalogueView['status'] });
+            setPart('catalogue');
+            requestAnimationFrame(() => document.querySelector('.dt-filter-inline')?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+          }
+        }}
+      />
+    </ViewFold>
+  );
+  // Phones: the tabs and what they act on come first; the stats and the camera plate follow them.
+  const tabs = (
+    <>
+      <Tabs<DataPart> class="dt-tabs" value={part} onChange={setPart} tabs={PARTS} />
+
+      {part === 'catalogue' && (
+        <>
+          <Card title="Your tokens" subtitle={`${hero.owned} ${hero.owned === 1 ? 'set' : 'sets'}`} class="dt-hero-map">
+            <TokenMap items={items} onOpen={setSelId} />
+          </Card>
+          <Catalogue s={s} rows={rows} view={view} patch={patch} selId={selId} onOpen={setSelId} />
+        </>
+      )}
+
+      {part === 'getdata' && (
+        <GetDataArea
+          s={s}
+          market={
+            <p class="dt-market-pointer">
+              {plural(rows.filter((r) => r.status === 'owned').length, 'set')} owned.{' '}
+              <button type="button" class="btn btn-sm" onClick={() => setPart('catalogue')}>
+                Open the catalogue
+              </button>
+            </p>
+          }
+        />
+      )}
+
+      {part === 'refinery' && <MakeData s={s} tool={tool} onTool={setTool} />}
+    </>
+  );
 
   return (
     <div class="panel pn pn-data">
@@ -76,53 +132,19 @@ export function DataPanel() {
           Pick a block in the map or a row in the catalogue to open a set. Audit a set to learn its real quality: until then it is the seller's claim.
         </PanelIntro>
 
-        <section class="dt-figures" aria-label="Your numbers">
-          <DataFacts s={s} onTool={openTool} />
-        </section>
-
-        <ViewFold panel="data" defaultOpen={false}>
-          <SceneView
-            state={s}
-            make={createWarehouse}
-            cam={WAREHOUSE_CAM}
-            camId="CAM-04"
-            label="Your data warehouse: shelves of datasets by domain, the crawler, the refinery and jobs in flight"
-            onSelect={(hit) => {
-              if (hit.id.startsWith('domain:')) {
-                patch({ domain: hit.id.slice(7) as CatalogueView['domain'], status: 'owned' as CatalogueView['status'] });
-                setPart('catalogue');
-                requestAnimationFrame(() => document.querySelector('.dt-filter-inline')?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
-              }
-            }}
-          />
-        </ViewFold>
-
-        <Tabs<DataPart> class="dt-tabs" value={part} onChange={setPart} tabs={PARTS} />
-
-        {part === 'catalogue' && (
+        {phone ? (
           <>
-            <Card title="Your tokens" subtitle={`${hero.owned} ${hero.owned === 1 ? 'set' : 'sets'}`} class="dt-hero-map">
-              <TokenMap items={items} onOpen={setSelId} />
-            </Card>
-            <Catalogue s={s} rows={rows} view={view} patch={patch} selId={selId} onOpen={setSelId} />
+            {tabs}
+            {figures}
+            {camera}
+          </>
+        ) : (
+          <>
+            {figures}
+            {camera}
+            {tabs}
           </>
         )}
-
-        {part === 'getdata' && (
-          <GetDataArea
-            s={s}
-            market={
-              <p class="dt-market-pointer">
-                {plural(rows.filter((r) => r.status === 'owned').length, 'set')} owned.{' '}
-                <button type="button" class="btn btn-sm" onClick={() => setPart('catalogue')}>
-                  Open the catalogue
-                </button>
-              </p>
-            }
-          />
-        )}
-
-        {part === 'refinery' && <MakeData s={s} tool={tool} onTool={setTool} />}
       </div>
 
       <SetSheet s={s} row={selRow} year={year} onClose={() => setSelId(null)} />

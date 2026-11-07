@@ -34,15 +34,24 @@ export function resetPanelIntros(): void {
 }
 
 /**
- * v18: a single quiet "what this screen is for" line. It shows on the first visit to a screen and is marked seen
- * right away, so it never nags; Menu > Show screen tips again brings them back.
+ * v18: a single quiet "what this screen is for" line. It shows in full on the first visit to a screen and is marked
+ * seen right away; after that it folds to one line that opens on a click. Menu > Show screen tips again brings them back.
  */
 export function PanelIntro({ id, children, steps }: PanelIntroProps) {
-  const [show] = useState(() => !readDismissed()[id]);
+  const [seen] = useState(() => !!readDismissed()[id]);
+  const [folded, setFolded] = useState(seen);
   useEffect(() => {
-    if (show) writeDismissed({ ...readDismissed(), [id]: true });
-  }, [id, show]);
-  if (!show) return null;
+    if (!seen) writeDismissed({ ...readDismissed(), [id]: true });
+  }, [id, seen]);
+  if (folded)
+    return (
+      <button type="button" class="panel-intro panel-intro-line" aria-expanded={false} onClick={() => setFolded(false)}>
+        <span class="panel-intro-text">{children}</span>
+        <span class="panel-intro-caret" aria-hidden="true">
+          ▾
+        </span>
+      </button>
+    );
   return (
     <div class="panel-intro" role="note">
       <div class="panel-intro-body">
