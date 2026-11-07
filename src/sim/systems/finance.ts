@@ -78,11 +78,14 @@ export const VALUATION_TUNING = {
   PREMIUM_MIN: 0.4,
   PREMIUM_MAX: 1.2,
   /** Multiple per revenue category. Contracts and enterprise are sticky; cloud and data are commodity; grants are not revenue. */
-  MIX_MULT: { contracts: 1.3, enterprise: 1.3, api: 1.0, chat: 0.9, media: 0.9, cloud: 0.7, data: 0.7, other: 0.8, grant: 0 } as Record<string, number>,
+  MIX_MULT: { contracts: 1.15, enterprise: 1.15, api: 1.0, chat: 0.9, media: 0.9, cloud: 0.75, data: 0.75, other: 0.8, grant: 0 } as Record<string, number>,
   /** Revenue per head (ARR / staff) where the lean premium starts and tops out. */
   LEAN_MIN_RPH: 1e6,
   LEAN_MAX_RPH: 10e6,
-  LEAN_MAX: 1.5,
+  LEAN_MAX: 1.25,
+  /** The lean premium is for small labs: full up to LEAN_FULL_HC staff, gone by LEAN_ZERO_HC. */
+  LEAN_FULL_HC: 100,
+  LEAN_ZERO_HC: 500,
   /** Each rival fine-tune of your open weights adds this much to the multiple, up to ECO_MAX. */
   ECO_PER_DERIVATIVE: 0.008,
   ECO_MAX: 1.4,
@@ -113,7 +116,8 @@ export function leanPremium(s: GameState): number {
   const hc = headcount(s);
   const rph = hc > 0 ? annualRevenue(s) / hc : 0;
   const t = clamp((rph - VALUATION_TUNING.LEAN_MIN_RPH) / (VALUATION_TUNING.LEAN_MAX_RPH - VALUATION_TUNING.LEAN_MIN_RPH), 0, 1);
-  return rph > 0 ? 1 + (VALUATION_TUNING.LEAN_MAX - 1) * t : 1;
+  const small = clamp((VALUATION_TUNING.LEAN_ZERO_HC - hc) / (VALUATION_TUNING.LEAN_ZERO_HC - VALUATION_TUNING.LEAN_FULL_HC), 0, 1);
+  return rph > 0 ? 1 + (VALUATION_TUNING.LEAN_MAX - 1) * t * small : 1;
 }
 
 /** Rival fine-tunes of the player's open weights, capped. */

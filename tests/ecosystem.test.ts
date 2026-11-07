@@ -94,11 +94,11 @@ describe('ecosystem derivatives', () => {
 });
 
 describe('market scale', () => {
-  it('is flat until 2024, grows after, and is capped at 8', () => {
+  it('is flat until 2024, grows after, and is capped at 3', () => {
     expect(marketScale(2018)).toBe(1);
     expect(marketScale(2026)).toBeGreaterThan(marketScale(2024));
     expect(marketScale(2030)).toBeGreaterThan(marketScale(2026));
-    expect(marketScale(2040)).toBe(8);
+    expect(marketScale(2040)).toBe(3);
   });
 
   it('scales the value of deals offered in late years', () => {

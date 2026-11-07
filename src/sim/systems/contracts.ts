@@ -260,7 +260,7 @@ export function contractRevenuePerDay(s: GameState): number {
 
 /** v20 C1: late deals grow with the enterprise market, x1 up to 2024 and capped at x8. */
 export function marketScale(year: number): number {
-  return clamp(tamFor('enterprise', year) / tamFor('enterprise', 2024), 1, 8);
+  return clamp(tamFor('enterprise', year) / tamFor('enterprise', 2024), 1, 3);
 }
 
 /** v20 C2: exclusives are the specialist's deals. Offers do not carry a flag, so this reads the definition. */

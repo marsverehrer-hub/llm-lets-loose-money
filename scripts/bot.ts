@@ -28,7 +28,7 @@ import { headcount, officeCapacity, dailyPayroll } from '../src/sim/systems/staf
 import { availableGpus, availableDatacenterTiers } from '../src/sim/systems/compute';
 import { fleetPriority, previewFleet } from '../src/sim/systems/serving';
 import { unlockedProductKinds, defaultPrice, liveLines } from '../src/sim/systems/products';
-import { canIpo, pitchReadiness, runwayDays } from '../src/sim/systems/finance';
+import { canIpo, canSecondary, pitchReadiness, runwayDays } from '../src/sim/systems/finance';
 import { activeBenchmarks, availableSpecs, isSaturated, productFitFor, specById } from '../src/sim/systems/capabilities';
 import { segQuality } from '../src/sim/systems/market';
 import { bestPrecision, defaultConfig, isOptionUnlocked, tokenizerFor } from '../src/sim/data/trainingOptions';
@@ -769,7 +769,9 @@ export function botDay(st: GameState, idle = false, strategy: BotStrategy = 'fro
   if (st.finance.pendingOffer) dispatch(st, { type: 'acceptOffer' });
   // v17.2: like a player, pitch investors when runway gets short instead of waiting for a call.
   else if (runwayDays(st) < 270 && pitchReadiness(st).ok) dispatch(st, { type: 'pitchInvestors' });
-  if (!st.company.isPublic && canIpo(st).ok) dispatch(st, { type: 'ipo' });
+  // List only when the books work (net > 0): a listed company cannot pitch VCs. Once public, sell stock when runway gets short.
+  if (!st.company.isPublic && net > 0 && canIpo(st).ok) dispatch(st, { type: 'ipo' });
+  if (st.company.isPublic && net < 0 && runwayDays(st) < 270 && canSecondary(st).ok) dispatch(st, { type: 'secondaryOffering' });
 
   researchStep(st, strategy);
   dataStep(st);
