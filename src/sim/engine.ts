@@ -42,6 +42,7 @@ import { handlers as rivalLabHandlers } from './systems/rivals/lifecycle'; // v1
 import { handlers as rivalLicenseHandlers } from './systems/rivals/licensing'; // v22 licensing a model to a rival
 import { thesisTick } from './systems/thesis'; // v20 path goals
 import { modelLifeTick, handlers as modelLifeHandlers } from './systems/modelLife'; // v15 patches, mastery, retirement, routers
+import { handlers as playerPlanHandlers } from './systems/playerPlans'; // v22 yearly plan
 import { cupTick, handlers as cupHandlers } from './systems/tournament'; // v15 Arena Cup
 import { cloudTick, handlers as cloudHandlers } from './systems/cloudMarket'; // v16 cloud providers
 import { neocloudTick, handlers as neocloudHandlers } from './systems/neocloud'; // v16 neocloud
@@ -144,6 +145,7 @@ const HANDLERS: ActionHandlers = Object.assign(
   cloudHandlers,
   neocloudHandlers,
   mediaHandlers,
+  playerPlanHandlers,
 );
 
 /** True when the simulation should not advance (game over or an event awaits a decision). */

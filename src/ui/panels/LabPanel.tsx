@@ -7,6 +7,7 @@ import { quarterLabel } from '../../sim/systems/board';
 import { monthYear } from '../components';
 import { Card, PanelHeader, PanelIntro, Tabs } from '../components';
 import { useGame } from '../store';
+import { PlanCard } from './GoalsCard';
 import { BoardCard } from './lab/BoardCard';
 import { LevelCard } from './lab/LevelCard';
 import { PerkTree } from './lab/PerkTree';
@@ -98,6 +99,7 @@ export function LabPanel() {
       )}
       {tab === 'board' && (
         <>
+          <PlanCard />
           <div class="grid-2">
             <BoardCard s={s} />
             <CupCard s={s} />

@@ -46,6 +46,8 @@
 .board-reward { margin-left: auto; color: var(--up); }
 .board-goal.is-done .board-reward { color: var(--up); }
 .board-foot { display: flex; align-items: center; gap: 6px; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line); }
+.plan-pick, .plan-guide { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
+.plan-guide { padding-top: 8px; border-top: 1px solid var(--line); }
 
 /* ---- lab screen ---- */
 .perk-tree { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }

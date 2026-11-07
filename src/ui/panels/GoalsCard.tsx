@@ -1,12 +1,16 @@
 // OWNER: SCENARIO. Headquarters "Goals" card (GAME_DESIGN §20.1). Shown only when the scenario has goals (not a sandbox).
+import { useState } from 'preact/hooks';
 import { BALANCE } from '../../sim/balance';
 import { doctrineById } from '../../sim/data/doctrines';
 import { scenarioById } from '../../sim/data/scenarios';
+import { guidanceTarget } from '../../sim/systems/board';
+import { PLAYER_PLANS, planStanding } from '../../sim/systems/playerPlans';
 import { thesisGoals, thesisMet } from '../../sim/systems/thesis';
 import { scenarioScore } from '../../sim/systems/scenario';
-import { calendarYear } from '../../sim/util';
-import { Card, Pill, formatInt } from '../components';
-import { useGame } from '../store';
+import type { GuidanceLevel, PlayerPlanId } from '../../sim/types';
+import { calendarYear, formatMoney } from '../../sim/util';
+import { Button, Card, Pill, Select, formatInt } from '../components';
+import { dispatch, useGame } from '../store';
 import '../shell/newgame.css';
 
 export function GoalsCard() {
@@ -125,4 +129,82 @@ export function ThesisCard() {
       </ul>
     </Card>
   );
+}
+
+const PLAN_OPTIONS = (Object.keys(PLAYER_PLANS) as PlayerPlanId[]).map((id) => ({ value: id, label: PLAYER_PLANS[id].name }));
+const GUIDANCE_OPTIONS: { value: GuidanceLevel; label: string }[] = [
+  { value: 'conservative', label: 'Conservative' },
+  { value: 'in_line', label: 'In line' },
+  { value: 'aggressive', label: 'Aggressive' },
+];
+
+/** v22: the year's plan and, once public, this quarter's earnings guidance (systems/playerPlans.ts, systems/board.ts). */
+export function PlanCard() {
+  const s = useGame();
+  const [pick, setPick] = useState<PlayerPlanId>('ship_twice');
+  const year = calendarYear(s.day);
+  const plan = s.playerPlan;
+  const current = plan?.year === year ? plan : undefined;
+  const standing = current ? planStanding(s, current.id, s.annualLedger) : null;
+  const b = s.board;
+  const g = b?.guidance;
+  const soFar = g ? s.stats.totalRevenue - g.revenueAt : 0;
+
+  return (
+    <Card title="Plan and guidance" subtitle={`${year}`}>
+      {current && standing ? (
+        <>
+          <p class="small">
+            <strong>{PLAYER_PLANS[current.id].name}.</strong> {PLAYER_PLANS[current.id].promise}
+          </p>
+          <p class="small muted">
+            {progressText(current.id, standing.value)} <Pill tone={standing.met ? 'good' : 'default'}>{standing.met ? 'Met so far' : 'Open'}</Pill>
+          </p>
+        </>
+      ) : (
+        <div class="plan-pick">
+          <Select value={pick} onChange={(v) => setPick(v as PlayerPlanId)} options={PLAN_OPTIONS} ariaLabel="Plan for the year" />
+          <Button size="sm" variant="primary" onClick={() => dispatch({ type: 'announcePlan', planId: pick })}>
+            Announce {year} plan
+          </Button>
+          <p class="small muted">{PLAYER_PLANS[pick].promise} Judged on 1 January.</p>
+        </div>
+      )}
+      {plan && plan.year < year && plan.kept !== undefined && (
+        <p class="small muted">
+          {plan.year}: {PLAYER_PLANS[plan.id].name}, {plan.kept ? 'kept' : 'broken'}.
+        </p>
+      )}
+      {s.company.isPublic && b && (
+        <div class="plan-guide">
+          <p class="small">
+            <strong>Earnings guidance</strong>
+          </p>
+          {g ? (
+            <>
+              <Select value={g.level} onChange={(v) => dispatch({ type: 'setGuidance', level: v as GuidanceLevel })} options={GUIDANCE_OPTIONS} ariaLabel="Earnings guidance" />
+              <p class="small muted">
+                Target <span class="num">{formatMoney(guidanceTarget(b, g))}</span> revenue this quarter. So far <span class="num">{formatMoney(soFar)}</span>.
+              </p>
+            </>
+          ) : (
+            <p class="small muted">Guidance opens at the start of each quarter once the lab is public.</p>
+          )}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function progressText(id: PlayerPlanId, value: number): string {
+  switch (id) {
+    case 'ship_twice':
+      return `${value} of 2 models shipped so far.`;
+    case 'profitable':
+      return value >= 0 ? `${formatMoney(value)} profit so far.` : `${formatMoney(-value)} loss so far.`;
+    case 'open_weights':
+      return `${value} open-weights release${value === 1 ? '' : 's'} so far.`;
+    case 'top3':
+      return value >= 99 ? 'Not ranked in the Arena yet.' : `Best Arena rank so far: #${value}.`;
+  }
 }

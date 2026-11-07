@@ -4,7 +4,7 @@
 // stretch. A goal pays the moment it is met (XP plus cash, hype or research points), so there is always something
 // close to finish. At quarter end the hit rate moves board confidence, which nudges valuation (bonuses.ts).
 // The board draws from its own random stream (like contracts) so it never shifts the rest of the sim's rolls.
-import type { ActionHandlers, BoardState, GameState, Objective, ObjectiveKind, ObjectiveReward, Rng } from '../types';
+import type { ActionHandlers, BoardState, GameState, Guidance, GuidanceLevel, Objective, ObjectiveKind, ObjectiveReward, Rng } from '../types';
 import { makeRng } from '../rng';
 import { addRevenue, clamp, dayToDate, formatMoney, notify, pushNews } from '../util';
 import { arenaLeaderboard } from './competitors';
@@ -38,6 +38,13 @@ export const BOARD_TUNING = {
   GROWTH_FLOOR: [1.04, 1.08, 1.15],
   GROWTH_CAP: 2.5,
   HISTORY_CAP: 24,
+};
+
+/** v22 earnings guidance: the target is this share of the quarter at today's daily revenue. `move` is the valuation step. */
+export const GUIDANCE_TUNING: Record<GuidanceLevel, { mult: number; move: number }> = {
+  conservative: { mult: 0.9, move: 2 },
+  in_line: { mult: 1, move: 4 },
+  aggressive: { mult: 1.15, move: 8 },
 };
 
 const T = BOARD_TUNING;
@@ -281,6 +288,24 @@ function startQuarter(s: GameState, b: BoardState): void {
   b.quarter += 1;
   b.rerolls = T.REROLLS_PER_QUARTER;
   b.objectives = buildObjectives(s, b);
+  // Guidance is taken at the quarter's start: a lab that lists mid-quarter waits for the next one.
+  b.guidance = s.company.isPublic ? { level: 'in_line', base: s.finance.dailyRevenue, revenueAt: s.stats.totalRevenue } : undefined;
+}
+
+export function guidanceTarget(b: BoardState, g: Guidance): number {
+  return g.base * (b.quarterEnd - b.quarterStart) * GUIDANCE_TUNING[g.level].mult;
+}
+
+/** At quarter end: beating the guidance lifts board confidence (and so valuation), missing it lowers it. */
+function settleGuidance(s: GameState, b: BoardState): number {
+  const g = b.guidance;
+  if (!g) return 0;
+  // shortcut: goal cash rewards are booked as revenue too, so a paid goal can tip a near miss into a beat. Upgrade with a revenue counter that skips them.
+  const actual = s.stats.totalRevenue - g.revenueAt;
+  const target = guidanceTarget(b, g);
+  const beat = actual >= target;
+  notify(s, `Guidance ${beat ? 'beaten' : 'missed'}: ${formatMoney(actual)} against ${formatMoney(target)}. Valuation ${beat ? 'up' : 'down'}.`, beat ? 'good' : 'bad');
+  return beat ? GUIDANCE_TUNING[g.level].move : -GUIDANCE_TUNING[g.level].move;
 }
 
 /** The board, created on first use with its first quarter. */
@@ -326,7 +351,7 @@ function closeQuarter(s: GameState, b: BoardState): void {
   }
   const total = b.objectives.length;
   const hit = b.objectives.filter((o) => o.doneDay !== null).length;
-  let delta = hit * T.HIT_CONFIDENCE + (total - hit) * T.MISS_CONFIDENCE;
+  let delta = hit * T.HIT_CONFIDENCE + (total - hit) * T.MISS_CONFIDENCE + settleGuidance(s, b);
   if (total > 0 && hit === total) {
     delta += T.SWEEP_CONFIDENCE;
     grantXp(s, T.SWEEP_XP, 'Clean sweep');
@@ -360,6 +385,12 @@ export function boardTick(s: GameState): void {
 }
 
 export const handlers: ActionHandlers = {
+  setGuidance: (s, a) => {
+    const b = ensureBoard(s);
+    if (!b.guidance) return;
+    b.guidance.level = a.level;
+    notify(s, `Guidance set to ${a.level.replace('_', ' ')}: ${formatMoney(guidanceTarget(b, b.guidance))} for the quarter.`, 'info');
+  },
   rerollObjective: (s, a) => {
     const b = ensureBoard(s);
     const at = b.objectives.findIndex((o) => o.id === a.objectiveId);

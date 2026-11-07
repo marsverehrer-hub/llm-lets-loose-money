@@ -9,7 +9,7 @@ import { RUNWAY_WARMUP_DAYS } from '../../shell/fmt';
 import { unlockedProductKinds } from '../../../sim/systems/products';
 import { OFFICE_TIERS } from '../../../sim/data/roles';
 import type { GameState } from '../../../sim/types';
-import { formatMoney } from '../../../sim/util';
+import { calendarYear, formatMoney } from '../../../sim/util';
 import { objectiveProgress } from '../../../sim/systems/board';
 import { currentChapter } from '../../../sim/systems/chapters';
 import { formatDays } from '../../components';
@@ -189,6 +189,9 @@ export function nextSteps(s: GameState): Step[] {
     add({ priority: 'idea', text: 'Buy more training data', why: `You own ${s.data.owned.length} dataset${s.data.owned.length === 1 ? '' : 's'}. More and better data means smarter models.`, panel: 'data', cta: 'Shop data' });
   if (out.every((st) => st.chapter))
     add({ priority: 'idea', text: 'Nothing on fire. Check on the rivals', why: 'See who leads each market and what buyers want next.', panel: 'market', cta: 'Open Market' });
+  const year = calendarYear(s.day);
+  if (s.playerPlan?.year !== year)
+    add({ priority: 'idea', text: `Announce your ${year} plan`, why: 'Promise one thing for the year. The Annual Report judges it on 1 January.', panel: 'lab', cta: 'See plans' });
   return out;
 }
 

@@ -4,6 +4,7 @@ import type { AnnualLedger, AnnualReport, GameState } from '../types';
 import { calendarYear, notify } from '../util';
 import { STANDING_PLAYER_FLAG } from './competitors';
 import { COMPETITORS } from '../data/competitors';
+import { settlePlayerPlan } from './playerPlans';
 
 const KEEP = 30;
 
@@ -65,6 +66,7 @@ export function annualTick(s: GameState): void {
   if (L) {
     readYesterday(s, L);
     if (L.year !== year) {
+      settlePlayerPlan(s, L);
       fileReport(s, L);
       L = undefined;
     }

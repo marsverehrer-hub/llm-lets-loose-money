@@ -1334,6 +1334,8 @@ export interface GameState {
   /** v21: Annual Reports filed on each 1 January (newest last), and the year still open (systems/annual.ts). */
   annualReports?: AnnualReport[];
   annualLedger?: AnnualLedger;
+  /** v22: the plan the player announced for a calendar year, judged on 1 January (systems/playerPlans.ts). */
+  playerPlan?: PlayerPlan;
 }
 
 // ---------------------------------------------------------------------------
@@ -1347,6 +1349,9 @@ export type GameAction =
   | { type: 'buyPerk'; perkId: Id }
   | { type: 'respecPerks' }
   | { type: 'rerollObjective'; objectiveId: Id }
+  // v22 yearly plan and earnings guidance
+  | { type: 'announcePlan'; planId: PlayerPlanId }
+  | { type: 'setGuidance'; level: GuidanceLevel }
   // v15 model life: patches, retirement, Arena Cup, routers
   | { type: 'patchModel'; modelId: Id; focus: PatchFocus }
   | { type: 'retireModel'; modelId: Id; openWeights?: boolean }
@@ -1862,6 +1867,26 @@ export interface AnnualReport {
   rivalMove: string | null;
 }
 
+/** v22: a yearly promise the player can announce. Each is checked against the year's ledger on 1 January. */
+export type PlayerPlanId = 'ship_twice' | 'profitable' | 'open_weights' | 'top3';
+
+/** v22: `kept` is set on 1 January; undefined while the year is still open. */
+export interface PlayerPlan {
+  id: PlayerPlanId;
+  year: number;
+  kept?: boolean;
+}
+
+export type GuidanceLevel = 'conservative' | 'in_line' | 'aggressive';
+
+/** v22: quarter earnings guidance, taken at the quarter's start. `base` is the daily revenue then. */
+export interface Guidance {
+  level: GuidanceLevel;
+  base: number;
+  /** stats.totalRevenue at the quarter's start, so the quarter's own revenue is the difference. */
+  revenueAt: number;
+}
+
 export type ObjectiveKind =
   | 'revenue' | 'users' | 'ship' | 'research' | 'beat' | 'crown' | 'contract' | 'rank' | 'hype' | 'runway' | 'launch' | 'train' | 'scale';
 
@@ -1901,6 +1926,8 @@ export interface BoardState {
   rerolls: number;
   /** Past quarters, newest last (cap 24). */
   history: { quarter: number; hit: number; total: number; day: number }[];
+  /** v22: earnings guidance for this quarter. Only set when the lab was public at the quarter's start. */
+  guidance?: Guidance;
 }
 
 // ---------------------------------------------------------------------------
