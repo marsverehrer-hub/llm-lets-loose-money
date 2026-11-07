@@ -46,3 +46,4 @@
 .field-list li {
   margin: 2px 0;
 }
+.field-row { cursor: pointer; }

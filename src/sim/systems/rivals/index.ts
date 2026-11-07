@@ -41,8 +41,9 @@ function withRivalRng(s: GameState, fn: (rng: Rng) => void): void {
 export function rivalsTick(s: GameState): void {
   const labs = rivalLabs(s);
   withRivalRng(s, (rng) => {
+    // Plans: everyone on 1 January, and a lab founded mid-year announces within the week.
     const d = dayToDate(s.day);
-    if (d.getUTCMonth() === 0 && d.getUTCDate() === 1) plansYear(s, rng);
+    if ((d.getUTCMonth() === 0 && d.getUTCDate() === 1) || s.day % RIVAL_TUNING.BRAIN_EVERY_DAYS === 0) plansYear(s, rng);
     lifecycleDay(s, rng);
     if (s.day % RIVAL_TUNING.BRAIN_EVERY_DAYS !== 0) return;
     for (const lab of labs) {

@@ -30,6 +30,9 @@ import { scenarioTick, setScenarioTicker } from './systems/scenario'; // v9 scen
 import { boardTick, handlers as boardHandlers } from './systems/board'; // v13 board objectives
 import { progressionTick, handlers as progressionHandlers } from './systems/progression'; // v13 lab XP and perks
 import { handlers as tempoHandlers } from './systems/tempo'; // v13 run tempo
+import { hubTick, handlers as hubHandlers } from './systems/hub'; // v19 open hub
+import { handlers as quantizeHandlers } from './systems/quantize'; // v19 serving work
+import { safetyTick } from './systems/safetyCase'; // v19 safety cases and jailbreaks
 import { modelLifeTick, handlers as modelLifeHandlers } from './systems/modelLife'; // v15 patches, mastery, retirement, routers
 import { cupTick, handlers as cupHandlers } from './systems/tournament'; // v15 Arena Cup
 import { cloudTick, handlers as cloudHandlers } from './systems/cloudMarket'; // v16 cloud providers
@@ -59,6 +62,8 @@ const SYSTEMS: System[] = [
   contractsTick,
   mediaTick, // v16: media run, media products and rival media lines (idle until the player first uses it)
   modelLifeTick, // v15: patches land, models earn mastery from the users they serve
+  hubTick, // v19: the open hub follows the rivals' open releases
+  safetyTick, // v19: jailbreaks against released models
   cupTick, // v15: Arena Cup announcements and play days
   eventsTick,
   scenarioTick, // v9 scenario: goals, grant and takeovers, before the books close
@@ -108,6 +113,8 @@ const HANDLERS: ActionHandlers = Object.assign(
   servingHandlers,
   marketHandlers,
   productsHandlers,
+  hubHandlers,
+  quantizeHandlers,
   eventsHandlers,
   financeHandlers,
   mpHandlers,

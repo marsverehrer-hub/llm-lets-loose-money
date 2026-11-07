@@ -302,6 +302,9 @@ export interface CompetitorDef {
   fate?: 'acquirer' | 'target' | 'survivor';
 }
 
+/** v19: what an open release allows. permissive: anything; noncommercial: no products or contracts; research: no products, no contracts, no release. */
+export type HubLicense = 'permissive' | 'noncommercial' | 'research';
+
 /** v19: the kinds of lab in the Field. */
 export type RivalKind = 'frontier' | 'open' | 'startup' | 'sovereign' | 'chip' | 'bigtech';
 
@@ -610,7 +613,13 @@ export interface Model {
   /** Used internally (speeds up research) instead of / before release. */
   internal?: boolean;
   /** How it was made, for distilled and merged models. */
-  derivedFrom?: { kind: 'distill' | 'merge'; ids: Id[]; method?: MergeMethod };
+  derivedFrom?: { kind: 'distill' | 'merge' | 'quant'; ids: Id[]; method?: MergeMethod };
+  /** v19: downloaded from the open hub (a rival lab's open weights). The license gates products and contracts. */
+  origin?: { labId: Id; modelId: Id; license: HubLicense };
+  /** v19: a quantized serving variant (8 or 4 bits). */
+  quant?: 8 | 4;
+  /** v19: the model this one continued pretraining from (same line, a new version). */
+  continuedFrom?: Id;
   /** Playground prompts tried (ids), for flavour and the latent-quirk poke cooldown. */
   pokes?: { day: number; count: number };
   // v15 model life (GAME_DESIGN §25)
@@ -1285,7 +1294,12 @@ export type GameAction =
   | { type: 'commissionDataset'; domain: DataDomain; kind: DataKind; budget: number; name?: string }
   | { type: 'generateSynthetic'; modelId: Id; tokensB: number; domain: DataDomain; name?: string }
   | { type: 'setUserDataOptIn'; on: boolean }
-  | { type: 'startTraining'; name: string; paramsB: number; tokensB: number; datasetIds: Id[]; techniques: Id[]; benchmaxx?: boolean; config?: TrainingConfig }
+  | { type: 'startTraining'; name: string; paramsB: number; tokensB: number; datasetIds: Id[]; techniques: Id[]; benchmaxx?: boolean; config?: TrainingConfig; continueFrom?: Id }
+  // v19: models deeper
+  | { type: 'downloadHubModel'; labId: Id; modelId: Id }
+  | { type: 'downloadHubDataset'; labId: Id; datasetId: Id }
+  | { type: 'quantizeModel'; modelId: Id; bits: 8 | 4 }
+  | { type: 'distilFamily'; teacherId: Id }
   | { type: 'resolveRunIncident'; choice: number }
   | { type: 'clearRunIncident' }
   | { type: 'earlyStopTraining' }

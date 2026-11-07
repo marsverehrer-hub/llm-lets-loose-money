@@ -249,7 +249,7 @@ export function suggestPublicName(
     version: baseVersion(s, model),
     tier: sizeTier(s, model),
     spec: specKindOf(model),
-    derived: model.derivedFrom?.kind ?? null,
+    derived: model.derivedFrom?.kind === 'quant' ? null : (model.derivedFrom?.kind ?? null), // a quantized variant is named like its parent
     paramsB: model.paramsB,
     rng,
   };

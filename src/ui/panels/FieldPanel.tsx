@@ -181,7 +181,7 @@ export function FieldPanel() {
                   const gpuCount = r.gpus.reduce((a, g) => a + g.count, 0);
                   const id = r.lab.id;
                   return (
-                    <tr key={id} class={sel === id ? 'sel' : ''}>
+                    <tr key={id} class={`field-row ${sel === id ? 'sel' : ''}`} onClick={() => setSel(id)}>
                       <td class="mb-head">
                         <button type="button" class="field-lab" onClick={() => setSel(id)} aria-label={`Open ${r.def.name}`}>
                           <span class="swatch" style={{ '--c': r.def.color } as any} />

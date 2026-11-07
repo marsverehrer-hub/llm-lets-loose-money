@@ -83,7 +83,7 @@ export function plansYear(s: GameState, rng: Rng): void {
   const year = Math.floor(calendarYear(s.day));
   const leader = arenaLeaderOverall(s);
   for (const lab of s.rivals ?? []) {
-    if (lab.status !== 'active') continue;
+    if (lab.status !== 'active' || lab.plan?.year === year) continue; // one plan a year; a newly founded lab announces at once
     const def = COMPETITORS.find((d) => d.id === lab.id);
     if (!def) continue;
     const c = s.competitors.find((x) => x.id === lab.id);
