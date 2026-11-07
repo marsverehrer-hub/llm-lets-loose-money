@@ -40,12 +40,12 @@
   gap: 10px;
   min-width: 0;
   padding: 6px 10px;
-  border: 1px solid var(--amber-2);
+  border: 1px solid var(--line-2);
   color: var(--fg);
   border-radius: var(--r-md);
 }
 .pa-next-tag {
-  color: var(--amber);
+  color: var(--accent);
   font-weight: 600;
   white-space: nowrap;
 }
@@ -80,7 +80,7 @@
 }
 .pa-banner {
   padding: 6px 10px;
-  border: 1px solid var(--amber-2);
+  border: 1px solid var(--line-2);
   color: var(--fg);
   font-size: var(--fs-sm);
   border-radius: var(--r-md);
@@ -193,7 +193,7 @@
 .pa-kv .kv-row { padding: 5px 0; }
 .pa-kv .kv-v.good { color: var(--up); }
 .pa-kv .kv-v.bad { color: var(--down); }
-.pa-kv .kv-v.warn { color: var(--amber); }
+.pa-kv .kv-v.warn { color: var(--warn); }
 
 /* ---------- stock ---------------------------------------------------------- */
 .pa-stock-head {
@@ -222,3 +222,7 @@
   .tro-list .table-stack td.mb-block { order: 1; }
 }
 
+
+/* Trophies: the readout strip sits in the header actions (compact, one row when there is room). */
+.pa-strip-head { min-width: min(100%, 520px); }
+.tro-list .table-wrap { max-height: 900px; overflow: auto; }

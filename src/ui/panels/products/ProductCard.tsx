@@ -8,12 +8,12 @@ import { MODEL_LIFE_TUNING, routerBlocker } from '../../../sim/systems/modelLife
 
 import { BUYER_TIERS } from '../../../sim/types';
 import type { BuyerTier, GameState, Product, ProductKind } from '../../../sim/types';
-import { Card, Meter, Pill, Sparkline } from '../../components';
-import { ConfirmButton, Range, fmtCount, fmtPct, fmtPrice, logToValue, sig2, valueToLog } from '../panelKit';
+import { Card, Check, Meter, Pill, Select, Sparkline } from '../../components';
+import { Banner, ConfirmButton, Range, fmtCount, fmtPct, fmtPrice, logToValue, sig2, valueToLog } from '../panelKit';
 import { KINDS, TIER_HINT, TIER_LABEL, economics, modelName, modelOption, priceRange, releasedModels, type ProductWithHistory } from './productsKit';
 
 const TIER_COLOR: Record<BuyerTier, string> = {
-  premium: 'var(--amber)',
+  premium: 'var(--warn)',
   mainstream: 'var(--blue)',
   budget: 'var(--fg-3)',
 };
@@ -27,7 +27,7 @@ function TierBar({ tierUsers, userWord }: { tierUsers?: Partial<Record<BuyerTier
     <div class="pr-tiers" aria-label={`Buyer tiers, ${userWord}: ${label}`}>
       <div class="pr-tierbar" role="img" aria-label={label}>
         {BUYER_TIERS.map((t, i) => (
-          <i key={t} style={`width:${total > 0 ? (parts[i] / total) * 100 : 0}%;background:${TIER_COLOR[t]}`} />
+          <i key={t} style={`width:${total > 0 ? (parts[i] / total) * 100 : 0}%;background:var(--tex-hatch),${TIER_COLOR[t]}`} />
         ))}
       </div>
       <div class="pr-tier-legend">
@@ -115,32 +115,26 @@ export function LiveProductCard({ s, product }: { s: GameState; product: Product
 
       {outage &&
         (current && models.some((m) => m.id === current.id) ? (
-          <div class="pr-outage">
+          <Banner tone="bad">
             An incident has it down: only {fmtPct(served)} of demand is served. Capacity is not the cause (the cloud covers any shortfall), so
             more GPUs will not fix it. Users leave and reputation slips each day it lasts.
-          </div>
+          </Banner>
         ) : (
-          <div class="pr-outage">Its model is off sale, so nobody is served. Pick a live model below to bring it back.</div>
+          <Banner tone="bad">Its model is off sale, so nobody is served. Pick a live model below to bring it back.</Banner>
         ))}
 
       <div class="pr-form">
         <div class="pr-row">
           <span class="pr-k">Model</span>
-          <select
-            class="select"
+          <Select
+            ariaLabel="Model"
+            block
             value={product.modelId ?? ''}
-            onChange={(e) => {
-              const v = (e.currentTarget as HTMLSelectElement).value;
+            onChange={(v) => {
               if (v) dispatch({ type: 'updateProduct', productId: product.id, modelId: v });
             }}
-          >
-            {modelOptions.map((m) => (
-              <option key={m.id} value={m.id}>
-                {modelOption(m, kind)}
-                {m.deprecated ? ' (retired)' : ''}
-              </option>
-            ))}
-          </select>
+            options={modelOptions.map((m) => ({ value: m.id, label: `${modelOption(m, kind)}${m.deprecated ? ' (retired)' : ''}` }))}
+          />
         </div>
         <RouterRow s={s} product={product} />
         <div class="pr-row">
@@ -176,21 +170,13 @@ export function LiveProductCard({ s, product }: { s: GameState; product: Product
       <div class="pr-foot pr-foot-inline">
         <Meter label="Satisfaction" value={product.satisfaction} max={100} caption="Users stay when this is high." />
         <div class="pr-foot-row">
-          <label class="pr-check" title="Switches to any released model more than 1 point stronger.">
-            <input
-              type="checkbox"
-              class="check"
-              checked={!!product.autoUpgrade}
-              onChange={(e) =>
-                dispatch({
-                  type: 'setProductAutoUpgrade',
-                  productId: product.id,
-                  on: (e.currentTarget as HTMLInputElement).checked,
-                })
-              }
-            />
-            <span>Auto-upgrade model</span>
-          </label>
+          <Check
+            class="pr-check"
+            title="Switches to any released model more than 1 point stronger."
+            label="Auto-upgrade model"
+            checked={!!product.autoUpgrade}
+            onChange={(on) => dispatch({ type: 'setProductAutoUpgrade', productId: product.id, on })}
+          />
           <ConfirmButton
             class="btn-sm"
             label="Shut down"
@@ -226,21 +212,16 @@ function RouterRow({ s, product }: { s: GameState; product: Product }) {
       <span class="pr-k">Router</span>
       <div class="pr-price">
         <div class="pr-price-line">
-          <select
-            class="select"
+          <Select
+            ariaLabel="Router"
+            block
             value={product.router?.modelId ?? ''}
-            onChange={(e) => {
-              const v = (e.currentTarget as HTMLSelectElement).value;
-              dispatch({ type: 'setProductRouter', productId: product.id, modelId: v || null, share });
-            }}
-          >
-            <option value="">Off: {main.name} answers everything</option>
-            {candidates.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.name} · overall {Math.round(m.overall)}
-              </option>
-            ))}
-          </select>
+            onChange={(v) => dispatch({ type: 'setProductRouter', productId: product.id, modelId: v || null, share })}
+            options={[
+              { value: '', label: `Off: ${main.name} answers everything` },
+              ...candidates.map((m) => ({ value: m.id, label: `${m.name} · overall ${Math.round(m.overall)}` })),
+            ]}
+          />
         </div>
         {product.router && (
           <>

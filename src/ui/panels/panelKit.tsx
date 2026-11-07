@@ -191,7 +191,7 @@ export function Stat(props: { label: string; value: any; sub?: any; tone?: Tone 
   );
 }
 
-/** One dim uppercase line for empty lists. `icon` is accepted but never rendered (terminal theme). */
+/** A dim line for empty lists. `icon` is accepted but never rendered. */
 export function Empty(props: { icon?: string; title: string; children?: any }) {
   return (
     <div class="pn-empty">
@@ -201,12 +201,47 @@ export function Empty(props: { icon?: string; title: string; children?: any }) {
   );
 }
 
-/** Bordered status line. `icon` is accepted but never rendered (terminal theme). */
+/** Alert strip (a margin annotation): tinted, with a coloured rule on the left. Use it for every alert. */
 export function Banner(props: { tone?: Tone; icon?: string; children?: any }) {
   return (
     <div class="pn-banner" data-tone={props.tone ?? 'warn'} role="status">
       {props.children}
     </div>
+  );
+}
+
+/**
+ * A panel's camera or office scene, folded into a "View" disclosure: open above 1200px, closed below, remembered per
+ * panel. Storage is a per-viewer convenience, so a blocked localStorage just falls back to the width default.
+ */
+export function ViewDisclosure({ panel, children }: { panel: string; children?: any }) {
+  const key = `llm-lets-loose-money/view-${panel}`;
+  const [open, setOpen] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem(key);
+      if (saved !== null) return saved === '1';
+    } catch {
+      /* storage blocked: use the default */
+    }
+    return window.innerWidth >= 1200;
+  });
+  return (
+    <details
+      class="disclosure view-disclosure"
+      open={open}
+      onToggle={(e) => {
+        const next = (e.currentTarget as HTMLDetailsElement).open;
+        setOpen(next);
+        try {
+          localStorage.setItem(key, next ? '1' : '0');
+        } catch {
+          /* storage blocked: the choice lasts for this visit */
+        }
+      }}
+    >
+      <summary>View</summary>
+      {children}
+    </details>
   );
 }
 
@@ -248,7 +283,7 @@ export function ConfirmButton(props: {
   );
 }
 
-/** Loss curve: one thin amber line, one sample per simulated day. Dashed line for the predicted final loss. */
+/** Loss curve: one thin accent line, one sample per simulated day. Dashed line for the predicted final loss. */
 export function LossChart(props: { values: number[]; predicted?: number }) {
   const W = 560;
   const H = 150;

@@ -47,10 +47,11 @@ export function AchievementsPanel() {
 
   return (
     <div class="panel">
-      <PanelHeader title="Trophies" subtitle={`${unlocked} of ${total} unlocked · ${formatPct(pct)} complete`} />
-
-      <Card flush>
-        <div class="pa-strip pa-strip--6">
+      <PanelHeader
+        title="Trophies"
+        subtitle={`${unlocked} of ${total} unlocked · ${formatPct(pct)} complete`}
+        actions={
+          <div class="pa-strip pa-strip--6 pa-strip-head">
           <div class="pa-cell">
             <Stat label="Total revenue" value={st.totalRevenue} format={money} tone="good" />
           </div>
@@ -69,8 +70,9 @@ export function AchievementsPanel() {
           <div class="pa-cell">
             <Stat label="Lawsuits" value={st.lawsuits} format={(v) => formatInt(v)} tone={st.lawsuits > 0 ? 'bad' : 'muted'} />
           </div>
-        </div>
-      </Card>
+          </div>
+        }
+      />
 
       <Card
         class={`tro-list ${allOpen ? 'is-open' : ''}`}

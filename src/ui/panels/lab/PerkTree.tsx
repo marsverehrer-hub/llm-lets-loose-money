@@ -28,7 +28,7 @@ function PerkTile({ s, perk }: { s: GameState; perk: PerkDef }) {
         ) : why ? (
           <span class="perk-why small muted">{why}</span>
         ) : (
-          <Button size="sm" variant="primary" onClick={() => dispatch({ type: 'buyPerk', perkId: perk.id })}>
+          <Button size="sm" onClick={() => dispatch({ type: 'buyPerk', perkId: perk.id })}>
             Unlock
           </Button>
         )}

@@ -3,7 +3,7 @@
 import type { GameState } from '../../../sim/types';
 import { CUP_THEMES, cupThemeLabel, playerCupScore, rivalField } from '../../../sim/systems/tournament';
 import { formatMoney } from '../../../sim/util';
-import { Card, formatDays, monthYear } from '../../components';
+import { Card, Select, formatDays, monthYear } from '../../components';
 import { dispatch } from '../../store';
 
 const PLACE: Record<number, string> = { 1: 'Won', 2: 'Final', 3: 'Semi', 5: 'Quarter' };
@@ -36,21 +36,16 @@ export function CupCard({ s }: { s: GameState }) {
             <p class="muted small">Release a model to enter.</p>
           ) : (
             <div class="cup-entry">
-              <select
-                class="select"
+              <Select
+                ariaLabel="Cup entry"
+                block
                 value={open.entrantModelId ?? ''}
-                onChange={(e) => {
-                  const v = (e.currentTarget as HTMLSelectElement).value;
-                  dispatch({ type: 'enterCup', modelId: v || null });
-                }}
-              >
-                <option value="">{paid ? 'No entry (withdrawn)' : `Not entered · fee ${formatMoney(open.entryFee)}`}</option>
-                {live.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {`${m.name} · ${playerCupScore(s, m, open.theme).toFixed(1)}`}
-                  </option>
-                ))}
-              </select>
+                onChange={(v) => dispatch({ type: 'enterCup', modelId: v || null })}
+                options={[
+                  { value: '', label: paid ? 'No entry (withdrawn)' : `Not entered · fee ${formatMoney(open.entryFee)}` },
+                  ...live.map((m) => ({ value: m.id, label: `${m.name} · ${playerCupScore(s, m, open.theme).toFixed(1)}` })),
+                ]}
+              />
               {best && !open.entrantModelId && (
                 <span class="small muted">{`Your best for this theme: ${best.name} (${playerCupScore(s, best, open.theme).toFixed(1)}).`}</span>
               )}

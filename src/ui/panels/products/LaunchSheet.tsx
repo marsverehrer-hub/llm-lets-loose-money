@@ -9,8 +9,8 @@ import { modelInferenceCapacityMtok } from '../../../sim/systems/compute';
 import { RESEARCH } from '../../../sim/data/research';
 import { BUYER_TIERS, SEGMENT_OF } from '../../../sim/types';
 import type { BuyerTier, GameState, Id, Model, Product, ProductKind } from '../../../sim/types';
-import { Sheet } from '../../components';
-import { Empty, fmtCount, fmtPct, fmtPrice, logToValue, Range, sig2, valueToLog } from '../panelKit';
+import { Select, Sheet } from '../../components';
+import { Banner, Empty, fmtCount, fmtPct, fmtPrice, logToValue, Range, sig2, valueToLog } from '../panelKit';
 import { navigate } from '../../nav';
 import { KINDS, TIER_HINT, TIER_LABEL, modelOption, priceRange, releasedModels } from './productsKit';
 
@@ -23,7 +23,7 @@ function TierGrid({ tiers }: { tiers: Record<BuyerTier, TierPreview> }) {
       {BUYER_TIERS.map((t) => (
         <div key={t} class="pr-tier-cell" title={TIER_HINT[t]}>
           <span>
-            <i class="pr-swatch" style={`background:${t === 'premium' ? 'var(--amber)' : t === 'mainstream' ? 'var(--blue)' : 'var(--fg-3)'}`} />
+            <i class="pr-swatch" style={`background:${t === 'premium' ? 'var(--warn)' : t === 'mainstream' ? 'var(--blue)' : 'var(--fg-3)'}`} />
             {TIER_LABEL[t]}
           </span>
           <b class="num">{fmtPct(tiers[t].share)}</b>
@@ -101,13 +101,13 @@ function LaunchForm({ s, kind, first, onDone }: { s: GameState; kind: ProductKin
 
       <label class="pr-field">
         <span class="pr-k">Model</span>
-        <select class="select" value={model?.id ?? ''} onChange={(e) => setModelPick((e.currentTarget as HTMLSelectElement).value)}>
-          {models.map((m) => (
-            <option key={m.id} value={m.id}>
-              {modelOption(m, kind)}
-            </option>
-          ))}
-        </select>
+        <Select
+          ariaLabel="Model"
+          block
+          value={model?.id ?? ''}
+          onChange={(v) => setModelPick(v)}
+          options={models.map((m) => ({ value: m.id, label: modelOption(m, kind) }))}
+        />
       </label>
 
       <div class="pr-field">
@@ -152,7 +152,7 @@ function LaunchForm({ s, kind, first, onDone }: { s: GameState; kind: ProductKin
         </p>
       )}
 
-      {blocker && <div class="pr-blocker">{blocker}</div>}
+      {blocker && <Banner tone="warn">{blocker}</Banner>}
 
       <div class="pr-sheet-foot">
         <span class="pr-note">Launch fee {formatMoney(fee)}</span>
@@ -198,7 +198,7 @@ export function LaunchTiles({ s, onLaunch }: { s: GameState; onLaunch: (kind: Pr
             <span class="pr-note">{info.blurb}</span>
             <span class="pr-tile-foot">
               <span class="pr-fee num">Fee {formatMoney(launchFee(s, kind))}</span>
-              <span class="btn btn-sm btn-primary" aria-hidden="true">
+              <span class="btn btn-sm" aria-hidden="true">
                 Launch
               </span>
             </span>

@@ -253,9 +253,11 @@ export function BenchmarksPanel() {
         </Card>
       </div>
 
-      <Card title={`${CLASS_LABEL[cls]} class arena`} subtitle={`${arenaCount} ${arenaCount === 1 ? 'model' : 'models'} · by Elo`} flush>
+      {/* The class arena is the long second table: behind a disclosure so the benchmark table stays the main thing. */}
+      <details class="disclosure bmk-arena">
+        <summary>{`${CLASS_LABEL[cls]} class arena · ${arenaCount} ${arenaCount === 1 ? 'model' : 'models'} by Elo`}</summary>
         <ClassArena s={s} cls={cls} />
-      </Card>
+      </details>
     </div>
   );
 }
@@ -287,7 +289,7 @@ function LeaderBoard({ s, def, cls }: { s: GameState; def: BenchmarkDef; cls: We
           {shown.map(({ row: r, rank }) => {
             const m = r.modelId ? s.models.find((x) => x.id === r.modelId) : undefined;
             const contam = !!m?.contaminated && def.year <= calendarYear(m.trainedDay);
-            const color = r.isPlayer ? 'var(--amber)' : labColor(s, r.labId);
+            const color = r.isPlayer ? 'var(--accent)' : labColor(s, r.labId);
             const human = !r.isPlayer && !!labInfo(s, r.labId)?.human;
             const lab = r.isPlayer ? s.company.name : (labInfo(s, r.labId)?.name ?? r.lab);
             return (
@@ -323,7 +325,7 @@ function LeaderBoard({ s, def, cls }: { s: GameState; def: BenchmarkDef; cls: We
                 <td data-label="Score">
                   <div class="bmk-bar is-lab">
                     <span class="bmk-track" aria-hidden="true">
-                      <span class="bmk-fill" style={{ width: barW(r.score), background: color }} />
+                      <span class="bmk-fill" style={{ width: barW(r.score), background: `var(--tex-hatch), ${color}` }} />
                     </span>
                     <span class="bmk-bar-v num">{r.score.toFixed(1)}</span>
                   </div>
@@ -379,7 +381,7 @@ function ClassArena({ s, cls }: { s: GameState; cls: WeightClass }) {
                 <td data-label="Elo">
                   <div class="bmk-bar is-lab">
                     <span class="bmk-track" aria-hidden="true">
-                      <span class="bmk-fill" style={{ width: w(r.elo), background: isPlayer ? 'var(--amber)' : 'var(--fg-3)' }} />
+                      <span class="bmk-fill" style={{ width: w(r.elo), background: `var(--tex-hatch), ${isPlayer ? 'var(--accent)' : 'var(--fg-3)'}` }} />
                     </span>
                     <span class="bmk-bar-v num">{Math.round(r.elo)}</span>
                   </div>

@@ -77,10 +77,13 @@ export function LabPanel() {
         </div>
       </div>
       <PerkTree s={s} />
-      <div class="grid-2">
-        <XpLog s={s} />
-        <BoardHistory s={s} />
-      </div>
+      <details class="disclosure lab-history">
+        <summary>Recent XP and track record</summary>
+        <div class="grid-2">
+          <XpLog s={s} />
+          <BoardHistory s={s} />
+        </div>
+      </details>
     </div>
   );
 }

@@ -48,7 +48,6 @@
   gap: 8px;
   padding: 10px 12px;
   border: 1px solid var(--line-2);
-  border-left: 2px solid var(--amber);
   background: var(--bg-2);
   border-radius: var(--r-md);
 }

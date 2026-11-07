@@ -26,7 +26,7 @@ export function LevelCard({ s, onOpen }: { s: GameState; onOpen?: () => void }) 
     >
       <div class="lab-level">
         <div class="lab-level-badge num" aria-label={`Level ${p.level}`}>
-          <span class="lab-level-k">LVL</span>
+          <span class="lab-level-k">Level</span>
           <span class="lab-level-n">{p.level}</span>
         </div>
         <div class="lab-level-main">

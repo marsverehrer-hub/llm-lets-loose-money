@@ -4,7 +4,7 @@ import { getState, useGame } from '../store';
 import { formatMoney } from '../../sim/util';
 import { PanelHeader, PanelIntro, Card, Stat } from '../components';
 import type { ProductKind } from '../../sim/types';
-import { Empty } from './panelKit';
+import { Empty, ViewDisclosure } from './panelKit';
 import { liveLines, MAX_LINES_PER_KIND, unlockedProductKinds } from '../../sim/systems/products';
 import { useIntent } from '../nav';
 import { economics } from './products/productsKit';
@@ -72,18 +72,20 @@ export function ProductsPanel() {
         </Card>
       </div>
 
-      <SceneView
-        state={s}
-        make={createStreet}
-        cam={STREET_CAM}
-        camId="CAM-08"
-        height={360}
-        label="Your products as storefronts: queues of users, coins into the till, serving costs piped to the datacenter"
-        onSelect={(hit) => {
-          if (hit.id.startsWith('product:')) document.getElementById(`pr-${hit.id.slice(8)}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          else if (hit.id.startsWith('lot:')) setLaunchKind(hit.id.slice(4) as ProductKind);
-        }}
-      />
+      <ViewDisclosure panel="products">
+        <SceneView
+          state={s}
+          make={createStreet}
+          cam={STREET_CAM}
+          camId="CAM-08"
+          height={360}
+          label="Your products as storefronts: queues of users, coins into the till, serving costs piped to the datacenter"
+          onSelect={(hit) => {
+            if (hit.id.startsWith('product:')) document.getElementById(`pr-${hit.id.slice(8)}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            else if (hit.id.startsWith('lot:')) setLaunchKind(hit.id.slice(4) as ProductKind);
+          }}
+        />
+      </ViewDisclosure>
 
       <LaunchSheet kind={launchKind} onClose={() => setLaunchKind(null)} />
     </div>
