@@ -1,4 +1,4 @@
-# LLM: Lets Loose Money (v1.0)
+# LLM: Lets Loose Money (v19)
 
 A satirical tycoon about running an AI lab, from a garage in 2017 to whatever comes after AGI. You:
 - train models
@@ -61,6 +61,15 @@ Saves live in the browser, so each device and address has its own game.
 - **Model careers:** patch released models from user feedback, watch them gain mastery as they serve users, enter them in the Arena Cup every two months, route easy queries to a small model, and retire your best into a Hall of Fame that keeps paying.
 - **Clouds and neoclouds:** seven parody cloud providers with quotas, reserved terms, spot capacity and crunches; or dedicate your own halls and sell capacity to rival labs, startups and enterprises.
 - **Look:** the game is typeset as a research preprint (paper, small caps, booktabs tables, red pen for what needs you). Night print is the same paper under a desk lamp.
+- **A living field (v19):** about 30 rival labs run real companies. They raise money, buy GPUs from the same scarce
+  allocation as you, research, train, release closed or open weights, publish datasets, announce yearly plans, go
+  bankrupt and buy each other. See them all on The Field.
+- **Open hub:** download rivals' open models and datasets and build on them, license permitting.
+- **Serving and families:** quantize to int8/int4, distil a nano/mini/pro family, continue pretraining to ship v2.
+- **Safety cases and jailbreaks:** enterprise and government buyers read your safety case.
+- **GPUs:** 56 cards from parody vendors, pre-orders, a used market, interconnect and site choices, and your own
+  silicon. A tiny studio on 16 GPUs can win Garage Prodigy.
+- **AGI endings:** six ways it ends, including someone else getting there first.
 - **Multiplayer:** a 1v1 over the internet (Menu, then Multiplayer).
 
 ## Development

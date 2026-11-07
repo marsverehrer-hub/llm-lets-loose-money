@@ -1848,3 +1848,68 @@ satire is in the content.
 - New check: §31 median 1–3 decision calls per pretrain (the bot always picks choice 0).
 - Every earlier check still applies with `--all --years=20`. The bot uses the best unlocked precision (no forced
   fp8), sizes against the memory wall for its own run sheet, and sets the tokenizer after sizing.
+
+## 32. The living field (v19): simulated rivals, deeper models and GPUs, AGI endings
+
+**Rival labs are companies.**
+- About 30 parody labs across the game, 8–16 active at once. The 14 marquee labs always open on schedule and never go
+  bust; their brain raises a rescue round instead.
+- Each lab (`s.rivals`, `systems/rivals/`) holds cash, GPUs (rented and owned), staff, research, datasets and a
+  training run.
+- Its brain acts weekly on its own RNG stream:
+  - money and funding
+  - hardware, bought from the same vendor allocation as the player
+  - hiring and research, under the same year gates
+  - data, including other labs' published sets
+  - training sized by Chinchilla rules under its memory and data, then release
+  - publishing datasets
+- **Release quality** = lerp(physics, the old frontier curve, `RIVAL_TUNING.ANCHOR`).
+- **Names carry the real size:** a 389B model is never "-32B" or "Small".
+- **Lifecycle:** founding (an active cap gates newcomers), bankruptcy after 60 days below zero (its GPUs go to the
+  used market), and acquisitions every 30 days.
+- **Yearly plans** (agents, price war, open everything, safety first, scale, enterprise, media, steady):
+  - Every lab announces one on 1 January; a newly founded lab announces within the week.
+  - Plans tilt compute, price, open releases and capability skew.
+  - Counter events aim at the player once the field has noticed them (a release, after year one).
+- **The Field screen** (Business) shows every lab and a sheet per lab. Multiplayer guests mirror the host's labs.
+
+**Models.**
+- **Open hub:** download rival open weights or published datasets.
+  - Licenses: permissive allows anything; noncommercial allows no products, no contracts, and open release only;
+    research allows study only.
+  - Licenses carry through fine-tunes, distills, merges and quantization.
+- **Serving:**
+  - int8 / int4 quantized variants (faster, slightly worse).
+  - Per-model latency, which products feel.
+- **Families:**
+  - Distil nano, mini and pro in one go.
+  - Continued pretraining from your own base ships the next version cheaper per point.
+- **Safety case:** a 0–100 score from the safety score, safety research, red-teaming, evals and traits.
+  - Enterprise and government contracts read it.
+  - Jailbreaks hit weak cases.
+
+**GPUs.**
+- **Roster:** 56 cards across parody vendors (NVidiot, AMDeez, Intell, Huawhey, Googol, Amazin, Fruit), including
+  consumer and workstation cards and export editions.
+- **Supply:**
+  - the vendor allocation is shared with the rival labs
+  - pre-orders for next quarter
+  - a demand price multiplier
+  - a used market
+- **Tiny studios:** consumer and workstation cards skip the allocation. "Garage Prodigy" asks for a model within 80% of
+  SOTA on every benchmark while never having had more than 16 GPUs.
+- **Halls:**
+  - interconnect (PCIe, NVLink-ish, InfiniBand-ish) caps the efficient cluster
+  - big clusters fail more
+  - sites (grid, hydro, solar, nuclear) set the power price, build time, megawatt cap and outages
+- **Own silicon:** design, then tape-out, then fab, then yield. Your chips skip the vendor and cost price over yield.
+
+**Endings.** Finishing AGI (you, or a rival first) opens the Conclusion with the endings the record allows:
+- safe launch
+- the race
+- nationalised
+- merger
+- open singularity
+- second place
+
+Each is scored. Afterwards the game continues as a sandbox.
