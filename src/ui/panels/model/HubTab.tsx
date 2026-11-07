@@ -33,12 +33,17 @@ export function LicensePill({ license }: { license: HubLicense | null }) {
   );
 }
 
+const HUB_PAGE = 25;
+
 export function HubTab({ s }: { s: GameState }) {
   const [filter, setFilter] = useState<HubFilter>('all');
   const [sort, setSort] = useState<HubSort>('newest');
   const all = hubModels(s);
   const shown = filter === 'permissive' ? all.filter((r) => r.model.license === 'permissive') : all;
-  const rows = sort === 'overall' ? [...shown].sort((a, b) => b.model.overall - a.model.overall) : shown;
+  const sorted = sort === 'overall' ? [...shown].sort((a, b) => b.model.overall - a.model.overall) : shown;
+  // The hub fills up fast; show a page and let the reader ask for the rest.
+  const [limit, setLimit] = useState(HUB_PAGE);
+  const rows = sorted.slice(0, limit);
 
   return (
     <div class="hub">
@@ -81,6 +86,11 @@ export function HubTab({ s }: { s: GameState }) {
             </tbody>
           </table>
         </div>
+      )}
+      {sorted.length > rows.length && (
+        <button type="button" class="btn btn-ghost btn-sm" onClick={() => setLimit(limit + HUB_PAGE)}>
+          Show {Math.min(HUB_PAGE, sorted.length - rows.length)} more of {sorted.length - rows.length}
+        </button>
       )}
     </div>
   );

@@ -1382,6 +1382,7 @@ textarea {
 :root .btn-primary { background: var(--hl); border-color: var(--hl); color: var(--on-hl); }
 :root .btn-primary:hover:not(:disabled) { background: var(--fg-2); border-color: var(--fg-2); color: var(--on-hl); }
 :root .btn-primary:disabled { background: var(--bg-3); border-color: var(--line-2); color: var(--fg-4); }
+:root .btn:disabled { color: var(--fg-4); border-style: dotted; cursor: not-allowed; }
 :root .btn-danger { background: transparent; border: 1px dashed var(--pen); color: var(--pen); }
 :root .btn-danger:hover:not(:disabled) { background: var(--down-3); color: var(--pen); border-color: var(--pen); }
 :root .btn-success { background: transparent; border-color: var(--up); color: var(--up); }

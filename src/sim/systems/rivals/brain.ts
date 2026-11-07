@@ -368,6 +368,24 @@ export function rivalBase(s: GameState, def: CompetitorDef, _c: Competitor, fron
  * Called at the end of every rival release (competitors.ts releaseModel), after c.model is set. B2 records the
  * RivalModel in the lab's catalogue (real size and data if it came from a run), decides open weights and logs it.
  */
+/**
+ * A point release (no fresh run) keeps the previous model's data but must be big enough for its score: the smallest
+ * Chinchilla-trained size whose physics quality reaches the release overall, never smaller than the last model.
+ */
+function pointReleaseSize(overall: number, prev: RivalModel | undefined, day: number) {
+  const dataQuality = prev?.dataQuality ?? 0.5;
+  const qualityOf = (n: number) => lossToQuality(chinchillaLoss(n, 20 * n, dataQuality));
+  let lo = 0.1;
+  let hi = 20_000;
+  for (let i = 0; i < 40; i++) {
+    const mid = Math.sqrt(lo * hi);
+    if (qualityOf(mid) < overall) lo = mid;
+    else hi = mid;
+  }
+  const paramsB = Math.max(prev?.paramsB ?? 0, Math.round(hi * 10) / 10);
+  return { paramsB, tokensB: Math.max(prev?.tokensB ?? 0, 20 * paramsB), dataQuality, arch: prev?.arch ?? 'dense', trainedDay: day, datasetIds: prev?.datasetIds ?? ([] as Id[]) };
+}
+
 export function onRivalRelease(s: GameState, def: CompetitorDef, c: Competitor): void {
   const lab = labOf(s, def);
   const mdl = c.model;
@@ -377,9 +395,7 @@ export function onRivalRelease(s: GameState, def: CompetitorDef, c: Competitor):
   // A trained run gives the real size and data; a point release keeps the previous model's.
   const size = ready
     ? { paramsB: ready.paramsB, tokensB: ready.tokensB, dataQuality: ready.dataQuality, arch: ready.arch, trainedDay: ready.trainedDay, datasetIds: lab.datasets.slice() }
-    : prev
-      ? { paramsB: prev.paramsB, tokensB: prev.tokensB, dataQuality: prev.dataQuality, arch: prev.arch, trainedDay: prev.trainedDay, datasetIds: prev.datasetIds ?? [] }
-      : { paramsB: 1, tokensB: 20, dataQuality: 0.5, arch: 'dense', trainedDay: s.day, datasetIds: [] as Id[] };
+    : pointReleaseSize(mdl.overall, prev, s.day);
   const open = hashUniform(s.seed, `${def.id}:${mdl.name}`) < (def.openBias ?? 0) + planMods(lab).open;
   const license: RivalModel['license'] = open ? (def.kind === 'open' ? 'permissive' : 'noncommercial') : 'research';
   const caps: Capabilities = mdl.caps ?? emptyCaps();
