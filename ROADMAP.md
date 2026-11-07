@@ -4,9 +4,9 @@ This is a prioritised list of ideas, not promises. Each item notes why it matter
 Done items are removed; GAME_DESIGN.md §33 lists what v21 shipped.
 
 ## Now: polish what is there
-1. **Balance pass (M).** On a 2-seed run of the v20 build, every check in `scripts/balance.ts` passed
-   except one: an idle lab went bankrupt in 1.9 years against a 2–3 year target. The rival field also sat at its cap
-   of 16 labs in both 2025 and 2030, so eras felt alike. Rerun `--all` after the v21 features.
+1. **Balance pass (M).** One check in `scripts/balance.ts --all` still fails: the five strategies' peak valuations are
+   only 1.5× apart (target 3×), so a lab's focus changes too little about where it ends up. The idle check also
+   measures a bot that always takes the first event option, which costs it about a quarter of its cash.
 2. **"Why did this happen?" for the rest (M).** Valuation and users now open a breakdown. Revenue, Elo and market share
    still change without a visible cause.
 3. **Follow-ups from v21 (S each).**

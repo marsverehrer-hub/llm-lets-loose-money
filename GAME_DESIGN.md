@@ -1,6 +1,6 @@
 # LLM: Lets Loose Money — Game Design & Formulas
 
-A Coffee-Inc-2-style tycoon. You found an AI lab in a garage on **Jan 1, 2017** with **$2M**, two founder researchers, one engineer and 8 rented GPUs. Train models, ship products, fight parody labs, raise money, IPO, and chase AGI. Endless sandbox with achievements. The only loss condition is **bankruptcy**: cash < 0 for 30 consecutive days.
+A Coffee-Inc-2-style tycoon. You found an AI lab in a garage on **Jan 1, 2017** with **$2.1M**, two founder researchers, one engineer and 8 rented GPUs. Train models, ship products, fight parody labs, raise money, IPO, and chase AGI. Endless sandbox with achievements. The only loss condition is **bankruptcy**: cash < 0 for 30 consecutive days.
 
 **Tone:** affectionate Silicon Valley satire. Parody names only, never real companies or people. Some examples:
 - labs: OpenAye, Anthropomorphic, DeepMined, Metaverse Llama, Mistrial, DeepSeekers
@@ -1962,6 +1962,12 @@ Each is scored. Afterwards the game continues as a sandbox.
 - `VITE_ICE_SERVERS` (build time, a JSON array of RTCIceServer) adds TURN servers after PeerJS's defaults. It is inlined
   into the public bundle, so use short-lived credentials from a CI secret.
 - **Month by month** (host option): both clocks hold on the 1st of each month until both players press Ready.
+
+**Balance** (`scripts/balance.ts --all`, 6 seeds × 20 years).
+- Starting cash is $2.1M (was $2M), so an idle lab lasts 2.1 years (the target is 2–3).
+- The active-lab cap follows AI hype: `activeCap` = 10 + 6 × hype/100 (`RIVAL_TUNING.MIN_ACTIVE`..`MAX_ACTIVE`). Marquee
+  labs keep their seats, so the early field is small and fills as hype grows: 15 labs in 2025 and 14 in 2030 (median).
+- Every check passes except "strategies diverge" (peak valuations 1.5× apart against a 3× target), which failed before.
 
 **Tech.** Panels, scenes, overlays and the tutorial are lazy-loaded (first paint ~375 kB gzip, was ~610 kB). A crash
 box offers a copyable report and the last save. `scripts/balance.ts` runs strategies and seeds in worker threads.
