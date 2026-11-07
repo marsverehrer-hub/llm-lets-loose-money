@@ -1,14 +1,16 @@
 // OWNER: PROGRESSION UI (v13, GAME_DESIGN §23). The Lab screen: level and streak, this quarter's board goals,
 // the perk tree, recent XP and the board's track record.
+import { useState } from 'preact/hooks';
 import type { GameState } from '../../sim/types';
 import { progressOf } from '../../sim/systems/progression';
 import { quarterLabel } from '../../sim/systems/board';
 import { monthYear } from '../components';
-import { Card, PanelHeader, PanelIntro } from '../components';
+import { Card, PanelHeader, PanelIntro, Tabs } from '../components';
 import { useGame } from '../store';
 import { BoardCard } from './lab/BoardCard';
 import { LevelCard } from './lab/LevelCard';
 import { PerkTree } from './lab/PerkTree';
+import { TempoControl } from './lab/TempoControl';
 import { CupCard } from './lab/CupCard'; // v15
 import { HallCard } from './lab/HallCard'; // v15
 import './lab/lab.css';
@@ -56,34 +58,54 @@ function BoardHistory({ s }: { s: GameState }) {
   );
 }
 
+type LabTab = 'level' | 'board' | 'hall';
+
 export function LabPanel() {
   const s = useGame();
   const p = progressOf(s);
+  const [tab, setTab] = useState<LabTab>('level');
   return (
     <div class="panel lab-panel">
       <PanelHeader title="Level & perks" subtitle={`Level ${p.level} · ${p.perkPoints} perk point${p.perkPoints === 1 ? '' : 's'}`} />
       <PanelIntro id="lab">
         Everything you do earns lab XP. Levels give perk points: spend them to shape the kind of lab you run. The board sets three goals each quarter, and each pays the day you hit it.
       </PanelIntro>
-      {/* Two balanced columns: the level and the cup on the left, the board's goals and the hall of fame on the right. */}
-      <div class="lab-top">
-        <div class="stack gap-12">
-          <LevelCard s={s} onOpen={() => document.querySelector('.perk-tree, .perk-picker')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} />
-          <CupCard s={s} />
-        </div>
-        <div class="stack gap-12">
-          <BoardCard s={s} />
-          <HallCard s={s} />
-        </div>
-      </div>
-      <PerkTree s={s} />
-      <details class="disclosure lab-history">
-        <summary>Recent XP and track record</summary>
-        <div class="grid-2">
-          <XpLog s={s} />
+      <Tabs<LabTab>
+        value={tab}
+        onChange={setTab}
+        tabs={[
+          { id: 'level', label: 'Level & perks' },
+          { id: 'board', label: 'Board & Cup' },
+          { id: 'hall', label: 'Hall of Fame' },
+        ]}
+      />
+      {tab === 'level' && (
+        <>
+          <div class="grid-2">
+            <LevelCard s={s} onOpen={() => document.querySelector('.perk-tree, .perk-picker')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} />
+            {s.training && (
+              <Card title="Run tempo" subtitle="Pace of the live run">
+                <TempoControl s={s} />
+              </Card>
+            )}
+          </div>
+          <PerkTree s={s} />
+          <details class="disclosure lab-history">
+            <summary>Recent XP</summary>
+            <XpLog s={s} />
+          </details>
+        </>
+      )}
+      {tab === 'board' && (
+        <>
+          <div class="grid-2">
+            <BoardCard s={s} />
+            <CupCard s={s} />
+          </div>
           <BoardHistory s={s} />
-        </div>
-      </details>
+        </>
+      )}
+      {tab === 'hall' && <HallCard s={s} />}
     </div>
   );
 }

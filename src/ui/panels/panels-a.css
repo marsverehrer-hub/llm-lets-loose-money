@@ -211,18 +211,3 @@
 }
 .pa-stock-chg { font-size: var(--fs-sm); }
 
-/* Trophies: "Show all" under the first six rows, a phone-only button. */
-.btn.tro-more { display: none; }
-@media (max-width: 760px) {
-  .tro-list:not(.is-open) tbody tr:nth-child(n + 7) { display: none; }
-  .btn.tro-more { display: flex; width: calc(100% - 24px); margin: 8px 12px 12px; }
-  .tro-list tr { padding: 6px 12px; }
-  .tro-list .table-stack td { padding: 2px 0; }
-  /* Status and date share a row; the description reads last. */
-  .tro-list .table-stack td.mb-block { order: 1; }
-}
-
-
-/* Trophies: the readout strip sits in the header actions (compact, one row when there is room). */
-.pa-strip-head { min-width: min(100%, 520px); }
-.tro-list .table-wrap { max-height: 900px; overflow: auto; }

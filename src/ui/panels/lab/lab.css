@@ -48,7 +48,6 @@
 .board-foot { display: flex; align-items: center; gap: 6px; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line); }
 
 /* ---- lab screen ---- */
-.lab-top { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 12px; align-items: start; }
 .perk-tree { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
 .perk-branch { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .perk-branch-head { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; font-weight: 600; }
@@ -103,7 +102,6 @@
   .perk-tree { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 @media (max-width: 760px) {
-  .lab-top { grid-template-columns: minmax(0, 1fr); }
   .perk-branch-pitch { min-height: 0; }
   .tempo { display: flex; width: 100%; }
   .tempo .seg { flex: 1 1 0; justify-content: center; height: 40px; }
