@@ -59,9 +59,11 @@ export function StaffPanel() {
         title="Staff"
         subtitle={`${hc} ${hc === 1 ? 'person' : 'people'} · ${money(payDay)}/day payroll`}
         actions={
-          <Button variant="primary" onClick={() => openHire()}>
-            Hire
-          </Button>
+          <span data-tut="hire">
+            <Button variant="primary" onClick={() => openHire()}>
+              Hire
+            </Button>
+          </span>
         }
       />
       <PanelIntro id="staff">

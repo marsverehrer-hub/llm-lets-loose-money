@@ -1,5 +1,6 @@
-/* OWNER: shell agent. Tutorial coach window (bottom-left, over the main area, above the ticker)
-   and the welcome modal body. Step highlights for the nav and speed keys live in shell/shell.css. */
+/* OWNER: U3. Tutorial coach card and its ring, plus the welcome modal body. The card sits next to the control a step
+   points at (data-tut); without a target it stays in the bottom-left corner. Step highlights for the nav live in
+   shell/shell.css. */
 
 /* ---------- coach window -------------------------------------------------- */
 .tut-card {
@@ -7,7 +8,7 @@
   left: calc(var(--nav-w, 196px) + 16px);
   bottom: calc(var(--ticker-h, 22px) + 16px);
   z-index: 55;
-  width: min(380px, calc(100vw / var(--ui-zoom, 1) - var(--nav-w, 196px) - 20px));
+  width: min(380px, calc(100vw / var(--ui-zoom, 1) - 32px));
   display: flex;
   flex-direction: column;
   background: var(--bg-1);
@@ -25,10 +26,16 @@
   background: var(--accent-3);
   color: var(--accent);
   font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-weight: 600;
   white-space: nowrap;
+}
+/* The ring around the control a step points at. Fixed to the viewport, like the card; the card never covers it. */
+.tut-ring {
+  position: fixed;
+  z-index: 54;
+  border-radius: var(--r-md);
+  box-shadow: 0 0 0 2px var(--accent);
+  pointer-events: none;
 }
 .tut-main {
   display: flex;

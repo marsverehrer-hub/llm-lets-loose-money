@@ -146,6 +146,7 @@ function TrackRow({ s, view, track, onShow }: { s: GameState; view: ResearchView
                 <button
                   type="button"
                   class={`btn btn-sm${next.id === view.rec?.node.id ? ' btn-primary' : ''}`}
+                  data-tut={next.id === view.rec?.node.id ? 'research-start' : undefined}
                   title={view.current ? `Switch from ${topicName(view.current)}. Its progress is kept for later.` : undefined}
                   onClick={() => dispatch({ type: 'setResearch', nodeId: next.id })}
                 >

@@ -254,7 +254,7 @@ function TextQuick({ pick, set, name }: { pick: QuickPick; set: (p: Partial<Quic
           <button type="button" class={busy ? 'btn btn-primary' : 'btn'} disabled={errs.length > 0} title={errs[0] ?? 'Start when the slot frees'} onClick={() => start(true)}>
             Add to queue
           </button>
-          <button type="button" class="btn btn-primary" disabled={errs.length > 0 || !!busy} title={busy ?? errs[0] ?? 'Start the run'} onClick={() => start(false)}>
+          <button type="button" class="btn btn-primary" data-tut="train-start" disabled={errs.length > 0 || !!busy} title={busy ?? errs[0] ?? 'Start the run'} onClick={() => start(false)}>
             Train
           </button>
         </span>

@@ -156,7 +156,7 @@ function LaunchForm({ s, kind, first, onDone }: { s: GameState; kind: ProductKin
 
       <div class="pr-sheet-foot">
         <span class="pr-note">Launch fee {formatMoney(fee)}</span>
-        <button type="button" class="btn btn-primary" disabled={!!blocker} title={blocker || `Pay the ${formatMoney(fee)} launch fee and go live`} onClick={launch}>
+        <button type="button" class="btn btn-primary" data-tut="launch" disabled={!!blocker} title={blocker || `Pay the ${formatMoney(fee)} launch fee and go live`} onClick={launch}>
           Launch
         </button>
       </div>

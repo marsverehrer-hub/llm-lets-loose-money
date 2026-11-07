@@ -170,7 +170,7 @@ function StartCard({ s }: { s: GameState }) {
         <div>
           <div class="md-desc">{line}</div>
         </div>
-        <button type="button" class="btn btn-primary" onClick={() => setView({ kind: 'train' })}>
+        <button type="button" class="btn btn-primary" data-tut="train-new" onClick={() => setView({ kind: 'train' })}>
           New model
         </button>
       </div>
@@ -467,7 +467,7 @@ function ModelRow({ s, m, prefix, selected, onSelect }: { s: GameState; m: Model
       {!m.deprecated && (
         <div class="md-row-foot">
           {m.releasedDay === null ? (
-            <button type="button" class="btn btn-sm btn-primary" onClick={() => setView({ kind: 'release', modelId: m.id })}>
+            <button type="button" class="btn btn-sm btn-primary" data-tut="release" onClick={() => setView({ kind: 'release', modelId: m.id })}>
               Release
             </button>
           ) : (
@@ -533,7 +533,7 @@ function ModelTable({ s, rows, selId, onSelect }: { s: GameState; rows: { m: Mod
                 </td>
                 <td class="actions" onClick={(e) => e.stopPropagation()}>
                   {m.releasedDay === null && !m.deprecated ? (
-                    <button type="button" class="btn btn-sm btn-primary" onClick={() => setView({ kind: 'release', modelId: m.id })}>
+                    <button type="button" class="btn btn-sm btn-primary" data-tut="release" onClick={() => setView({ kind: 'release', modelId: m.id })}>
                       Release
                     </button>
                   ) : !m.deprecated ? (

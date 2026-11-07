@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { PanelId } from '../App';
-import { navigate } from '../nav';
+import { navigate, type Intent } from '../nav';
 import { Button, Modal, useIsMobile } from '../components';
 import { dispatch, useGame } from '../store';
 import { unlockPanel } from '../unlocks';
@@ -13,6 +13,10 @@ const VETERAN_DAY = 30;
 interface StepDef {
   /** Panel the "Take me there" button opens. */
   go: PanelId;
+  /** Intent for the panel, so GO lands on the control it names (nav.ts). */
+  intent?: Intent;
+  /** data-tut name of the control the card points at: it gets a ring, and the card sits next to it. */
+  target?: string;
   /** Side-nav item to pulse, or null when the pointer belongs elsewhere (the speed controls). */
   highlight: PanelId | null;
   title: string;
@@ -25,6 +29,7 @@ const STEPS: Record<number, StepDef> = {
   1: {
     go: 'research',
     highlight: 'research',
+    target: 'research-start',
     title: 'Read the papers nobody finished',
     body: 'Start researching Transformers. Yes, the 2017 paper. Research only finishes while the clock runs, so unpause with Space when you are ready.',
     phoneBody:
@@ -32,13 +37,16 @@ const STEPS: Record<number, StepDef> = {
   },
   2: {
     go: 'models',
+    intent: { open: 'train' },
     highlight: 'models',
+    target: 'train-start',
     title: 'Burn some money on a model',
     body: 'Start a training run: pick a size, pick some data, watch the loss curve go down. It is basically a diet, but with more GPUs.',
   },
   3: {
     go: 'dashboard',
     highlight: null,
+    target: 'speed',
     title: 'Time only moves when you let it',
     body: 'Press Space to pause, then Space again (or 1, 2, 3 for 1×, 3× and 10×) to resume. Nothing gets built while the clock is stopped, which is how most founders spend their Mondays.',
     phoneBody:
@@ -47,18 +55,22 @@ const STEPS: Record<number, StepDef> = {
   4: {
     go: 'models',
     highlight: 'models',
+    target: 'release',
     title: 'Ship it before it gets weird',
     body: 'A trained model is a secret until you release it. Release it from the Models tab. Secrets are expensive to keep, and the press always finds out.',
   },
   5: {
     go: 'products',
+    intent: { open: 'launch' },
     highlight: 'products',
+    target: 'launch',
     title: 'Sell tokens to developers',
     body: 'Launch the API. Developers pay per token and never read the terms of service, which makes them your favourite customers.',
   },
   6: {
     go: 'staff',
     highlight: 'staff',
+    target: 'hire',
     title: 'Read the room',
     body: 'Right now you are two founders, one engineer and a whiteboard. Hire someone. Researchers make the papers faster, safety people make the press release sound responsible.',
   },
@@ -215,12 +227,101 @@ function writeMinimised(on: boolean): void {
   }
 }
 
+interface Box {
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+}
+interface Layout {
+  /** The target the layout was measured for: a stale layout from the previous step is ignored. */
+  name: string;
+  ring: Box;
+  /** Where the card goes (desktop only); null keeps the bottom-left corner. */
+  pos: { top: number; left: number } | null;
+}
+
+const GAP = 12;
+const EDGE = 16;
+const MIN_BELOW = 220;
+
+/** The first visible control with this data-tut name (one control can exist twice, e.g. a desktop and a phone row). */
+function findTarget(name: string): HTMLElement | null {
+  for (const el of document.querySelectorAll<HTMLElement>(`[data-tut="${name}"]`)) {
+    if (el.getClientRects().length > 0) return el;
+  }
+  return null;
+}
+
+/** Next to the target: below it when there is room, else above; flipped if the first choice covers it. */
+function placeCard(t: Box, w: number, h: number): { top: number; left: number } {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const left = Math.max(EDGE, Math.min(t.left, vw - w - EDGE));
+  const belowTop = t.top + t.height + GAP;
+  const aboveTop = t.top - GAP - h;
+  const covers = (top: number) => top < t.top + t.height && top + h > t.top && left < t.left + t.width && left + w > t.left;
+  const fits = (top: number) => top >= EDGE && top + h <= vh - EDGE && !covers(top);
+  const order = vh - belowTop - EDGE >= MIN_BELOW ? [belowTop, aboveTop] : [aboveTop, belowTop];
+  const top = order.find(fits) ?? order[0];
+  return { top: Math.max(EDGE, Math.min(top, vh - h - EDGE)), left };
+}
+
+/** Follows the target every animation frame, so the card and ring stay put while the panel lays out or scrolls. */
+function useTargetLayout(name: string | undefined, card: { current: HTMLElement | null }, place: boolean): Layout | null {
+  const [layout, setLayout] = useState<Layout | null>(null);
+  useEffect(() => {
+    if (!name) {
+      setLayout(null);
+      return;
+    }
+    let raf = 0;
+    let shown: HTMLElement | null = null;
+    let last: Layout | null = null;
+    const tick = () => {
+      const el = findTarget(name);
+      let next: Layout | null = null;
+      if (el) {
+        if (el !== shown) {
+          shown = el;
+          el.scrollIntoView({ block: 'center' });
+        }
+        const r = el.getBoundingClientRect();
+        const ring = { top: r.top, left: r.left, width: r.width, height: r.height };
+        const c = card.current;
+        next = { name, ring, pos: place && c ? placeCard(ring, c.offsetWidth, c.offsetHeight) : null };
+      }
+      if (!sameLayout(last, next)) {
+        last = next;
+        setLayout(next);
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    tick();
+    return () => cancelAnimationFrame(raf);
+    // card is a ref object: reading .current each frame is the point.
+  }, [name, place]);
+  return layout;
+}
+
+function sameBox(a: Box, b: Box): boolean {
+  return a.top === b.top && a.left === b.left && a.width === b.width && a.height === b.height;
+}
+function sameLayout(a: Layout | null, b: Layout | null): boolean {
+  if (a === b) return true;
+  if (!a || !b || a.name !== b.name || !sameBox(a.ring, b.ring)) return false;
+  return a.pos === b.pos || (!!a.pos && !!b.pos && a.pos.top === b.pos.top && a.pos.left === b.pos.left);
+}
+
 function Coach({ step, onSkip }: { step: number; onSkip: () => void }) {
   const def = STEPS[step];
   const isPhone = useIsMobile();
   const [minimised, setMinimised] = useState(readMinimised);
   const cardRef = useRef<HTMLElement>(null);
   const folded = isPhone && minimised;
+  // Phones keep the card at the bottom (its own layout); the ring still marks the control.
+  const found = useTargetLayout(def?.target, cardRef, !isPhone);
+  const layout = found && def?.target === found.name ? found : null;
 
   // Phones: publish the card's height so the toasts stack above it (mobile.css reads --tut-h).
   useEffect(() => {
@@ -248,7 +349,21 @@ function Coach({ step, onSkip }: { step: number; onSkip: () => void }) {
   };
 
   return (
-    <aside ref={cardRef} class={`tut-card ${folded ? 'is-min' : ''}`} role="region" aria-label={`Tutorial, step ${step} of ${TUTORIAL_STEPS}`}>
+    <>
+      {layout && (
+        <div
+          class="tut-ring"
+          aria-hidden="true"
+          style={{ top: layout.ring.top, left: layout.ring.left, width: layout.ring.width, height: layout.ring.height }}
+        />
+      )}
+    <aside
+      ref={cardRef}
+      class={`tut-card ${folded ? 'is-min' : ''} ${layout?.pos ? 'is-placed' : ''}`}
+      style={layout?.pos ? { top: layout.pos.top, left: layout.pos.left, bottom: 'auto' } : undefined}
+      role="region"
+      aria-label={`Tutorial, step ${step} of ${TUTORIAL_STEPS}`}
+    >
       <div class="tut-strip">
         {folded ? (
           <span class="tut-strip-text">
@@ -281,7 +396,7 @@ function Coach({ step, onSkip }: { step: number; onSkip: () => void }) {
               </>
             ) : (
               <>
-                <Button variant="primary" size="sm" onClick={() => navigate(def.go)}>
+                <Button variant="primary" size="sm" onClick={() => navigate(def.go, def.intent)}>
                   Go ›
                 </Button>
                 <Button variant="ghost" size="sm" class="tut-skip" onClick={onSkip}>
@@ -293,5 +408,6 @@ function Coach({ step, onSkip }: { step: number; onSkip: () => void }) {
         </div>
       )}
     </aside>
+    </>
   );
 }
