@@ -1,8 +1,9 @@
-// Step 3: how it is built. Architecture, tokenizer and context as trade-off tiles. MoE shows its expert stepper inline.
+// Step 3: how it is built. Architecture, shape, MoE top-k, tokenizer and context as trade-off tiles. MoE shows its expert
+// stepper inline; the shape slider trades knowledge for reasoning and speed.
 import { optionsByGroup, RUN_TUNING } from '../../../sim/data/trainingOptions';
-import { EXPERT_STEPS, pct } from './model';
+import { EXPERT_STEPS, MOE_TOPK_CHOICES, pct, shapeEffect, shapeName } from './model';
 import type { Ctx } from './model';
-import { OptionTiles } from './kit';
+import { Chip, OptionTiles, Slider } from './kit';
 
 export function StepArch({ ctx }: { ctx: Ctx }) {
   const { s, sheet, defaults, patchCfg } = ctx;
@@ -10,12 +11,15 @@ export function StepArch({ ctx }: { ctx: Ctx }) {
   const experts = cfg.moeExperts ?? RUN_TUNING.MOE_DEFAULT_EXPERTS;
   const expertIdx = Math.max(0, EXPERT_STEPS.indexOf(experts));
   const active = RUN_TUNING.MOE_ACTIVE_FRACTION[experts] ?? 0;
+  const shape = cfg.shape ?? 0;
+  const topK = cfg.moeTopK ?? 2;
 
   return (
     <div class="tw-stack">
       <div class="tw-group">
         <div class="tw-label">Architecture</div>
         <OptionTiles
+          s={s}
           label="Architecture"
           rows={optionsByGroup(s, 'arch')}
           value={cfg.arch}
@@ -52,8 +56,38 @@ export function StepArch({ ctx }: { ctx: Ctx }) {
       </div>
 
       <div class="tw-group">
+        <div class="tw-label">Shape</div>
+        <div class="tw-shape-row">
+          <Slider value={shape} min={-1} max={1} step={0.5} label="Shape: wide and shallow to deep and narrow" onInput={(v) => patchCfg({ shape: v })} />
+          <span class="num tw-small">{shapeName(shape)}</span>
+        </div>
+        <div class="tw-small tw-muted">{shapeEffect(shape)}</div>
+      </div>
+
+      {cfg.arch === 'moe' && (
+        <div class="tw-group">
+          <div class="tw-label">Experts per token</div>
+          <div class="tw-chips" role="group" aria-label="Experts per token">
+            {MOE_TOPK_CHOICES.map((k) => (
+              <Chip
+                key={k}
+                on={topK === k}
+                disabled={k >= experts}
+                title={k >= experts ? `Needs fewer than ${experts} experts` : `${k} expert${k > 1 ? 's' : ''} light up per token`}
+                onClick={() => patchCfg({ moeTopK: k })}
+              >
+                {String(k)}
+              </Chip>
+            ))}
+            <span class="num tw-small tw-muted">{`${topK} of ${experts} experts light up per token`}</span>
+          </div>
+        </div>
+      )}
+
+      <div class="tw-group">
         <div class="tw-label">Tokenizer</div>
         <OptionTiles
+          s={s}
           label="Tokenizer"
           rows={optionsByGroup(s, 'tokenizer')}
           value={cfg.tokenizer}
@@ -65,6 +99,7 @@ export function StepArch({ ctx }: { ctx: Ctx }) {
       <div class="tw-group">
         <div class="tw-label">Context window</div>
         <OptionTiles
+          s={s}
           label="Context window"
           rows={optionsByGroup(s, 'context')}
           value={cfg.context}

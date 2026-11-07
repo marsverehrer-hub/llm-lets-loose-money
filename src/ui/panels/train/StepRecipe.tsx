@@ -3,11 +3,13 @@
 import { dispatch } from '../../store';
 import { LAB_TUNING, sweepPointsFor, sweepQuote, sweepRunning } from '../../../sim/systems/lab';
 import { availableTechniques } from '../../../sim/systems/training';
+import { expectedTraits, TRAIT_NAME } from '../../../sim/systems/traits';
+import { mixRows } from '../../../sim/systems/trainingMath';
 import { isResearched } from '../../../sim/systems/research';
 import { optionsByGroup, RUN_TUNING } from '../../../sim/data/trainingOptions';
-import type { TrainingConfig } from '../../../sim/types';
+import type { TrainingConfig, TraitId } from '../../../sim/types';
 import { formatMoney } from '../../../sim/util';
-import { formatDays, Pill } from '../../components';
+import { Check, formatDays, Pill } from '../../components';
 import { STEPS, LR_MIN, LR_MAX, fmtLr, lrAt, optionName, posOfLr, sweepLrs, quoteMoney, mult, tradeoffs } from './model';
 import type { OptionRow } from '../../../sim/data/trainingOptions';
 import type { Ctx } from './model';
@@ -38,6 +40,9 @@ export function StepRecipe({ ctx }: { ctx: Ctx }) {
   const keepHalf = keep ? `Stopping at halfway keeps ${Math.round((keep.base + keep.slope * 0.5) * 100)}% of the full-run quality.` : null;
   const ck = RUN_TUNING.CHECKPOINT[cfg.checkpointing];
   const techs = availableTechniques(s);
+  // Post-training stage tiles show the risk arrows that stage would add (no noise, every stage takes 1).
+  const traitRows = mixRows(s, selected, cfg);
+  const traitsOf = (id: string): Partial<Record<TraitId, number>> => expectedTraits({ ...cfg, post: [id] }, traitRows);
   const runSweep = () => {
     if (sweepBlock !== null) return;
     dispatch({ type: 'runLrSweep', paramsB, tokensB, datasetIds: selected, config: cfg, lrs });
@@ -47,15 +52,15 @@ export function StepRecipe({ ctx }: { ctx: Ctx }) {
     <div class="tw-stack">
       <div class="tw-group">
         <div class="tw-label">Optimizer</div>
-        <OptionTiles label="Optimizer" rows={optionsByGroup(s, 'optimizer')} value={cfg.optimizer} recommended={defaults.optimizer} onPick={(id) => patchCfg({ optimizer: id })} />
+        <OptionTiles s={s} label="Optimizer" rows={optionsByGroup(s, 'optimizer')} value={cfg.optimizer} recommended={defaults.optimizer} onPick={(id) => patchCfg({ optimizer: id })} />
       </div>
       <div class="tw-group">
         <div class="tw-label">Precision</div>
-        <OptionTiles label="Precision" rows={optionsByGroup(s, 'precision')} value={cfg.precision} recommended={defaults.precision} onPick={(id) => patchCfg({ precision: id })} />
+        <OptionTiles s={s} label="Precision" rows={optionsByGroup(s, 'precision')} value={cfg.precision} recommended={defaults.precision} onPick={(id) => patchCfg({ precision: id })} />
       </div>
       <div class="tw-group">
         <div class="tw-label">Schedule</div>
-        <OptionTiles label="Schedule" rows={optionsByGroup(s, 'schedule')} value={cfg.schedule} recommended={defaults.schedule} onPick={(id) => patchCfg({ schedule: id })} />
+        <OptionTiles s={s} label="Schedule" rows={optionsByGroup(s, 'schedule')} value={cfg.schedule} recommended={defaults.schedule} onPick={(id) => patchCfg({ schedule: id })} />
         {keepHalf && <div class="tw-small tw-muted">{keepHalf}</div>}
       </div>
 
@@ -134,7 +139,7 @@ export function StepRecipe({ ctx }: { ctx: Ctx }) {
               >
                 <div class="tw-tile-head">
                   <span class="tw-tile-name">{id[0].toUpperCase() + id.slice(1)}</span>
-                  {id === defaults.checkpointing && <span class="tw-rec">Recommended</span>}
+                  {id === defaults.checkpointing && <span class="tw-rec">Default</span>}
                 </div>
                 <div class="tw-trades">
                   <span class={`tw-trade tone-${c.speed >= 1 ? 'good' : 'bad'}`}>{`speed ${mult(fast ? 1 : c.speed)}`}</span>
@@ -155,6 +160,7 @@ export function StepRecipe({ ctx }: { ctx: Ctx }) {
         <ToggleTiles
           label="Post-training stages"
           rows={optionsByGroup(s, 'post')}
+          traitsOf={traitsOf}
           isOn={(id) => (cfg.post ?? []).includes(id)}
           onToggle={(id) => {
             const cur = cfg.post ?? [];
@@ -198,7 +204,7 @@ export function StepRecipe({ ctx }: { ctx: Ctx }) {
 
       <div class="tw-benchmaxx">
         <label class="tw-check-row">
-          <input type="checkbox" checked={sheet.benchmaxx} onChange={(e) => patch({ benchmaxx: (e.currentTarget as HTMLInputElement).checked })} />
+          <Check checked={sheet.benchmaxx} ariaLabel="Benchmaxx" onChange={(next) => patch({ benchmaxx: next })} />
           <span>
             <span class="tw-bold">Benchmaxx</span>
             <span class="tw-faint tw-small"> Train on benchmark test sets. Scores inflate, the model is flagged contaminated, and a scandal may follow.</span>
@@ -211,7 +217,20 @@ export function StepRecipe({ ctx }: { ctx: Ctx }) {
 }
 
 /** Tiles that toggle (post-training stages, anneal). Same look as OptionTiles; locked ones are counted, not shown. */
-function ToggleTiles({ label, rows, isOn, onToggle }: { label: string; rows: OptionRow[]; isOn: (id: string) => boolean; onToggle: (id: string) => void }) {
+function ToggleTiles({
+  label,
+  rows,
+  isOn,
+  onToggle,
+  traitsOf,
+}: {
+  label: string;
+  rows: OptionRow[];
+  isOn: (id: string) => boolean;
+  onToggle: (id: string) => void;
+  /** Risk arrows per tile (post-training stages only). */
+  traitsOf?: (id: string) => Partial<Record<TraitId, number>>;
+}) {
   const open = rows.filter((r) => r.unlocked);
   const locked = rows.length - open.length;
   if (open.length === 0) return <div class="tw-faint tw-small">{`None researched yet${locked ? ` (${locked} locked)` : ''}. See Research.`}</div>;
@@ -231,6 +250,10 @@ function ToggleTiles({ label, rows, isOn, onToggle }: { label: string; rows: Opt
                     {x.text}
                   </span>
                 ))}
+                {traitsOf &&
+                  (Object.keys(traitsOf(option.id)) as TraitId[]).map((k) => (
+                    <span key={`t-${k}`} class="tw-trade tone-bad">{`▲ ${TRAIT_NAME[k].toLowerCase()}`}</span>
+                  ))}
               </div>
             </button>
           );

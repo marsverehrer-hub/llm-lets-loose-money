@@ -3,7 +3,7 @@
 // opens the five-step wizard on the same sheet. Reads forecasts only, never hidden run fields.
 import { useMemo } from 'preact/hooks';
 import { dispatch, useGame } from '../../store';
-import { Card, NetView, Pill, Tabs, formatDays, netSpecOfText, netSpecOfMedia } from '../../components';
+import { Card, Check, NetView, Pill, Tabs, formatDays, netSpecOfText, netSpecOfMedia } from '../../components';
 import { formatMoney, formatParams, yearOf } from '../../../sim/util';
 import { suggestCodename } from '../../../sim/data/names';
 import { RECIPES } from '../../../sim/data/recipes';
@@ -227,7 +227,7 @@ function TextQuick({ pick, set, name }: { pick: QuickPick; set: (p: Partial<Quic
             <SizeLimitHint />
             <NetView spec={netSpecOfText(a.paramsB, a.config, activeParamsFor(a.paramsB, a.config!), optionById(a.config!.context)?.contextK)} seed="draft" height={170} />
             <div class="tw-readout">{`Fits your compute in ${formatDays(plan.days)} · about ${quoteMoney(cost, formatMoney)} if rented in the cloud`}</div>
-            {fc && <BandBar variant="mini" low={fc.low} mid={fc.mid} high={fc.high} label={`Forecast overall ${Math.round(fc.low)} to ${Math.round(fc.high)}`} />}
+            {fc && <BandBar variant="mini" low={fc.low} mid={fc.mid} high={fc.high} label={`Forecast overall ${Math.round(fc.low)} to ${Math.round(fc.high)}`} caption={`Expected overall ${Math.round(fc.low)}–${Math.round(fc.high)}`} />}
             <ShapeBars rows={shapeRows(fc?.caps ?? null, flagship ? modelCaps(flagship, s) : null)} compact />
             <div class="tw-small tw-muted">
               {stages.length ? `Post-training: ${stages.join(', ')}.` : 'No post-training stages researched yet.'}
@@ -330,7 +330,7 @@ function MediaQuick({ kind, pick, set, name }: { kind: MediaKind; pick: QuickPic
             <div class="tw-readout num">{`${arch?.name ?? cfg.arch} · ${formatParams(cfg.paramsB)} params · ${Math.round(cfg.samplesM)}M samples · ${cfg.resolution}px`}</div>
             <NetView spec={netSpecOfMedia(cfg)} seed="draft-media" height={170} />
             <div class="tw-readout">{`Fits your compute in ${formatDays(est.days)} · about ${quoteMoney(est.cloudCost, formatMoney)} if rented in the cloud`}</div>
-            <BandBar variant="mini" low={est.low} mid={est.mid} high={est.high} label={`Forecast overall ${Math.round(est.low)} to ${Math.round(est.high)}`} />
+            <BandBar variant="mini" low={est.low} mid={est.mid} high={est.high} label={`Forecast overall ${Math.round(est.low)} to ${Math.round(est.high)}`} caption={`Expected overall ${Math.round(est.low)}–${Math.round(est.high)}`} />
             {est.reasons.map((r) => (
               <div key={r} class="tw-faint tw-small">
                 {r}
@@ -367,14 +367,12 @@ function MediaQuick({ kind, pick, set, name }: { kind: MediaKind; pick: QuickPic
               </Chip>
             ))}
           </div>
-          <label class="tw-check-row">
-            <input type="checkbox" checked={!!cfg?.distill} onChange={(e) => setOver({ distill: (e.currentTarget as HTMLInputElement).checked })} />
-            <span>Few-step distillation: much faster to serve, a little worse.</span>
-          </label>
-          <label class="tw-check-row">
-            <input type="checkbox" checked={!!cfg?.optOut} onChange={(e) => setOver({ optOut: (e.currentTarget as HTMLInputElement).checked })} />
-            <span>Honour artist opt-outs: most of the legal risk goes, some of the aesthetics too.</span>
-          </label>
+          <div class="tw-check-row">
+            <Check checked={!!cfg?.distill} onChange={(next) => setOver({ distill: next })} label="Few-step distillation: much faster to serve, a little worse." />
+          </div>
+          <div class="tw-check-row">
+            <Check checked={!!cfg?.optOut} onChange={(next) => setOver({ optOut: next })} label="Honour artist opt-outs: most of the legal risk goes, some of the aesthetics too." />
+          </div>
           {owned.length > 1 && (
             <div class="tw-chips" role="group" aria-label="Datasets">
               {owned.map(({ def }) => {

@@ -1,7 +1,7 @@
 // Step 1: how big. The parameter and token sliders are primary. Fit-to-time shortcuts are helper chips.
 import { formatParams } from '../../../sim/util';
 import { suggestCodename } from '../../../sim/data/names';
-import { T_MIN, CHINCHILLA, CHINCHILLA_SNAP, FIT_CHIPS, P_MAX, P_MIN, STEPS, pointsText, posFor, scalePct, tokensShort } from './model';
+import { T_MIN, CHINCHILLA, CHINCHILLA_SNAP, FIT_CHIPS, P_MAX, P_MIN, STEPS, paramsAt, pointsText, posFor, scalePct, tokensShort, wallPos, wallText } from './model';
 import type { Ctx } from './model';
 import { NumField, Slider, Chip } from './kit';
 import { logToValue, sig2, uiRng, valueToLog } from '../panelKit';
@@ -17,8 +17,12 @@ export function StepSize({ ctx }: { ctx: Ctx }) {
   const ratio = est ? est.tokensPerParam : canTokens && paramsB > 0 ? tokensB / paramsB : 0;
   const ratioText = ratio >= 10 ? String(Math.round(ratio)) : ratio.toFixed(1);
   const auto = sheet.tokReq === null;
-  const wall = memoryWall(s); // v16: the model has to fit in the cluster
-  const oom = memoryWallError(s, paramsB);
+  // v16: the model has to fit in the cluster. The slider stops at the wall (v18: memory depends on the optimizer and precision).
+  const wall = memoryWall(s, sheet.cfg);
+  const maxPos = wallPos(s, sheet.cfg);
+  const oom = memoryWallError(s, paramsB, sheet.cfg);
+  // Strictly over the wall is an error. At the wall (the slider's end) it is a hint, not a fault.
+  const atWall = !oom && paramsB >= paramsAt(maxPos);
 
   return (
     <div class="tw-stack">
@@ -62,16 +66,24 @@ export function StepSize({ ctx }: { ctx: Ctx }) {
             </span>
           </div>
           <div class="tw-dial-row">
-            <Slider value={pos} min={0} max={STEPS} step={1} label="Parameters" onInput={(v) => patch({ fit: 'manual', paramPos: v })} />
+            <Slider value={pos} min={0} max={Math.max(1, maxPos)} step={1} label="Parameters" onInput={(v) => patch({ fit: 'manual', paramPos: v })} />
             <NumField value={paramsB} min={P_MIN} max={P_MAX} label="Parameters in billions" onCommit={(v) => patch({ fit: 'manual', paramPos: posFor(v) })} />
             <span class="tw-unit">B</span>
           </div>
           <div class="tw-dial-note">
             {sheet.fit === 'manual' ? 'Set by hand. Drag or type to resize.' : 'Sized to the time budget. Moving the slider switches to manual.'}
           </div>
-          <div class={`tw-dial-note ${oom ? 'bad' : ''}`} title="Weights, gradients and optimizer state need about 16 bytes per parameter. Parallelism research lets one model span more GPUs.">
-            {oom ?? `Memory: your cluster holds up to ${formatParams(wall.maxParamsB)} (${wall.limitedBy === 'research' ? 'research parallelism to go bigger' : 'add GPUs to go bigger'}).`}
-          </div>
+          {oom ? (
+            <div class="tw-dial-note bad" title="Weights, gradients and optimizer state need about 16 bytes per parameter. Parallelism research lets one model span more GPUs.">
+              {oom}
+            </div>
+          ) : atWall ? (
+            <div class="tw-dial-note tw-muted">At your memory wall. Research parallelism or buy bigger GPUs to go larger.</div>
+          ) : (
+            <div class="tw-dial-note" title="Weights, gradients and optimizer state need about 16 bytes per parameter. Parallelism research lets one model span more GPUs.">
+              {`Memory: your cluster holds up to ${wallText(wall.maxParamsB)} (${wall.limitedBy === 'research' ? 'research parallelism to go bigger' : 'add GPUs to go bigger'}).`}
+            </div>
+          )}
         </div>
 
         <div class="tw-dial">

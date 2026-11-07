@@ -220,7 +220,18 @@ function AdvancedWizard() {
         <footer class="tw-foot">
           <div class="tw-foot-facts">
             <div class="tw-foot-band">
-              {fc ? <BandBar variant="mini" low={fc.low} mid={fc.mid} high={fc.high} label={`Forecast overall ${Math.round(fc.low)} to ${Math.round(fc.high)}`} /> : <span class="tw-faint tw-small">No forecast yet</span>}
+              {fc ? (
+                <BandBar
+                  variant="mini"
+                  low={fc.low}
+                  mid={fc.mid}
+                  high={fc.high}
+                  label={`Forecast overall ${Math.round(fc.low)} to ${Math.round(fc.high)}`}
+                  caption={`Expected overall ${Math.round(fc.low)}–${Math.round(fc.high)}`}
+                />
+              ) : (
+                <span class="tw-faint tw-small">No forecast yet</span>
+              )}
             </div>
             <div class="num tw-foot-cost">
               {est ? `${quoteMoney(est.totalFlops * cloudPerFlop, formatMoney)} cloud · ${formatDays(est.days)}` : '—'}

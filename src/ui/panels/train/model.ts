@@ -1,7 +1,11 @@
 // Shared constants and pure helpers for the pre-training wizard. No rendering here.
 // Fog of training (GAME_DESIGN 16): forecasts come from forecastTraining only. Never read hidden run fields.
-import type { GameState, Capabilities, CapId, DatasetDef, Forecast, Id, Model, TrainingConfig } from '../../../sim/types';
+import type { GameState, Capabilities, CapId, DatasetDef, Forecast, Id, Model, TrainingConfig, TraitId } from '../../../sim/types';
 import { CAP_IDS } from '../../../sim/types';
+import { PRECISION_SPEED } from '../../../sim/data/gpus';
+import { formatParams } from '../../../sim/util';
+import { fleetFormatSpeed } from '../../../sim/systems/hwFormats';
+import { memoryWall } from '../../../sim/systems/scaleLimits';
 import { labInfo } from '../../../sim/systems/labs';
 import { TRAINING_TUNING, datasetTokensOf, estimateTraining, trainingRatePerDay } from '../../../sim/systems/training';
 import type { TrainingEstimate } from '../../../sim/systems/training';
@@ -98,6 +102,11 @@ export const bandText = (b: number): string => {
   return x % 1 === 0 ? x.toFixed(0) : x.toFixed(1);
 };
 export const fmtLr = (v: number): string => v.toFixed(v < 0.1 ? 3 : 2);
+/** Architecture shape: -1 wide and shallow .. +1 deep and narrow. Effects follow RUN_TUNING.SHAPE. */
+export const shapeName = (v: number): string => (v > 0 ? 'Deep & narrow' : v < 0 ? 'Wide & shallow' : 'Balanced');
+export const shapeEffect = (v: number): string => (v > 0 ? '+reasoning, −knowledge, slower' : v < 0 ? '+knowledge, −reasoning, faster' : 'No shape bias.');
+/** Experts each MoE token visits (chips). Matches RUN_TUNING.MOE_TOPK. */
+export const MOE_TOPK_CHOICES = [1, 2, 4, 8] as const;
 export const confTone = (c: Forecast['confidence']): 'good' | 'info' | 'warn' | 'bad' =>
   c === 'tight' ? 'good' : c === 'decent' ? 'info' : c === 'rough' ? 'warn' : 'bad';
 
@@ -184,6 +193,23 @@ export function lineageRows(models: Model[]): TreeRow[] {
  * owned data can feed at the optimal ratio (20 tokens per parameter, epochs included), so auto sizing is not undertrained.
  */
 export function fitPos(s: GameState, cfg: TrainingConfig, ids: Id[], days: number): number {
+  return Math.min(fitPosFree(s, cfg, ids, days), wallPos(s, cfg));
+}
+
+/** Largest slider position whose parameters fit the memory wall (the cluster holds them for training). Never rounds up. */
+export function wallPos(s: GameState, cfg?: TrainingConfig): number {
+  const cap = memoryWall(s, cfg).maxParamsB;
+  let p = Math.min(STEPS, Math.max(0, Math.floor(posFor(cap))));
+  // sig2 rounding in paramsAt can land above the cap; step back until it does not.
+  while (p > 0 && paramsAt(p) > cap) p--;
+  return p;
+}
+
+/** The wall in billions, floored to one decimal for display (never shows more than fits). */
+/** Never rounds up: one decimal in billions, or whole millions below 1B. */
+export const wallText = (cap: number): string => formatParams(cap >= 1 ? Math.floor(cap * 10) / 10 : Math.floor(cap * 1000) / 1000);
+
+function fitPosFree(s: GameState, cfg: TrainingConfig, ids: Id[], days: number): number {
   const maxTokens = TRAINING_TUNING.MAX_EPOCHS * datasetTokensOf(s, ids);
   if (ids.length === 0 || maxTokens < T_MIN || trainingRatePerDay(s, cfg) <= 0) return posFor(7);
   // The optimal token count follows the parameters the loss sees (effective, for MoE).
@@ -276,21 +302,29 @@ const pctDelta = (m: number): string => {
   return `${p >= 0 ? '+' : '−'}${Math.abs(p)}%`;
 };
 
+/** True when the sheet's precision has no hardware support on this lab's fleet, so it runs emulated (no speedup). */
+export function emulatedFormat(s: GameState, opt: TrainingOption): boolean {
+  return !!opt.hwFormat && fleetFormatSpeed(s, opt.id) < PRECISION_SPEED[opt.hwFormat] - 1e-6;
+}
+
 /**
- * Up to four compact deltas for an option: speed, quality, compute, risk, serving, data and token effects, then the
- * strongest capability shift. Stats the option does not move are left out.
+ * Up to four compact deltas for an option: hardware emulation, speed, quality, compute, risk, serving, data, tokens,
+ * memory and learning-rate sensitivity, then the strongest capability shift. Stats the option does not move are left out.
  */
-export function tradeoffs(opt: TrainingOption): Trade[] {
+export function tradeoffs(opt: TrainingOption, emulated = false): Trade[] {
   const main: Trade[] = [];
-  if (opt.speedMult && opt.speedMult !== 1) main.push({ text: `speed ${fx(opt.speedMult)}`, tone: opt.speedMult > 1 ? 'good' : 'bad' });
+  if (emulated) main.push({ text: 'your GPUs run this emulated', tone: 'bad' });
+  if (!emulated && opt.speedMult && opt.speedMult !== 1) main.push({ text: `speed ${fx(opt.speedMult)}`, tone: opt.speedMult > 1 ? 'good' : 'bad' });
   if (opt.qualityMult && opt.qualityMult !== 1) main.push({ text: `quality ${pctDelta(opt.qualityMult)}`, tone: opt.qualityMult > 1 ? 'good' : 'bad' });
   if (opt.flopsMult && opt.flopsMult !== 1) main.push({ text: `compute ${fx(opt.flopsMult)}`, tone: 'bad' });
+  if (opt.memoryMult && opt.memoryMult !== 1) main.push({ text: `memory ${fx(opt.memoryMult)}`, tone: opt.memoryMult > 1 ? 'bad' : 'good' });
+  if (opt.lrCurveMult && opt.lrCurveMult > 1.2) main.push({ text: 'LR-sensitive', tone: 'bad' });
   if (opt.instability !== undefined && opt.instability !== 0) main.push({ text: `risk ${opt.instability > 0 ? '▲' : '▼'}`, tone: opt.instability > 0 ? 'bad' : 'good' });
   // inferenceMult is serving efficiency (>1 = cheaper to serve), so show it as a cost multiplier.
   if (opt.inferenceMult && opt.inferenceMult !== 1) main.push({ text: `serving cost ${fx(1 / opt.inferenceMult)}`, tone: opt.inferenceMult > 1 ? 'good' : 'bad' });
   if (opt.dataQualityAdd) main.push({ text: `data q +${Math.round(opt.dataQualityAdd * 100)}`, tone: 'good' });
   if (opt.tokenMult !== undefined && opt.tokenMult !== 1) main.push({ text: `tokens ${pctDelta(opt.tokenMult)}`, tone: 'bad' });
-  if (opt.contextK) main.push({ text: `memory ${fmtCtx(opt.contextK)}`, tone: 'info' });
+  if (opt.contextK) main.push({ text: `context ${fmtCtx(opt.contextK)}`, tone: 'info' });
   const caps = Object.entries(opt.capAdd ?? {})
     .filter(([, v]) => v)
     .sort((a, b) => Math.abs(b[1] as number) - Math.abs(a[1] as number));
@@ -302,6 +336,9 @@ export function tradeoffs(opt: TrainingOption): Trade[] {
   return out.length ? out : [{ text: 'baseline', tone: 'dim' }];
 }
 
+/** Post-training trait names as the wizard writes them in risk arrows ("▲ over-refusal"). */
+export const traitText = (k: TraitId): string => (k === 'rewardHacking' ? 'reward hacking' : k === 'overRefusal' ? 'over-refusal' : k);
+
 // ---------------------------------------------------------------------------
 // build profile: expected capabilities against the current flagship
 // ---------------------------------------------------------------------------
@@ -309,9 +346,24 @@ export function tradeoffs(opt: TrainingOption): Trade[] {
 export interface ShapeRow {
   id: CapId;
   label: string;
+  /** Three-letter label for the compact strip. */
+  short: string;
   expected: number;
   flagship: number | null;
 }
+
+const CAP_SHORT: Record<CapId, string> = {
+  knowledge: 'Kno',
+  reasoning: 'Rea',
+  math: 'Mat',
+  coding: 'Cod',
+  agentic: 'Agt',
+  chat: 'Cht',
+  vision: 'Vis',
+  safety: 'Saf',
+  multilingual: 'Mul',
+  longContext: 'Ctx',
+};
 
 /** Forecast capability shape for the current sheet. Expected values only, never hidden truth. */
 export function shapeRows(expected: Capabilities | null, flagship: Capabilities | null): ShapeRow[] | null {
@@ -319,6 +371,7 @@ export function shapeRows(expected: Capabilities | null, flagship: Capabilities 
   return CAP_IDS.map((id) => ({
     id,
     label: CAP_LABEL[id],
+    short: CAP_SHORT[id],
     expected: clamp(expected[id], 0, 100),
     flagship: flagship ? clamp(flagship[id], 0, 100) : null,
   }));

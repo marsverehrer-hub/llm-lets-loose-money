@@ -6,13 +6,15 @@ import { believedQuality, isVerified } from '../../../sim/systems/lab';
 import { mixRows } from '../../../sim/systems/trainingMath';
 import { equalMixFor, optionsByGroup, ownedKinds } from '../../../sim/data/trainingOptions';
 import { navigate } from '../../nav';
-import { EmptyState, Pill } from '../../components';
+import { Check, EmptyState, Pill } from '../../components';
 import { tokensShort, KIND_LABEL, GOOD_QUALITY, pct, tradeoffs } from './model';
 import type { Ctx } from './model';
 import { Chip, Slider } from './kit';
 import type { DataKind } from '../../../sim/types';
 
 const KIND_ORDER = Object.keys(KIND_LABEL) as DataKind[];
+/** Above this many epochs a kind is repeated enough to show a warning. */
+const EPOCH_WARN = 4;
 
 function sameSet(a: Id[], b: Id[]): boolean {
   if (a.length !== b.length) return false;
@@ -21,7 +23,7 @@ function sameSet(a: Id[], b: Id[]): boolean {
 }
 
 export function StepData({ ctx }: { ctx: Ctx }) {
-  const { s, sheet, ownedSets, selected, uniqueTokens, cfgErr, patch, patchCfg } = ctx;
+  const { s, sheet, ownedSets, selected, uniqueTokens, tokensB, canTokens, cfgErr, patch, patchCfg } = ctx;
   const cfg = sheet.cfg;
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [mixOpen, setMixOpen] = useState(false);
@@ -52,6 +54,8 @@ export function StepData({ ctx }: { ctx: Ctx }) {
   };
 
   const shares = mixRows(s, selected, cfg);
+  // Epochs per kind: how many times the run reads each kind's unique tokens. Above EPOCH_WARN the data is repeated a lot.
+  const epochRows = mixRows(s, selected, cfg, 'belief', canTokens ? tokensB : undefined);
   const shareOf = (k: DataKind): number => shares.find((r) => r.kind === k)?.share ?? 0;
   const kinds = ownedKinds(s);
   const filters = optionsByGroup(s, 'filter');
@@ -77,6 +81,21 @@ export function StepData({ ctx }: { ctx: Ctx }) {
       </div>
 
       {cfgErr && <div class="tw-warn">{cfgErr}</div>}
+
+      {epochRows.length > 0 && (
+        <div class="tw-kind-row" role="list" aria-label="Data per kind">
+          {epochRows.map((r) => {
+            const e = r.epochs ?? 0;
+            const warn = canTokens && e > EPOCH_WARN;
+            const ep = !canTokens ? '—' : e >= 10 ? String(Math.round(e)) : e.toFixed(1);
+            return (
+              <span key={r.kind} role="listitem" class={`num tw-kind-chip ${warn ? 'tone-warn' : ''}`}>
+                {`${KIND_LABEL[r.kind]} · ${pct(r.share)} of the mix · ${ep} epochs`}
+              </span>
+            );
+          })}
+        </div>
+      )}
 
       <div class="tw-groups">
         {presentKinds.map((kind) => {
@@ -104,7 +123,7 @@ export function StepData({ ctx }: { ctx: Ctx }) {
                   const verified = isVerified(s, d.id);
                   return (
                     <label class={`tw-set ${on ? 'is-on' : ''}`} key={d.id}>
-                      <input type="checkbox" checked={on} onChange={() => togglePick(d.id)} aria-label={`Use ${d.name}`} />
+                      <Check checked={on} onChange={() => togglePick(d.id)} ariaLabel={`Use ${d.name}`} />
                       <span class="tw-set-name">{d.name}</span>
                       {!verified && <Pill tone="warn">Unverified</Pill>}
                       <span class="num tw-set-tok">{tokensShort(d.tokensB)}</span>

@@ -21,6 +21,8 @@ function IncidentBody() {
 
   const def = runIncidentById(p.defId);
   const resolved = p.result !== undefined;
+  // A planned decision (v18 run call) is not a failure: an accent edge, a Decision header, and its text as written.
+  const call = !!p.call;
 
   let body = '';
   try {
@@ -31,9 +33,12 @@ function IncidentBody() {
 
   return (
     <div class="modal-backdrop" role="alertdialog" aria-modal="true" aria-labelledby="incident-title">
-      <div class={`modal event-modal ${resolved || def?.good ? '' : 'modal-danger'}`}>
+      <div
+        class={`modal event-modal ${resolved || def?.good || call ? '' : 'modal-danger'}`}
+        style={call ? 'box-shadow: inset 3px 0 0 var(--accent)' : undefined}
+      >
         <div class="modal-header">
-          <h2 class="modal-title">{resolved ? `Result · ${tdate(p.day)}` : `Training incident · ${tdate(p.day)}`}</h2>
+          <h2 class="modal-title">{resolved ? `Result · ${tdate(p.day)}` : call ? `Decision · ${tdate(p.day)}` : `Training incident · ${tdate(p.day)}`}</h2>
         </div>
 
         <div class="modal-body">
@@ -59,7 +64,7 @@ function IncidentBody() {
             </>
           ) : (
             <>
-              {body && <p class="event-body">{plain(body)}</p>}
+              {body && <p class="event-body">{call ? body : plain(body)}</p>}
               {def ? (
                 <div class="choices">
                   {def.choices.map((c, i) => {

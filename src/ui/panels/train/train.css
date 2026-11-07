@@ -82,8 +82,8 @@
   font-family: var(--display);
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-variant: all-small-caps;
+  letter-spacing: 0.02em;
 }
 .tw-small { font-size: var(--fs-xs); }
 .tw-faint { color: var(--fg-3); }
@@ -173,7 +173,6 @@
   background: var(--bg-3);
   border: 0;
   border-radius: 0;
-  clip-path: polygon(var(--slant) 0, 100% 0, calc(100% - var(--slant)) 100%, 0 100%);
   color: var(--fg-2);
   font-family: var(--display);
   font-size: 11.5px;
@@ -860,3 +859,32 @@
 }
 /* v17.2: the "before you train" tip in the quick start. */
 .tw-tip { padding: 10px 12px; border: 1px solid var(--line); box-shadow: inset 4px 0 0 var(--hl); background: var(--bg-2); }
+
+/* ---------- v18 wizard additions: expected band caption, per-kind epochs, shape and expert top-k ---------------- */
+.tw-band-cap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.tw-kind-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+}
+.tw-kind-chip {
+  color: var(--fg-2);
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+}
+.tone-warn { color: var(--warn); }
+.tw-shape-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.tw-shape-row > .md-slider { flex: 1; min-width: 0; }
+.tw-shape.is-compact .tw-shape-short {
+  font-size: 11px;
+  text-align: center;
+}

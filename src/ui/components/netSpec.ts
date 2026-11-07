@@ -29,17 +29,22 @@ export interface NetSpec {
 
 /** Width per layer at the usual aspect ratio. */
 const ASPECT = 128;
+/** Layers grow by 1.6^shape at shape +1 (deep and narrow) and shrink by the same at -1 (wide and shallow). */
+const SHAPE_DEPTH = 1.6;
 
-/** Layers and width for a dense stack of `paramsB` billion parameters. */
-export function depthWidth(paramsB: number): { layers: number; width: number } {
+/**
+ * Layers and width for a dense stack of `paramsB` billion parameters. `shape` (-1 wide .. +1 deep) scales the layer
+ * count; the width follows so the parameter count stays the same (params ≈ 12 · layers · width²).
+ */
+export function depthWidth(paramsB: number, shape = 0): { layers: number; width: number } {
   const p = Math.max(1e6, paramsB * 1e9);
-  const layers = Math.max(2, Math.round(Math.cbrt(p / (12 * ASPECT * ASPECT))));
+  const layers = Math.max(2, Math.round(Math.cbrt(p / (12 * ASPECT * ASPECT)) * SHAPE_DEPTH ** shape));
   const width = Math.max(64, Math.round(Math.sqrt(p / (12 * layers)) / 64) * 64);
   return { layers, width };
 }
 
-function base(family: NetFamily, paramsB: number, activeParamsB: number): NetSpec {
-  const { layers, width } = depthWidth(activeParamsB);
+function base(family: NetFamily, paramsB: number, activeParamsB: number, shape = 0): NetSpec {
+  const { layers, width } = depthWidth(activeParamsB, shape);
   return {
     family,
     paramsB,
@@ -70,9 +75,9 @@ const TEXT_FAMILY: Record<string, NetFamily> = {
  */
 export function netSpecOfText(paramsB: number, cfg: TrainingConfig | undefined, activeParamsB = paramsB, contextK = 2): NetSpec {
   const family = TEXT_FAMILY[cfg?.arch ?? 'dense'] ?? 'transformer';
-  const spec = base(family, paramsB, Math.min(paramsB, activeParamsB));
+  const spec = base(family, paramsB, Math.min(paramsB, activeParamsB), cfg?.shape ?? 0);
   spec.experts = family === 'moe' ? (cfg?.moeExperts ?? 16) : 1;
-  spec.topK = family === 'moe' ? 2 : 1;
+  spec.topK = family === 'moe' ? (cfg?.moeTopK ?? 2) : 1;
   spec.contextK = contextK;
   if (family === 'lstm') spec.heads = 0;
   return spec;

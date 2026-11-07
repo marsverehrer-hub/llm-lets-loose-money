@@ -3,9 +3,9 @@
 import type { ComponentChildren } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { clamp, niceScale, Slider as ShellSlider, useIsMobile } from '../../components';
-import type { Id, SweepPoint } from '../../../sim/types';
+import type { GameState, Id, SweepPoint } from '../../../sim/types';
 import type { OptionRow } from '../../../sim/data/trainingOptions';
-import { LR_MAX, LR_MIN, r0, tradeoffs } from './model';
+import { LR_MAX, LR_MIN, emulatedFormat, r0, tradeoffs } from './model';
 import type { ShapeRow } from './model';
 import '../models.css';
 import './train.css';
@@ -33,12 +33,15 @@ export function BandBar({
   mid,
   high,
   label,
+  caption,
   variant,
 }: {
   low: number;
   mid?: number | null;
   high: number;
   label?: string;
+  /** Visible text beside the band (the wizard's "Expected overall 52–61"). */
+  caption?: string;
   variant?: 'mini' | 'lg';
 }) {
   const lo = Math.min(low, high);
@@ -49,7 +52,7 @@ export function BandBar({
   const at = (v: number): number => clamp((v - d0) / span, 0, 1) * 100;
   const hasMid = mid !== null && mid !== undefined && isFinite(mid);
   const midAt = hasMid ? at(mid as number) : 0;
-  return (
+  const band = (
     <div class={`md-band ${variant ? `md-band-${variant}` : ''}`} role="img" aria-label={label ?? `Range ${r0(lo)} to ${r0(hi)}${hasMid ? `, mid ${r0(mid as number)}` : ''}`}>
       <div class="md-band-track">
         <span class="md-band-range" style={`left:${at(lo).toFixed(2)}%;width:${(at(hi) - at(lo)).toFixed(2)}%`} />
@@ -64,6 +67,13 @@ export function BandBar({
         )}
         <span class="num md-band-hi">{r0(hi)}</span>
       </div>
+    </div>
+  );
+  if (!caption) return band;
+  return (
+    <div class="tw-band-cap">
+      <span class="tw-small tw-muted">{caption}</span>
+      {band}
     </div>
   );
 }
@@ -260,14 +270,22 @@ export function NumField({
  */
 export function ShapeBars({ rows, compact }: { rows: ShapeRow[] | null; compact?: boolean }) {
   if (!rows) return <div class="tw-faint tw-small">Pick datasets to see the build profile.</div>;
+  // Compact: a three-letter label under each bar, and no bar at all for a capability the forecast gives nothing.
+  const shown = compact ? rows.filter((r) => r.expected > 0) : rows;
   return (
-    <div class={`tw-shape ${compact ? 'is-compact' : ''}`} role="img" aria-label="Expected capability shape against the flagship">
-      {rows.map((r) => (
+    <div
+      class={`tw-shape ${compact ? 'is-compact' : ''}`}
+      style={compact ? `grid-template-columns:repeat(${Math.max(1, shown.length)},minmax(0,1fr))` : undefined}
+      role="img"
+      aria-label="Expected capability shape against the flagship"
+    >
+      {shown.map((r) => (
         <div class="tw-shape-col" key={r.id} title={`${r.label} ${Math.round(r.expected)}${r.flagship !== null ? ` · flagship ${Math.round(r.flagship)}` : ''}`}>
           <div class="tw-shape-well">
             <div class="tw-shape-bar" style={`height:${r.expected.toFixed(1)}%`} />
             {r.flagship !== null && <div class="tw-shape-mark" style={`bottom:${r.flagship.toFixed(1)}%`} />}
           </div>
+          {compact && <span class="tw-shape-k tw-shape-short">{r.short}</span>}
           {!compact && <span class="tw-shape-k">{r.label}</span>}
           {!compact && <span class="num tw-shape-v">{Math.round(r.expected)}</span>}
         </div>
@@ -277,9 +295,9 @@ export function ShapeBars({ rows, compact }: { rows: ShapeRow[] | null; compact?
 }
 
 /** Small toggle chip (helper chips and filter toggles). */
-export function Chip({ on, onClick, children, title }: { on: boolean; onClick: () => void; children: ComponentChildren; title?: string }) {
+export function Chip({ on, onClick, children, title, disabled }: { on: boolean; onClick: () => void; children: ComponentChildren; title?: string; disabled?: boolean }) {
   return (
-    <button type="button" class={`tw-chip ${on ? 'is-on' : ''}`} aria-pressed={on} title={title} onClick={onClick}>
+    <button type="button" class={`tw-chip ${on ? 'is-on' : ''}`} aria-pressed={on} title={title} disabled={disabled} onClick={onClick}>
       {children}
     </button>
   );
@@ -290,6 +308,7 @@ export function Chip({ on, onClick, children, title }: { on: boolean; onClick: (
  * Locked options collapse into an "N locked" link. Hovering a tile swaps the one detail line below the group.
  */
 export function OptionTiles({
+  s,
   label,
   rows,
   value,
@@ -297,9 +316,12 @@ export function OptionTiles({
   onPick,
   extra,
 }: {
+  /** The game state: a precision the fleet cannot run natively is marked emulated. */
+  s: GameState;
   label: string;
   rows: OptionRow[];
   value: Id;
+  /** The option defaultConfig() would pick. Marked quietly, not as a recommendation. */
   recommended: Id;
   onPick: (id: Id) => void;
   /** Rendered inside the selected tile (the MoE expert stepper). */
@@ -336,10 +358,10 @@ export function OptionTiles({
             >
               <div class="tw-tile-head">
                 <span class="tw-tile-name">{option.name}</span>
-                {option.id === recommended && <span class="tw-rec">Recommended</span>}
+                {option.id === recommended && <span class="tw-rec">Default</span>}
               </div>
               <div class="tw-trades">
-                {tradeoffs(option).map((t, i) => (
+                {tradeoffs(option, emulatedFormat(s, option)).map((t, i) => (
                   <span key={i} class={`tw-trade tone-${t.tone}`}>
                     {t.text}
                   </span>
