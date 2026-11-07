@@ -113,7 +113,7 @@ const flagKey = {
 };
 const ARENA_TOP_FLAG = 'arenaTop';
 const LAST_COUNTER_FLAG = 'counter.lastDay';
-const STANDING_PLAYER_FLAG = 'standing.player';
+export const STANDING_PLAYER_FLAG = 'standing.player';
 
 /** Score offsets [reasoning, coding, chat, safety] per personality, before centring on the overall. */
 const PERSONALITY_OFFSETS: Record<Exclude<Personality, 'chaos'>, [number, number, number, number]> = {

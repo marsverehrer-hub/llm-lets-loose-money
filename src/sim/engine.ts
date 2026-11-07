@@ -1,5 +1,6 @@
 import type { ActionHandlers, GameAction, GameState, System } from './types';
 import { chaptersTick } from './systems/chapters';
+import { annualTick } from './systems/annual'; // v21 Annual Report, filed on each 1 January
 import { makeRng } from './rng';
 import { inTick } from './util';
 import { computeTick, handlers as computeHandlers } from './systems/compute';
@@ -47,6 +48,7 @@ import { mediaTick, handlers as mediaHandlers } from './systems/imageGen'; // v1
 
 /** Order matters: costs/capacity first, then production, then market, then finance closes the books. */
 const SYSTEMS: System[] = [
+  annualTick, // v21: files last year's report before today's books move
   supplyTick, // v19: pre-orders land, used market and prices move, before compute bills the day
   chipTick, // v19: the silicon programme
   cloudTick, // v16: crunches, spot preemptions and reserved expiries, before compute bills the day

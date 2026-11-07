@@ -2,7 +2,7 @@ import { useState } from 'preact/hooks';
 import type { ComponentChildren } from 'preact';
 import { ACHIEVEMENTS } from '../../sim/data/achievements';
 import { formatMoney } from '../../sim/util';
-import { Button, formatInt } from '../components';
+import { Button, RunChart, formatInt, runMarks } from '../components';
 import { Banner } from '../panels/panelKit';
 import { newGame, useGame, useGameSelect } from '../store';
 import { saveMessage } from '../saveText';
@@ -46,6 +46,9 @@ function GameOverBody() {
         <div class="modal-body">
           <div class="gameover-title">Bankrupt</div>
           <p class="gameover-reason">{plain(go.reason)}</p>
+
+          <p class="small muted">Valuation over the run</p>
+          <RunChart history={s.finance.history} marks={runMarks(s)} />
 
           <div class="kv gameover-kv">
             <Row k="Days survived" v={formatInt(go.day)} />

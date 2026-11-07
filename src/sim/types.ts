@@ -1292,7 +1292,7 @@ export interface GameState {
   /** Queued training jobs that start when the slot frees. */
   trainingQueue?: QueuedRun[];
   /** Every notification ever raised (newest last, cap 300), for the log drawer. */
-  noticeLog?: { day: number; text: string; kind: NoticeKind }[];
+  noticeLog?: { day: number; text: string; kind: NoticeKind; annual?: number }[];
   /** v8: weight classes, class crowns, rival small model lines, benchmark-targeted tuning (systems/classes.ts). */
   classes?: ClassesState;
   /** v8: B2B contract board (systems/contracts.ts). */
@@ -1315,6 +1315,9 @@ export interface GameState {
   neocloud?: NeocloudState;
   /** v16: image and video models, their runs, data, products and the media arena (systems/imageGen.ts). Created on demand. */
   media?: MediaState;
+  /** v21: Annual Reports filed on each 1 January (newest last), and the year still open (systems/annual.ts). */
+  annualReports?: AnnualReport[];
+  annualLedger?: AnnualLedger;
 }
 
 // ---------------------------------------------------------------------------
@@ -1810,6 +1813,36 @@ export interface ProgressState {
   log: { day: number; amount: number; reason: string }[];
   /** Day of the last respec (respecs have a cooldown). */
   respecDay?: number;
+}
+
+/** v21: the calendar year still open for the Annual Report (systems/annual.ts). Running totals since its first day. */
+export interface AnnualLedger {
+  year: number;
+  from: number;                // first day counted
+  revenueAt: number;           // stats.totalRevenue on that day
+  releasedAt: number;          // stats.modelsReleased on that day
+  valuationAt: number;         // valuation on that day
+  expenses: number;            // expenses booked so far
+  crowns: number;              // player crowns taken so far
+  bestRank: number | null;     // best Arena rank so far, null if never ranked
+  headline: string | null;     // latest milestone news line
+  rivalMove: string | null;    // latest bad news line
+}
+
+/** v21: a filed Annual Report, written on 1 January for the year just ended. Newest last, cap 30. */
+export interface AnnualReport {
+  year: number;
+  from: number;
+  to: number;
+  revenue: number;
+  expenses: number;
+  valuationStart: number;
+  valuationEnd: number;
+  modelsReleased: number;
+  crownsWon: number;
+  bestRank: number | null;
+  headline: string | null;
+  rivalMove: string | null;
 }
 
 export type ObjectiveKind =

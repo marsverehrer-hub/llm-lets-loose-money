@@ -11,6 +11,7 @@ import { dispatch, getState, useGame } from '../store';
 import { useIntent } from '../nav';
 import { runwayLabel, runwayTone } from '../shell/fmt';
 import { daysIntoGame } from '../../sim/systems/scenario';
+import { AnnualReportsCard } from '../shell/AnnualReport';
 import { Banner, ConfirmButton } from './panelKit';
 import './panels-a.css';
 import './finance.css';
@@ -631,6 +632,8 @@ export function FinancePanel() {
           >
             <LineChart series={series} height={270} yFormat={money} emptyText="Not enough history. First point lands after a week." />
           </Card>
+
+          <AnnualReportsCard reports={s.annualReports ?? []} />
 
           <Card
             class="fin-books-card"

@@ -2,8 +2,9 @@
 // filter and a text search. Opened from the top bar Log button, the MENU, or the L key. Not modal: the game keeps running.
 import { useEffect, useState } from 'preact/hooks';
 import type { GameState, NoticeKind } from '../../sim/types';
-import { EmptyState } from '../components';
+import { Button, EmptyState } from '../components';
 import { getState, useGame } from '../store';
+import { openAnnualReport } from './AnnualReport';
 import { plain, tdate } from './fmt';
 import './noticelog.css';
 
@@ -174,6 +175,11 @@ function NoticeBody() {
                     {KIND_LABEL[e.kind] ?? e.kind}
                   </span>
                   <span class="nl-text">{plain(e.text)}</span>
+                  {e.annual !== undefined && (
+                    <Button size="sm" variant="ghost" onClick={() => openAnnualReport(e.annual as number)}>
+                      Open report
+                    </Button>
+                  )}
                 </div>
               </li>
             ))}

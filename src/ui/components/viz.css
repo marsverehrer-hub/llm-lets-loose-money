@@ -257,3 +257,8 @@
 }
 
 .netruler-mark-label.high { bottom: 25px; }
+
+/* v21 run chart: the dated milestones under the valuation line (small caps, a plain ink dot). */
+.run-marks { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 8px 0 0; padding: 0; list-style: none; font-size: 12.5px; font-variant: all-small-caps; }
+.run-marks li { display: inline-flex; align-items: center; gap: 6px; }
+.run-mark-dot { width: 7px; height: 7px; border-radius: var(--r-pill); background: var(--accent); }

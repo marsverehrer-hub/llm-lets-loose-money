@@ -74,11 +74,11 @@ export function inTick<T>(fn: () => T): T {
   }
 }
 
-export function notify(s: GameState, text: string, kind: NoticeKind = 'info', opts?: { toast?: boolean }): void {
+export function notify(s: GameState, text: string, kind: NoticeKind = 'info', opts?: { toast?: boolean; annual?: number }): void {
   const toast = opts?.toast ?? (tickDepth === 0 || kind === 'bad' || kind === 'milestone');
   // Full history for the notification log (GAME_DESIGN §18.4). Not collapsed: the log keeps every line.
   if (!s.noticeLog) s.noticeLog = [];
-  s.noticeLog.push({ day: s.day, text, kind });
+  s.noticeLog.push({ day: s.day, text, kind, ...(opts?.annual !== undefined && { annual: opts.annual }) });
   if (s.noticeLog.length > 300) s.noticeLog.splice(0, s.noticeLog.length - 300);
   if (!toast) return;
   // Collapse repeats: drop any unread toast with the same text so the newest one shows once.

@@ -28,6 +28,8 @@ export { Tooltip } from './Tooltip';
 export type { TooltipProps } from './Tooltip';
 export { LineChart } from './LineChart';
 export type { LineChartProps, LineSeries, LinePoint } from './LineChart';
+export { RunChart, runMarks } from './RunChart';
+export type { RunChartProps, RunMark } from './RunChart';
 export { StackedBar } from './StackedBar';
 export type { StackedBarProps, BreakdownItem } from './StackedBar';
 export { Donut } from './Donut';

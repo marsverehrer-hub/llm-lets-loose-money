@@ -7,7 +7,7 @@ import { labName } from '../../sim/systems/labs';
 import { bestPlayerModel } from '../../sim/systems/market';
 import type { EndingId, GameState } from '../../sim/types';
 import { formatMoney } from '../../sim/util';
-import { Button, formatInt } from '../components';
+import { Button, RunChart, formatInt, runMarks } from '../components';
 import { dispatch, useGame, useGameSelect } from '../store';
 import { openNewGame, openSaves } from './sheetEvents';
 import { plain, tdate } from './fmt';
@@ -204,6 +204,11 @@ function EpilogueBody() {
             <dd class="num">{`${Object.keys(s.achievements).length} / ${ACHIEVEMENTS.length}`}</dd>
           </div>
         </dl>
+
+        <div>
+          <p class="small muted">Valuation over the run</p>
+          <RunChart history={s.finance.history} marks={runMarks(s)} />
+        </div>
 
         <div class="end-actions">
           <Button

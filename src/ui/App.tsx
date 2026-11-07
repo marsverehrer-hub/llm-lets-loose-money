@@ -60,6 +60,7 @@ const Lobby = lazyNamed(() => import('./mp/Lobby'), 'Lobby');
 const MpOverlays = lazyNamed(() => import('./mp/MpOverlays'), 'MpOverlays');
 const Tutorial = lazyNamed(() => import('./tutorial/Tutorial'), 'Tutorial');
 const GameOver = lazyNamed(() => import('./shell/GameOver'), 'GameOver');
+const AnnualReport = lazyNamed(() => import('./shell/AnnualReport'), 'AnnualReport'); // v21 the year's filed report
 const EndingModal = lazyNamed(() => import('./shell/EndingModal'), 'EndingModal');
 const NewGame = lazyNamed(() => import('./shell/NewGame'), 'NewGame'); // v9 scenario: new-game setup screen
 const SavesSheet = lazyNamed(() => import('./shell/SavesSheet'), 'SavesSheet'); // saves: every game in its own slot
@@ -222,6 +223,7 @@ export function App() {
       <Suspense fallback={null}><EndingModal /></Suspense>
       <Suspense fallback={null}><MpOverlays /></Suspense>
       {lobbyOpen && <Suspense fallback={null}><Lobby /></Suspense>}
+      <Suspense fallback={null}><AnnualReport /></Suspense>
       <Toasts />
       <NoticeLog />
       <Suspense fallback={null}><Tutorial /></Suspense>
