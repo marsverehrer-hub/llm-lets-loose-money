@@ -13,7 +13,8 @@ import type { BenchmarkDef, GameState, Id, Model, TraitId } from '../../../sim/t
 import { Check, Pill, formatDays } from '../../components';
 import { TRAIT_NAME, traitLabel } from '../../../sim/systems/traits';
 import { benchEtaFor } from './status';
-import { Section } from './parts';
+import { Section, signed } from './parts';
+import { SAFETY_CASE_LABEL, safetyBreakdown, safetyCase } from '../../../sim/systems/safetyCase';
 import '../classes.css';
 
 interface Row {
@@ -64,6 +65,7 @@ export function BenchmarksTab({ s, m }: { s: GameState; m: Model }) {
   return (
     <div class="mpg-stack">
       {m.traits && <BehaviourBlock traits={m.traits} />}
+      <SafetyCaseBlock s={s} m={m} />
       {!released && (
         <p class="mpg-desc">
           Eval day runs a standard suite. Anything else needs a run here. Results are the true score with small noise.
@@ -182,6 +184,37 @@ export function BenchmarksTab({ s, m }: { s: GameState; m: Model }) {
 
       {released && <p class="mpg-desc">Public results. The best rival is the strongest other lab's released score on the same benchmark.</p>}
     </div>
+  );
+}
+
+/** The safety case: its score, what makes it up, and the jailbreaks this model has suffered in the wild (v19 C5). */
+function SafetyCaseBlock({ s, m }: { s: GameState; m: Model }) {
+  const v = safetyCase(s, m);
+  const jailbreaks = s.flags[`jailbreaks.${m.id}`] ?? 0;
+  return (
+    <Section title="Safety case" aside={`${SAFETY_CASE_LABEL(v)} · ${v} of 100`}>
+      <div class="table-wrap table-stack">
+        <table class="table mpg-bench">
+          <thead>
+            <tr>
+              <th>Component</th>
+              <th class="num">Points</th>
+            </tr>
+          </thead>
+          <tbody>
+            {safetyBreakdown(s, m).map((p) => (
+              <tr key={p.label}>
+                <td>{p.label}</td>
+                <td class="num">{signed(Math.round(p.points))}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p class="mpg-desc">
+        {`Jailbreaks in the wild: ${jailbreaks}. Enterprise and government buyers read the safety case before they sign.`}
+      </p>
+    </Section>
   );
 }
 

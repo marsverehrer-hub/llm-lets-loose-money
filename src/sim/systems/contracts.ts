@@ -12,6 +12,7 @@ import { competitorCaps, modelCaps, specById } from './capabilities';
 import { labInfo, labName } from './labs';
 import { marketSalary } from './staff';
 import { SCENARIO_FLAGS } from '../data/scenarios'; // v9 scenario
+import { safetyCase } from './safetyCase'; // v19 safety case
 
 export const CONTRACT_TUNING = {
   /** Open offers at once (renewals are not counted against the cap). */
@@ -174,6 +175,7 @@ export function describeReqs(reqs: ContractReqs): string[] {
 export function meetsReqs(s: GameState, model: Model | null | undefined, reqs: ContractReqs): { ok: boolean; failures: string[] } {
   if (!model) return { ok: false, failures: ['no such model'] };
   if (model.deprecated) return { ok: false, failures: ['model is deprecated'] };
+  if (!licensedForWork(model)) return { ok: false, failures: [`${model.origin?.license} hub weights can't take client work`] };
   const failures = checkReqs(s, model, reqs)
     .filter((c) => !c.ok)
     .map((c) => (c.have && model.releasedDay !== null ? `${c.label} (have ${c.have})` : c.label));
@@ -193,9 +195,18 @@ function fitFrom(checks: ReqCheck[], brand: number, reputation: number, contract
   return contractFit * (100 * mean + Math.min(T.BRAND_TERM_CAP, T.BRAND_WEIGHT * brand) + T.REPUTATION_WEIGHT * reputation);
 }
 
+/** Enterprise and government buyers read the safety case (v19 C5). */
+const SAFETY_FIT_KINDS: readonly ContractKind[] = ['onprem', 'vertical', 'government'];
+
 /** The player's expected fit with this model, before the bid noise. */
 export function expectedFit(s: GameState, offer: ContractOffer, model: Model): number {
-  return fitFrom(checkReqs(s, model, offer.reqs), s.company.brand, s.company.reputation, contractFitMult(s, offer.kind));
+  const fit = fitFrom(checkReqs(s, model, offer.reqs), s.company.brand, s.company.reputation, contractFitMult(s, offer.kind));
+  return SAFETY_FIT_KINDS.includes(offer.kind) ? fit * (0.7 + (0.6 * safetyCase(s, model)) / 100) : fit;
+}
+
+/** Research-licence or noncommercial hub weights can't take client work (v19 C5). */
+function licensedForWork(m: Model): boolean {
+  return !m.origin || m.origin.license === 'permissive';
 }
 
 /** Band the UI shows for a model on an open offer: expected fit, plus or minus FIT_BAND. */
@@ -220,7 +231,7 @@ export function bestModelFor(s: GameState, offer: ContractOffer): { model: Model
   let best: { m: Model; fit: number } | null = null;
   let closest: { m: Model; misses: number } | null = null;
   for (const m of s.models) {
-    if (m.deprecated) continue;
+    if (m.deprecated || !licensedForWork(m)) continue;
     const misses = checkReqs(s, m, offer.reqs).filter((c) => !c.ok).length;
     if (misses === 0) {
       const fit = expectedFit(s, offer, m);
