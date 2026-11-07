@@ -307,8 +307,11 @@
     color: var(--fg);
   }
   .mtab.active .mtab-icon {
-    background: color-mix(in srgb, var(--hub) 22%, transparent);
-    color: var(--hub);
+    background: transparent;
+    color: var(--fg);
+  }
+  .mtab.active .mtab-label {
+    background: var(--tex-marker);
   }
   .mtab .hub-badge {
     position: absolute;
