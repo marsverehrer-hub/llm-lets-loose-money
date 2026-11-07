@@ -8,6 +8,7 @@ import { navigate } from '../../nav';
 import { GoalsCard } from '../GoalsCard';
 import { BoardCard } from '../lab/BoardCard';
 import { nextSteps, type Step } from './nextStep';
+import { tutorialTarget } from '../../tutorial/Tutorial';
 
 /** How many moves show before "Show more". */
 const SHOWN = 3;
@@ -28,7 +29,11 @@ export function AdvisorCard({ s }: { s: GameState }) {
   const [more, setMore] = useState(false);
   const ch = currentChapter(s);
   const frac = ch?.progress ? Math.max(0, Math.min(1, ch.progress(s))) : null;
-  const steps = dedupe(nextSteps(s));
+  // While the tutorial runs, the move it is teaching leads, so the coach card and the advisor never disagree.
+  const tut = s.tutorialStep != null && s.tutorialStep > 0 ? tutorialTarget(s.tutorialStep) : null;
+  const ranked = nextSteps(s);
+  const ordered = tut ? [...ranked.filter((st) => st.panel === tut), ...ranked.filter((st) => st.panel !== tut)] : ranked;
+  const steps = dedupe(ordered);
   const shown = more ? steps : steps.slice(0, SHOWN);
   const urgent = steps.filter((st) => st.priority === 'urgent').length;
 
@@ -49,7 +54,7 @@ export function AdvisorCard({ s }: { s: GameState }) {
       <div class="adv-chap">
         <div class="adv-chap-text">
           <span class="adv-chap-num">{ch ? `Chapter ${chapterIndex(s) + 1} of ${CHAPTERS.length}` : 'All chapters complete'}</span>
-          {ch && <span class="adv-chap-title">{ch.title}</span>}
+          {ch && !steps.some((st) => st.chapter) && <span class="adv-chap-title">{ch.title}</span>}
         </div>
         {frac !== null && (
           <div class="adv-chap-progress">

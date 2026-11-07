@@ -165,7 +165,7 @@ describe('run sheet shape and top-k', () => {
     expect(validateConfig(s, cfgWith(s, { moeTopK: 4 }))).toMatch(/Top-k only/);
     const moe = { arch: 'moe', moeExperts: 64 };
     expect(validateConfig(s, cfgWith(s, { ...moe, moeTopK: 4 }))).toBeNull();
-    expect(validateConfig(s, cfgWith(s, { ...moe, moeTopK: 3 }))).toMatch(/Top-k must be 1, 2, 4 or 8/);
+    expect(validateConfig(s, cfgWith(s, { ...moe, moeTopK: 3 as never }))).toMatch(/Top-k must be 1, 2, 4 or 8/);
     expect(validateConfig(s, cfgWith(s, { arch: 'moe', moeExperts: 8, moeTopK: 8 }))).toMatch(/less than the expert count/);
   });
 
