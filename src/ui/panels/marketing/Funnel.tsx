@@ -3,7 +3,7 @@
 import type { ComponentChildren } from 'preact';
 import type { GameState, Segment } from '../../../sim/types';
 import { formatNumber } from '../../../sim/util';
-import { HelpTip, formatPct } from '../../components';
+import { HelpTip, SERIES, formatPct } from '../../components';
 import { SEGMENT_NAME } from './campaignCopy';
 
 const SEGMENTS: Segment[] = ['consumer', 'developer', 'enterprise'];
@@ -31,9 +31,9 @@ export function Funnel({ s }: { s: GameState }) {
               }
               value={`${formatNumber(adopters, 1)} · ${formatPct(st.adoption, 1)}`}
               frac={frac(adopters)}
-              color="var(--blue)"
+              color={SERIES.blue}
             />
-            <Step label="Your users" value={formatNumber(users, 1)} frac={frac(users)} color="var(--amber)" />
+            <Step label="Your users" value={formatNumber(users, 1)} frac={frac(users)} color={SERIES.amber} />
             <div class="mk-fnote">{adopters > 0 ? `You hold ${formatPct(yourShare, 1)} of adopters.` : 'No adopters yet.'}</div>
           </section>
         );

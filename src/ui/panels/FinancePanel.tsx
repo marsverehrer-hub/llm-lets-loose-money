@@ -9,11 +9,13 @@ import type { LineSeries, WaterfallStep } from '../components';
 import { liveHistory } from '../components/derive';
 import { dispatch, getState, useGame } from '../store';
 import { useIntent } from '../nav';
-import { ConfirmButton } from './panelKit';
+import { runwayLabel, runwayTone } from '../shell/fmt';
+import { Banner, ConfirmButton } from './panelKit';
 import './panels-a.css';
 import './finance.css';
 import { SceneView } from '../../scenes/SceneView';
 import { createScene as createTreasury, CAM as TREASURY_CAM } from '../../scenes/finance';
+import { CameraDisclosure } from './CameraDisclosure';
 
 type Metric = 'cash' | 'valuation' | 'flow';
 
@@ -362,7 +364,6 @@ export function FinancePanel() {
   const amt = clamp(loanAmt, 0, maxL);
   const sliderMax = Math.max(maxL, 1);
   const net = fin.dailyRevenue - fin.dailyExpenses;
-  const runwayTone = !isFinite(runway) ? 'good' : runway < 180 ? 'bad' : runway < 540 ? 'warn' : 'good';
   const circling = fin.nextOfferDay <= s.day;
   const valuationLabel = s.company.isPublic ? 'Market cap' : 'Valuation';
   const wf = dailyWaterfall(s);
@@ -443,7 +444,7 @@ export function FinancePanel() {
           </div>
           <div class={`small ${pitch.ok ? '' : 'muted'}`}>{pitch.reason}</div>
           <div class="row-wrap">
-            <Button variant="primary" disabled={!pitch.ok} title={pitch.reason} onClick={() => dispatch({ type: 'pitchInvestors' })}>
+            <Button variant={offer ? 'default' : 'primary'} disabled={!pitch.ok} title={pitch.reason} onClick={() => dispatch({ type: 'pitchInvestors' })}>
               Pitch investors
             </Button>
           </div>
@@ -454,16 +455,12 @@ export function FinancePanel() {
 
   return (
     <div class="panel fin-panel">
-      <PanelHeader title="Finance" subtitle={`${s.company.isPublic ? 'Public' : 'Private'} · ${dateTag(s.day)}`} />
-      {offerCard}
-      <PanelIntro id="finance">Where the money comes from and goes. Cash and runway tell you how long you can keep going.</PanelIntro>
-
-      <Card flush>
-        <div class="pa-strip pa-strip--5">
-          <div class="pa-cell">
-            <Stat label={valuationLabel} value={fin.valuation} format={money} hint={s.company.isPublic ? 'Price × shares' : `Model estimate ${money(computeValuation(s))}`} />
-          </div>
-          <div class="pa-cell">
+      <PanelHeader
+        title="Finance"
+        subtitle={`${s.company.isPublic ? 'Public' : 'Private'} · ${dateTag(s.day)}`}
+        actions={
+          <>
+            <Stat label={valuationLabel} value={fin.valuation} format={money} hint={s.company.isPublic ? 'Price × shares' : `Model estimate ${money(computeValuation(s))}`} size="sm" />
             <Stat
               label="Cash"
               value={fin.cash}
@@ -471,24 +468,22 @@ export function FinancePanel() {
               tone={fin.cash < 0 ? 'bad' : 'default'}
               deltaText={`${signedMoney(net)}/d`}
               delta={net}
+              size="sm"
             />
-          </div>
-          <div class="pa-cell">
             <Stat
               label="Runway"
-              value={isFinite(runway) ? formatDays(runway) : 'Profit'}
-              tone={runwayTone}
+              value={runwayLabel(runway, s.day)}
+              tone={runwayTone(runway, s.day)}
               hint={fin.negativeCashDays > 0 ? `${fin.negativeCashDays} day(s) in the red` : 'At current burn'}
+              size="sm"
             />
-          </div>
-          <div class="pa-cell">
-            <Stat label="Raised" value={fin.totalRaised} format={money} hint={`${fin.roundsRaised.length} round${fin.roundsRaised.length === 1 ? '' : 's'}`} />
-          </div>
-          <div class="pa-cell">
-            <Stat label="Debt" value={fin.debt} format={money} hint={`${formatPct(fin.loanRatePerYear)} a year`} />
-          </div>
-        </div>
-      </Card>
+            <Stat label="Raised" value={fin.totalRaised} format={money} hint={`${fin.roundsRaised.length} round${fin.roundsRaised.length === 1 ? '' : 's'}`} size="sm" />
+            <Stat label="Debt" value={fin.debt} format={money} hint={`${formatPct(fin.loanRatePerYear)} a year`} size="sm" />
+          </>
+        }
+      />
+      {offerCard}
+      <PanelIntro id="finance">Where the money comes from and goes. Cash and runway tell you how long you can keep going.</PanelIntro>
 
       <div class="grid-split fin-row-funding">
         {s.company.isPublic ? <StockCard s={s} hist={hist} /> : pitchCard}
@@ -510,13 +505,15 @@ export function FinancePanel() {
         </Card>
       </div>
 
-      <SceneView
-        state={s}
-        make={createTreasury}
-        cam={TREASURY_CAM}
-        camId="CAM-09"
-        label="The treasury: your cash in the vault, money flowing in and out by category, investors at the table and the stock board"
-      />
+      <CameraDisclosure panel="finance">
+        <SceneView
+          state={s}
+          make={createTreasury}
+          cam={TREASURY_CAM}
+          camId="CAM-09"
+          label="The treasury: your cash in the vault, money flowing in and out by category, investors at the table and the stock board"
+        />
+      </CameraDisclosure>
 
       <div class="grid-split fin-row-chart">
         <Card
@@ -545,7 +542,6 @@ export function FinancePanel() {
               />
               <div class="row-wrap">
                 <Button
-                  variant="primary"
                   disabled={amt <= 0 || amt > maxL}
                   title={maxL <= 0 ? 'Banks want revenue before they lend' : amt <= 0 ? 'Pick an amount first' : `Borrow ${money(amt)}`}
                   onClick={() => dispatch({ type: 'takeLoan', amount: amt })}
@@ -560,7 +556,7 @@ export function FinancePanel() {
                   Repay
                 </Button>
               </div>
-              {maxL <= 0 && <div class="pa-note">Banks want revenue before they lend. Sell something first.</div>}
+              {maxL <= 0 && <Banner tone="warn">Banks want revenue before they lend. Sell something first.</Banner>}
             </div>
           </Card>
 
@@ -606,7 +602,7 @@ export function FinancePanel() {
                   right={`${money(annualRevenue)} / ${money(BALANCE.IPO_MIN_ANNUAL_REVENUE)}`}
                 />
                 <div class={`small ${ipo.ok ? 'good' : 'muted'}`}>{ipo.ok ? 'Ready. Roadshow can be booked.' : ipo.reason}</div>
-                <Button variant="primary" block disabled={!ipo.ok} title={ipo.ok ? 'Ring the IPO bell' : ipo.reason} onClick={() => setConfirmIpo(true)}>
+                <Button block disabled={!ipo.ok} title={ipo.ok ? 'Ring the IPO bell' : ipo.reason} onClick={() => setConfirmIpo(true)}>
                   Ring the bell
                 </Button>
               </div>

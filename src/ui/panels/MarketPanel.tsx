@@ -10,12 +10,13 @@ import { labInfo } from '../../sim/systems/labs';
 import { MP_RIVAL_ID } from '../../sim/types';
 import type { BuyerTier, GameState, Segment } from '../../sim/types';
 import { formatNumber } from '../../sim/util';
-import { BarList, Card, EmptyState, HelpTip, Meter, PanelHeader, PanelIntro, Stat, Tooltip, clamp, formatInt, formatPct, hypeLabel, monthYear } from '../components';
+import { BarList, Card, EmptyState, HelpTip, Meter, PanelHeader, PanelIntro, Stat, Tabs, Tooltip, clamp, formatInt, formatPct, hypeLabel, monthYear } from '../components';
 import type { BarRow } from '../components';
 import { useGame } from '../store';
 import { SEGMENT_NAME } from './marketing/campaignCopy';
 import { SceneView } from '../../scenes/SceneView';
 import { createScene as createTown, CAM as TOWN_CAM } from '../../scenes/market';
+import { CameraDisclosure } from './CameraDisclosure';
 import './panels-a.css';
 import './nt-tiers.css';
 
@@ -31,6 +32,9 @@ const SEGMENTS: { id: Segment; unit: string }[] = [
 
 /** The id a row uses for "you", in both the share bars and the arena, so one selection highlights both. */
 const ME = 'me';
+
+/** The standings card shows one board at a time, so the page is not two long tables. */
+type Board = 'arena' | 'tiers';
 
 function priceLabel(v: number): string {
   if (!isFinite(v)) return '—';
@@ -87,6 +91,7 @@ function shareItems(s: GameState, seg: Segment): ShareItem[] {
 export function MarketPanel() {
   const s: GameState = useGame();
   const [sel, setSel] = useState<string | null>(null);
+  const [board, setBoard] = useState<Board>('arena');
   const toggle = (id: string) => setSel((cur) => (cur === id ? null : id));
   const hype = clamp(s.market.aiHype, 0, 100);
   const arena = arenaWithRival(s, arenaLeaderboard(s));
@@ -132,31 +137,23 @@ export function MarketPanel() {
 
   return (
     <div class="panel mkt">
-      <PanelHeader title="Market" subtitle={`${monthYear(s.day)} · AI hype ${Math.round(hype)} (${hypeLabel(hype)})`} />
+      <PanelHeader
+        title="Market"
+        subtitle={`${monthYear(s.day)} · AI hype ${Math.round(hype)} (${hypeLabel(hype)})`}
+        actions={
+          <>
+            <Stat label="Arena rank" value={playerRank >= 0 ? `#${playerRank + 1}` : '—'} tone={playerRank === 0 ? 'accent' : 'default'} hint={`of ${arena.length} labs`} size="sm" />
+            <Stat label="Users" value={playerUsers} format={(v) => formatNumber(v, 1)} hint="All your products" size="sm" />
+            <Stat label="Brand" value={Math.round(s.company.brand)} hint="Helps you win every market" size="sm" />
+            <Stat label="Reputation" value={Math.round(s.company.reputation)} hint="Outages and incidents lower it" size="sm" />
+          </>
+        }
+      />
       <PanelIntro id="market">Who holds what share of each market, and where you win or lose by buyer tier. Campaigns to grow your share live in Marketing.</PanelIntro>
 
-      <div class="grid-split-rev">
-        <Card title={<>AI hype <HelpTip>The whole market's buzz. Higher hype means more customers adopt AI, for every lab, you included.</HelpTip></>} subtitle="Whole market">
-          <Meter label="AI hype" value={hype} caption={hypeLabel(hype)} />
-        </Card>
-
-        <Card title="Position" flush>
-          <div class="nt-strip">
-            <div class="nt-cell">
-              <Stat label="Arena rank" value={playerRank >= 0 ? `#${playerRank + 1}` : '—'} tone={playerRank === 0 ? 'accent' : 'default'} hint={`of ${arena.length} labs`} />
-            </div>
-            <div class="nt-cell">
-              <Stat label="Users" value={playerUsers} format={(v) => formatNumber(v, 1)} hint="All your products" />
-            </div>
-            <div class="nt-cell">
-              <Stat label="Brand" value={Math.round(s.company.brand)} hint="Helps you win every market" />
-            </div>
-            <div class="nt-cell">
-              <Stat label="Reputation" value={Math.round(s.company.reputation)} hint="Outages and incidents lower it" />
-            </div>
-          </div>
-        </Card>
-      </div>
+      <Card title={<>AI hype <HelpTip>The whole market's buzz. Higher hype means more customers adopt AI, for every lab, you included.</HelpTip></>} subtitle="Whole market">
+        <Meter label="AI hype" value={hype} caption={hypeLabel(hype)} />
+      </Card>
 
       <div class="grid-3">
         {segItems.map(({ seg, items }, i) => {
@@ -204,37 +201,56 @@ export function MarketPanel() {
         </div>
       )}
 
-      <SceneView
-        state={s}
-        make={createTown}
-        cam={TOWN_CAM}
-        camId="CAM-05"
-        height={360}
-        label="The market as a town: consumer, developer and enterprise districts coloured by which lab serves them, and each lab's tower"
-        onSelect={(hit) => {
-          if (hit.id.startsWith('lab:')) setSel(hit.id.slice(4) === 'player' ? null : hit.id.slice(4));
-        }}
-      />
+      <CameraDisclosure panel="market">
+        <SceneView
+          state={s}
+          make={createTown}
+          cam={TOWN_CAM}
+          camId="CAM-05"
+          height={360}
+          label="The market as a town: consumer, developer and enterprise districts coloured by which lab serves them, and each lab's tower"
+          onSelect={(hit) => {
+            if (hit.id.startsWith('lab:')) setSel(hit.id.slice(4) === 'player' ? null : hit.id.slice(4));
+          }}
+        />
+      </CameraDisclosure>
 
       <Card
-        class="mkt-tiers"
-        title={<>Your share by buyer tier <HelpTip>Buyers split into three tiers. Premium buyers want the best model, budget buyers want the cheapest one that works. Hover a cell for the top rival there.</HelpTip></>}
-        subtitle="Darker: bigger share"
-        flush
+        class={board === 'arena' ? 'mkt-arena' : 'mkt-tiers'}
+        title={
+          board === 'arena' ? (
+            'LLM Arena'
+          ) : (
+            <>
+              Your share by buyer tier{' '}
+              <HelpTip>Buyers split into three tiers. Premium buyers want the best model, budget buyers want the cheapest one that works. Hover a cell for the top rival there.</HelpTip>
+            </>
+          )
+        }
+        subtitle={board === 'arena' ? `Best released model per lab · ${arena.length} ranked` : 'Darker: bigger share'}
+        actions={
+          <Tabs<Board>
+            variant="segmented"
+            value={board}
+            onChange={setBoard}
+            tabs={[
+              { id: 'arena', label: 'Arena' },
+              { id: 'tiers', label: 'Buyer tiers' },
+            ]}
+          />
+        }
       >
-        <TierHeat s={s} />
-      </Card>
-
-      <Card class="mkt-arena" title="LLM Arena" subtitle={`Best released model per lab · ${arena.length} ranked`}>
-        {arenaRows.length === 0 ? (
+        {board === 'tiers' ? (
+          <TierHeat s={s} />
+        ) : arenaRows.length === 0 ? (
           <EmptyState title="No models ranked" text="Release one from Models to enter the board." />
         ) : (
           <>
             <BarList rows={arenaRows} format={(v) => formatInt(v + base)} sort onSelect={toggle} selected={sel} class="nt-arena" />
             <div class="nt-note">Bars start at {formatInt(base)} Elo so the gaps show. The +/− figure is the gap to your best model.</div>
+            {stealth.length > 0 && <div class="nt-note">Not in the arena yet: {stealth.map((d) => d.name).join(', ')}.</div>}
           </>
         )}
-        {stealth.length > 0 && <div class="nt-note">Not in the arena yet: {stealth.map((d) => d.name).join(', ')}.</div>}
       </Card>
     </div>
   );

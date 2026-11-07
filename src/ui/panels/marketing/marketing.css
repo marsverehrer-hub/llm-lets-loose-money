@@ -1,39 +1,5 @@
-/* v10 Marketing screen (GAME_DESIGN §21.5). Tokens only, flat, no radius over 2px. Phones switch at 760px (MOBILE.md). */
-
-/* Hero: brand and hype numbers beside the trend. */
-.mk-hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr);
-  gap: 16px;
-  align-items: stretch;
-  min-width: 0;
-}
-.mk-hero-nums {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  align-content: start;
-  min-width: 0;
-}
-.mk-big { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-.mk-meter { height: 6px; background: var(--bg-3); overflow: hidden; }
-.mk-meter > span { display: block; height: 100%; background: var(--c); }
-.mk-hero-chart { min-width: 0; }
-.mk-nohist {
-  height: 100%;
-  min-height: 160px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  padding: 12px;
-  text-align: center;
-  color: var(--fg-2);
-  border: 1px dashed var(--line-2);
-  border-radius: var(--r-md);
-}
-.mk-nohist-sub { color: var(--fg-3); font-size: var(--fs-xs); }
+/* v10 Marketing screen (GAME_DESIGN §21.5), Preprint look: tokens only, flat paper, square corners (var(--r-sm)).
+   Phones switch at 760px (MOBILE.md). The DOM order is the reading order on every width. */
 
 /* Campaign timeline. Columns: name, then the track. */
 .mk-tl { display: flex; flex-direction: column; min-width: 0; }
@@ -80,16 +46,17 @@
 }
 .mk-tl-seg { position: absolute; top: 3px; bottom: 3px; min-width: 6px; }
 .mk-tl .mk-tl-tip { display: block; width: 100%; height: 100%; }
+/* A campaign is a bar: hatched fill over the figure colour, the part already run solid. */
 .mk-tl-bar {
   position: relative;
   width: 100%;
   height: 100%;
-  background: color-mix(in srgb, var(--amber) 22%, transparent);
-  border: 1px solid var(--amber);
+  background: var(--bg-1);
+  border: 1px solid var(--mpl-1);
   overflow: hidden;
-  border-radius: var(--r-md);
+  border-radius: var(--r-sm);
 }
-.mk-tl-done { position: absolute; top: 0; bottom: 0; left: 0; background: var(--amber); }
+.mk-tl-done { position: absolute; top: 0; bottom: 0; left: 0; background: var(--tex-hatch), var(--mpl-1); }
 .mk-tl-now {
   position: absolute;
   top: 0;
@@ -101,7 +68,7 @@
 .mk-tl-tipbody { display: flex; flex-direction: column; gap: 2px; }
 .mk-tl-tipbody span { color: var(--fg-2); }
 
-/* Campaign shop (in the Sheet). */
+/* Campaign shop. */
 .mk-camp-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
@@ -116,9 +83,10 @@
   min-width: 0;
   border: 1px solid var(--line);
   background: var(--bg-1);
-  border-radius: var(--r-md);
+  border-radius: var(--r-sm);
 }
-.mk-camp.is-running { border-color: var(--amber); }
+/* A running campaign is the one being watched: the ink hairline, not a colour. */
+.mk-camp.is-running { border-color: var(--fg); }
 .mk-camp-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; min-width: 0; }
 .mk-camp-title { min-width: 0; }
 .mk-camp-name { font-weight: 600; overflow-wrap: anywhere; }
@@ -161,13 +129,13 @@
 .mk-fstep-head > span:first-child { min-width: 0; }
 .mk-fstep-head .num { white-space: nowrap; }
 .mk-fstep-track { height: 12px; background: var(--bg-3); overflow: hidden; }
-.mk-fstep-fill { height: 100%; min-width: 2px; background: var(--c); }
+.mk-fstep-fill { height: 100%; min-width: 2px; background: var(--tex-hatch), var(--c); }
 .mk-fnote { color: var(--fg-3); font-size: var(--fs-xs); }
 
 /* Team. */
 .mk-people { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 4px; min-height: 16px; }
-.mk-people svg { width: 12px; height: 16px; fill: var(--amber); }
-.mk-more, .mk-empty { color: var(--fg-3); font-family: var(--mono); font-size: var(--fs-sm); align-self: center; }
+.mk-people svg { width: 12px; height: 16px; fill: var(--fg-2); }
+.mk-more, .mk-empty { color: var(--fg-3); font-size: var(--fs-sm); align-self: center; }
 .mk-team-what { margin: 0; color: var(--fg-2); line-height: 1.5; }
 .mk-team-what b { color: var(--fg); font-weight: 600; }
 .mk-stars { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; }
@@ -179,7 +147,6 @@
 
 /* Phones: one column everywhere, timeline labels stack above the bars. */
 @media (max-width: 760px) {
-  .mk-hero { grid-template-columns: minmax(0, 1fr); }
   .mk-tl-row { grid-template-columns: minmax(0, 1fr); gap: 6px; }
   .mk-tl-head .mk-tl-name { display: none; }
   /* The "Today" tag sits on the left edge; the start date would print on top of it, so only the end date stays. */
@@ -187,18 +154,8 @@
   .mk-camp-list { grid-template-columns: minmax(0, 1fr); }
   .mk-lower { grid-template-columns: minmax(0, 1fr); }
   .mk-funnel { grid-template-columns: minmax(0, 1fr); }
-  .mk-nohist { min-height: 120px; }
 
-  /* Phone order, top to bottom: title, brand and hype (the numbers), the campaign timeline, the campaign shop (the
-     main action, three cards then "Show all"), camera feed, the funnel and team, the intro. */
-  .mk > .panel-header { order: 0; }
-  .mk > .mk-hero-card { order: 1; }
-  .mk > .mk-timeline-card { order: 2; }
-  .mk > .mk-shop-card { order: 3; }
-  .mk > .scene-view { order: 4; }
-  .mk > .office-toggle { order: 5; }
-  .mk > .mk-lower { order: 6; }
-  .mk > .panel-intro { order: 7; }
+  /* The campaign shop shows three campaigns, then "Show all". */
   .mk-shop:not(.is-open) > .mk-camp:nth-child(n + 4) { display: none; }
   .btn.mk-shop-more { display: flex; width: 100%; margin-top: 10px; }
   .mk-camp-flavor { display: none; }

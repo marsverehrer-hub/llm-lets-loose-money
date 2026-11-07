@@ -68,7 +68,6 @@ function CampaignCard({ def, s }: { def: CampaignDef; s: GameState }) {
       <div class="mk-camp-foot">
         <span class={`mk-camp-status ${block && !running ? 'is-blocked' : ''}`}>{status}</span>
         <Button
-          variant="primary"
           size="sm"
           disabled={!!running || !!block}
           title={block ?? `Pay ${formatMoney(def.cost, 1)} for ${def.days} days`}

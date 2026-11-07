@@ -38,7 +38,7 @@
   padding: 12px 14px;
   background: var(--bg-1);
   border: 1px solid var(--line);
-  border-radius: var(--r-md);
+  border-radius: var(--r-sm);
 }
 .ct-offer-pending {
   border-color: var(--line-2);
@@ -68,19 +68,11 @@
   font-size: var(--fs-sm);
   line-height: 1.4;
 }
-.ct-expiry {
-  font-size: var(--fs-xs);
-  white-space: nowrap;
-}
-
 .ct-blurb {
   margin: 0;
   color: var(--fg-2);
   font-size: var(--fs-sm);
   line-height: 1.5;
-}
-.ct-hint {
-  font-size: var(--fs-xs);
 }
 
 /* requirement chips */
@@ -150,27 +142,10 @@
   font-size: var(--fs-sm);
   color: var(--fg);
 }
-.ct-bad {
-  color: var(--down);
-}
 .ct-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-}
-
-.ct-pending {
-  padding: 8px 10px;
-  background: var(--bg-2);
-  border: 1px solid var(--line);
-  color: var(--fg-2);
-  font-size: var(--fs-sm);
-  line-height: 1.5;
-  border-radius: var(--r-md);
-}
-.ct-pending strong {
-  color: var(--fg);
-  font-weight: 600;
 }
 
 /* ---------- tables --------------------------------------------------------- */

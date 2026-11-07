@@ -14,10 +14,10 @@ import {
   type ReqCheck,
 } from '../../sim/systems/contracts';
 import type { ActiveContract, ContractBid, ContractOffer, GameState, Model } from '../../sim/types';
-import { Button, Card, EmptyState, PanelHeader, PanelIntro, Pill, Stat } from '../components';
-import type { PillTone } from '../components';
+import { Button, Card, EmptyState, PanelHeader, PanelIntro, Pill, Select, Stat } from '../components';
+import type { PillTone, SelectOption } from '../components';
 import { tdate } from '../shell/fmt';
-import { ConfirmButton } from './panelKit';
+import { Banner, ConfirmButton } from './panelKit';
 import './panels.css';
 import './contracts.css';
 import './ct-viz.css';
@@ -76,7 +76,8 @@ function Chips({ checks }: { checks: ReqCheck[] }) {
   );
 }
 
-function OfferCard({ offer }: { offer: ContractOffer }) {
+/** The first offer carries the one inked button of the board: its Bid. The rest are boxed. */
+function OfferCard({ offer, primary }: { offer: ContractOffer; primary: boolean }) {
   const s = useGame();
   const [pickId, setPickId] = useState('');
   const pending: ContractBid | undefined = s.contracts?.pending?.find((b) => b.offerId === offer.id);
@@ -113,7 +114,7 @@ function OfferCard({ offer }: { offer: ContractOffer }) {
       )}
       <p class="ct-blurb">{offer.blurb}</p>
       <Chips checks={chips} />
-      {!best.qualifies && best.model && <div class="ct-hint muted">Closest model: {best.model.name}. Not enough for this deal yet.</div>}
+      {!best.qualifies && best.model && <Banner tone="warn">Closest model: {best.model.name}. Not enough for this deal yet.</Banner>}
       <dl class="ct-value">
         <div>
           <dt>Upfront</dt>
@@ -137,23 +138,28 @@ function OfferCard({ offer }: { offer: ContractOffer }) {
       <div class={`ct-rival ${rival.lab ? '' : 'muted'}`}>{rivalText}</div>
 
       {pending ? (
-        <div class="ct-pending">
-          <span>
-            Bid in with <strong>{s.models.find((m) => m.id === pending.modelId)?.name ?? 'a model'}</strong>.
-          </span>
-        </div>
+        <Banner tone="info">
+          Bid in with <strong>{s.models.find((m) => m.id === pending.modelId)?.name ?? 'a model'}</strong>.
+        </Banner>
       ) : (
         <div class="ct-bid">
           <label class="ct-field">
             <span class="ct-label">Model</span>
-            <select class="select ct-select" value={pickId} onChange={(e) => setPickId((e.target as HTMLSelectElement).value)}>
-              <option value="">{!rows.length ? 'No models yet' : rows.some((r) => r.ok) ? 'Choose a model' : 'No model qualifies yet'}</option>
-              {rows.map((r) => (
-                <option key={r.m.id} value={r.m.id} disabled={!r.ok}>
-                  {r.ok ? `${r.m.name} · ${formatParams(r.m.activeParamsB ?? r.m.paramsB)}` : `${r.m.name}: ${r.reason}`}
-                </option>
-              ))}
-            </select>
+            <Select
+              ariaLabel="Model"
+              block
+              class="ct-select"
+              value={pickId}
+              onChange={setPickId}
+              options={[
+                { value: '', label: !rows.length ? 'No models yet' : rows.some((r) => r.ok) ? 'Choose a model' : 'No model qualifies yet' },
+                ...rows.map<SelectOption>((r) => ({
+                  value: r.m.id,
+                  disabled: !r.ok,
+                  label: r.ok ? `${r.m.name} · ${formatParams(r.m.activeParamsB ?? r.m.paramsB)}` : `${r.m.name}: ${r.reason}`,
+                })),
+              ]}
+            />
           </label>
           <div class="ct-fit">
             {band ? (
@@ -161,13 +167,13 @@ function OfferCard({ offer }: { offer: ContractOffer }) {
                 Your fit <span class="num">{Math.round(band.low)}–{Math.round(band.high)}</span>
               </span>
             ) : pick && !pick.ok ? (
-              <span class="ct-bad">Cannot bid: {pick.reason}</span>
+              <Banner tone="bad">Cannot bid: {pick.reason}</Banner>
             ) : (
               <span class="muted">Pick a qualifying model to see your fit.</span>
             )}
           </div>
           <div class="ct-actions">
-            <Button variant="primary" size="sm" disabled={!pickOk} onClick={() => dispatch({ type: 'bidContract', offerId: offer.id, modelId: pickId })}>
+            <Button variant={primary ? 'primary' : 'default'} size="sm" disabled={!pickOk} onClick={() => dispatch({ type: 'bidContract', offerId: offer.id, modelId: pickId })}>
               Bid
             </Button>
             <Button size="sm" onClick={() => dispatch({ type: 'declineContract', offerId: offer.id })}>
@@ -213,14 +219,16 @@ function ActiveRow({ a }: { a: ActiveContract }) {
       </td>
       <td class="mb-block" data-label="Actions">
         <div class="ct-row-actions">
-          <select class="select ct-select ct-select-sm" value={pickId} onChange={(e) => setPickId((e.target as HTMLSelectElement).value)} aria-label="Reassign to">
-            <option value="">Reassign to</option>
-            {rows.map((r) => (
-              <option key={r.m.id} value={r.m.id} disabled={!r.ok}>
-                {r.ok ? r.m.name : `${r.m.name}: ${r.reason}`}
-              </option>
-            ))}
-          </select>
+          <Select
+            ariaLabel="Reassign to"
+            class="ct-select-sm"
+            value={pickId}
+            onChange={setPickId}
+            options={[
+              { value: '', label: 'Reassign to' },
+              ...rows.map<SelectOption>((r) => ({ value: r.m.id, disabled: !r.ok, label: r.ok ? r.m.name : `${r.m.name}: ${r.reason}` })),
+            ]}
+          />
           <Button size="sm" disabled={!pick?.ok} onClick={() => dispatch({ type: 'reassignContract', contractId: a.id, modelId: pickId })}>
             Reassign
           </Button>
@@ -265,8 +273,8 @@ export function ContractsPanel() {
           <EmptyState title="No offers yet." text="Clients call when they hear about you. Brand and reputation help." />
         ) : (
           <div class="ct-offers">
-            {offers.map((o) => (
-              <OfferCard key={o.id} offer={o} />
+            {offers.map((o, i) => (
+              <OfferCard key={o.id} offer={o} primary={i === 0} />
             ))}
           </div>
         )}
@@ -299,7 +307,8 @@ export function ContractsPanel() {
         )}
       </Card>
 
-      <Card title="History" subtitle="Last ten" class="ct-card" flush>
+      <details class="disclosure ct-history">
+        <summary>History · last ten</summary>
         {history.length === 0 ? (
           <div class="ct-pad">
             <EmptyState title="Nothing decided yet." />
@@ -336,7 +345,7 @@ export function ContractsPanel() {
             </table>
           </div>
         )}
-      </Card>
+      </details>
     </div>
   );
 }
