@@ -15,6 +15,10 @@ export const RIVAL_TUNING = {
   EFFICIENCY: 1,
   /** Fraction of a lab's GPUs used for training (the rest serves its users). */
   TRAINING_SHARE: 0.6,
+  /** Shortest a rival run can be (setup, evals, red-teaming), in days. */
+  MIN_RUN_DAYS: 21,
+  /** Weeks of burn a lab keeps in reserve before buying hardware. */
+  COMPUTE_RESERVE_WEEKS: 104,
   /** B2 money: staff and owned-GPU costs, in $ per year or per GPU. */
   POWER_PRICE_PER_KWH: 0.1,
   /** Owned GPUs: ops and wear per year as a share of the buy price. */

@@ -296,6 +296,8 @@ export interface CompetitorDef {
   startGpus?: Record<Id, number>;
   /** v19: 0..1 chance a release ships with open weights (and how often the lab publishes datasets). */
   openBias?: number;
+  /** v19: a marquee lab: always founded on schedule (the active cap only gates the others). */
+  core?: boolean;
   /** v19: lifecycle tendency: buys weaker labs, gets bought, or just survives. Missing = 'survivor'. */
   fate?: 'acquirer' | 'target' | 'survivor';
 }
@@ -979,6 +981,8 @@ export interface RivalSnapshot {
    * these instead of simulating its own, so both players see the same arena, prices and releases.
    */
   labs?: Competitor[];
+  /** v19: the host's simulated lab companies (trimmed: recent models and log only), mirrored by the guest. */
+  rivals?: RivalLab[];
 }
 
 export interface RivalAttack {
@@ -1015,6 +1019,8 @@ export interface MpState {
   result: null | { winner: 'me' | 'rival' | 'draw'; reason: string; day: number };
   /** v12, guest only: the latest AI labs received from the host (see RivalSnapshot.labs). */
   hostLabs?: Competitor[];
+  /** v19: the host's simulated lab companies (see RivalSnapshot.rivals). */
+  hostRivals?: RivalLab[];
 }
 
 export interface FundingOffer {

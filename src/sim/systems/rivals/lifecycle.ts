@@ -63,6 +63,7 @@ function isActive(s: GameState, def: CompetitorDef): boolean {
 export function canActivate(s: GameState, def: CompetitorDef): boolean {
   const status = labOf(s, def.id)?.status;
   if (status === 'acquired' || status === 'bankrupt') return false;
+  if (def.core) return true; // marquee labs open on schedule; the cap gates newcomers so churn is what lets them in
   return s.competitors.filter((c) => c.active && !c.human).length < RIVAL_TUNING.MAX_ACTIVE;
 }
 
@@ -125,6 +126,7 @@ function checkBankruptcy(s: GameState, def: CompetitorDef): void {
   const lab = labOf(s, def.id)!;
   const c = compOf(s, def.id)!;
   lab.negativeDays = lab.cash < 0 ? lab.negativeDays + 1 : 0;
+  if (def.core) return; // marquee labs are the story's cast: the brain's rescue raise keeps them alive
   if (lab.negativeDays < RIVAL_TUNING.BANKRUPT_DAYS) return;
   lab.status = 'bankrupt';
   lab.endedDay = s.day;

@@ -55,7 +55,7 @@ function fakeModel(id: string): RivalModel {
 describe('canActivate and the active cap', () => {
   it('allows a lab only while fewer than MAX_ACTIVE labs are active', () => {
     const s = quiet();
-    const defs = COMPETITORS.slice(0, RIVAL_TUNING.MAX_ACTIVE + 1);
+    const defs = COMPETITORS.filter((d) => !d.core).slice(0, RIVAL_TUNING.MAX_ACTIVE + 1); // marquee labs bypass the cap
     for (const d of defs.slice(0, RIVAL_TUNING.MAX_ACTIVE - 1)) activate(s, d);
     expect(canActivate(s, defs[RIVAL_TUNING.MAX_ACTIVE])).toBe(true);
     activate(s, defs[RIVAL_TUNING.MAX_ACTIVE - 1]);
@@ -101,9 +101,18 @@ describe('founding', () => {
 });
 
 describe('bankruptcy', () => {
+  it('a marquee lab never goes bankrupt', () => {
+    const s = quiet();
+    const def = COMPETITORS.find((d) => d.core)!;
+    activate(s, def, -1);
+    const rng = makeRng({ rngState: 9 });
+    for (let i = 0; i < RIVAL_TUNING.BANKRUPT_DAYS + 5; i++) lifecycleDay(s, rng);
+    expect(lab(s, def).status).toBe('active');
+  });
+
   it('goes bankrupt after BANKRUPT_DAYS days below zero cash and stops being active', () => {
     const s = quiet();
-    const def = COMPETITORS[0];
+    const def = COMPETITORS.find((d) => !d.core)!; // marquee labs never go bankrupt
     activate(s, def, -1);
     const rng = makeRng({ rngState: 9 });
     for (let i = 0; i < RIVAL_TUNING.BANKRUPT_DAYS - 1; i++) lifecycleDay(s, rng);
@@ -120,7 +129,7 @@ describe('bankruptcy', () => {
 
   it('resets the count when cash recovers and sends owned GPUs to the used market', () => {
     const s = quiet();
-    const def = COMPETITORS[0];
+    const def = COMPETITORS.find((d) => !d.core)!;
     activate(s, def, -1);
     lab(s, def).gpusOwned = { h100: 5 };
     const rng = makeRng({ rngState: 9 });
@@ -214,7 +223,8 @@ describe('determinism', () => {
     }
     const rng = makeRng({ rngState: seed });
     for (let d = 0; d < 90; d++) { lifecycleDay(s, rng); s.day++; }
-    return JSON.stringify({ rivals: s.rivals, flags: s.flags, news: s.news });
+    // News ids come from a module-wide counter, so compare the text only.
+    return JSON.stringify({ rivals: s.rivals, flags: s.flags, news: s.news.map((n) => n.text) });
   }
 
   it('gives the same result for the same seed', () => {

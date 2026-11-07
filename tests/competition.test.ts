@@ -247,7 +247,9 @@ describe('segment targeting (home brand and price labs)', () => {
     expect(mistrial.prices.api).toBeLessThan(0.85 * base);
     expect(mistrial.prices.api).toBeGreaterThan(0.78 * base);
     runDays(s, 60);
-    expect(mistrial.prices.api).toBeGreaterThan(0.78 * base);
+    // v19: other labs now compete for real; the floor only holds while the player still leads the segment
+    // (if a lab takes the lead, Mistrial correctly switches to the price war and may go lower).
+    if (topShareSegments(s).has('developer')) expect(mistrial.prices.api).toBeGreaterThan(0.78 * base);
   });
 });
 

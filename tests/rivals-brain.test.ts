@@ -16,7 +16,7 @@ const DAY_2024 = 2556;
 function setup(seed = 7, idx = 0) {
   const s: GameState = createInitialState(seed, 'Test Labs');
   s.day = DAY_2024;
-  const def: CompetitorDef = { ...COMPETITORS[idx], kind: 'frontier', openBias: 0 };
+  const def: CompetitorDef = { ...COMPETITORS[idx], kind: 'frontier', openBias: 0, core: false }; // a plain lab (no marquee rescue)
   const lab = rivalLabs(s).find((l) => l.id === def.id)!;
   lab.status = 'active';
   lab.foundedDay = DAY_2024;

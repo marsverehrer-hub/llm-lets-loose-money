@@ -97,7 +97,9 @@ function raiseWeek(s: GameState, lab: RivalLab, def: CompetitorDef, c: Competito
   const runway = burn > 0 ? lab.cash / burn : Infinity;
   const key = `rivalRaise.${def.id}`;
   const last = s.flags[key];
-  if (runway >= T.RAISE_RUNWAY_WEEKS || (last !== undefined && s.day - last < T.RAISE_GAP_DAYS)) return;
+  // Marquee labs, big tech and sovereigns always find money when they hit zero (a down round, the parent, the state).
+  const rescue = lab.cash < 0 && (def.core || def.kind === 'bigtech' || def.kind === 'sovereign');
+  if (!rescue && (runway >= T.RAISE_RUNWAY_WEEKS || (last !== undefined && s.day - last < T.RAISE_GAP_DAYS))) return;
   let amount: number;
   switch (def.kind ?? 'frontier') {
     case 'bigtech':
@@ -112,6 +114,7 @@ function raiseWeek(s: GameState, lab: RivalLab, def: CompetitorDef, c: Competito
     default:
       amount = Math.max(T.RAISE_MIN, (c?.valuation ?? 0) * T.RAISE_EQUITY_SHARE * (s.market.aiHype / 50));
   }
+  if (rescue) amount = Math.max(amount, -lab.cash + burn * T.RAISE_RUNWAY_WEEKS);
   lab.cash += amount;
   lab.totalRaised += amount;
   s.flags[key] = s.day;
@@ -126,13 +129,14 @@ function computeWeek(s: GameState, lab: RivalLab, def: CompetitorDef, mods: Retu
   const runway = burn > 0 ? lab.cash / burn : Infinity;
   if (def.kind === 'open') {
     // Rent up to the fleet that the open budget pays for each week; spending grows only as cash does.
-    const target = Math.floor((lab.cash * T.OPEN_RENT_SHARE * mods.compute) / (g.rentPerDay * 7));
+    const target = Math.floor((Math.max(0, lab.cash - burn * T.COMPUTE_RESERVE_WEEKS) * T.OPEN_RENT_SHARE * mods.compute) / (g.rentPerDay * 7));
     const have = lab.gpusRented[g.id] ?? 0;
     if (target > have) lab.gpusRented[g.id] = target;
     return;
   }
   if (runway <= T.COMPUTE_RUNWAY_WEEKS) return;
-  const spend = lab.cash * T.COMPUTE_SPEND_SHARE * mods.compute;
+  // Only cash above a two-year reserve goes on hardware, so a lab grows with its money instead of betting it all.
+  const spend = Math.max(0, lab.cash - burn * T.COMPUTE_RESERVE_WEEKS) * T.COMPUTE_SPEND_SHARE * mods.compute;
   const want = Math.floor(spend / g.buyPrice);
   if (want <= 0) return;
   const bought = Math.min(want, Math.floor(gpuAllocationLeft(s, g.id)));
@@ -224,8 +228,12 @@ function dataStats(s: GameState, lab: RivalLab): { tokensB: number; quality: num
 
 /** Monthly data: buy the best affordable catalogue set; open labs also take permissively published sets. */
 function dataWeek(s: GameState, lab: RivalLab, def: CompetitorDef): void {
-  if (Math.floor(s.day / 7) % 4 !== 0) return;
   const year = calendarYear(s.day);
+  // A new lab starts with the free public sets of its year (the same ones a new player can download).
+  if (lab.datasets.length === 0) {
+    for (const d of DATASETS) if (d.cost === 0 && d.unlockYear <= year && !d.requiresResearch && d.acquisition !== 'userdata' && d.acquisition !== 'partnership') lab.datasets.push(d.id);
+  }
+  if (Math.floor(s.day / 7) % 4 !== 0) return;
   const budget = lab.cash * T.DATA_BUY_SHARE;
   let best: DatasetDef | undefined;
   let bestScore = -1;
@@ -293,18 +301,21 @@ function trainWeek(s: GameState, lab: RivalLab, def: CompetitorDef, rng: Rng): v
     const paramsB = Math.min(Math.sqrt(budget / (T.FLOPS_PER_PARAM_TOKEN * T.TOKENS_PER_PARAM)) / 1e9, memCapB);
     const tokensB = Math.min(T.TOKENS_PER_PARAM * paramsB, T.MAX_REPEATS * uniqueB);
     if (paramsB < T.MIN_PARAMS_B || tokensB <= 0) return;
+    // A data-limited lab trains a smaller model on what it has (Chinchilla on the data side), never a giant on scraps.
+    const sizedB = Math.max(T.MIN_PARAMS_B, Math.min(paramsB, tokensB / T.TOKENS_PER_PARAM));
     const arch = lab.research.includes('moe') ? 'moe' : lab.research.includes('transformers') ? 'dense' : 'lstm';
     lab.run = {
       id: `${def.id}-run-${s.day}`,
-      paramsB,
+      paramsB: sizedB,
       tokensB,
       arch,
       dataQuality: quality,
       flopsDone: 0,
-      flopsTotal: T.FLOPS_PER_PARAM_TOKEN * paramsB * 1e9 * tokensB * 1e9,
+      // Setup, evals and red-teaming take MIN_RUN_DAYS whatever the size, so a lab never ships every week.
+      flopsTotal: Math.max(T.FLOPS_PER_PARAM_TOKEN * sizedB * 1e9 * tokensB * 1e9, perDay * T.MIN_RUN_DAYS),
       startedDay: s.day,
     };
-    logLab(s, lab, `Starts training ${lab.run.id}: ${paramsB.toFixed(2)}B parameters.`);
+    logLab(s, lab, `Starts training ${lab.run.id}: ${sizedB.toFixed(2)}B parameters.`);
   }
   const run = lab.run;
   if (!run) return;

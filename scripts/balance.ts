@@ -47,6 +47,11 @@ interface Run {
   pretrains: number;
   callsRaised: number;
   callRuns: number;
+  /** v19: active rival labs on 1 Jan 2025 and 2030, open models released by end-2021, labs gone (bankrupt or bought) by 2030. */
+  activeLabs2025: number | null;
+  activeLabs2030: number | null;
+  openBy2021: number;
+  churnBy2030: number;
 }
 
 function bestReleasedOverall(s: GameState): number {
@@ -78,6 +83,10 @@ function runOne(strategy: Strategy, seed: number, years: number): Run {
     pretrains: 0,
     callsRaised: 0,
     callRuns: 0,
+    activeLabs2025: null,
+    activeLabs2030: null,
+    openBy2021: 0,
+    churnBy2030: 0,
   };
   const seenRuns = new Set<string>();
   // v18: count pretrains by the run ids the bot sees, sampled before and after each tick (a run can end inside a tick).
@@ -122,6 +131,13 @@ function runOne(strategy: Strategy, seed: number, years: number): Run {
       const gap = bestReleasedOverall(s) - frontierQuality(yearOf(s.day));
       run.maxGap1719 = run.maxGap1719 === null ? gap : Math.max(run.maxGap1719, gap);
     }
+    // v19: the living field.
+    const yNow = calendarYear(s.day);
+    const activeLabs = () => (s.rivals ?? []).filter((l) => l.status === 'active').length;
+    if (run.activeLabs2025 === null && yNow >= 2025) run.activeLabs2025 = activeLabs();
+    if (run.activeLabs2030 === null && yNow >= 2030) run.activeLabs2030 = activeLabs();
+    if (yNow <= 2021) run.openBy2021 = (s.rivals ?? []).reduce((a, l) => a + l.models.filter((m) => m.open).length, 0);
+    if (yNow < 2030) run.churnBy2030 = (s.rivals ?? []).filter((l) => l.status === 'bankrupt' || l.status === 'acquired').length;
     if (s.day % 30 === 0) {
       const year = calendarYear(s.day);
       const ns = (s.classes?.crowns ?? []).some((c) => c.holder === 'player' && (c.weightClass === 'nano' || c.weightClass === 'small'));
@@ -367,6 +383,23 @@ function designChecks(byStrategy: Map<Strategy, Run[]>): Check[] {
     });
   } else {
     out.push({ label: '§31 median 1-3 calls per long run', pass: null, detail: 'no run long enough for calls' });
+  }
+
+  // v19: the living field keeps a crowd (8-16 active), open models appear early, and labs come and go.
+  const allRuns = BOT_STRATEGIES.flatMap((st) => runsOf(st) ?? []);
+  for (const [label, pick] of [
+    ['2025', (r: Run) => r.activeLabs2025],
+    ['2030', (r: Run) => r.activeLabs2030],
+  ] as const) {
+    const vals = allRuns.map(pick).filter((v): v is number => v !== null);
+    const med = medianOf(vals);
+    out.push({ label: `§32 8-16 rival labs active in ${label}`, pass: med === null ? null : med >= 8 && med <= 16, detail: med === null ? 'not reached' : `median ${med}` });
+  }
+  if (allRuns.length) {
+    const open = medianOf(allRuns.map((r) => r.openBy2021));
+    out.push({ label: '§32 an open model by 2021', pass: open !== null && open >= 1, detail: `median ${open}` });
+    const churn = medianOf(allRuns.map((r) => r.churnBy2030));
+    out.push({ label: '§32 a rival bankruptcy or acquisition by 2030', pass: churn !== null && churn >= 1, detail: `median ${churn}` });
   }
 
   // Overall must not saturate early.

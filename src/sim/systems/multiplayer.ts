@@ -10,6 +10,7 @@ import type {
   MpState,
   ProductKind,
   RivalAttack,
+  RivalLab,
   RivalAttackKind,
   RivalSnapshot,
   Rng,
@@ -243,6 +244,10 @@ export function buildSnapshot(s: GameState): RivalSnapshot {
     bankrupt: !!s.gameOver,
     // The host's AI labs are the reference world (v12): the guest mirrors them so both arenas match.
     ...(s.mp?.role === 'host' ? { labs: JSON.parse(JSON.stringify(s.competitors.filter((c) => !c.human))) as Competitor[] } : {}),
+    // v19: the lab companies, trimmed so a snapshot stays small (the Field screen shows recent models and log lines).
+    ...(s.mp?.role === 'host' && s.rivals
+      ? { rivals: s.rivals.map((l) => ({ ...JSON.parse(JSON.stringify(l)), models: l.models.slice(-8), log: l.log.slice(-15) })) as RivalLab[] }
+      : {}),
   };
 }
 
@@ -267,6 +272,7 @@ function checkCrowns(s: GameState): void {
 export function applyHostLabs(s: GameState): void {
   const labs = s.mp?.role === 'guest' ? s.mp.hostLabs : undefined;
   if (!labs) return;
+  if (s.mp?.hostRivals) s.rivals = JSON.parse(JSON.stringify(s.mp.hostRivals)) as RivalLab[];
   for (const src of labs) {
     if (src.human || src.id === MP_RIVAL_ID) continue;
     const c = s.competitors.find((x) => x.id === src.id);
@@ -293,6 +299,7 @@ export function applyRivalSnapshot(s: GameState, snap: RivalSnapshot): void {
   mp.rivalDay = snap.day;
   if (mp.role === 'guest' && snap.labs) {
     mp.hostLabs = snap.labs;
+    if (snap.rivals) mp.hostRivals = snap.rivals;
     applyHostLabs(s);
   }
 
