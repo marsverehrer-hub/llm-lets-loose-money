@@ -24,6 +24,8 @@ export interface ContractDef {
   supportEngineers: number;
   /** Relative chance when an offer slot opens. */
   weight: number;
+  /** v20 C2: only offered to specialist labs (see EXCLUSIVE_DEFS). */
+  exclusive?: boolean;
 }
 
 /**
@@ -281,6 +283,44 @@ for (const d of CONTRACT_DEFS) {
   };
 }
 
+// v20 C2: specialist-only exclusives, $50-300M a year from 2024. Kept out of CONTRACT_DEFS so the early-pay band
+// (0.1-2M in 2018) stays true; contracts.ts adds them to the pool for specialist labs only.
+const exclusivePay: ContractDef['value'] = (year) => {
+  const perYear = 50e6 + 250e6 * Math.min(1, Math.max(0, (year - 2024) / 12));
+  return { upfront: perYear * 0.5, perYear, years: 3 };
+};
+
+export const EXCLUSIVE_DEFS: ContractDef[] = [
+  {
+    id: 'exclusive-pharma',
+    kind: 'vertical',
+    clients: ['Pillbox Pharmaceuticals', 'Novogenix'],
+    title: 'Exclusive drug-discovery model for {client}',
+    blurb: 'Nobody else gets this model. The lawyers have read the word "exclusive" several times and are still nervous.',
+    minYear: 2024,
+    maxYear: 2100,
+    reqs: (_s, year) => ({ specIds: ['doctor'], minCaps: { knowledge: 0.7 * F(year) }, clean: true }),
+    value: exclusivePay,
+    supportEngineers: 2,
+    weight: 1,
+    exclusive: true,
+  },
+  {
+    id: 'exclusive-trading',
+    kind: 'vertical',
+    clients: ['Moonbeam Capital', 'Gilt & Sons'],
+    title: 'Exclusive desk model for {client}',
+    blurb: 'One desk, one model, one very expensive reason not to share it with the competition.',
+    minYear: 2024,
+    maxYear: 2100,
+    reqs: (_s, year) => ({ specIds: ['quant'], minCaps: { math: 0.75 * F(year) }, clean: true }),
+    value: exclusivePay,
+    supportEngineers: 2,
+    weight: 1,
+    exclusive: true,
+  },
+];
+
 export function contractDefById(id: Id): ContractDef | undefined {
-  return CONTRACT_DEFS.find((d) => d.id === id);
+  return CONTRACT_DEFS.find((d) => d.id === id) ?? EXCLUSIVE_DEFS.find((d) => d.id === id);
 }

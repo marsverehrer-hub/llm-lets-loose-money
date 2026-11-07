@@ -1,9 +1,11 @@
 // v19: the open hub. Rival labs' open-weights models and published datasets, which the player can download and use.
 import type { ActionHandlers, CustomDataset, GameState, HubLicense, Id, Model, RivalLab, RivalModel } from '../types';
 import { COMPETITORS } from '../data/competitors';
-import { calendarYear, newId, notify } from '../util';
+import { calendarYear, newId, notify, pushNews } from '../util';
 import { contextWindowK, evaluateModel, modalitiesFor, overallScore, scoresFromCaps } from './capabilities';
+import { frontierQuality } from './market';
 import { chinchillaLoss } from './trainingMath';
+import { hashUniform } from './data';
 
 type HubUse = 'product' | 'contract' | 'release';
 type Published = RivalLab['publishedData'][number];
@@ -139,8 +141,37 @@ export const handlers: ActionHandlers = {
   downloadHubDataset: (s, a) => downloadDataset(s, a.labId, a.datasetId),
 };
 
+/** The player's best released open-weights model, or null. Rival labs fine-tune this one. */
+export function bestOpenModel(s: GameState): Model | null {
+  let best: Model | null = null;
+  for (const m of s.models) if (m.releasedDay !== null && m.releaseMode === 'open' && !m.deprecated && (!best || m.overall > best.overall)) best = m;
+  return best;
+}
+
+/**
+ * v20 C1: open-weight rivals fine-tune the player's best open model, weekly. Each success is a derivative, which feeds
+ * the ecosystem premium (finance) and the support deal (contracts). Hash-keyed rolls keep the player's rng stream untouched.
+ */
+function ecosystemTick(s: GameState): void {
+  const best = bestOpenModel(s);
+  if (!best || s.day % 7 !== 0) return;
+  const q = frontierQuality(calendarYear(s.day));
+  for (const lab of s.rivals ?? []) {
+    const def = COMPETITORS.find((d) => d.id === lab.id);
+    if (lab.status !== 'active' || !def || (def.kind !== 'open' && (def.openBias ?? 0) < 0.3)) continue;
+    const chance = 0.012 * (best.overall / q) ** 2 * (def.kind === 'open' ? 2 : 1);
+    if (hashUniform(s.seed, `eco:${lab.id}:${s.day}`) >= chance) continue;
+    const eco = (s.ecosystem ??= { derivatives: 0, byLab: {}, lastDay: s.day });
+    eco.derivatives += 1;
+    eco.byLab[lab.id] = (eco.byLab[lab.id] ?? 0) + 1;
+    eco.lastDay = s.day;
+    if (eco.derivatives % 5 === 0) pushNews(s, `${labName(lab.id)} ships a fine-tune of ${best.name}. Your weights are now load-bearing.`, 'good');
+  }
+}
+
 /** Once per lab per month: a rival's open release that beats the player's best released model. */
 export function hubTick(s: GameState): void {
+  ecosystemTick(s);
   let best = 0;
   for (const m of s.models) if (m.releasedDay !== null && !m.deprecated) best = Math.max(best, m.overall);
   const month = Math.floor(s.day / 30);

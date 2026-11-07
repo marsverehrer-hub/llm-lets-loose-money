@@ -4,12 +4,14 @@ import type { ActionHandlers, ActionOf, ActionType, ActiveContract, Capabilities
 import { CAP_IDS } from '../types';
 import { makeRng } from '../rng';
 import { BENCHMARKS } from '../data/benchmarks';
-import { CONTRACT_DEFS, contractDefById, type ContractDef } from '../data/contracts';
+import { CONTRACT_DEFS, EXCLUSIVE_DEFS, contractDefById, type ContractDef } from '../data/contracts';
 import { contractFitMult } from '../bonuses';
 import { addExpense, addRevenue, clamp, formatMoney, formatParams, newId, notify, pushNews, yearOf } from '../util';
 import { frontierActiveParamsB, playerHoldsCrown, rivalLines } from './classes';
 import { competitorCaps, modelCaps, specById } from './capabilities';
+import { bestOpenModel } from './hub';
 import { labInfo, labName } from './labs';
+import { tamFor } from './market';
 import { marketSalary } from './staff';
 import { SCENARIO_FLAGS } from '../data/scenarios'; // v9 scenario
 import { safetyCase } from './safetyCase'; // v19 safety case
@@ -55,9 +57,14 @@ export const CONTRACT_TUNING = {
   RENEWAL_MULT: 1.2,
   RENEWAL_EXPIRY_DAYS: 30,
   HISTORY_CAP: 40,
+  /** v20 C3: derivatives of your open weights before the ecosystem offers a support deal, and its pay per derivative a year. */
+  SUPPORT_MIN_DERIVATIVES: 5,
+  SUPPORT_PER_DERIVATIVE: 2e6,
 };
 
 const T = CONTRACT_TUNING;
+/** Def id of the v20 ecosystem support deal (not in CONTRACT_DEFS: it is built per offer). */
+const SUPPORT_DEF_ID = 'support-ecosystem';
 
 // ---------------------------------------------------------------------------
 // Requirement checks
@@ -251,6 +258,16 @@ export function contractRevenuePerDay(s: GameState): number {
   return total;
 }
 
+/** v20 C1: late deals grow with the enterprise market, x1 up to 2024 and capped at x8. */
+export function marketScale(year: number): number {
+  return clamp(tamFor('enterprise', year) / tamFor('enterprise', 2024), 1, 8);
+}
+
+/** v20 C2: exclusives are the specialist's deals. Offers do not carry a flag, so this reads the definition. */
+export function isExclusive(o: ContractOffer): boolean {
+  return contractDefById(o.defId)?.exclusive === true;
+}
+
 /** Headline value of a deal: upfront plus every year's pay. */
 export function dealValue(o: ContractOffer): number {
   return o.upfront + o.perYear * o.years;
@@ -331,9 +348,10 @@ function record(s: GameState, cs: ContractsState, entry: { client: string; title
   if (cs.history.length > T.HISTORY_CAP) cs.history.length = T.HISTORY_CAP;
 }
 
-function pickDef(cs: ContractsState, rng: Rng, year: number): ContractDef | null {
+function pickDef(s: GameState, cs: ContractsState, rng: Rng, year: number): ContractDef | null {
   const taken = new Set([...cs.offers.map((o) => o.defId), ...cs.active.map((a) => a.offer.defId)]);
-  const pool = CONTRACT_DEFS.filter((d) => year >= d.minYear && year <= d.maxYear && !taken.has(d.id));
+  const specialist = s.company.doctrine === 'specialist';
+  const pool = [...CONTRACT_DEFS, ...EXCLUSIVE_DEFS].filter((d) => year >= d.minYear && year <= d.maxYear && !taken.has(d.id) && (!d.exclusive || specialist));
   if (!pool.length) return null;
   const total = pool.reduce((a, d) => a + d.weight, 0);
   let x = rng.next() * total;
@@ -347,7 +365,7 @@ function pickDef(cs: ContractsState, rng: Rng, year: number): ContractDef | null
 function makeOffer(s: GameState, rng: Rng, def: ContractDef, client: string, o: { renewal?: boolean } = {}): ContractOffer {
   const year = yearOf(s.day);
   const v = def.value(year);
-  const mult = o.renewal ? T.RENEWAL_MULT : 1;
+  const mult = (o.renewal ? T.RENEWAL_MULT : 1) * marketScale(year);
   const reqs = def.reqs(s, year);
   const rival = rivalFor(s, reqs);
   return {
@@ -492,12 +510,39 @@ function tickActive(s: GameState, cs: ContractsState, rng: Rng): void {
   }
 }
 
+/** v20 C3: once the open ecosystem has built on your weights, one on-prem support deal at a time (no renewal). */
+function offerSupport(s: GameState, rng: Rng, cs: ContractsState): void {
+  const derivatives = s.ecosystem?.derivatives ?? 0;
+  const best = bestOpenModel(s);
+  if (!best || derivatives < T.SUPPORT_MIN_DERIVATIVES) return;
+  if ([...cs.offers, ...cs.active.map((a) => a.offer)].some((o) => o.defId === SUPPORT_DEF_ID)) return;
+  const reqs: ContractReqs = { openWeights: true };
+  const perYear = T.SUPPORT_PER_DERIVATIVE * derivatives;
+  const rival = rivalFor(s, reqs);
+  cs.offers.push({
+    id: newId(s, 'co'),
+    defId: SUPPORT_DEF_ID,
+    kind: 'onprem',
+    client: 'Ecosystem partners',
+    title: `Support for the ${best.name} ecosystem`,
+    blurb: 'Every fine-tune now depends on our weights. Someone has to answer the issue tracker.',
+    reqs,
+    upfront: perYear * 0.25,
+    perYear,
+    years: 2,
+    supportEngineers: 2,
+    expiresDay: s.day + rng.int(T.EXPIRY_MIN, T.EXPIRY_MAX),
+    rivalFit: rival.fit,
+    rivalLab: rival.lab,
+  });
+}
+
 function spawnOffers(s: GameState, rng: Rng, cs: ContractsState): void {
   const year = yearOf(s.day);
   const room = T.MAX_OPEN - cs.offers.length;
   const want = rng.chance(0.4) ? 2 : 1;
   for (let i = 0; i < Math.min(room, want); i++) {
-    const def = pickDef(cs, rng, year);
+    const def = pickDef(s, cs, rng, year);
     if (!def) break;
     cs.offers.push(makeOffer(s, rng, def, rng.pick(def.clients)));
   }
@@ -516,6 +561,7 @@ function runTick(s: GameState, rng: Rng): void {
   resolveBids(s, cs);
   tickActive(s, cs, rng);
   if (s.day >= cs.nextOfferDay) spawnOffers(s, rng, cs);
+  offerSupport(s, rng, cs);
 }
 
 export function contractsTick(s: GameState, _rng: Rng): void {
