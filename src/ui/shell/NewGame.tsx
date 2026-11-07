@@ -165,8 +165,8 @@ export function NewGame() {
   const start = () => {
     if (busy) return;
     setBusy(true);
-    // Let the button show its busy state first: a mid-era start fast-forwards the world, which takes a moment.
-    window.setTimeout(() => {
+    // Paint the busy label first: a mid-era start fast-forwards the world synchronously, which takes a second or two.
+    requestAnimationFrame(() => window.setTimeout(() => {
       const setup: GameSetup = { scenarioId: sc.id, difficulty, sandbox, skipTutorial, startYear: sc.startYear };
       const r = newGame(name.trim() || undefined, parseSeed(seed), setup);
       setBusy(false);
@@ -177,7 +177,7 @@ export function NewGame() {
       }
       setErr('');
       setOpen(false);
-    }, 30);
+    }, 0));
   };
 
   const hasSaves = listSlots().length > 0;
@@ -317,7 +317,7 @@ export function NewGame() {
             Cancel
           </Button>
           <Button variant="primary" onClick={start} disabled={busy}>
-            {busy ? 'Starting…' : 'Start'}
+            {busy ? (midEra ? `Preparing ${sc.startYear}…` : 'Starting…') : 'Start'}
           </Button>
         </div>
       </footer>
