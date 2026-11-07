@@ -5,6 +5,8 @@ import { KIND_OF } from '../../types';
 import { GPUS, type GpuSpec } from '../../data/gpus';
 import { RESEARCH } from '../../data/research';
 import { DATASETS } from '../../data/datasets';
+import { COMPETITORS } from '../../data/competitors';
+import { reachAgi } from '../endings'; // v19 endings
 import { ROLES } from '../../data/roles';
 import { lerp, calendarYear, clamp, formatMoney, pushNews, yearOf } from '../../util';
 import { emptyCaps, lossToQuality } from '../capabilities';
@@ -199,6 +201,7 @@ function researchWeek(s: GameState, lab: RivalLab): void {
   lab.rp -= researchCost(node);
   lab.research.push(node.id);
   logLab(s, lab, `Finishes research: ${node.name}.`);
+  if (node.id === 'agi' && !s.ending) { reachAgi(s, lab.id); pushNews(s, `${COMPETITORS.find((d) => d.id === lab.id)?.name ?? lab.id} announces AGI. Probably.`, 'milestone'); } // v19 endings
   lab.researching = nextTopic(s, lab);
 }
 
