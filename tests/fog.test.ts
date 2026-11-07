@@ -226,6 +226,8 @@ describe('after release', () => {
     m.latentQuirks = ['delve', 'calls_friend'];
     m.quirks = [];
     dispatch(s, { type: 'releaseModel', modelId: m.id });
+    // The release may raise its takeover, which would pause the sim. This test only checks quirks, so clear it.
+    s.pendingMoment = null;
     expect(m.eloSettlesDay).toBe(m.releasedDay! + 21);
     advance(s, 400);
     expect(m.latentQuirks).toEqual([]);

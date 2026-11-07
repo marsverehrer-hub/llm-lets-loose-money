@@ -11,6 +11,7 @@ import { releaseSota, specById } from './capabilities';
 import { researchPointsPerDay } from './research';
 import { frontierQuality } from './market';
 import { onRelease } from './vault';
+import { releaseMoment } from './moments';
 import { enforceOpenRelease } from './scenario'; // v9 scenario
 
 /**
@@ -314,6 +315,8 @@ export const handlers: ActionHandlers = {
       ? `Previewing ${m.name} for ${RELEASE_TUNING.PREVIEW_DAYS} days: ${parts.join(', ')}. Promote it for the rest.`
       : `Released ${m.name}${mode === 'open' ? ' as open weights' : ''}: ${parts.join(', ')}.`;
     notify(s, [head, ...lines].join(' '), 'good');
+    const rm = releaseMoment(s, m);
+    if (rm && !s.pendingMoment) s.pendingMoment = rm;
   },
 
   promotePreview: (s, a) => {

@@ -1,7 +1,9 @@
 /* ==========================================================================
-   Aha moment takeover (mo-). A full-window beat over the whole app. Colours
-   and type come from tokens only, so dark and light both work. Drama comes
-   from size, contrast and whitespace, with a short fade on appear.
+   Aha moment takeover (mo-). A full-window beat over the whole app, set like
+   a preprint's opening page: serif, small caps for labels, hairline rules,
+   square corners. Colours and type come from tokens only, so dark and light
+   both work. Drama comes from size, contrast and whitespace, with a short
+   fade on appear.
    ========================================================================== */
 
 .mo-root {
@@ -48,6 +50,7 @@
   padding-bottom: 12px;
   border-bottom: 1px solid var(--line-2);
   font-size: var(--fs-sm);
+  font-variant: all-small-caps;
   color: var(--fg-3);
 }
 .mo-kicker .mo-num {
@@ -57,23 +60,21 @@
   color: var(--fg-2);
 }
 .mo-tone {
-  padding: 2px 12px;
-  background: color-mix(in srgb, currentColor 14%, transparent);
-  font-family: var(--display);
-  font-size: 11px;
+  padding: 0 8px;
+  font-size: var(--fs-xs);
   font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  clip-path: polygon(5px 0, 100% 0, calc(100% - 5px) 100%, 0 100%);
+  letter-spacing: 0.04em;
+  border: 1px solid currentColor;
+  border-radius: var(--r-sm);
 }
 .mo-tone-triumph {
-  color: var(--amber);
+  color: var(--fg);
 }
 .mo-tone-milestone {
   color: var(--up);
 }
 .mo-tone-loss {
-  color: var(--down);
+  color: var(--pen);
 }
 
 /* ---------- title and subtitle ------------------------------------------------ */
@@ -81,20 +82,19 @@
   margin: 0;
   font-family: var(--display);
   font-size: clamp(32px, calc(5.6vw / var(--ui-zoom, 1)), 68px);
-  font-weight: 900;
-  font-style: italic;
+  font-weight: 700;
   line-height: 1.02;
-  text-transform: uppercase;
+  font-variant: small-caps;
   overflow-wrap: anywhere;
 }
 .mo-title-triumph {
-  color: var(--amber);
+  color: var(--fg);
 }
 .mo-title-milestone {
   color: var(--up);
 }
 .mo-title-loss {
-  color: var(--down);
+  color: var(--pen);
 }
 
 .mo-subtitle {
@@ -124,11 +124,10 @@
 }
 .mo-stat-label {
   margin: 0;
-  font-family: var(--display);
-  font-size: 11px;
+  font-size: var(--fs-xs);
+  font-variant: all-small-caps;
   font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  letter-spacing: 0.04em;
   color: var(--fg-3);
 }
 .mo-stat-value {
@@ -146,35 +145,108 @@
   line-height: 1.1;
 }
 
-/* ---------- continue --------------------------------------------------------- */
+/* ---------- release beat: Elo delta and the arena board ---------------------- */
+.mo-release {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  gap: clamp(16px, 3vw, 40px);
+  align-items: start;
+  border-top: 1px solid var(--line);
+  padding-top: 20px;
+}
+@media (max-width: 720px) {
+  .mo-release {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.mo-delta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.mo-delta-value {
+  font-family: var(--figure);
+  font-size: clamp(56px, calc(8vw / var(--ui-zoom, 1)), 96px);
+  font-weight: 500;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--fg);
+}
+.mo-delta-unit {
+  font-size: var(--fs-sm);
+  font-variant: all-small-caps;
+  color: var(--fg-3);
+}
+.mo-delta-model {
+  margin-top: 8px;
+  font-size: var(--fs-sm);
+  color: var(--fg-2);
+  overflow-wrap: anywhere;
+}
+
+/* The board: one row per lab, absolutely placed so a row can slide between slots. */
+.mo-board {
+  position: relative;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line-2);
+}
+.mo-row {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 44px;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) minmax(0, 1fr) 64px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px;
+  border-bottom: 1px solid var(--line);
+  font-size: var(--fs-sm);
+  color: var(--fg-2);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .mo-row {
+    transition: transform 300ms ease-out;
+  }
+}
+.mo-row-me {
+  color: var(--fg);
+  background: var(--tex-marker);
+  background-size: 100% 100%;
+}
+.mo-row-rank,
+.mo-row-elo {
+  font-family: var(--figure);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.mo-row-rank {
+  text-align: left;
+}
+.mo-row-lab,
+.mo-row-model {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mo-row-model {
+  font-style: italic;
+  color: var(--fg-3);
+}
+
+/* ---------- actions ------------------------------------------------------------ */
 .mo-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 16px;
-}
-.mo-continue {
-  min-height: 40px;
-  padding: 0 calc(22px + var(--slant) / 2);
-  font-family: var(--display);
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--on-hl);
-  background: var(--hl);
-  border: 0;
-  border-radius: 0;
-  clip-path: polygon(var(--slant) 0, 100% 0, calc(100% - var(--slant)) 100%, 0 100%);
-  cursor: pointer;
-}
-.mo-continue:hover {
-  background: var(--accent-2);
-}
-.mo-continue:focus-visible {
-  /* The slant clips an outline, so the focus ring sits inside the button. */
-  outline: none;
-  box-shadow: inset 0 0 0 3px var(--on-hl);
 }
 .mo-hint {
   font-size: var(--fs-xs);

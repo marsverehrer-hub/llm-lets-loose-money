@@ -2,7 +2,7 @@
 // size rules of the small class, and the event policy (never a risky option when the worst case takes cash below zero).
 import { describe, it, expect } from 'vitest';
 import { createInitialState } from '../src/sim/state';
-import { tick } from '../src/sim/engine';
+import { dispatch, tick } from '../src/sim/engine';
 import type { GameState } from '../src/sim/types';
 import { classThresholds } from '../src/sim/data/weightClasses';
 import { defaultConfig } from '../src/sim/data/trainingOptions';
@@ -18,6 +18,8 @@ function play(s: GameState, strategy: BotStrategy, days: number): number {
   for (let i = 0; i < days && !s.gameOver; i++) {
     const before = s.day;
     botDay(s, false, strategy);
+    // A release made during botDay raises its takeover after the bot has read moments: the bot reads it here.
+    if (s.pendingMoment) dispatch(s, { type: 'dismissMoment' });
     tick(s);
     if (s.day === before) blocked += 1;
   }
@@ -42,6 +44,7 @@ describe('bot strategies: two-year smoke run (seed 11)', () => {
     const s = createInitialState(11, 'IdleCo');
     for (let i = 0; i < 365; i++) {
       botDay(s, true);
+      if (s.pendingMoment) dispatch(s, { type: 'dismissMoment' });
       tick(s);
     }
     expect(s.models.length).toBe(0);

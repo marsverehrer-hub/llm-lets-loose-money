@@ -3,9 +3,10 @@
 // s.pendingMoment. Any other beats earned the same day wait and fire on later days, one at a time.
 import type { ActionHandlers, Competitor, GameState, Id, Model, Moment, ProductKind, Rng } from '../types';
 import { clamp, formatDate, formatMoney, pushNews } from '../util';
-import { benchmarkById } from './capabilities';
+import { benchmarkById, sotaHeadlines } from './capabilities';
 import { arenaLeaderboard, type ArenaRow } from './competitors';
 import { annualRevenue } from './finance';
+import { provisionalElo } from './lab';
 import { labInfo, labName } from './labs';
 import { bestPlayerModel, modelById } from './market';
 
@@ -22,6 +23,9 @@ const COOLDOWN_DAYS = 7;
 const LOSS_MIN_DAYS = 90;
 const TRILLION = 1e12;
 const MILLION = 1e6;
+/** Release beats: the first this many releases always show, then only a new #1, a headline SOTA or a big Elo jump. */
+const RELEASE_EARLY_COUNT = 3;
+const RELEASE_ELO_JUMP = 15;
 
 type Tone = Moment['tone'];
 type CopyKey = keyof typeof MOMENT_COPY;
@@ -524,6 +528,65 @@ export function momentsTick(s: GameState, rng: Rng): void {
   if (last !== undefined && s.day - last < COOLDOWN_DAYS) return;
   const next = earned.find((c) => !isDone(s, c.id));
   if (next) fire(s, next.build(), rng);
+}
+
+// ---- release moments ------------------------------------------------------------------------
+// Not "once ever": a release beat fires on its own conditions, so the "each beat fires once" flags do not apply.
+
+export interface ReleaseMomentPayload {
+  modelId: Id;
+  /** Public (provisional) Elo of the new model, rounded. */
+  elo: number;
+  /** Best public Elo of the player's earlier releases, or 0 when there were none. */
+  prevBestElo: number;
+  /** Place on the arena board among rivals and the player's models, 1 = number one. */
+  rank: number;
+  /** Headline SOTAs this release takes. */
+  sota: number;
+}
+/** A Moment tagged 'release'. Declared here, not in types.ts, so the shared Moment type is unchanged. */
+export interface ReleaseMoment extends Moment {
+  kind: 'release';
+  payload: ReleaseMomentPayload;
+}
+
+export function isReleaseMoment(m: Moment): m is ReleaseMoment {
+  return (m as Partial<ReleaseMoment>).kind === 'release';
+}
+
+const RELEASE_TITLE = { first: 'Number one. For now.', sota: 'Top of the leaderboard.', plain: 'It shipped.' } as const;
+const RELEASE_SUBTITLE = '{model} lands at Elo {elo}, number {rank} on the arena.';
+
+/** The release beat for a model that just went public, or null. Call after the release has been applied. */
+export function releaseMoment(s: GameState, model: Model): ReleaseMoment | null {
+  if (model.releasedDay === null) return null;
+  // Public (provisional) Elo for your models, as the HQ Rival race shows them. Rivals are shown at their own Elo.
+  const elo = provisionalElo(s, model).elo;
+  const others = s.models.filter((m) => m.id !== model.id && m.releasedDay !== null && !m.deprecated);
+  const otherElos = others.map((m) => provisionalElo(s, m).elo);
+  const prevBestElo = Math.round(Math.max(0, ...otherElos));
+  const rivalElos = arenaLeaderboard(s).filter((r) => !r.isPlayer).map((r) => r.elo);
+  const rank = 1 + [...rivalElos, ...otherElos].filter((e) => e > elo).length;
+  const contest = rivalElos.length + others.length > 0;
+  const sota = model.releaseMode === 'preview' ? 0 : sotaHeadlines(s, model).length;
+
+  const early = s.stats.modelsReleased <= RELEASE_EARLY_COUNT;
+  const first = rank === 1 && contest;
+  const jump = prevBestElo > 0 && elo >= prevBestElo + RELEASE_ELO_JUMP;
+  if (!early && !first && sota === 0 && !jump) return null;
+
+  const vars = { model: model.name, elo: num(Math.round(elo)), rank: num(rank) };
+  const title = first ? RELEASE_TITLE.first : sota > 0 ? RELEASE_TITLE.sota : RELEASE_TITLE.plain;
+  return {
+    id: `release.${model.id}`,
+    kind: 'release',
+    title,
+    subtitle: fill(RELEASE_SUBTITLE, vars),
+    stats: [],
+    tone: first || sota > 0 ? 'triumph' : 'milestone',
+    day: s.day,
+    payload: { modelId: model.id, elo: Math.round(elo), prevBestElo, rank, sota },
+  };
 }
 
 export const handlers: ActionHandlers = {

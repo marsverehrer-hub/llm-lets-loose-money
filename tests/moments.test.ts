@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { createInitialState } from '../src/sim/state';
 import { dispatch, isBlocked, tick } from '../src/sim/engine';
 import { makeRng } from '../src/sim/rng';
-import { momentsTick } from '../src/sim/systems/moments';
+import { isReleaseMoment, momentsTick, releaseMoment } from '../src/sim/systems/moments';
 import { BENCHMARKS } from '../src/sim/data/benchmarks';
 import { COMPETITORS } from '../src/sim/data/competitors';
 import { botDay } from '../scripts/bot';
@@ -299,12 +299,78 @@ describe('moments: init seeding for loaded saves', () => {
   });
 });
 
+describe('moments: release beats', () => {
+  /** A released model with a fixed public Elo (provisionalElo returns the measured arena Elo once released). */
+  const at = (s: GameState, elo: number): Model => {
+    const m = model(50, { arena: { doneDay: 0, elo, band: 0 } });
+    s.models.push(m);
+    return m;
+  };
+
+  it('the first three releases always show', () => {
+    const s = freshState();
+    s.stats.modelsReleased = 1;
+    const m = at(s, 900);
+    const rm = releaseMoment(s, m);
+    expect(rm).not.toBeNull();
+    expect(rm!.kind).toBe('release');
+    expect(isReleaseMoment(rm!)).toBe(true);
+    expect(rm!.payload).toMatchObject({ modelId: m.id, elo: 900, prevBestElo: 0, rank: 1, sota: 0 });
+  });
+
+  it('a fourth mediocre release does not show', () => {
+    const s = freshState();
+    at(s, 1000);
+    s.stats.modelsReleased = 4;
+    const m = at(s, 950);
+    expect(releaseMoment(s, m)).toBeNull();
+  });
+
+  it('a new number one shows, even without a big Elo jump', () => {
+    const s = freshState();
+    at(s, 1000);
+    s.stats.modelsReleased = 4;
+    const m = at(s, 1005);
+    const rm = releaseMoment(s, m);
+    expect(rm).not.toBeNull();
+    expect(rm!.payload.rank).toBe(1);
+    expect(rm!.title).toBe('Number one. For now.');
+    expect(rm!.tone).toBe('triumph');
+  });
+
+  it('a rival above it blocks the beat below +15 Elo, and +15 over the previous best shows', () => {
+    const s = freshState();
+    setRival(s, RIVAL, rivalModel(60, { elo: 1100 }));
+    at(s, 1000);
+    s.stats.modelsReleased = 4;
+    expect(releaseMoment(s, at(s, 1014))).toBeNull();
+
+    const t = freshState();
+    setRival(t, RIVAL, rivalModel(60, { elo: 1100 }));
+    at(t, 1000);
+    t.stats.modelsReleased = 4;
+    const rm = releaseMoment(t, at(t, 1015));
+    expect(rm).not.toBeNull();
+    expect(rm!.payload).toMatchObject({ rank: 2, prevBestElo: 1000, elo: 1015 });
+  });
+
+  it('nothing before release', () => {
+    const s = freshState();
+    s.stats.modelsReleased = 1;
+    const m = at(s, 900);
+    m.releasedDay = null;
+    expect(releaseMoment(s, m)).toBeNull();
+  });
+});
+
 describe('moments: bot run', () => {
   it('a 3-year bot run sees at least 4 moments and never stays blocked', () => {
     // Seed 8: seed 7 meets a day-30 lawsuit it cannot afford to fight at its starting cash and goes broke on day 60.
     const s = createInitialState(8, 'BotCorp');
     for (let d = 0; d < 3 * 365 && !s.gameOver; d++) {
       botDay(s);
+      // A release made during botDay raises its takeover after the bot has read moments: the bot reads it here.
+      if (s.pendingMoment) dispatch(s, { type: 'dismissMoment' });
       expect(isBlocked(s)).toBe(false);
       const before = s.day;
       tick(s);
