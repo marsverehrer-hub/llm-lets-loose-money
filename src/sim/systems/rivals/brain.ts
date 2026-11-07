@@ -128,6 +128,11 @@ function raiseWeek(s: GameState, lab: RivalLab, def: CompetitorDef, c: Competito
 function computeWeek(s: GameState, lab: RivalLab, def: CompetitorDef, mods: ReturnType<typeof planMods>, burn: number): void {
   const g = bestGpu(calendarYear(s.day));
   if (!g) return;
+  // Rentals of cards four or more generations-years old go back: nobody pays rent for a 2017 card in 2023.
+  for (const id of Object.keys(lab.gpusRented)) {
+    const old = GPUS.find((x) => x.id === id);
+    if (old && calendarYear(s.day) - old.unlockYear >= 4) delete lab.gpusRented[id];
+  }
   const runway = burn > 0 ? lab.cash / burn : Infinity;
   if (def.kind === 'open') {
     // Rent up to the fleet that the open budget pays for each week; spending grows only as cash does.

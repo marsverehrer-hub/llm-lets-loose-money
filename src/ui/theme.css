@@ -1173,6 +1173,9 @@ textarea {
   from { opacity: 0; transform: translateY(8px) scale(0.985); }
 }
 .modal-danger { border-top: 4px solid var(--down); }
+/* Header and footer never shrink; only the body scrolls (a tall sheet used to squash its subtitle under the body). */
+.modal-header,
+.modal-footer { flex-shrink: 0; }
 .modal-header {
   display: flex;
   align-items: flex-start;
@@ -1189,6 +1192,8 @@ textarea {
 }
 .modal-danger .modal-title { color: var(--down); }
 .modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
   padding: 12px 22px 20px;
   line-height: 1.6;
   overflow-y: auto;
