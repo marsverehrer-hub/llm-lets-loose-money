@@ -3,7 +3,7 @@
 // parallelism splits a model over one 8-GPU box. Each parallelism node
 // lets the model be sharded over more GPUs. So a 3T model needs pipeline or 3D parallelism AND hundreds of big-memory
 // GPUs, which in 2021 nobody had.
-import type { GameState, TrainingConfig } from '../types';
+import type { GameState, GpuDef, TrainingConfig } from '../types';
 import { GPUS } from '../data/gpus';
 import { sheetMemoryMult } from '../data/memoryTerms';
 import { trainingFleet } from './hwFormats';
@@ -123,22 +123,39 @@ export const SUPPLY_TUNING = {
   QUARTER_DAYS: 90,
 };
 
-function quarterKey(s: GameState, gpuId: string): string {
-  return `alloc.${gpuId}.${Math.floor(s.day / SUPPLY_TUNING.QUARTER_DAYS)}`;
+function quarterKey(gpuId: string, day: number): string {
+  return `alloc.${gpuId}.${Math.floor(day / SUPPLY_TUNING.QUARTER_DAYS)}`;
+}
+
+/**
+ * v19 (D1): cards sold outside the vendor allocation. Consumer and workstation cards are bought off the shelf, and
+ * your own silicon is never sold by a vendor. Exported so supply, compute and the UI agree on it.
+ */
+export function isAllocationExempt(g: GpuDef): boolean {
+  return g.class === 'consumer' || g.class === 'workstation' || g.class === 'custom';
+}
+
+/** GPUs of `gpuId` the vendor sells in the quarter that `day` falls in (Infinity when unrationed). */
+export function gpuAllocationQuota(s: GameState, gpuId: string, day = s.day): number {
+  const g = GPUS.find((x) => x.id === gpuId);
+  if (!g || !SUPPLY_TUNING.ENFORCE || isAllocationExempt(g)) return Infinity;
+  const T = SUPPLY_TUNING;
+  const age = Math.max(0, yearOf(day) - g.unlockYear);
+  return Math.floor(T.ALLOC_BASE * T.ALLOC_GROWTH_PER_YEAR ** age * (1 + Math.max(0, s.company.brand) / T.BRAND_DIV));
+}
+
+/** GPUs of `gpuId` booked against the quarter that `day` falls in, by every lab. */
+export function gpuAllocationBooked(s: GameState, gpuId: string, day = s.day): number {
+  return s.flags[quarterKey(gpuId, day)] ?? 0;
 }
 
 /** GPUs of `gpuId` the vendor will still sell this quarter (Infinity for unknown GPUs). */
 export function gpuAllocationLeft(s: GameState, gpuId: string): number {
-  const g = GPUS.find((x) => x.id === gpuId);
-  if (!g || !SUPPLY_TUNING.ENFORCE) return Infinity;
-  const T = SUPPLY_TUNING;
-  const age = Math.max(0, yearOf(s.day) - g.unlockYear);
-  const quota = Math.floor(T.ALLOC_BASE * T.ALLOC_GROWTH_PER_YEAR ** age * (1 + Math.max(0, s.company.brand) / T.BRAND_DIV));
-  return Math.max(0, quota - (s.flags[quarterKey(s, gpuId)] ?? 0));
+  return Math.max(0, gpuAllocationQuota(s, gpuId) - gpuAllocationBooked(s, gpuId));
 }
 
-/** Book a purchase against this quarter's allocation. */
-export function consumeGpuAllocation(s: GameState, gpuId: string, count: number): void {
-  const k = quarterKey(s, gpuId);
+/** Book a purchase against the quarter that `day` falls in (today's by default). */
+export function consumeGpuAllocation(s: GameState, gpuId: string, count: number, day = s.day): void {
+  const k = quarterKey(gpuId, day);
   s.flags[k] = (s.flags[k] ?? 0) + count;
 }
