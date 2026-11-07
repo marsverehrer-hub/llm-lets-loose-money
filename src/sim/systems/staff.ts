@@ -4,6 +4,7 @@ import { ROLE_IDS } from '../types';
 import { BALANCE } from '../balance';
 import { ROLES, OFFICE_TIERS, STAR_TEMPLATES } from '../data/roles';
 import { addExpense, clamp, formatMoney, newId, notify, pushNews, trySpend, yearOf } from '../util';
+import { labName } from './labs';
 import { hireCostMult } from './scenario'; // v9 scenario
 
 export const STAFF_TUNING = {
@@ -28,6 +29,13 @@ export const STAFF_TUNING = {
   /** Hired stars below this loyalty can be poached. */
   STAR_POACH_LOYALTY: 25,
   STAR_POACH_CHANCE: 0.03,
+  /** Share of new star candidates that a rival lab already employs (when one is active). */
+  STAR_EMPLOYED_CHANCE: 0.4,
+  /** Hiring a star away from a rival lab costs this many times the normal package. */
+  POACH_PREMIUM: 2,
+  /** Signing money to match a rival's offer, as a share of the star's salary; the salary then rises by RAISE_ON_MATCH. */
+  MATCH_COST_SHARE: 0.5,
+  RAISE_ON_MATCH: 0.2,
 };
 
 function roleDef(role: RoleId) {
@@ -96,6 +104,16 @@ function averageSalaryLevel(s: GameState): number {
   return n > 0 ? sum / n : 1;
 }
 
+/** What hiring this star costs: the recruiting package, times the premium when a rival lab employs them. */
+export function starFee(s: GameState, star: Star): number {
+  const base = (roleDef(star.role)?.hireCost ?? 0) * STAFF_TUNING.STAR_FEE_MULT;
+  return star.employer ? base * STAFF_TUNING.POACH_PREMIUM : base;
+}
+
+function activeLabs(s: GameState) {
+  return (s.rivals ?? []).filter((l) => l.status === 'active');
+}
+
 function spawnStar(s: GameState, rng: Rng): void {
   const taken = new Set(s.staff.stars.map((x) => x.name));
   const pool = STAR_TEMPLATES.filter((t) => !taken.has(t.name));
@@ -113,6 +131,8 @@ function spawnStar(s: GameState, rng: Rng): void {
     loyalty: rng.int(45, 80),
     hiredDay: null,
   };
+  const labs = activeLabs(s);
+  if (labs.length > 0 && rng.chance(STAFF_TUNING.STAR_EMPLOYED_CHANCE)) star.employer = rng.pick(labs).id;
   s.staff.stars.push(star);
   s.flags[`starExpires.${id}`] = s.day + STAFF_TUNING.STAR_TTL_DAYS;
   pushNews(s, `Job market: ${t.name}, ${t.title}, is open to offers (${roleName(t.role)}).`, 'info');
@@ -155,10 +175,13 @@ export function staffTick(s: GameState, rng: Rng): void {
   const poached = s.staff.stars.filter(
     (st) => st.hiredDay !== null && st.loyalty < STAFF_TUNING.STAR_POACH_LOYALTY && rng.chance(STAFF_TUNING.STAR_POACH_CHANCE),
   );
-  for (const star of poached) {
-    s.staff.stars = s.staff.stars.filter((x) => x.id !== star.id);
-    notify(s, `${star.name} left for a rival lab. Their bonuses went with them.`, 'bad');
-    pushNews(s, `${star.name} (${star.title}) has left ${s.company.name} for a rival.`, 'bad');
+  // The player decides on the first offer (the sim pauses on it). Any others are asked again on a later day.
+  const offer = poached[0];
+  if (offer && !s.events.pending) {
+    const labs = activeLabs(s);
+    const suitor = labs.length > 0 ? rng.pick(labs).id : undefined;
+    s.events.pending = { defId: 'star_counter_offer', day: s.day, starId: offer.id, labId: suitor };
+    pushNews(s, `${offer.name} has an offer from ${suitor ? labName(s, suitor) : 'a rival lab'}. Your call.`, 'info');
   }
 
   // 5. Candidates expire after a while
@@ -285,11 +308,14 @@ export const handlers: ActionHandlers = {
       notify(s, `${officeTier(s).name} is full. Upgrade the office first.`, 'bad');
       return;
     }
-    const fee = (roleDef(star.role)?.hireCost ?? 0) * STAFF_TUNING.STAR_FEE_MULT;
+    const fee = starFee(s, star);
     if (!trySpend(s, 'payroll', fee, `${star.name}'s recruiting package`)) return;
     star.hiredDay = s.day;
     delete s.flags[`starExpires.${star.id}`];
-    notify(s, `${star.name} joined as ${star.title}.`, 'milestone');
-    pushNews(s, `${s.company.name} hires ${star.name}, ${star.title}.`, 'milestone');
+    const from = star.employer ? ` from ${labName(s, star.employer)}` : '';
+    const lab = s.rivals?.find((l) => l.id === star.employer);
+    if (lab && lab.staff.research > 0) lab.staff.research -= 1; // the lab loses a researcher to the offer
+    notify(s, `${star.name} joined as ${star.title}${from}.`, 'milestone');
+    pushNews(s, `${s.company.name} hires ${star.name}, ${star.title}${from}.`, 'milestone');
   },
 };

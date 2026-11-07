@@ -34,6 +34,16 @@
 .field-plan {
   margin: 0 0 6px;
 }
+.field-license {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.field-license p {
+  flex-basis: 100%;
+  margin: 0;
+}
 .field-timeline,
 .field-log,
 .field-list {

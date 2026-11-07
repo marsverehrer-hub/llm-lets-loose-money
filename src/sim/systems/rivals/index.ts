@@ -7,12 +7,14 @@ import type { Rng } from '../../types';
 import { RIVAL_TUNING } from './tuning';
 import { brainWeek } from './brain';
 import { lifecycleDay, newRivalLab } from './lifecycle';
+import { licensingDay } from './licensing';
 import { plansYear } from './plans';
 import { dayToDate } from '../../util';
 
 export { RIVAL_TUNING } from './tuning';
 export { rivalBase, onRivalRelease, rivalReleaseName } from './brain';
 export { canActivate } from './lifecycle';
+export { licenseBoost } from './licensing';
 export { planMods, PLAN_NAME } from './plans';
 
 /** The lab records, created on first use (old saves and new games alike). */
@@ -40,6 +42,7 @@ function withRivalRng(s: GameState, fn: (rng: Rng) => void): void {
 /** Daily step, called at the top of competitorsTick on the host (or solo). */
 export function rivalsTick(s: GameState): void {
   const labs = rivalLabs(s);
+  licensingDay(s);
   withRivalRng(s, (rng) => {
     // Plans: everyone on 1 January, and a lab founded mid-year announces within the week.
     const d = dayToDate(s.day);

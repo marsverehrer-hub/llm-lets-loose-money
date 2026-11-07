@@ -39,6 +39,7 @@ import { chipTick, handlers as chipHandlers } from './systems/chipRnd'; // v19 o
 import { studioTick } from './systems/studio'; // v19 tiny studios
 import { handlers as endingsHandlers } from './systems/endings'; // v19 AGI endings
 import { handlers as rivalLabHandlers } from './systems/rivals/lifecycle'; // v19 buying a rival lab
+import { handlers as rivalLicenseHandlers } from './systems/rivals/licensing'; // v22 licensing a model to a rival
 import { thesisTick } from './systems/thesis'; // v20 path goals
 import { modelLifeTick, handlers as modelLifeHandlers } from './systems/modelLife'; // v15 patches, mastery, retirement, routers
 import { cupTick, handlers as cupHandlers } from './systems/tournament'; // v15 Arena Cup
@@ -131,6 +132,7 @@ const HANDLERS: ActionHandlers = Object.assign(
   chipHandlers,
   endingsHandlers,
   rivalLabHandlers,
+  rivalLicenseHandlers,
   eventsHandlers,
   financeHandlers,
   mpHandlers,

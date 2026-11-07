@@ -6,8 +6,9 @@ import { GPUS } from '../../sim/data/gpus';
 import { arenaLeaderboard } from '../../sim/systems/competitors';
 import { PLAN_NAME, rivalDef, rivalLabs } from '../../sim/systems/rivals';
 import { acquireBlock, labPrice } from '../../sim/systems/rivals/lifecycle';
+import { licenseBlock, royaltyPerYear } from '../../sim/systems/rivals/licensing';
 import { dayToDate, formatMoney, formatNumber } from '../../sim/util';
-import { Card, EmptyState, PanelHeader, Pill, ProgressBar, Sheet, Stat, Tabs, formatInt, monthYear } from '../components';
+import { Button, Card, EmptyState, PanelHeader, Pill, ProgressBar, Select, Sheet, Stat, Tabs, formatInt, monthYear } from '../components';
 import type { PillTone } from '../components';
 import { dispatch, useGame } from '../store';
 import { ConfirmButton } from './panelKit';
@@ -230,6 +231,56 @@ export function FieldPanel() {
   );
 }
 
+/** Licensing one of your released models to this lab for a yearly royalty. Shows the running deal instead when there is one. */
+function LicenseSection({ s, lab }: { s: GameState; lab: RivalLab }) {
+  const [picked, setPicked] = useState<Id>('');
+  const deal = s.modelLicenses?.find((d) => d.labId === lab.id && s.day < d.endDay);
+  const models = s.models.filter((m) => m.releasedDay !== null && !m.deprecated);
+  const modelId = models.find((m) => m.id === picked)?.id ?? models[0]?.id ?? '';
+  const block = licenseBlock(s, modelId, lab.id);
+  return (
+    <section>
+      <h3 class="caps field-h">Licensing</h3>
+      {deal ? (
+        <div class="kv">
+          <div class="kv-row">
+            <span class="kv-k">Licensed model</span>
+            <span class="kv-v">{s.models.find((m) => m.id === deal.modelId)?.name ?? 'Unknown'}</span>
+          </div>
+          <div class="kv-row">
+            <span class="kv-k">Royalty</span>
+            <span class="kv-v num">{formatMoney(deal.royaltyPerDay * 365, 1)} a year</span>
+          </div>
+          <div class="kv-row">
+            <span class="kv-k">Runs until</span>
+            <span class="kv-v">{monthYear(deal.endDay)}</span>
+          </div>
+        </div>
+      ) : models.length === 0 ? (
+        <p class="muted">Nothing released yet.</p>
+      ) : (
+        <div class="field-license">
+          <Select
+            ariaLabel="Model to license"
+            value={modelId}
+            onChange={setPicked}
+            options={models.map((m) => ({ value: m.id, label: m.name }))}
+          />
+          <Button
+            disabled={block !== null}
+            title={block ?? undefined}
+            onClick={() => dispatch({ type: 'licenseModel', modelId, labId: lab.id })}
+          >
+            License for {formatMoney(royaltyPerYear(s, lab.id), 1)} a year
+          </Button>
+          {block && <p class="muted">{block}</p>}
+        </div>
+      )}
+      <p class="muted">A license pays a royalty for a year. While it runs, the lab's next releases get a small boost.</p>
+    </section>
+  );
+}
+
 function LabSheet({ s, row, names }: { s: GameState; row: FieldRow; names: (id: Id) => string }) {
   const { def, lab, gpus } = row;
   const price = labPrice(s, lab.id);
@@ -289,6 +340,8 @@ function LabSheet({ s, row, names }: { s: GameState; row: FieldRow; names: (id: 
         />
         {block && <p class="muted">{block}</p>}
       </section>
+
+      <LicenseSection s={s} lab={lab} />
 
       <section>
         <h3 class="caps field-h">Plan</h3>

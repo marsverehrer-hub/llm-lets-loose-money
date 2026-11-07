@@ -370,6 +370,15 @@ export interface RivalLab {
   log: { day: number; text: string }[];
 }
 
+/** A released model licensed to a rival lab: it pays a royalty per day until endDay. Lives in GameState.modelLicenses. */
+export interface ModelLicense {
+  modelId: Id;
+  labId: Id;
+  startDay: number;
+  endDay: number;
+  royaltyPerDay: number;
+}
+
 /** A tangible change shown after a decision (cash, GPUs, staff, datasets, models, training days). Never a hidden stat. */
 export interface TangibleDelta {
   label: string;               // "Cash", "GPUs", "Researchers"
@@ -956,6 +965,8 @@ export interface Star {
   bonuses: Partial<Bonuses>;
   loyalty: number;             // 0..100, low = poachable
   hiredDay: number | null;     // null = candidate on the market
+  /** A candidate still employed by this rival lab: hiring them costs a premium and sets the lab back. */
+  employer?: Id;
 }
 
 export interface Campaign {
@@ -1114,6 +1125,9 @@ export interface Notification {
 export interface PendingEvent {
   defId: Id;
   day: number;
+  /** The star and the rival lab an event is about (a counter-offer), read by its body and choices. */
+  starId?: Id;
+  labId?: Id;
   result?: string;             // set after a choice is made, UI shows it then clears
   /** Tangible changes from the choice (cash, GPUs, staff...). Shown under the result. */
   deltas?: TangibleDelta[];
@@ -1241,6 +1255,8 @@ export interface GameState {
   competitors: Competitor[];
   /** v19: the rival labs as simulated companies (created lazily by systems/rivals). Missing in old saves. */
   rivals?: RivalLab[];
+  /** Models the player licenses to rival labs (one deal per lab). Missing in old saves. */
+  modelLicenses?: ModelLicense[];
   /** v19: GPU pre-orders waiting for delivery. */
   preorders?: GpuPreorder[];
   /** v19: the custom-silicon programme, if one was ever started (latest generation). */
@@ -1439,6 +1455,7 @@ export type GameAction =
   | { type: 'setSalaryLevel'; role: RoleId; level: number }
   | { type: 'upgradeOffice'; tierId: Id }
   | { type: 'hireStar'; starId: Id }
+  | { type: 'licenseModel'; modelId: Id; labId: Id }
   // products & market
   | { type: 'launchProduct'; kind: ProductKind; name: string; modelId: Id; price: number }
   | { type: 'updateProduct'; productId: Id; modelId?: Id; price?: number }

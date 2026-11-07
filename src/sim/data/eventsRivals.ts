@@ -1,10 +1,12 @@
 // v19: events about rival labs' yearly plans (counter moves, reactions). Package B4. Follows the eventsV2 house rules
 // (tests/rivals-plans.test.ts): hints show tangible things only, results carry no stat numbers.
 // An event fires only while a lab's plan aims at the player. The lab is found from its plan, so body and effect agree.
-import type { Competitor, CompetitorDef, EventDef, GameState, ProductKind, RivalPlanId, Segment } from '../types';
+import type { Competitor, CompetitorDef, EventDef, GameState, ProductKind, RivalPlanId, Segment, Star } from '../types';
 import { KIND_OF } from '../types';
 import { COMPETITORS } from './competitors';
-import { clamp, formatMoney } from '../util';
+import { clamp, formatMoney, pushNews } from '../util';
+import { labName } from '../systems/labs';
+import { STAFF_TUNING } from '../systems/staff';
 import {
   bestReleasedOverall,
   bump,
@@ -67,6 +69,13 @@ function cutPrices(s: GameState, kind: ProductKind, share: number): void {
 
 const researchers = (s: GameState) => s.staff.roles.researcher.count;
 const nameOf = (a: Aim | undefined) => a?.def.name ?? 'A rival lab';
+
+/** The star a counter-offer is about, while it still works for the player. */
+function offeredStar(s: GameState): Star | undefined {
+  const id = s.events.pending?.starId;
+  return s.staff.stars.find((x) => x.id === id && x.hiredDay !== null);
+}
+const matchCost = (st: Star) => Math.round(st.salary * STAFF_TUNING.MATCH_COST_SHARE);
 
 /** The price-war lab, but only when the player has a live product in its home segment. */
 function priceWarAim(s: GameState): Aim | undefined {
@@ -285,6 +294,53 @@ const RAW_EVENTS: EventDef[] = [
           }
           morale(s, -2);
           return `The offers went round the team. Everyone read them, and everyone stayed, though a few are updating their profiles.`;
+        },
+      },
+    ],
+  },
+  {
+    // Raised by the staff system when a rival lab's offer goes for a star. Weight 0: never drawn at random.
+    id: 'star_counter_offer',
+    title: 'A Star Has an Offer',
+    icon: '💼',
+    body: (s) => {
+      const st = offeredStar(s);
+      const lab = s.events.pending?.labId ? labName(s, s.events.pending.labId) : 'a rival lab';
+      return st
+        ? `${st.name}, ${st.title}, has a written offer from ${lab}. It is on the table until Friday.`
+        : 'The star has already gone.';
+    },
+    weight: () => 0,
+    cooldownDays: 0,
+    choices: [
+      {
+        label: 'Match the offer',
+        hint: (s) => {
+          const st = offeredStar(s);
+          return st ? `Costs ${$(matchCost(st))} now, and their salary rises by a fifth` : '';
+        },
+        available: (s) => {
+          const st = offeredStar(s);
+          return !!st && s.finance.cash >= matchCost(st);
+        },
+        effect: (s) => {
+          const st = offeredStar(s);
+          if (!st) return 'They had already gone.';
+          spend(s, matchCost(st));
+          st.salary = Math.round(st.salary * (1 + STAFF_TUNING.RAISE_ON_MATCH));
+          st.loyalty = Math.min(100, st.loyalty + 30);
+          return `${st.name} stays, on a bigger salary, and says the rival's offer was "a lot of paperwork anyway."`;
+        },
+      },
+      {
+        label: 'Let them go',
+        hint: 'They leave with their bonuses',
+        effect: (s) => {
+          const st = offeredStar(s);
+          if (!st) return 'They had already gone.';
+          s.staff.stars = s.staff.stars.filter((x) => x.id !== st.id);
+          pushNews(s, `${st.name} (${st.title}) has left ${s.company.name} for a rival.`, 'bad');
+          return `${st.name} takes the offer and leaves. Their bonuses went with them.`;
         },
       },
     ],

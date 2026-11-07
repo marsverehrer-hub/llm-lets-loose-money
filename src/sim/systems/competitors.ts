@@ -11,7 +11,7 @@ import { rivalExclusiveMalus } from './data';
 import { applyHostLabs } from './multiplayer';
 import { labInfo } from './labs';
 import { rivalQualityOffset } from './scenario'; // v9 scenario
-import { canActivate, onRivalRelease, rivalBase, rivalReleaseName, rivalsTick } from './rivals';
+import { canActivate, licenseBoost, onRivalRelease, rivalBase, rivalReleaseName, rivalsTick } from './rivals';
 
 // frontierQuality lives in market.ts (to avoid an import cycle); re-exported here for callers.
 export { frontierQuality };
@@ -349,7 +349,7 @@ function releaseModel(s: GameState, rng: Rng, def: CompetitorDef, c: Competitor)
   if (floor !== undefined) delete s.flags[counterKey];
 
   // v19: the old fixed curve is the anchor; rivalBase blends in the lab's own trained model (systems/rivals/brain.ts).
-  const curve = frontier + def.qualityOffset + rivalQualityOffset(s) + rivalCatchUp(s, year, frontier) + boost + rng.normal(0, 2); // v9 scenario: difficulty
+  const curve = frontier + def.qualityOffset + rivalQualityOffset(s) + rivalCatchUp(s, year, frontier) + boost + licenseBoost(s, def.id) + rng.normal(0, 2); // v9 scenario: difficulty
   let base = clamp(rivalBase(s, def, c, curve), 0, BASE_MAX_OVERALL);
 
   // Spread the four scores around the overall according to personality, then centre so the weighted mean is `base`.

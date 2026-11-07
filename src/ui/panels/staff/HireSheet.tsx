@@ -186,7 +186,7 @@ export function HireSheet({ s, initialRole, initialTab, onClose }: HireSheetProp
               <p class="sf-note">No stars in sight. Candidates appear every 60 to 120 days, and each one leaves after 30 days.</p>
             ) : (
               <>
-                <p class="sf-note">Star hires cost five times the normal recruiting fee, and each one takes a seat.</p>
+                <p class="sf-note">Star hires cost five times the normal recruiting fee, twice that when a rival lab employs them. Each one takes a seat.</p>
                 <div class="sf-stars">
                   {candidates.map((st) => (
                     <StarCard

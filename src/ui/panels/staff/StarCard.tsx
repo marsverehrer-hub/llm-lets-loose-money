@@ -1,7 +1,8 @@
 import type { GameState, Star } from '../../../sim/types';
 import { ROLES } from '../../../sim/data/roles';
 import { formatMoney } from '../../../sim/util';
-import { STAFF_TUNING } from '../../../sim/systems/staff';
+import { STAFF_TUNING, starFee } from '../../../sim/systems/staff';
+import { labName } from '../../../sim/systems/labs';
 import { Button, Pill } from '../../components';
 import { dispatch } from '../../store';
 import { BONUS_LABELS, fmtMult } from '../panelKit';
@@ -18,7 +19,7 @@ export interface StarCardProps {
 export function StarCard({ s, star, canHire = true, blockedReason }: StarCardProps) {
   const hired = star.hiredDay !== null;
   const roleName = ROLES.find((r) => r.id === star.role)?.name ?? star.role;
-  const fee = (ROLES.find((r) => r.id === star.role)?.hireCost ?? 0) * STAFF_TUNING.STAR_FEE_MULT;
+  const fee = starFee(s, star);
   const left = Math.ceil((s.flags[`starExpires.${star.id}`] ?? s.day) - s.day);
   const flight = hired && star.loyalty < STAFF_TUNING.STAR_POACH_LOYALTY;
   return (
@@ -46,6 +47,7 @@ export function StarCard({ s, star, canHire = true, blockedReason }: StarCardPro
           </span>
         ) : (
           <span class="sf-star-state">
+            {star.employer && <span class="sf-faint">Employed by {labName(s, star.employer)}</span>}
             <span class="sf-faint">{left > 0 ? `Leaves in ${left} day${left === 1 ? '' : 's'}` : 'Leaving soon'}</span>
             <Button
               size="sm"

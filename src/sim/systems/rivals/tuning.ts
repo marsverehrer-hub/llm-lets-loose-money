@@ -74,6 +74,11 @@ export const RIVAL_TUNING = {
   /** Smallest run worth starting (billions of parameters), and a delivery big enough for the news (GPUs). */
   MIN_PARAMS_B: 0.1,
   NEWS_DELIVERY_GPUS: 1000,
+  /** Licensing a model to a rival: the deal runs this many days, its royalty is this share of the lab's valuation a year (at least the minimum), and the lab's next releases gain this many quality points meanwhile. */
+  LICENSE_DAYS: 365,
+  LICENSE_VALUATION_SHARE: 0.02,
+  LICENSE_MIN_PER_YEAR: 5e6,
+  LICENSE_QUALITY_BOOST: 1.5,
   /** Lab log and model catalogue caps. */
   LOG_CAP: 40,
   MODEL_CAP: 30,
