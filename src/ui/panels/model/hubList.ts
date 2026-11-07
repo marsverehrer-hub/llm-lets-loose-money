@@ -1,7 +1,5 @@
-// The open hub's read side for the UI: rival labs' open weights and published datasets. Local helpers with the
-// sim's hubModels / hubDatasets signature (C1 in systems/hub.ts), so the screens do not wait on that package.
+// The open hub for the UI: license pills and rules, plus the sim's hub lists (systems/hub.ts).
 import type { PillTone } from '../../components/types';
-import { labName } from '../../../sim/systems/labs';
 import type { GameState, HubLicense, Id, Model, RivalLab, RivalModel } from '../../../sim/types';
 
 export type HubDataset = RivalLab['publishedData'][number];
@@ -16,25 +14,8 @@ export interface HubDatasetRow {
   data: HubDataset;
 }
 
-/** Open-weights models from labs that exist (not unfounded), newest first. */
-export function hubModels(s: GameState): HubModelRow[] {
-  const rows: HubModelRow[] = [];
-  for (const r of s.rivals ?? []) {
-    if (r.status === 'unfounded') continue;
-    for (const m of r.models) if (m.open) rows.push({ labId: r.id, lab: labName(s, r.id), model: m });
-  }
-  return rows.sort((a, b) => (b.model.releasedDay ?? b.model.trainedDay) - (a.model.releasedDay ?? a.model.trainedDay));
-}
-
-/** Every dataset a lab has published, newest first. */
-export function hubDatasets(s: GameState): HubDatasetRow[] {
-  const rows: HubDatasetRow[] = [];
-  for (const r of s.rivals ?? []) {
-    if (r.status === 'unfounded') continue;
-    for (const d of r.publishedData) rows.push({ labId: r.id, lab: labName(s, r.id), data: d });
-  }
-  return rows.sort((a, b) => b.data.day - a.data.day);
-}
+// The read side lives in the sim (systems/hub.ts); the UI re-exports it under its row names.
+export { hubModels, hubDatasets } from '../../../sim/systems/hub';
 
 /** True when this hub model is already in the player's lab. */
 export function downloadedModel(s: GameState, labId: Id, modelId: Id): boolean {
