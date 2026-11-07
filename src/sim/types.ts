@@ -110,6 +110,8 @@ export interface GpuDef {
   rentPerDay: number;      // $ per GPU per day in the cloud
   powerKw: number;         // kW per GPU (drives datacenter power bill)
   memGB?: number;          // v16: HBM per GPU; caps trainable model size (systems/scaleLimits.ts)
+  /** v19: kind of card. consumer/workstation cards are cheap with little memory; custom = your own silicon (never sold by vendors). Missing = 'datacenter'. */
+  class?: 'consumer' | 'workstation' | 'datacenter' | 'custom';
   /** v18: low-precision formats with hardware support. A precision without support runs emulated (no speedup). */
   formats?: HwFormat[];
   flavor: string;
@@ -867,6 +869,43 @@ export interface Datacenter {
   liquid?: boolean;
   /** v16: InfiniBand fabric (neocloud price premium, big training customers require it). */
   infiniband?: boolean;
+  /** v19: the interconnect between its GPUs; caps the efficient training cluster. Missing = 'pcie' (or 'infiniband' when infiniband is set). */
+  interconnect?: Interconnect;
+  /** v19: where it was built; sets the power price, the grid cap in megawatts and the outage risk. Missing = 'grid'. */
+  site?: SiteId;
+}
+
+/** v19: datacenter fabric tiers. */
+export type Interconnect = 'pcie' | 'nvlink' | 'infiniband';
+/** v19: datacenter sites. */
+export type SiteId = 'grid' | 'hydro' | 'solar' | 'nuclear';
+
+/** v19: a custom-silicon programme (design, tape-out, fab, then your own chips). */
+export interface ChipProgram {
+  generation: number;
+  phase: 'design' | 'tapeout' | 'fab' | 'ready' | 'failed';
+  startedDay: number;
+  /** Research points the design still needs, and the cash it has used. */
+  rpNeeded: number;
+  rpDone: number;
+  cashSpent: number;
+  /** Day the fab slot delivers (phase 'fab'). */
+  fabReadyDay?: number;
+  /** Share of good dies, 0..1 (rolled at tape-out). */
+  yieldRate?: number;
+  /** The GpuDef id this generation produces once ready. */
+  gpuId?: Id;
+}
+
+/** v19: a pre-order for next quarter's vendor allocation of a GPU. */
+export interface GpuPreorder {
+  id: Id;
+  gpuId: Id;
+  count: number;
+  datacenterId: Id;
+  /** Day it is delivered (the start of the next allocation quarter). */
+  deliverDay: number;
+  deposit: number;
 }
 
 /** v8: buyer tiers inside every segment (GAME_DESIGN §19.3). Weights drift with the year. */
@@ -1199,6 +1238,10 @@ export interface GameState {
   competitors: Competitor[];
   /** v19: the rival labs as simulated companies (created lazily by systems/rivals). Missing in old saves. */
   rivals?: RivalLab[];
+  /** v19: GPU pre-orders waiting for delivery. */
+  preorders?: GpuPreorder[];
+  /** v19: the custom-silicon programme, if one was ever started (latest generation). */
+  chip?: ChipProgram | null;
 
   events: {
     pending: PendingEvent | null;
@@ -1349,7 +1392,13 @@ export type GameAction =
   | { type: 'setResearch'; nodeId: Id | null }
   // compute
   | { type: 'rentGpus'; gpuId: Id; count: number }          // negative = return
-  | { type: 'buildDatacenter'; tierId: Id; name: string }
+  | { type: 'buildDatacenter'; tierId: Id; name: string; site?: SiteId }
+  // v19: GPUs deeper
+  | { type: 'preorderGpus'; gpuId: Id; count: number; datacenterId: Id }
+  | { type: 'cancelPreorder'; id: Id }
+  | { type: 'buyUsedGpus'; datacenterId: Id; gpuId: Id; count: number }
+  | { type: 'setInterconnect'; datacenterId: Id; tier: Interconnect }
+  | { type: 'startChipProgram' }
   | { type: 'buyGpus'; datacenterId: Id; gpuId: Id; count: number }
   | { type: 'sellGpus'; datacenterId: Id; gpuId: Id; count: number }
   | { type: 'setTrainingShare'; share: number }

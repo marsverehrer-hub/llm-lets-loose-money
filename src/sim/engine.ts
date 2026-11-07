@@ -33,6 +33,9 @@ import { handlers as tempoHandlers } from './systems/tempo'; // v13 run tempo
 import { hubTick, handlers as hubHandlers } from './systems/hub'; // v19 open hub
 import { handlers as quantizeHandlers } from './systems/quantize'; // v19 serving work
 import { safetyTick } from './systems/safetyCase'; // v19 safety cases and jailbreaks
+import { supplyTick, handlers as supplyHandlers } from './systems/supply'; // v19 GPU supply
+import { chipTick, handlers as chipHandlers } from './systems/chipRnd'; // v19 own silicon
+import { studioTick } from './systems/studio'; // v19 tiny studios
 import { modelLifeTick, handlers as modelLifeHandlers } from './systems/modelLife'; // v15 patches, mastery, retirement, routers
 import { cupTick, handlers as cupHandlers } from './systems/tournament'; // v15 Arena Cup
 import { cloudTick, handlers as cloudHandlers } from './systems/cloudMarket'; // v16 cloud providers
@@ -41,8 +44,11 @@ import { mediaTick, handlers as mediaHandlers } from './systems/imageGen'; // v1
 
 /** Order matters: costs/capacity first, then production, then market, then finance closes the books. */
 const SYSTEMS: System[] = [
+  supplyTick, // v19: pre-orders land, used market and prices move, before compute bills the day
+  chipTick, // v19: the silicon programme
   cloudTick, // v16: crunches, spot preemptions and reserved expiries, before compute bills the day
   computeTick,
+  studioTick, // v19: peak GPUs ever (Garage Prodigy)
   dataTick,
   dataOpsTick,
   staffTick,
@@ -115,6 +121,8 @@ const HANDLERS: ActionHandlers = Object.assign(
   productsHandlers,
   hubHandlers,
   quantizeHandlers,
+  supplyHandlers,
+  chipHandlers,
   eventsHandlers,
   financeHandlers,
   mpHandlers,

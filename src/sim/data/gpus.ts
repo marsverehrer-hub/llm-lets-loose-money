@@ -1,4 +1,5 @@
 import type { GpuDef, DatacenterTier, HwFormat } from '../types';
+import { CUSTOM_CHIPS } from './customChips';
 
 /** Hardware number formats a GPU runs natively. Other formats are emulated at the bf16/fp16 speed (systems/scaleLimits.ts). */
 export type { HwFormat } from '../types';
@@ -46,6 +47,8 @@ export const GPUS: GpuSpec[] = [
   { id: 'h1000', memGB: 768, name: 'H1000 Hypernova', unlockYear: 2031, pflops: 12, buyPrice: 600_000, rentPerDay: 2_000, powerKw: 2.5, flavor: 'Needs its own zip code and a small utility company.', formats: ['bf16', 'fp8', 'fp4'] },
   { id: 'd1', memGB: 1536, name: 'Dyson D-1', unlockYear: 2034, pflops: 40, buyPrice: 1_200_000, rentPerDay: 4_000, powerKw: 3.5, flavor: 'Surrounds the star. Lowers the electricity bill for everyone else.', formats: ['bf16', 'fp8', 'fp4'] },
 ];
+// v19: your own silicon joins the list (class 'custom', unlockYear far away; compute.ts gates it on the programme).
+GPUS.push(...CUSTOM_CHIPS);
 
 // Datacenter tiers. Power is billed per GPU kW; upkeep is a fixed daily cost once the building is online.
 export const DATACENTER_TIERS: DatacenterTier[] = [

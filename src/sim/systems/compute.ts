@@ -458,7 +458,8 @@ export function applyPriority(s: GameState, priority: FleetPriority): void {
 /** GPUs the player can rent or buy this year. */
 export function availableGpus(s: GameState): GpuDef[] {
   const year = calendarYear(s.day);
-  return GPUS.filter((g) => year >= g.unlockYear);
+  // v19: custom silicon is on offer only once your own programme has produced it.
+  return GPUS.filter((g) => (g.class === 'custom' ? s.chip?.gpuId === g.id && s.chip.phase === 'ready' : year >= g.unlockYear));
 }
 
 /** Datacenter tiers whose year and research gates are open. */
