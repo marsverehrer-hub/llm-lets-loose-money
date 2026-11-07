@@ -11,6 +11,7 @@ import { rivalExclusiveMalus } from './data';
 import { applyHostLabs } from './multiplayer';
 import { labInfo } from './labs';
 import { rivalQualityOffset } from './scenario'; // v9 scenario
+import { canActivate, onRivalRelease, rivalBase, rivalsTick } from './rivals';
 
 // frontierQuality lives in market.ts (to avoid an import cycle); re-exported here for callers.
 export { frontierQuality };
@@ -343,7 +344,9 @@ function releaseModel(s: GameState, rng: Rng, def: CompetitorDef, c: Competitor)
   const floor = s.flags[counterKey];
   if (floor !== undefined) delete s.flags[counterKey];
 
-  let base = clamp(frontier + def.qualityOffset + rivalQualityOffset(s) + rivalCatchUp(s, year, frontier) + boost + rng.normal(0, 2), 0, BASE_MAX_OVERALL); // v9 scenario: difficulty
+  // v19: the old fixed curve is the anchor; rivalBase blends in the lab's own trained model (systems/rivals/brain.ts).
+  const curve = frontier + def.qualityOffset + rivalQualityOffset(s) + rivalCatchUp(s, year, frontier) + boost + rng.normal(0, 2); // v9 scenario: difficulty
+  let base = clamp(rivalBase(s, def, c, curve), 0, BASE_MAX_OVERALL);
 
   // Spread the four scores around the overall according to personality, then centre so the weighted mean is `base`.
   const d = personalityOffsets(def.personality, rng);
@@ -373,6 +376,7 @@ function releaseModel(s: GameState, rng: Rng, def: CompetitorDef, c: Competitor)
   pushNews(s, fillRelease(copy, vars), shock || beatsUs ? 'bad' : 'info');
   if (overall >= frontier) nudgeAiHype(s, 1.5);
   if (shock) nudgeAiHype(s, -12);
+  onRivalRelease(s, def, c); // v19: the lab's catalogue, open weights
 }
 
 /** Rival valuation: 25 x annualised revenue + brand x $50M x aiHype/50. */
@@ -680,13 +684,16 @@ export function competitorsTick(s: GameState, rng: Rng): void {
     return;
   }
 
+  // v19: the simulated labs act first (economy, research, runs, lifecycle, plans).
+  rivalsTick(s);
+
   // 1. Activate labs that have been founded. Human rivals are skipped by construction (they are not in COMPETITORS).
   const labs: Lab[] = [];
   for (const def of COMPETITORS) {
     const c = s.competitors.find((x) => x.id === def.id);
     if (!c || c.human) continue;
     if (!c.active) {
-      if (year < def.foundedYear) continue;
+      if (year < def.foundedYear || !canActivate(s, def)) continue;
       c.active = true;
       c.nextReleaseDay = s.day;
       pushNews(s, `${def.name} opens for business. ${def.tagline}`, 'info');

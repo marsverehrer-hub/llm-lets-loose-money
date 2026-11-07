@@ -288,6 +288,79 @@ export interface CompetitorDef {
   region?: 'us' | 'eu' | 'uk' | 'cn' | 'il';
   /** v16: attractiveness multiplier per segment (enterprise compliance, consumer reach). Missing = 1. */
   segmentAppeal?: Partial<Record<Segment, number>>;
+  /** v19: what kind of lab this is (drives the brain's defaults and how it is shown in the Field). Missing = 'frontier'. */
+  kind?: RivalKind;
+  /** v19: cash on founding (dollars). Missing = derived from kind. */
+  startCash?: number;
+  /** v19: GPUs on founding, by gpu id (rented). Missing = derived from kind and year. */
+  startGpus?: Record<Id, number>;
+  /** v19: 0..1 chance a release ships with open weights (and how often the lab publishes datasets). */
+  openBias?: number;
+  /** v19: lifecycle tendency: buys weaker labs, gets bought, or just survives. Missing = 'survivor'. */
+  fate?: 'acquirer' | 'target' | 'survivor';
+}
+
+/** v19: the kinds of lab in the Field. */
+export type RivalKind = 'frontier' | 'open' | 'startup' | 'sovereign' | 'chip' | 'bigtech';
+
+/** v19: a rival's yearly strategy, announced on 1 January. */
+export type RivalPlanId = 'agents' | 'price_war' | 'open_everything' | 'safety_first' | 'scale' | 'enterprise' | 'media' | 'steady';
+
+/** v19: a model a rival lab actually trained (real size, data and config), kept in its catalogue. */
+export interface RivalModel {
+  id: Id;
+  name: string;
+  paramsB: number;
+  tokensB: number;
+  /** Mean quality of the data it trained on (0..1). */
+  dataQuality: number;
+  /** Architecture option id (dense, moe, ...). */
+  arch: Id;
+  caps: Capabilities;
+  overall: number;
+  elo: number;
+  trainedDay: number;
+  releasedDay: number | null;
+  /** Shipped with open weights (lands on the open hub). */
+  open: boolean;
+  license: 'permissive' | 'noncommercial' | 'research' | null;
+  datasetIds?: Id[];
+}
+
+/** v19: a rival lab simulated as a small company (cash, GPUs, staff, research, data, runs). See systems/rivals/. */
+export interface RivalLab {
+  id: Id;                      // matches CompetitorDef.id and Competitor.id
+  status: 'unfounded' | 'active' | 'acquired' | 'bankrupt';
+  foundedDay: number | null;
+  endedDay?: number;
+  /** Lab that bought this one (status 'acquired'). */
+  acquiredBy?: Id;
+  cash: number;
+  /** Days in a row with cash below zero (bankrupt at RIVAL_TUNING.BANKRUPT_DAYS). */
+  negativeDays: number;
+  totalRaised: number;
+  /** GPUs by gpu id. Rented ones cost rent; owned ones cost power and ops. */
+  gpusRented: Record<Id, number>;
+  gpusOwned: Record<Id, number>;
+  staff: { research: number; engineering: number; safety: number; sales: number };
+  /** Research node ids completed, and points banked toward the current one. */
+  research: Id[];
+  researching: Id | null;
+  rp: number;
+  /** Dataset ids it owns (catalogue and hub). */
+  datasets: Id[];
+  /** The run in progress. */
+  run: { id: Id; paramsB: number; tokensB: number; arch: Id; dataQuality: number; flopsDone: number; flopsTotal: number; startedDay: number } | null;
+  models: RivalModel[];
+  /** A finished run waiting to ship: its physics quality (0..100) and the run it came from. Cleared on release. */
+  ready?: { base: number; paramsB: number; tokensB: number; arch: Id; dataQuality: number; trainedDay: number } | null;
+  /** Datasets this lab published for anyone to use (the open hub reads these). */
+  publishedData: { id: Id; name: string; tokensB: number; quality: number; kind: DataKind; day: number; license: 'permissive' | 'noncommercial' | 'research' }[];
+  plan: { id: RivalPlanId; year: number } | null;
+  /** Plan history, newest last (shown in the Field). */
+  planHistory: { id: RivalPlanId; year: number }[];
+  /** Short log of what the lab did, newest last (capped). */
+  log: { day: number; text: string }[];
 }
 
 /** A tangible change shown after a decision (cash, GPUs, staff, datasets, models, training days). Never a hidden stat. */
@@ -1109,6 +1182,8 @@ export interface GameState {
   };
 
   competitors: Competitor[];
+  /** v19: the rival labs as simulated companies (created lazily by systems/rivals). Missing in old saves. */
+  rivals?: RivalLab[];
 
   events: {
     pending: PendingEvent | null;

@@ -29,6 +29,7 @@ import { FinancePanel } from './panels/FinancePanel';
 import { AchievementsPanel } from './panels/AchievementsPanel';
 import { ContractsPanel } from './panels/ContractsPanel';
 import { LabPanel } from './panels/LabPanel'; // v13 progression
+import { FieldPanel } from './panels/FieldPanel'; // v19 living field
 import { VsPanel } from './mp/VsPanel';
 import { Lobby } from './mp/Lobby';
 import { MpOverlays } from './mp/MpOverlays';
@@ -54,7 +55,7 @@ import './mp/mp.css';
 // Saved theme applies before the first render (index.html also sets it before paint).
 applyTheme(readTheme());
 
-export type PanelId = 'dashboard' | 'lab' | 'models' | 'products' | 'compute' | 'data' | 'research' | 'benchmarks' | 'staff' | 'market' | 'contracts' | 'finance' | 'vs' | 'achievements' | 'marketing';
+export type PanelId = 'dashboard' | 'lab' | 'models' | 'products' | 'compute' | 'data' | 'research' | 'benchmarks' | 'staff' | 'market' | 'contracts' | 'finance' | 'vs' | 'achievements' | 'marketing' | 'field';
 
 export const PANELS: { id: PanelId; label: string; Component: () => any }[] = [
   { id: 'dashboard', label: 'Headquarters', Component: DashboardPanel },
@@ -67,6 +68,7 @@ export const PANELS: { id: PanelId; label: string; Component: () => any }[] = [
   { id: 'benchmarks', label: 'Benchmarks', Component: BenchmarksPanel },
   { id: 'staff', label: 'Staff', Component: StaffPanel },
   { id: 'market', label: 'Market', Component: MarketPanel },
+  { id: 'field', label: 'The field', Component: FieldPanel },
   { id: 'marketing', label: 'Marketing', Component: MarketingPanel },
   { id: 'contracts', label: 'Contracts', Component: ContractsPanel },
   { id: 'finance', label: 'Finance', Component: FinancePanel },

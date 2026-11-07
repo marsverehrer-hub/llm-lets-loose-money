@@ -7,6 +7,7 @@ import { OFFICE_TIERS } from './roles';
 import { arenaLeaderboard } from '../systems/competitors';
 import { DATA_EVENTS } from './dataEvents';
 import { EVENTS_V2 } from './eventsV2';
+import { EVENTS_RIVALS } from './eventsRivals';
 import {
   GARAGE_ERA_END_DAY,
   acquireOffer,
@@ -2140,3 +2141,4 @@ export const EVENTS: EventDef[] = [
 // v3 data-market content lives in its own file; merged here so the systems see one list.
 EVENTS.push(...DATA_EVENTS);
 EVENTS.push(...EVENTS_V2);
+EVENTS.push(...EVENTS_RIVALS); // v19: rival plan counters (B4)
