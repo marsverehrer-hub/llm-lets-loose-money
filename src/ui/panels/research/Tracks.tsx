@@ -201,16 +201,3 @@ export function AdoptingStrip({ s, onShow }: { s: GameState; onShow: Show }) {
     </div>
   );
 }
-
-export function AutoPick({ s }: { s: GameState }) {
-  return (
-    <label class="rs-autopick">
-      <input
-        type="checkbox"
-        checked={s.research.autoPick !== false}
-        onChange={(e) => dispatch({ type: 'setResearchAutoPick', on: (e.currentTarget as HTMLInputElement).checked })}
-      />
-      <span>Auto-pick next topic when idle</span>
-    </label>
-  );
-}

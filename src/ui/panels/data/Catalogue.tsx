@@ -5,7 +5,7 @@ import type { GameState, Id } from '../../../sim/types';
 import type { DatasetRow } from '../../../sim/systems/data';
 import { believedQuality, isVerified } from '../../../sim/systems/lab';
 import { labName } from '../../../sim/systems/labs';
-import { Card, Pill, Tooltip } from '../../components';
+import { Card, Pill, Select, Tooltip } from '../../components';
 import { ACQ, DOMAIN_LABEL, KIND_KEYS, KIND_LABEL, DOMAIN_KEYS, ACQ_KEYS, STATUS, acqOf, fmtTok, isLicence, lostTo, pct, usd } from './labels';
 import {
   DEFAULT_VIEW,
@@ -52,18 +52,13 @@ export function Catalogue({ s, rows, view, patch, selId, onOpen }: CatalogueProp
           value={view.query}
           onInput={(e) => patch({ query: (e.currentTarget as HTMLInputElement).value })}
         />
-        <select
-          class="select dt-sort"
-          aria-label="Sort by"
+        <Select
+          class="dt-sort"
+          ariaLabel="Sort by"
           value={view.sort}
-          onChange={(e) => patch({ sort: (e.currentTarget as HTMLSelectElement).value as CatalogueView['sort'] })}
-        >
-          {SORT_KEYS.map((k) => (
-            <option key={k} value={k}>
-              {SORT_LABEL[k]}
-            </option>
-          ))}
-        </select>
+          onChange={(v) => patch({ sort: v as CatalogueView['sort'] })}
+          options={SORT_KEYS.map((k) => ({ value: k, label: SORT_LABEL[k] }))}
+        />
         <button
           type="button"
           class="btn dt-dir"
@@ -141,51 +136,45 @@ export function Catalogue({ s, rows, view, patch, selId, onOpen }: CatalogueProp
 function FilterFields({ view, patch }: { view: CatalogueView; patch: (p: Partial<CatalogueView>) => void }) {
   return (
     <div class="dt-filter-fields">
-      <Field id="dt-f-status" label="Status">
-        <select id="dt-f-status" class="select" value={view.status} onChange={(e) => patch({ status: (e.currentTarget as HTMLSelectElement).value as CatalogueView['status'] })}>
-          {STATUS_FILTER_KEYS.map((k) => (
-            <option key={k} value={k}>
-              {STATUS_FILTER_LABEL[k]}
-            </option>
-          ))}
-        </select>
+      <Field label="Status">
+        <Select
+          ariaLabel="status"
+          value={view.status}
+          onChange={(v) => patch({ status: v as CatalogueView['status'] })}
+          options={STATUS_FILTER_KEYS.map((k) => ({ value: k, label: STATUS_FILTER_LABEL[k] }))}
+        />
       </Field>
-      <Field id="dt-f-acq" label="Source">
-        <select id="dt-f-acq" class="select" value={view.acq} onChange={(e) => patch({ acq: (e.currentTarget as HTMLSelectElement).value as CatalogueView['acq'] })}>
-          <option value="all">All sources</option>
-          {ACQ_KEYS.map((k) => (
-            <option key={k} value={k}>
-              {ACQ[k].label}
-            </option>
-          ))}
-        </select>
+      <Field label="Source">
+        <Select
+          ariaLabel="acq"
+          value={view.acq}
+          onChange={(v) => patch({ acq: v as CatalogueView['acq'] })}
+          options={[{ value: 'all', label: 'All sources' }, ...ACQ_KEYS.map((k) => ({ value: k, label: ACQ[k].label }))]}
+        />
       </Field>
-      <Field id="dt-f-kind" label="Kind">
-        <select id="dt-f-kind" class="select" value={view.kind} onChange={(e) => patch({ kind: (e.currentTarget as HTMLSelectElement).value as CatalogueView['kind'] })}>
-          <option value="all">All kinds</option>
-          {KIND_KEYS.map((k) => (
-            <option key={k} value={k}>
-              {KIND_LABEL[k]}
-            </option>
-          ))}
-        </select>
+      <Field label="Kind">
+        <Select
+          ariaLabel="kind"
+          value={view.kind}
+          onChange={(v) => patch({ kind: v as CatalogueView['kind'] })}
+          options={[{ value: 'all', label: 'All kinds' }, ...KIND_KEYS.map((k) => ({ value: k, label: KIND_LABEL[k] }))]}
+        />
       </Field>
-      <Field id="dt-f-domain" label="Domain">
-        <select id="dt-f-domain" class="select" value={view.domain} onChange={(e) => patch({ domain: (e.currentTarget as HTMLSelectElement).value as CatalogueView['domain'] })}>
-          <option value="all">All domains</option>
-          {DOMAIN_KEYS.map((k) => (
-            <option key={k} value={k}>
-              {DOMAIN_LABEL[k]}
-            </option>
-          ))}
-        </select>
+      <Field label="Domain">
+        <Select
+          ariaLabel="domain"
+          value={view.domain}
+          onChange={(v) => patch({ domain: v as CatalogueView['domain'] })}
+          options={[{ value: 'all', label: 'All domains' }, ...DOMAIN_KEYS.map((k) => ({ value: k, label: DOMAIN_LABEL[k] }))]}
+        />
       </Field>
-      <Field id="dt-f-verif" label="Verification">
-        <select id="dt-f-verif" class="select" value={view.verif} onChange={(e) => patch({ verif: (e.currentTarget as HTMLSelectElement).value as CatalogueView['verif'] })}>
-          <option value="all">Any</option>
-          <option value="unverified">Unverified</option>
-          <option value="verified">Verified</option>
-        </select>
+      <Field label="Verification">
+        <Select
+          ariaLabel="verif"
+          value={view.verif}
+          onChange={(v) => patch({ verif: v as CatalogueView['verif'] })}
+          options={[{ value: 'all', label: 'Any' }, { value: 'unverified', label: 'Unverified' }, { value: 'verified', label: 'Verified' }]}
+        />
       </Field>
       <button type="button" class="dt-link dt-filter-reset" disabled={activeFilterCount(view) === 0} onClick={() => patch({ ...DEFAULT_VIEW, query: view.query, sort: view.sort, desc: view.desc })}>
         Reset filters
@@ -194,10 +183,10 @@ function FilterFields({ view, patch }: { view: CatalogueView; patch: (p: Partial
   );
 }
 
-function Field({ id, label, children }: { id: string; label: string; children: ComponentChildren }) {
+function Field({ label, children }: { label: string; children: ComponentChildren }) {
   return (
     <div class="dt-field">
-      <label class="dt-field-label" for={id}>
+      <label class="dt-field-label">
         {label}
       </label>
       {children}

@@ -13,6 +13,7 @@ import { Catalogue } from './data/Catalogue';
 import { SetSheet } from './data/SetSheet';
 import { TokenMap } from './data/TokenMap';
 import { SceneView } from '../../scenes/SceneView';
+import { ViewFold } from './ViewFold';
 import { createScene as createWarehouse, CAM as WAREHOUSE_CAM } from '../../scenes/data';
 import { CommissionBody, LicenceBody, SyntheticBody, TOOL_TITLE, UserDataBody, licenceTotals, type ToolId } from './data/tools';
 import { DEFAULT_VIEW, heroNumbers, ownedItems, type CatalogueView } from './data/model';
@@ -37,7 +38,29 @@ export function DataPanel() {
   return (
     <div class="panel pn pn-data">
       <div class="dt">
-        <PanelHeader title="Data" subtitle="What models learn from. Buy it, crawl it or make it." />
+        <PanelHeader
+          title="Data"
+          subtitle="What models learn from. Buy it, crawl it or make it."
+          actions={
+            <>
+              <BigNumber
+                compact
+                label="Unique tokens"
+                help="Every token in the sets you own, counted once. Training can read them up to four times over (epochs), so this sets how big a run can be."
+                value={fmtTok(hero.uniqueTokensB)}
+                hint={hero.owned === 0 ? 'Nothing owned yet' : `Across ${plural(hero.owned, 'set')}`}
+              />
+              <BigNumber
+                compact
+                label="Average quality"
+                help="How good the data is for training, before research bonuses. It is the sets you own, averaged the way the Train wizard does by default. Unverified sets count at the seller's claim."
+                value={hero.avgQuality === null ? '—' : pct(hero.avgQuality)}
+                hint={hero.unverified > 0 ? `${plural(hero.unverified, 'set')} unverified, a gamble` : hero.owned > 0 ? 'Every owned set is verified' : 'Buy a set to start'}
+                tone={hero.unverified > 0 ? 'warn' : undefined}
+              />
+            </>
+          }
+        />
         <PanelIntro id="data">
           Pick a block in the map or a row in the catalogue to open a set. Audit a set to learn its real quality: until then it is the seller's claim.
         </PanelIntro>
@@ -47,36 +70,25 @@ export function DataPanel() {
             <TokenMap items={items} onOpen={setSelId} />
           </Card>
           <div class="dt-nums">
-            <BigNumber
-              label="Unique tokens"
-              help="Every token in the sets you own, counted once. Training can read them up to four times over (epochs), so this sets how big a run can be."
-              value={fmtTok(hero.uniqueTokensB)}
-              hint={hero.owned === 0 ? 'Nothing owned yet' : `Across ${plural(hero.owned, 'set')}`}
-            />
-            <BigNumber
-              label="Average quality"
-              help="How good the data is for training, before research bonuses. It is the sets you own, averaged the way the Train wizard does by default. Unverified sets count at the seller's claim."
-              value={hero.avgQuality === null ? '—' : pct(hero.avgQuality)}
-              hint={hero.unverified > 0 ? `${plural(hero.unverified, 'set')} unverified, a gamble` : hero.owned > 0 ? 'Every owned set is verified' : 'Buy a set to start'}
-              tone={hero.unverified > 0 ? 'warn' : undefined}
-            />
             <DataFacts s={s} onTool={openTool} />
           </div>
         </section>
 
-        <SceneView
-          state={s}
-          make={createWarehouse}
-          cam={WAREHOUSE_CAM}
-          camId="CAM-04"
-          label="Your data warehouse: shelves of datasets by domain, the crawler, the refinery and jobs in flight"
-          onSelect={(hit) => {
-            if (hit.id.startsWith('domain:')) {
-              patch({ domain: hit.id.slice(7) as CatalogueView['domain'], status: 'owned' as CatalogueView['status'] });
-              document.querySelector('.dt-filter-inline')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-          }}
-        />
+        <ViewFold panel="data">
+          <SceneView
+            state={s}
+            make={createWarehouse}
+            cam={WAREHOUSE_CAM}
+            camId="CAM-04"
+            label="Your data warehouse: shelves of datasets by domain, the crawler, the refinery and jobs in flight"
+            onSelect={(hit) => {
+              if (hit.id.startsWith('domain:')) {
+                patch({ domain: hit.id.slice(7) as CatalogueView['domain'], status: 'owned' as CatalogueView['status'] });
+                document.querySelector('.dt-filter-inline')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }
+            }}
+          />
+        </ViewFold>
 
         <GetDataArea
           s={s}
@@ -95,7 +107,32 @@ export function DataPanel() {
   );
 }
 
-function BigNumber({ label, help, value, hint, tone }: { label: string; help: string; value: string; hint: string; tone?: 'warn' }) {
+function BigNumber({
+  label,
+  help,
+  value,
+  hint,
+  tone,
+  compact,
+}: {
+  label: string;
+  help: string;
+  value: string;
+  hint: string;
+  tone?: 'warn';
+  compact?: boolean;
+}) {
+  if (compact) {
+    return (
+      <span class="dt-head-stat" title={hint}>
+        <span class="dt-head-k">
+          {label}
+          <HelpTip>{help}</HelpTip>
+        </span>
+        <b class={`dt-head-v num ${tone === 'warn' ? 'warn' : ''}`}>{value}</b>
+      </span>
+    );
+  }
   return (
     <div class="dt-big">
       <div class="dt-big-label">

@@ -27,8 +27,7 @@
 .rs-kpi-label {
   color: var(--fg-3);
   font-size: var(--fs-xs);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-variant: all-small-caps;
 }
 .rs-kpi-value {
   color: var(--fg);
@@ -264,7 +263,7 @@
 }
 .rs-cost {
   color: var(--fg-2);
-  font-family: var(--mono);
+  font-family: var(--code);
   font-size: var(--fs-xs);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -427,8 +426,7 @@
   color: var(--fg-3);
   font-size: var(--fs-xs);
   font-weight: 500;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-variant: all-small-caps;
 }
 .rs-table .num {
   text-align: right;
@@ -546,7 +544,7 @@
 }
 .rs-effect {
   padding-left: 8px;
-  border-left: 2px solid var(--amber);
+  border-left: 2px solid var(--line-2);
   color: var(--fg);
 }
 .rs-kv {
@@ -588,8 +586,7 @@
 .rs-needs-label {
   color: var(--fg-3);
   font-size: var(--fs-xs);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-variant: all-small-caps;
 }
 .rs-chips-list {
   display: flex;
@@ -644,8 +641,7 @@
 .rs-sec-title {
   color: var(--fg-3);
   font-size: var(--fs-xs);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-variant: all-small-caps;
 }
 .rs-list {
   display: flex;
@@ -760,7 +756,6 @@
   .tl-year {
     min-height: 40px;
     font-size: 10px;
-    letter-spacing: -0.02em;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -891,16 +886,8 @@
 }
 
 /* Top of the screen: idle warning, ready cards, section heading. */
-.rs-idle {
-  margin: 0 0 12px;
-  padding: 10px 12px;
-  border: 1px solid var(--amber);
-  border-left-width: 3px;
-  background: var(--bg-1);
-  color: var(--fg);
-  font-weight: 600;
-  border-radius: var(--r-md);
-}
+.rs-idle .progress-wrap { margin-top: 6px; }
+.rs-tabs { margin: 0 0 12px; }
 .rs-ready-card-wrap {
   margin: 12px 0;
 }
@@ -969,11 +956,10 @@
 }
 .rs-section {
   margin: 24px 0 0;
-  font-family: var(--display);
+  font-family: var(--font);
   font-size: 15px;
   font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-variant: all-small-caps;
   color: var(--fg);
 }
 .rs-td-act {
@@ -1069,15 +1055,13 @@
   padding: 8px 12px;
   background: var(--bg-1);
   border: 1px solid var(--line-2);
-  border-left: 3px solid var(--blue);
   border-radius: var(--r-md);
 }
 .rs-adopting-k {
-  font-family: var(--display);
+  font-family: var(--font);
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-variant: all-small-caps;
   color: var(--fg-3);
 }
 .rs-adopting-item {
@@ -1098,7 +1082,7 @@
   background: none;
   border: 0;
   color: var(--fg);
-  font-family: var(--display);
+  font-family: var(--font);
   font-size: 22px;
   font-weight: 700;
   text-align: left;
@@ -1108,7 +1092,6 @@
 .rs-rec-joke {
   color: var(--fg-3);
   font-size: 12px;
-  font-style: italic;
 }
 .rs-rec-why {
   margin: 6px 0 8px;
@@ -1155,11 +1138,10 @@
   gap: 8px;
 }
 .rs-track-name {
-  font-family: var(--display);
+  font-family: var(--font);
   font-size: 13px;
   font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-variant: all-small-caps;
   color: var(--fg);
 }
 .rs-track-count { color: var(--fg-3); }
@@ -1205,11 +1187,10 @@
 .rs-track-step:hover { color: var(--accent); }
 .rs-track-k {
   margin-right: 4px;
-  font-family: var(--display);
+  font-family: var(--font);
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-variant: all-small-caps;
   color: var(--accent);
 }
 .rs-track-why { flex: 1; color: var(--fg-2); font-size: 13px; line-height: 1.45; }

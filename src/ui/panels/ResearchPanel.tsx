@@ -5,9 +5,11 @@ import { dispatch, useGame } from '../store';
 import { RESEARCH, trackStepOf } from '../../sim/data/research';
 import { RESEARCH_BRANCHES } from '../../sim/types';
 import type { Id, ResearchBranch, ResearchNode } from '../../sim/types';
-import { Card, PanelHeader, PanelIntro, Sheet, Tabs, useIsMobile } from '../components';
+import { RESEARCH_TUNING, backlogCap } from '../../sim/systems/research';
+import { Card, Check, PanelHeader, PanelIntro, ProgressBar, Sheet, Tabs, useIsMobile } from '../components';
 import type { TabDef } from '../components';
-import { fmtPct } from './panelKit';
+import { Banner, fmtPct } from './panelKit';
+import { ViewFold } from './ViewFold';
 import { ResearchQueueStrip, queuePositions } from './ResearchQueue';
 import { Timeline } from './research/Timeline';
 import { NodeDetail } from './research/Detail';
@@ -15,7 +17,7 @@ import { ResearchTree } from './research/Tree';
 import { ResearchList } from './research/List';
 import { ReadyCards } from './research/ReadyCards';
 import { BRANCH_LABEL, BranchTab, NODE_BY_ID, NODES_BY_YEAR, branchOf, buildView, jokeName, topicName } from './research/model';
-import { AdoptingStrip, AutoPick, RecommendedCard, TrackCards } from './research/Tracks';
+import { AdoptingStrip, RecommendedCard, TrackCards } from './research/Tracks';
 import './research.css';
 import { SceneView } from '../../scenes/SceneView';
 import { createScene as createLab, CAM as LAB_CAM } from '../../scenes/research';
@@ -43,6 +45,8 @@ function writeBranch(v: BranchTab): void {
 }
 
 type ViewMode = 'tree' | 'list';
+/** The three parts of the screen: what to research next, the whole tree, and the year grid. */
+type MainTab = 'tracks' | 'browse' | 'timeline';
 const STATE_ORDER = { active: 0, available: 1, early: 2, locked: 3, done: 4 } as const;
 /** Which nodes the list shows. */
 type Show = 'all' | 'ready' | 'done';
@@ -62,8 +66,20 @@ export function ResearchPanel() {
   const [mode, setMode] = useState<ViewMode>(isPhone ? 'list' : 'tree');
   const [sheetOpen, setSheetOpen] = useState(false);
   const [yearSel, setYearSel] = useState<number>(v.year);
+  const [tab, setTab] = useState<MainTab>('tracks');
 
   const selected: ResearchNode | null = (picked ? NODE_BY_ID.get(picked) : undefined) ?? v.current ?? v.nextNode ?? null;
+
+  // Idle: nothing running and nothing queued. The lab banks part of its output for the next topic, up to the cap.
+  const idle = !v.current && (s.research.queue ?? []).length === 0;
+  const cap = backlogCap(s);
+  const banked = Math.min(cap, s.research.banked ?? 0);
+  const idleText =
+    v.perDay <= 0
+      ? 'You have no researchers. Hire some in Staff to start research.'
+      : v.rec
+        ? `Your researchers are idle. Start ${v.rec.label} below${s.research.autoPick === false ? ', or turn on auto-pick' : ''}.`
+        : `Nothing can start yet. Banking ${Math.round(RESEARCH_TUNING.BACKLOG_RATE * 100)}% of research into the backlog for the next topic.`;
 
   if (RESEARCH.length === 0) {
     return (
@@ -83,6 +99,7 @@ export function ResearchPanel() {
     if (!n) return;
     setPicked(id);
     setQuery('');
+    if (!isPhone) setTab('browse'); // the details pane lives under Browse all
     if (branch !== 'all' && branchOf(n) !== branch) chooseBranch(branchOf(n));
   };
   /** Pick a node; a phone also opens its details sheet. */
@@ -92,6 +109,7 @@ export function ResearchPanel() {
   const open = (n: ResearchNode) => {
     setPicked(n.id);
     if (isPhone) setSheetOpen(true);
+    else setTab('browse');
   };
   /** From the top cards: select the topic, then bring its details into view (the sheet on a phone). */
   const showTopic = (n: ResearchNode) => {
@@ -159,46 +177,71 @@ export function ResearchPanel() {
         cheaper as papers spread, and a published paper can be adopted for cash while your own researchers work on something else.
       </PanelIntro>
 
-      {!v.current && (s.research.queue ?? []).length === 0 && (
-        <div class="rs-idle" role="alert">
-          {v.perDay <= 0
-            ? 'You have no researchers. Hire some in Staff to start research.'
-            : v.rec
-              ? `Your researchers are idle. Start ${v.rec.label} below${s.research.autoPick === false ? ', or turn on auto-pick' : ''}.`
-              : 'Your researchers are idle, and nothing can start yet. New ideas open each year.'}
-        </div>
+      {idle && (
+        <Banner tone="warn">
+          <div>{idleText}</div>
+          {cap > 0 && (
+            <ProgressBar
+              value={banked}
+              max={cap}
+              height={6}
+              label="Banked for the next topic"
+              right={fmtPct(banked / cap)}
+            />
+          )}
+        </Banner>
       )}
 
       {(v.current || (s.research.queue ?? []).length > 0) && <ResearchQueueStrip perDay={v.perDay} />}
-      <AutoPick s={s} />
-      <AdoptingStrip s={s} onShow={showTopic} />
 
-      <RecommendedCard s={s} view={v} onShow={showTopic} />
-      <TrackCards s={s} view={v} onShow={showTopic} />
+      <ViewFold panel="research">
+        <SceneView
+          state={s}
+          make={createLab}
+          cam={LAB_CAM}
+          camId="CAM-10"
+          label="The research lab: one desk pod per branch, whiteboards fill as you finish topics, the projector shows what is being researched"
+          onSelect={(hit) => {
+            if (hit.id.startsWith('branch:')) {
+              setQuery('');
+              setTab('browse');
+              chooseBranch(hit.id.slice(7) as BranchTab);
+              requestAnimationFrame(() => document.querySelector('.rs-toolbar')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+            } else if (hit.id === 'current' && v.current) jump(v.current.id);
+          }}
+        />
+      </ViewFold>
 
-      <details class="disclosure rs-more-upgrades">
-        <summary>
-          More upgrades · {RESEARCH.filter((n) => !trackStepOf(n.id) && v.stateOf(n) === 'available').length} can start
-        </summary>
-        <ReadyCards view={v} onShow={showTopic} filter={(n) => !trackStepOf(n.id)} />
-      </details>
-
-      <SceneView
-        state={s}
-        make={createLab}
-        cam={LAB_CAM}
-        camId="CAM-10"
-        label="The research lab: one desk pod per branch, whiteboards fill as you finish topics, the projector shows what is being researched"
-        onSelect={(hit) => {
-          if (hit.id.startsWith('branch:')) {
-            setQuery('');
-            chooseBranch(hit.id.slice(7) as BranchTab);
-            document.querySelector('.rs-toolbar')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          } else if (hit.id === 'current' && v.current) jump(v.current.id);
-        }}
+      <Tabs<MainTab>
+        class="rs-tabs"
+        value={tab}
+        onChange={setTab}
+        tabs={[
+          { id: 'tracks', label: 'Tracks' },
+          { id: 'browse', label: 'Browse all' },
+          { id: 'timeline', label: 'Timeline' },
+        ]}
       />
 
-      <h2 class="rs-section">Browse all research</h2>
+      {tab === 'tracks' && (
+        <>
+          <Check checked={s.research.autoPick !== false} onChange={(on) => dispatch({ type: 'setResearchAutoPick', on })} label="Auto-pick next topic when idle" class="rs-autopick" />
+          <AdoptingStrip s={s} onShow={showTopic} />
+
+          <RecommendedCard s={s} view={v} onShow={showTopic} />
+          <TrackCards s={s} view={v} onShow={showTopic} />
+
+          <details class="disclosure rs-more-upgrades">
+            <summary>
+              More upgrades · {RESEARCH.filter((n) => !trackStepOf(n.id) && v.stateOf(n) === 'available').length} can start
+            </summary>
+            <ReadyCards view={v} onShow={showTopic} filter={(n) => !trackStepOf(n.id)} />
+          </details>
+        </>
+      )}
+
+      {tab === 'browse' && (
+        <>
       <div class="rs-toolbar" role="search">
         <input
           type="search"
@@ -292,7 +335,11 @@ export function ResearchPanel() {
           </aside>
         )}
       </div>
+        </>
+      )}
 
+      {tab === 'timeline' && (
+        <>
       <Card class="rs-timeline" title="Timeline" subtitle="One cell per idea, by year it came out">
         <Timeline view={v} selected={selectedId} yearSel={yearSel} onPick={open} onYear={setYearSel} />
       </Card>
@@ -311,6 +358,8 @@ export function ResearchPanel() {
             emptyText={`No ideas came out in ${yearSel}.`}
           />
         </Card>
+      )}
+        </>
       )}
 
       {isPhone && (

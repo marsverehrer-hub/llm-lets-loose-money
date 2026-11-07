@@ -4,7 +4,7 @@
 import type { ComponentChildren } from 'preact';
 import { useState } from 'preact/hooks';
 import { dispatch } from '../store';
-import { Card, FlowBar, Pill, Tabs } from '../components';
+import { Card, Check, FlowBar, Pill, Select, Tabs } from '../components';
 import type { PillTone, TabDef } from '../components';
 import type { CrawlPolicy, DataDomain, DataJob, DatasetDef, GameState, Id } from '../../sim/types';
 import { datasetById } from '../../sim/systems/data';
@@ -389,16 +389,15 @@ function RefineTab({ s }: { s: GameState }) {
 
       <Card title="Refine a set" subtitle={`Next pass gains ${pct(0.5 ** passes)} of the usual`}>
         <div class="do-field">
-          <label class="do-label" for="do-refine-set">
+          <label class="do-label">
             Set
           </label>
-          <select id="do-refine-set" class="select" value={chosen.id} onChange={(e) => setPick((e.currentTarget as HTMLSelectElement).value)}>
-            {owned.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.name} ({tok(d.tokensB)}, {pct(d.quality)})
-              </option>
-            ))}
-          </select>
+          <Select
+            ariaLabel="Set"
+            value={chosen.id}
+            onChange={(v) => setPick(v)}
+            options={owned.map((d) => ({ value: d.id, label: `${d.name} (${tok(d.tokensB)}, ${pct(d.quality)})` }))}
+          />
         </div>
         <div class="do-kvs">
           <Kv k="Quality" v={pct(chosen.quality)} />
@@ -536,13 +535,12 @@ function BountyKnobs({
   return (
     <div class="do-opts">
       <Knob label="Domain" id="do-bounty-domain">
-        <select id="do-bounty-domain" class="select" value={domain} onChange={(e) => setDomain((e.currentTarget as HTMLSelectElement).value as DataDomain)}>
-          {DATA_DOMAIN_KEYS.map((d) => (
-            <option key={d} value={d}>
-              {titleCase(d)}
-            </option>
-          ))}
-        </select>
+        <Select
+          ariaLabel="Domain"
+          value={domain}
+          onChange={(v) => setDomain(v as DataDomain)}
+          options={DATA_DOMAIN_KEYS.map((d) => ({ value: d, label: titleCase(d) }))}
+        />
       </Knob>
       <Knob label="Budget" id="do-bounty-budget">
         <div class="do-chips" role="group" aria-labelledby="do-bounty-budget">
@@ -643,13 +641,12 @@ function SellTab({ s }: { s: GameState }) {
       >
         {chosen && <div class="do-opts">
               <Knob label="Set" id="do-sell-set">
-                <select id="do-sell-set" class="select" value={chosen.id} onChange={(e) => setPick((e.currentTarget as HTMLSelectElement).value)}>
-                  {sets.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.name} ({tok(d.tokensB)})
-                    </option>
-                  ))}
-                </select>
+                <Select
+                  ariaLabel="Set"
+                  value={chosen.id}
+                  onChange={(v) => setPick(v)}
+                  options={sets.map((d) => ({ value: d.id, label: `${d.name} (${tok(d.tokensB)})` }))}
+                />
               </Knob>
               <Knob label="Price, as a multiple of value" id="do-sell-price">
                 <div class="do-chips" role="group" aria-labelledby="do-sell-price">
@@ -660,10 +657,12 @@ function SellTab({ s }: { s: GameState }) {
                   ))}
                 </div>
               </Knob>
-              <label class="do-check">
-                <input type="checkbox" checked={exclusive} onChange={(e) => setExclusive((e.currentTarget as HTMLInputElement).checked)} />
-                <span>Exclusive: one buyer, who pays {DATAOPS_TUNING.EXCLUSIVE_MULT}x the price. Odds per week are halved.</span>
-              </label>
+              <Check
+                class="do-check"
+                checked={exclusive}
+                onChange={(on) => setExclusive(on)}
+                label={`Exclusive: one buyer, who pays ${DATAOPS_TUNING.EXCLUSIVE_MULT}x the price. Odds per week are halved.`}
+              />
             </div>}
         {chosen ? (
           <>

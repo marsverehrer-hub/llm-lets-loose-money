@@ -14,7 +14,8 @@ import {
   syntheticQuote,
   syntheticShare,
 } from '../../../sim/systems/data';
-import { Pill } from '../../components';
+import { Pill, Select } from '../../components';
+import { Banner } from '../panelKit';
 import type { PillTone } from '../../components';
 import { ConfirmAction } from './SetSheet';
 import { DOMAIN_KEYS, DOMAIN_LABEL, KIND_KEYS, KIND_LABEL, fromPos, fmtTok, pct, plural, toPos, usd } from './labels';
@@ -71,23 +72,16 @@ export function CommissionBody({ s }: { s: GameState }) {
     <>
       <p class="dt-note">Paid humans. Small, slow and careful. Human labour costs {usd(commissionCostPerB(s))} per billion tokens this year.</p>
       <div class="dt-form">
-        <label class="dt-form-label" for="dt-com-domain">Domain</label>
-        <select id="dt-com-domain" class="select" value={domain} onChange={(e) => setDomain((e.currentTarget as HTMLSelectElement).value as DataDomain)}>
-          {DOMAIN_KEYS.map((k) => (
-            <option key={k} value={k}>
-              {DOMAIN_LABEL[k]}
-            </option>
-          ))}
-        </select>
+        <label class="dt-form-label">Domain</label>
+        <Select
+          ariaLabel="Domain"
+          value={domain}
+          onChange={(v) => setDomain(v as DataDomain)}
+          options={DOMAIN_KEYS.map((k) => ({ value: k, label: DOMAIN_LABEL[k] }))}
+        />
 
-        <label class="dt-form-label" for="dt-com-kind">Kind</label>
-        <select id="dt-com-kind" class="select" value={kind} onChange={(e) => setKind((e.currentTarget as HTMLSelectElement).value as DataKind)}>
-          {KIND_KEYS.map((k) => (
-            <option key={k} value={k}>
-              {KIND_LABEL[k]}
-            </option>
-          ))}
-        </select>
+        <label class="dt-form-label">Kind</label>
+        <Select ariaLabel="Kind" value={kind} onChange={(v) => setKind(v as DataKind)} options={KIND_KEYS.map((k) => ({ value: k, label: KIND_LABEL[k] }))} />
 
         <label class="dt-form-label" for="dt-com-budget">Budget</label>
         <div class="dt-slider-row">
@@ -201,21 +195,18 @@ export function SyntheticBody({ s }: { s: GameState }) {
     <>
       <p class="dt-note">Your own model writes the training text. Above {pct(T.COLLAPSE_SHARE_START)} synthetic, a run loses quality. Mix in human data to stay under it.</p>
       <div class="dt-form">
-        <label class="dt-form-label" for="dt-syn-model">Model</label>
-        <select
-          id="dt-syn-model"
-          class="select"
+        <label class="dt-form-label">Model</label>
+        <Select
+          ariaLabel="Model"
           value={model?.id ?? ''}
           disabled={models.length === 0}
-          onChange={(e) => setPick((e.currentTarget as HTMLSelectElement).value)}
-        >
-          {models.length === 0 && <option value="">No released model</option>}
-          {models.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.name}, {Math.round(m.overall)} overall
-            </option>
-          ))}
-        </select>
+          onChange={(v) => setPick(v)}
+          options={
+            models.length === 0
+              ? [{ value: '', label: 'No released model' }]
+              : models.map((m) => ({ value: m.id, label: `${m.name}, ${Math.round(m.overall)} overall` }))
+          }
+        />
 
         <label class="dt-form-label" for="dt-syn-tokens">Tokens</label>
         <div class="dt-slider-row">
@@ -233,14 +224,13 @@ export function SyntheticBody({ s }: { s: GameState }) {
           <span class="dt-readout num">{fmtTok(tokensB)}</span>
         </div>
 
-        <label class="dt-form-label" for="dt-syn-domain">Domain</label>
-        <select id="dt-syn-domain" class="select" value={domain} onChange={(e) => setDomain((e.currentTarget as HTMLSelectElement).value as DataDomain)}>
-          {DOMAIN_KEYS.map((k) => (
-            <option key={k} value={k}>
-              {DOMAIN_LABEL[k]}
-            </option>
-          ))}
-        </select>
+        <label class="dt-form-label">Domain</label>
+        <Select
+          ariaLabel="Domain"
+          value={domain}
+          onChange={(v) => setDomain(v as DataDomain)}
+          options={DOMAIN_KEYS.map((k) => ({ value: k, label: DOMAIN_LABEL[k] }))}
+        />
 
         <label class="dt-form-label" for="dt-syn-name">Name</label>
         <input
@@ -305,9 +295,9 @@ export function UserDataBody({ s }: { s: GameState }) {
   return (
     <>
       {on && (
-        <div class="dt-warn" role="status">
+        <Banner tone="bad">
           <strong>Privacy warning.</strong> Chats from your products are training data. Heat rises every day you harvest, and it can bring press and regulators to the door.
-        </div>
+        </Banner>
       )}
 
       <div class="dt-heat">

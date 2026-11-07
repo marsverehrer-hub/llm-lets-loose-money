@@ -53,8 +53,27 @@
   line-height: 1.1;
   white-space: nowrap;
 }
-.dt-big-value.warn {
-  color: var(--yellow);
+.dt-big-value.warn,
+.dt-head-v.warn {
+  color: var(--warn);
+}
+/* The two headline numbers sit in the screen header: a small-caps key over a tabular figure. */
+.dt-head-stat {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  min-width: 0;
+  line-height: 1.2;
+}
+.dt-head-k {
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+  font-variant: all-small-caps;
+}
+.dt-head-v {
+  color: var(--fg);
+  font-size: 18px;
+  font-weight: 600;
 }
 .dt-big-hint {
   color: var(--fg-3);
@@ -689,19 +708,6 @@
 .dt-kv-row .num {
   color: var(--fg);
   white-space: nowrap;
-}
-.dt-warn {
-  margin-bottom: 12px;
-  padding: 8px 10px;
-  border: 1px solid var(--down);
-  background: var(--down-3);
-  color: var(--fg);
-  font-size: var(--fs-sm);
-  line-height: 1.5;
-  border-radius: var(--r-md);
-}
-.dt-warn strong {
-  font-weight: 600;
 }
 .dt-heat {
   display: flex;
