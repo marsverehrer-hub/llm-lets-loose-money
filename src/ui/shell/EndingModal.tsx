@@ -59,6 +59,10 @@ function labelOf(s: GameState, by: 'player' | string): string {
 }
 
 function abstractOf(s: GameState, day: number, by: 'player' | string): string {
+  // A buyout offer opens the endgame without AGI (data/events.ts big_tech_buyout), so the AGI text would be false.
+  if (by === 'player' && !s.research.completed.includes('agi')) {
+    return `On ${tdate(day)} a much larger company made an offer for the whole business. The board read the term sheet twice, and the second reading was shorter. The endings below are the ones the record currently allows, each with the reasons it is or is not on the table.`;
+  }
   if (by === 'player') {
     return `On ${tdate(day)} our internal evaluation reached its final, longest and least-read number, and we are obliged to report that the number is AGI. The team is delighted, the board learned of it from a single line in an email, and the regulators have asked for a meeting on a date that has not yet been set. The endings below are the ones the record currently allows, each with the reasons it is or is not on the table.`;
   }

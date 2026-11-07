@@ -1,8 +1,10 @@
 // v19: labs are founded (at most RIVAL_TUNING.MAX_ACTIVE active), go bankrupt, or get acquired. Package B3.
-import type { Competitor, CompetitorDef, GameState, GpuDef, Id, RivalKind, RivalLab, Rng } from '../../types';
+import type { ActionHandlers, Competitor, CompetitorDef, GameState, GpuDef, Id, RivalKind, RivalLab, Rng, RoleId } from '../../types';
 import { COMPETITORS } from '../../data/competitors';
 import { GPUS } from '../../data/gpus';
-import { calendarYear, formatMoney, pushNews } from '../../util';
+import { datasetById } from '../data';
+import { addExpense, calendarYear, formatMoney, pushNews, notify } from '../../util';
+import { headcount, officeCapacity } from '../staff';
 import { RIVAL_TUNING } from './tuning';
 
 // B3 constants live here (tuning.ts belongs to the brain package).
@@ -17,6 +19,8 @@ const GPU_CAP = 20_000;
 const ACQUIRE_EVERY_DAYS = 30;
 const ACQUIRE_ROLL = 0.12;
 const ACQUIRE_PREMIUM = 1.3;
+/** A lab already short of cash sells for this share of its takeover price. */
+const DISTRESS_DISCOUNT = 0.5;
 /** A lab worth under this share of an active acquirer is a takeover candidate even without fate 'target'. */
 const TARGET_VALUATION_SHARE = 0.1;
 /** An acquirer worth this many times the target pays in stock when its cash falls short. */
@@ -136,12 +140,7 @@ function checkBankruptcy(s: GameState, def: CompetitorDef): void {
   lab.endedDay = s.day;
   c.active = false;
   c.model = null;
-  for (const [gpu, n] of Object.entries(lab.gpusOwned)) {
-    const key = `usedGpus.${gpu}`;
-    s.flags[key] = (s.flags[key] ?? 0) + n;
-  }
-  lab.gpusOwned = {};
-  lab.gpusRented = {};
+  releaseCompute(s, lab);
   lab.run = null;
   lab.ready = null;
   lab.researching = null;
@@ -185,13 +184,80 @@ function acquire(s: GameState, buyer: CompetitorDef, target: CompetitorDef, pric
   a.models.push(...t.models);
   t.models = [];
   if (a.cash >= price) a.cash -= price; // else an all-stock deal: the buyer's cash is untouched
-  t.status = 'acquired';
-  t.acquiredBy = buyer.id;
-  t.endedDay = s.day;
-  t.run = null;
-  t.ready = null;
-  t.researching = null;
-  tc.active = false;
-  tc.model = null;
+  leaveField(s, t, tc, buyer.id);
   pushNews(s, `${buyer.name} acquires ${target.name} for ${formatMoney(price)}.`, 'milestone');
 }
+
+/** The lab leaves the field: its market seat and runs stop. Shared by rival takeovers and the player's purchase. */
+function leaveField(s: GameState, lab: RivalLab, c: Competitor, buyer: Id): void {
+  lab.status = 'acquired';
+  lab.acquiredBy = buyer;
+  lab.endedDay = s.day;
+  lab.run = null;
+  lab.ready = null;
+  lab.researching = null;
+  c.active = false;
+  c.model = null;
+}
+
+/** GPUs with no lab to go to: owned ones join the used market (as on bankruptcy), leased ones go back to the cloud. */
+function releaseCompute(s: GameState, lab: RivalLab): void {
+  for (const [gpu, n] of Object.entries(lab.gpusOwned)) {
+    const key = `usedGpus.${gpu}`;
+    s.flags[key] = (s.flags[key] ?? 0) + n;
+  }
+  lab.gpusOwned = {};
+  lab.gpusRented = {};
+}
+
+/** What the player pays for a lab: the takeover premium on its worth, halved when it is already short of cash. */
+export function labPrice(s: GameState, id: Id): number | undefined {
+  const lab = labOf(s, id);
+  const c = compOf(s, id);
+  if (!lab || !c) return undefined;
+  return Math.round(c.valuation * ACQUIRE_PREMIUM * (lab.cash < 0 ? DISTRESS_DISCOUNT : 1));
+}
+
+/** Why the player cannot buy this lab right now, or null when they can. The Field button and the action both read it. */
+export function acquireBlock(s: GameState, id: Id): string | null {
+  if (s.mp?.role === 'guest') return 'Only the host can buy labs in a match.';
+  const def = COMPETITORS.find((d) => d.id === id);
+  if (!def || !labOf(s, id)) return 'Unknown lab.';
+  if (def.core) return 'Marquee labs are not for sale.';
+  if (!isActive(s, def)) return 'Only active labs can be bought.';
+  const price = labPrice(s, id)!;
+  if (s.finance.cash < price) return `Needs ${formatMoney(price)} in cash.`;
+  return null;
+}
+
+const ROLE_OF: Record<(typeof STAFF_KEYS)[number], RoleId> = { research: 'researcher', engineering: 'engineer', safety: 'safety', sales: 'sales' };
+
+export const handlers: ActionHandlers = {
+  acquireLab: (s, a) => {
+    const block = acquireBlock(s, a.labId);
+    if (block) {
+      notify(s, block, 'bad');
+      return;
+    }
+    const def = COMPETITORS.find((d) => d.id === a.labId)!;
+    const lab = labOf(s, def.id)!;
+    const c = compOf(s, def.id)!;
+    const price = labPrice(s, def.id)!;
+    addExpense(s, 'acquisitions', price);
+    // Staff go to the matching roles, as far as the office has desks for them.
+    let room = Math.max(0, officeCapacity(s) - headcount(s));
+    for (const k of STAFF_KEYS) {
+      const n = Math.min(lab.staff[k], room);
+      s.staff.roles[ROLE_OF[k]].count += n;
+      room -= n;
+    }
+    for (const id of lab.datasets) {
+      const d = datasetById(s, id);
+      if (d && (d.acquisition ?? 'purchase') === 'purchase' && !s.data.owned.includes(id)) s.data.owned.push(id);
+    }
+    releaseCompute(s, lab);
+    leaveField(s, lab, c, 'player');
+    pushNews(s, `You buy ${def.name} for ${formatMoney(price)}. Its models leave the market.`, 'milestone');
+    notify(s, `Bought ${def.name} for ${formatMoney(price)}.`, 'milestone');
+  },
+};

@@ -145,7 +145,28 @@ export const ENDINGS: EndingDef[] = [
       return { ok, why: ok ? '' : why };
     },
   },
+  {
+    id: 'acquired',
+    name: 'Acquired',
+    text:
+      'A trillion-dollar platform company, whose logo is a friendly shape and whose legal department is larger than several countries, makes an offer described in the press as generous. It is generous in the way a parking ticket is generous: it is large, and it is not optional. Your models are folded into a bundle that ships with a calendar app nobody asked for. Your researchers receive badges that open most doors, except the one to the room where the old roadmap is kept. The announcement thanks you for your mission, which is then quietly archived in a folder called Legacy.',
+    available: (s) => {
+      const v = s.finance.valuation;
+      const ok = !s.company.isPublic && v >= 1e9 && v <= 200e9;
+      const why = s.company.isPublic
+        ? 'Public companies are not bought. They are diluted.'
+        : v < 1e9
+          ? 'Nobody buys a company worth under $1B. They just hire the team.'
+          : 'Your valuation is over $200B. Only a government could afford you, and that is a different ending.';
+      return { ok, why: ok ? '' : why };
+    },
+  },
 ];
+
+/** Whether the endgame can still open for the player: no AGI waiting, no ending chosen, not carried on. */
+export function endgameOpen(s: GameState): boolean {
+  return !s.pendingEnding && !s.ending && !s.flags[PASSED];
+}
 
 /** The race's random incident: a fixed draw per game (from the seed), from -1 to 1. Negative is the incident. */
 export function raceTwist(s: GameState): number {
@@ -167,6 +188,7 @@ const BASE: Record<EndingId, number> = {
   second_place: 800,
   boutique: 2400,
   indispensable: 2300,
+  acquired: 1700,
 };
 
 export function endingScore(s: GameState, id: EndingId): number {

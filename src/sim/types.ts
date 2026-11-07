@@ -340,7 +340,7 @@ export interface RivalLab {
   status: 'unfounded' | 'active' | 'acquired' | 'bankrupt';
   foundedDay: number | null;
   endedDay?: number;
-  /** Lab that bought this one (status 'acquired'). */
+  /** Lab that bought this one (status 'acquired'). 'player' when you bought it. */
   acquiredBy?: Id;
   cash: number;
   /** Days in a row with cash below zero (bankrupt at RIVAL_TUNING.BANKRUPT_DAYS). */
@@ -876,7 +876,7 @@ export interface Datacenter {
 }
 
 /** v19: the ways a game can end once someone reaches AGI. */
-export type EndingId = 'safe_launch' | 'race' | 'nationalised' | 'merger' | 'open_singularity' | 'second_place' | 'boutique' | 'indispensable';
+export type EndingId = 'safe_launch' | 'race' | 'nationalised' | 'merger' | 'open_singularity' | 'second_place' | 'boutique' | 'indispensable' | 'acquired';
 
 /** v19: datacenter fabric tiers. */
 export type Interconnect = 'pcie' | 'nvlink' | 'infiniband';
@@ -1412,6 +1412,7 @@ export type GameAction =
   | { type: 'startChipProgram' }
   // v19: endings
   | { type: 'chooseEnding'; id: EndingId }
+  | { type: 'acquireLab'; labId: Id }
   | { type: 'continueAfterEnding' }
   | { type: 'buyGpus'; datacenterId: Id; gpuId: Id; count: number }
   | { type: 'sellGpus'; datacenterId: Id; gpuId: Id; count: number }

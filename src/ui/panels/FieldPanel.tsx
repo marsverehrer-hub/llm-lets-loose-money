@@ -5,10 +5,12 @@ import type { CompetitorDef, GameState, Id, RivalKind, RivalLab, RivalModel } fr
 import { GPUS } from '../../sim/data/gpus';
 import { arenaLeaderboard } from '../../sim/systems/competitors';
 import { PLAN_NAME, rivalDef, rivalLabs } from '../../sim/systems/rivals';
+import { acquireBlock, labPrice } from '../../sim/systems/rivals/lifecycle';
 import { dayToDate, formatMoney, formatNumber } from '../../sim/util';
 import { Card, EmptyState, PanelHeader, Pill, ProgressBar, Sheet, Stat, Tabs, formatInt, monthYear } from '../components';
 import type { PillTone } from '../components';
-import { useGame } from '../store';
+import { dispatch, useGame } from '../store';
+import { ConfirmButton } from './panelKit';
 import './field.css';
 
 type Tab = 'active' | 'all' | 'gone';
@@ -132,7 +134,7 @@ export function FieldPanel() {
   );
   const arena = arenaLeaderboard(s);
   const leader = arena[0];
-  const nameOf = (id: Id) => rivalDef(id)?.name ?? id;
+  const nameOf = (id: Id) => (id === 'player' ? s.company.name : rivalDef(id)?.name ?? id);
   const current = sel ? rows.find((r) => r.lab.id === sel) : undefined;
 
   return (
@@ -217,14 +219,16 @@ export function FieldPanel() {
         onClose={() => setSel(null)}
         width={640}
       >
-        {current && <LabSheet row={current} names={nameOf} />}
+        {current && <LabSheet s={s} row={current} names={nameOf} />}
       </Sheet>
     </div>
   );
 }
 
-function LabSheet({ row, names }: { row: FieldRow; names: (id: Id) => string }) {
+function LabSheet({ s, row, names }: { s: GameState; row: FieldRow; names: (id: Id) => string }) {
   const { def, lab, gpus } = row;
+  const price = labPrice(s, lab.id);
+  const block = acquireBlock(s, lab.id);
   const region = def.region ? REGION_LABEL[def.region] : null;
   const run = lab.run;
   const runFrac = run && run.flopsTotal > 0 ? run.flopsDone / run.flopsTotal : 0;
@@ -267,6 +271,19 @@ function LabSheet({ row, names }: { row: FieldRow; names: (id: Id) => string }) 
           </span>
         </div>
       </div>
+
+      <section>
+        <h3 class="caps field-h">Acquisition</h3>
+        <ConfirmButton
+          tone="primary"
+          label={price !== undefined ? `Acquire for ${formatMoney(price, 1)}` : 'Acquire'}
+          confirmLabel="Sign the term sheet?"
+          disabled={block !== null}
+          title={block ?? undefined}
+          onConfirm={() => dispatch({ type: 'acquireLab', labId: lab.id })}
+        />
+        {block && <p class="muted">{block}</p>}
+      </section>
 
       <section>
         <h3 class="caps field-h">Plan</h3>

@@ -8,6 +8,7 @@ import { arenaLeaderboard } from '../systems/competitors';
 import { DATA_EVENTS } from './dataEvents';
 import { EVENTS_V2 } from './eventsV2';
 import { EVENTS_RIVALS } from './eventsRivals';
+import { ENDINGS, endgameOpen, reachAgi } from '../systems/endings';
 import {
   GARAGE_ERA_END_DAY,
   acquireOffer,
@@ -858,6 +859,31 @@ export const EVENTS: EventDef[] = [
     ],
   },
 
+  {
+    // The non-AGI way into the Conclusion for the Acquired ending. Once a year while the buyout window is open.
+    id: 'big_tech_buyout',
+    title: 'Big Tech Wants the Whole Company',
+    icon: '🏢',
+    body: () =>
+      'A trillion-dollar platform company has sent a term sheet for the entire business. Its lawyers describe the offer as "a partnership with a going concern", and the going concern is you.',
+    weight: (s) => (endgameOpen(s) && ENDINGS.find((e) => e.id === 'acquired')!.available(s).ok ? 1 : 0),
+    cooldownDays: 365,
+    choices: [
+      {
+        label: 'Take the call',
+        hint: 'Opens the endgame: the offer, the score and the ending',
+        effect: (s) => {
+          reachAgi(s, 'player');
+          return 'The call runs long. The terms are short, and the lawyers are already on the line.';
+        },
+      },
+      {
+        label: 'Hang up',
+        hint: 'Nothing changes. They call back next year.',
+        effect: () => 'You hang up. They call back next year, with better manners and a larger lawyer.',
+      },
+    ],
+  },
   {
     id: 'acqui_hire',
     title: 'An Acqui-Hire Offer Arrives',
