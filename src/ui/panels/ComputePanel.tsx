@@ -11,6 +11,7 @@ import { BlockSheet, BuildBody, RentBody } from './compute/ComputeSheets';
 import { CloudMarket } from './compute/CloudMarket'; // v16 cloud providers
 import { NeocloudTab } from './compute/NeocloudTab'; // v16 neocloud
 import { HallList } from './compute/HallList';
+import { SiliconCard } from './compute/SiliconCard'; // v19 own silicon
 import { ViewFold } from './ViewFold';
 import { useIntent } from '../nav';
 import './panels.css';
@@ -77,6 +78,7 @@ export function ComputePanel() {
           <>
             <HallList room={room} onManage={(key) => setSheet({ kind: 'block', key })} />
             <BuildBody key={s.compute.datacenters.length} />
+            <SiliconCard />
           </>
         ) : (
           <NeocloudTab />

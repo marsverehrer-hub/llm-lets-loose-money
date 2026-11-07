@@ -4,12 +4,31 @@ import { useState } from 'preact/hooks';
 import { dispatch, useGame } from '../../store';
 import { formatMoney } from '../../../sim/util';
 import { COMPUTE_TUNING, datacenterPue, datacenterTierById, annualFailureRate, availableDatacenterTiers, availableGpus, gpuAgeYears, gpuById, ownedCostPerGpuDay, resaleFraction } from '../../../sim/systems/compute';
+import { usedMarket, gpuPriceMult } from '../../../sim/systems/supply';
 import { DATACENTER_TIERS } from '../../../sim/data/gpus';
 import { RESEARCH } from '../../../sim/data/research';
-import type { GameState, Id } from '../../../sim/types';
+import type { GameState, Id, SiteId } from '../../../sim/types';
 import { HelpTip, Select, Sheet, FlowBar } from '../../components';
 import { ConfirmButton, Empty, fmtDays, fmtRate } from '../panelKit';
 import type { RoomBlock, ServerRoom } from './roomModel';
+import {
+  CLASS_LABEL,
+  INTERCONNECT_COST_SHARE,
+  INTERCONNECT_NAME,
+  SITE_IDS,
+  SITE_TABLE,
+  allocationLeft,
+  fmtDay,
+  gpuClass,
+  hallMw,
+  interconnectOf,
+  nextQuarterDay,
+  preorderDeposit,
+  siteLockReason,
+  siteMwCap,
+  siteOpen,
+  unitPrice,
+} from './gpuUi';
 
 const STEPS = [1, 8, 64];
 
@@ -100,6 +119,7 @@ function BlockBody({ s, room, b, onRent }: { s: GameState; room: ServerRoom; b: 
     );
   }
   const isDc = b.kind === 'dc';
+  const hall = isDc ? s.compute.datacenters.find((d) => d.id === b.key) : undefined;
   return (
     <div class="cc-sheet">
       <div class="cc-facts">
@@ -107,6 +127,7 @@ function BlockBody({ s, room, b, onRent }: { s: GameState; room: ServerRoom; b: 
         <Fact label="PF/s" value={`${fmtRate(b.pflops)} PF/s`} />
         {isDc && <Fact label="Upkeep" value={`${formatMoney(b.upkeepPerDay)}/day`} />}
         {isDc && <Fact label="Power" value={`${formatMoney(b.powerPerDay)}/day`} />}
+        {hall && <Fact label="Site" value={SITE_TABLE[hall.site ?? 'grid'].name} />}
       </div>
 
       {b.building && <p class="cc-note">Under construction: {b.buildDaysLeft} day{b.buildDaysLeft === 1 ? '' : 's'} left. GPUs can be installed once it is finished.</p>}
@@ -179,11 +200,52 @@ function HallOptions({ s, dcId }: { s: GameState; dcId: Id }) {
   const tier = dc ? datacenterTierById(dc.tierId) : undefined;
   if (!dc || !tier) return null;
   const liquidCost = tier.buildCost * COMPUTE_TUNING.LIQUID_COST_SHARE;
-  const ibCost = tier.buildCost * COMPUTE_TUNING.INFINIBAND_COST_SHARE;
+  const fabric = interconnectOf(dc);
+  const nvCost = tier.buildCost * INTERCONNECT_COST_SHARE.nvlink;
+  const ibCost = tier.buildCost * INTERCONNECT_COST_SHARE.infiniband;
+  const mw = hallMw(dc);
+  const mwCap = siteMwCap(dc);
+  const mwPct = Math.min(100, (mw / mwCap) * 100);
   const dedicated = !!s.neocloud?.dedicated.includes(dc.id);
   return (
     <div class="cc-section">
       <h4 class="cc-h">Hall options</h4>
+      <div class="cc-mw">
+        <span class="cc-fact-k">
+          Power at {SITE_TABLE[dc.site ?? 'grid'].name}: {mw.toFixed(1)} of {num(mwCap)} MW
+        </span>
+        <div class="cc-mw-bar" role="meter" aria-label="Megawatts used" aria-valuemin={0} aria-valuemax={mwCap} aria-valuenow={Math.round(mw)}>
+          <i class={mw >= mwCap ? 'is-full' : ''} style={{ width: `${mwPct}%` }} />
+        </div>
+      </div>
+      <div class="cc-fabric">
+        <span class="cc-fact-k">Interconnect</span>
+        <b class="cc-fact-v">{INTERCONNECT_NAME[fabric]}</b>
+        <div class="cc-steps" role="group">
+          {fabric === 'pcie' && (
+            <button
+              type="button"
+              class="btn btn-sm"
+              disabled={s.finance.cash < nvCost}
+              title={`${formatMoney(nvCost)}: clusters up to 2,048 GPUs`}
+              onClick={() => dispatch({ type: 'setInterconnect', datacenterId: dc.id, tier: 'nvlink' })}
+            >
+              Upgrade to NVLink-ish · {formatMoney(nvCost)}
+            </button>
+          )}
+          {fabric !== 'infiniband' && (
+            <button
+              type="button"
+              class="btn btn-sm"
+              disabled={s.finance.cash < ibCost}
+              title={`${formatMoney(ibCost)}: clusters without a cap, and neocloud customers pay more`}
+              onClick={() => dispatch({ type: 'setInterconnect', datacenterId: dc.id, tier: 'infiniband' })}
+            >
+              Upgrade to InfiniBand-ish · {formatMoney(ibCost)}
+            </button>
+          )}
+        </div>
+      </div>
       <div class="cc-steps" role="group">
         <button
           type="button"
@@ -197,15 +259,6 @@ function HallOptions({ s, dcId }: { s: GameState; dcId: Id }) {
         <button
           type="button"
           class="btn btn-sm"
-          disabled={dc.infiniband || s.finance.cash < ibCost}
-          title={dc.infiniband ? 'Installed' : `${formatMoney(ibCost)}: neocloud customers pay more, and big lab deals need it`}
-          onClick={() => dispatch({ type: 'upgradeDatacenter', datacenterId: dc.id, upgrade: 'infiniband' })}
-        >
-          {dc.infiniband ? 'InfiniBand' : 'Add InfiniBand'}
-        </button>
-        <button
-          type="button"
-          class="btn btn-sm"
           title={dedicated ? 'Return this hall to your own fleet' : 'Sell this hall to cloud customers (Neocloud tab)'}
           onClick={() => dispatch({ type: 'setNeocloudHall', datacenterId: dc.id, dedicated: !dedicated })}
         >
@@ -213,7 +266,7 @@ function HallOptions({ s, dcId }: { s: GameState; dcId: Id }) {
         </button>
       </div>
       <p class="cc-note">
-        PUE {datacenterPue(dc).toFixed(2)}. Liquid cooling costs {formatMoney(liquidCost)}, InfiniBand {formatMoney(ibCost)}.
+        PUE {datacenterPue(dc).toFixed(2)}. Liquid cooling costs {formatMoney(liquidCost)}. Fabric upgrades cost a share of the hall's build price.
       </p>
     </div>
   );
@@ -251,6 +304,14 @@ function BuyGpus({ s, b }: { s: GameState; b: RoomBlock }) {
   const free = Math.max(0, b.capacity - b.installed);
   const dcTier = s.compute.datacenters.find((d) => d.id === b.key)?.tierId ?? 'colo';
   if (!gpu) return <Empty title="No GPUs for sale">Nothing in the catalogue for this year yet.</Empty>;
+  const price = unitPrice(s, gpu);
+  const left = allocationLeft(s, gpu);
+  const rationed = Number.isFinite(left);
+  const used = usedMarket(s, gpu.id);
+  const day = nextQuarterDay(s.day);
+  const preorders = (s.preorders ?? []).filter((p) => p.datacenterId === b.key);
+  const mult = gpuPriceMult(s, gpu.id);
+  const cls = gpuClass(gpu);
   return (
     <div class="cc-section">
       <h4 class="cc-h">Install GPUs</h4>
@@ -259,21 +320,82 @@ function BuyGpus({ s, b }: { s: GameState; b: RoomBlock }) {
           value={gpu.id}
           ariaLabel="GPU to install"
           onChange={(v) => setPick(v)}
-          options={gpus.map((g) => ({ value: g.id, label: `${g.name} · ${formatMoney(g.buyPrice)} each` }))}
+          options={gpus.map((g) => ({ value: g.id, label: `${g.name} · ${formatMoney(unitPrice(s, g))} each` }))}
         />
         <StepButtons
           signs="+"
-          disabled={(n) => n > free || s.finance.cash < gpu.buyPrice * n}
+          disabled={(n) => n > free || n > left || s.finance.cash < price * n}
           title={(n) =>
-            n > free ? 'Not enough free slots' : s.finance.cash < gpu.buyPrice * n ? 'Not enough cash' : `Buy ${n} for ${formatMoney(gpu.buyPrice * n)}`
+            n > free
+              ? 'Not enough free slots'
+              : n > left
+                ? 'The vendor is sold out this quarter: pre-order instead'
+                : s.finance.cash < price * n
+                  ? 'Not enough cash'
+                  : `Buy ${n} for ${formatMoney(price * n)}`
           }
           onStep={(n) => dispatch({ type: 'buyGpus', datacenterId: b.key, gpuId: gpu.id, count: n })}
         />
       </div>
       <p class="cc-note">
         {num(free)} free slot{free === 1 ? '' : 's'} of {num(b.capacity)}.{' '}
-        {STEPS.map((n) => `${n} = ${formatMoney(gpu.buyPrice * n)}`).join(' · ')}
+        {STEPS.map((n) => `${n} = ${formatMoney(price * n)}`).join(' · ')}
       </p>
+      <p class="cc-note">
+        <span class={`pill cc-class cc-class-${cls}`}>{CLASS_LABEL[cls]}</span> Allocation left this quarter:{' '}
+        {rationed ? num(left) : 'no limit'} · list ×{mult.toFixed(1)}
+        {mult > 1.05 ? ', demand is high' : ''}
+      </p>
+      {rationed && (
+        <div class="cc-step-line">
+          <span class="cc-step-label">Pre-order for {fmtDay(day)}</span>
+          <StepButtons
+            signs="+"
+            disabled={(n) => n > free || s.finance.cash < preorderDeposit(s, gpu, n)}
+            title={(n) =>
+              n > free
+                ? 'Not enough free slots'
+                : `Deposit ${formatMoney(preorderDeposit(s, gpu, n))} (30%). Delivered ${fmtDay(day)}, before walk-in buyers`
+            }
+            onStep={(n) => dispatch({ type: 'preorderGpus', gpuId: gpu.id, count: n, datacenterId: b.key })}
+          />
+        </div>
+      )}
+      {used.count > 0 && (
+        <div class="cc-step-line">
+          <span class="cc-step-label">
+            Buy used · {num(used.count)} at {formatMoney(used.price)} each
+          </span>
+          <StepButtons
+            signs="+"
+            disabled={(n) => n > used.count || n > free || s.finance.cash < used.price * n}
+            title={(n) => `Buy ${Math.min(n, used.count)} used for ${formatMoney(used.price * Math.min(n, used.count))}, two years old`}
+            onStep={(n) => dispatch({ type: 'buyUsedGpus', datacenterId: b.key, gpuId: gpu.id, count: Math.min(n, used.count) })}
+          />
+        </div>
+      )}
+      {preorders.length > 0 && (
+        <div class="cc-section">
+          <h4 class="cc-h">Pre-orders</h4>
+          <ul class="cc-rows">
+            {preorders.map((p) => (
+              <li key={p.id} class="cc-row">
+                <div class="cc-row-main">
+                  <b>{gpuById(p.gpuId)?.name ?? p.gpuId}</b>
+                  <span class="cc-row-meta">
+                    {num(p.count)} · delivers {fmtDay(p.deliverDay)} · deposit {formatMoney(p.deposit)}
+                  </span>
+                </div>
+                <div class="cc-row-actions">
+                  <button type="button" class="btn btn-sm" title="Refunds half the deposit" onClick={() => dispatch({ type: 'cancelPreorder', id: p.id })}>
+                    Cancel
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       {/* v14: owning is cheaper than renting, not free. Show the running cost next to the rent it replaces. */}
       <p class="cc-note">
         Runs at {formatMoney(ownedCostPerGpuDay(gpu, dcTier))}/day each (power, cooling, maintenance) against {formatMoney(gpu.rentPerDay)}/day to rent.
@@ -298,7 +420,9 @@ export function RentBody() {
         return (
           <li key={g.id} class="cc-row cc-row-rent">
             <div class="cc-row-main">
-              <b>{g.name}</b>
+              <b>
+                {g.name} <span class={`pill cc-class cc-class-${gpuClass(g)}`}>{CLASS_LABEL[gpuClass(g)]}</span>
+              </b>
               <span class="cc-row-meta">
                 {fmtRate(g.pflops)} PF/s · {formatMoney(g.rentPerDay)}/day each · you rent {num(rented)}
               </span>
@@ -338,6 +462,9 @@ export function RentBody() {
 export function BuildBody() {
   const s = useGame();
   const [name, setName] = useState(() => `DC ${s.compute.datacenters.length + 1}`);
+  const [site, setSite] = useState<SiteId>('grid');
+  const info = SITE_TABLE[site];
+  const siteOk = siteOpen(s, site);
   const open = new Set(availableDatacenterTiers(s).map((t) => t.id));
   const trimmed = name.trim();
   return (
@@ -346,6 +473,28 @@ export function BuildBody() {
         <span class="cc-fact-k">Name</span>
         <input class="input" type="text" maxLength={32} value={name} onInput={(e) => setName((e.currentTarget as HTMLInputElement).value)} />
       </label>
+      <div class="cc-field">
+        <span class="cc-fact-k">Site</span>
+        <Select
+          value={site}
+          ariaLabel="Site"
+          block
+          onChange={(v) => setSite(v as SiteId)}
+          options={SITE_IDS.map((id) => {
+            const why = siteLockReason(s, id);
+            const x = SITE_TABLE[id];
+            return {
+              value: id,
+              label: `${x.name} · power ×${x.powerPriceMult} · ${num(x.mwCap)} MW${why ? ` (${why})` : ''}`,
+              disabled: !!why,
+            };
+          })}
+        />
+        <p class="cc-note">
+          {info.flavor} Power ×{info.powerPriceMult}, builds ×{info.buildDaysMult} as long, caps at {num(info.mwCap)} MW, outages about{' '}
+          {(info.outagePerDay * 100).toFixed(2)}% a day.
+        </p>
+      </div>
       {DATACENTER_TIERS.length === 0 ? (
         <Empty title="No designs yet">Blueprints are still in the drawing office.</Empty>
       ) : (
@@ -354,19 +503,20 @@ export function BuildBody() {
             const isOpen = open.has(t.id);
             const research = t.requiresResearch ? RESEARCH.find((r) => r.id === t.requiresResearch)?.name : undefined;
             const afford = s.finance.cash >= t.buildCost;
-            const can = isOpen && afford && trimmed.length > 0;
+            const can = isOpen && siteOk && afford && trimmed.length > 0;
             return (
               <li key={t.id} class={`cc-row cc-row-tier ${isOpen ? '' : 'is-locked'}`}>
                 <div class="cc-row-main">
                   <b>{t.name}</b>
                   <span class="cc-row-flavor">{t.flavor}</span>
                   <span class="cc-row-meta">
-                    {num(t.maxGpus)} GPU slots · {formatMoney(t.buildCost)} · {fmtDays(t.buildDays)} to build · {formatMoney(t.upkeepPerDay)}/day upkeep
+                    {num(t.maxGpus)} GPU slots · {formatMoney(t.buildCost)} · {fmtDays(t.buildDays * info.buildDaysMult)} to build at {info.name} ·{' '}
+                    {formatMoney(t.upkeepPerDay)}/day upkeep
                   </span>
                   {!isOpen && <span class="cc-row-lock">{research ? `Needs ${research}` : `Opens ${t.unlockYear}`}</span>}
                   <details class="cc-more">
                     <summary>Details</summary>
-                    <span>Power costs {t.powerPricePerKwh.toFixed(2)} $/kWh here.</span>
+                    <span>Power costs {(t.powerPricePerKwh * info.powerPriceMult).toFixed(2)} $/kWh at {info.name}.</span>
                   </details>
                 </div>
                 <div class="cc-row-actions">
@@ -377,8 +527,8 @@ export function BuildBody() {
                     label="Build"
                     confirmLabel={`Spend ${formatMoney(t.buildCost)}${s.finance.cash > 0 ? ` (${Math.round((t.buildCost / s.finance.cash) * 100)}% of cash)` : ''}?`}
                     disabled={!can}
-                    title={!isOpen ? 'Not available yet' : !afford ? 'Not enough cash' : trimmed ? `Build ${t.name}` : 'Name it first'}
-                    onConfirm={() => dispatch({ type: 'buildDatacenter', tierId: t.id, name: trimmed })}
+                    title={!isOpen ? 'Not available yet' : !siteOk ? 'This site is not open yet' : !afford ? 'Not enough cash' : trimmed ? `Build ${t.name}` : 'Name it first'}
+                    onConfirm={() => dispatch({ type: 'buildDatacenter', tierId: t.id, name: trimmed, site })}
                   />
                 </div>
               </li>

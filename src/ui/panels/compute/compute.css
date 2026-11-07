@@ -488,3 +488,37 @@
 
 /* v17.2: Build takes a second click (ConfirmButton); it reads as a plain button until armed. */
 .btn.cc-build:disabled { background: transparent; border-color: var(--line); color: var(--fg-4); }
+
+/* v19 D5: GPU, hall and silicon screens. */
+.cc-class {
+  font-size: var(--fs-xs);
+  font-weight: 400;
+  vertical-align: middle;
+}
+.cc-class-custom { color: var(--accent); }
+.cc-class-consumer,
+.cc-class-workstation { color: var(--fg-3); }
+.cc-mw {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cc-mw-bar {
+  height: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--bg-2);
+  overflow: hidden;
+}
+.cc-mw-bar i {
+  display: block;
+  height: 100%;
+  background: var(--hl);
+}
+.cc-mw-bar i.is-full { background: var(--pen); }
+.cc-fabric {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
