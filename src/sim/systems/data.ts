@@ -459,20 +459,26 @@ export function syntheticShare(datasetIds: readonly Id[], s: GameState): number 
  * run loses up to ~40% of its quality, scaled by how collapse-prone the synthetic sets are. Training should
  * multiply its data quality by this.
  */
-export function collapsePenalty(s: GameState, datasetIds: readonly Id[]): number {
-  const share = syntheticShare(datasetIds, s);
-  if (share <= DATA_TUNING.COLLAPSE_SHARE_START) return 1;
-  let synthTokens = 0;
-  let riskWeighted = 0;
-  for (const id of new Set(datasetIds)) {
-    const d = datasetById(s, id);
-    if (!d || d.kind !== 'synthetic') continue;
-    synthTokens += d.tokensB;
-    riskWeighted += d.tokensB * ((d as CustomDataset).collapseRisk ?? 0);
+export function collapsePenalty(s: GameState, datasetIds: readonly Id[], rows?: readonly { kind: DataKind; share: number; epochs?: number }[]): number {
+  // With the run's mix rows: the synthetic mix share (not the token share), and each pass past 1.5 costs a little more.
+  const syn = rows?.find((r) => r.kind === 'synthetic');
+  const share = rows ? (syn?.share ?? 0) : syntheticShare(datasetIds, s);
+  let p = 1;
+  if (share > DATA_TUNING.COLLAPSE_SHARE_START) {
+    let synthTokens = 0;
+    let riskWeighted = 0;
+    for (const id of new Set(datasetIds)) {
+      const d = datasetById(s, id);
+      if (!d || d.kind !== 'synthetic') continue;
+      synthTokens += d.tokensB;
+      riskWeighted += d.tokensB * ((d as CustomDataset).collapseRisk ?? 0);
+    }
+    const risk = synthTokens > 0 ? riskWeighted / synthTokens : 0;
+    const ramp = clamp((share - DATA_TUNING.COLLAPSE_SHARE_START) / (1 - DATA_TUNING.COLLAPSE_SHARE_START), 0, 1);
+    p = 1 - ramp * (0.05 + 0.35 * risk);
   }
-  const risk = synthTokens > 0 ? riskWeighted / synthTokens : 0;
-  const ramp = clamp((share - DATA_TUNING.COLLAPSE_SHARE_START) / (1 - DATA_TUNING.COLLAPSE_SHARE_START), 0, 1);
-  return clamp(1 - ramp * (0.05 + 0.35 * risk), 0.6, 1);
+  if (syn) p -= 0.04 * Math.max(0, (syn.epochs ?? 1) - 1.5);
+  return clamp(p, 0.6, 1);
 }
 
 /**

@@ -3,7 +3,7 @@
 import { memoryWall } from './scaleLimits';
 import type { Capabilities, GameAction, GameState, Id, TrainingConfig } from '../types';
 import { RECIPES, recipeById, type RecipeId } from '../data/recipes';
-import { defaultConfig, equalMixFor, isOptionUnlocked } from '../data/trainingOptions';
+import { bestPrecision, defaultConfig, equalMixFor, isOptionUnlocked, tokenizerFor } from '../data/trainingOptions';
 import { availableTechniques, datasetTokensOf, TRAINING_TUNING } from './training';
 import { effParamsFor, resolveRun } from './trainingMath';
 import { datasetById } from './data';
@@ -25,8 +25,7 @@ export function recipeConfig(s: GameState, id: RecipeId, datasetIds: readonly Id
   const anneal = r.anneal.find((x) => isOptionUnlocked(s, x));
   if (anneal) cfg.anneal = anneal;
   if (r.cheap) {
-    const fast = ['fp4', 'fp8', 'bf16', 'fp16'].find((x) => isOptionUnlocked(s, x));
-    if (fast) cfg.precision = fast;
+    cfg.precision = bestPrecision(s);
     cfg.context = ['ctx_8k', 'ctx_2k'].find((x) => isOptionUnlocked(s, x)) ?? cfg.context;
     cfg.filters = cfg.filters.filter((f) => f !== 'quality_clf');
   }
@@ -75,7 +74,7 @@ export function planRecipe(s: GameState, id: RecipeId, name: string, days?: numb
   if (!Number.isFinite(daysAt(lo0))) return null;
   // Never size past what the data can feed at the optimal ratio.
   // v16: and never past the memory wall of today's cluster (a smaller model than the data could feed is fine).
-  const wall = Math.max(lo0, Math.floor(memoryWall(s).maxParamsB * 100) / 100);
+  const wall = Math.max(lo0, Math.floor(memoryWall(s, cfg).maxParamsB * 100) / 100);
   const hiP = Math.min(TRAINING_TUNING.MAX_PARAMS_B, wall, Math.max(lo0, maxTokens / (OPTIMAL_TPP * effParamsFor(1, cfg))));
   let lo = Math.log(lo0);
   let hi = Math.log(hiP);
@@ -89,6 +88,8 @@ export function planRecipe(s: GameState, id: RecipeId, name: string, days?: numb
   }
   const paramsB = Math.min(wall, Number(Math.exp(lo).toPrecision(2)));
   const tokensB = Math.min(maxTokens, Number(tokensFor(paramsB).toPrecision(3)));
+  // The tokenizer follows the model size once it is known (big models get the big vocabulary).
+  cfg.tokenizer = tokenizerFor(s, paramsB);
   const phys = resolveRun(s, paramsB, tokensB, ids, techniques, cfg, 'belief');
   return {
     action: { type: 'startTraining', name, paramsB, tokensB, datasetIds: ids, techniques, config: cfg },

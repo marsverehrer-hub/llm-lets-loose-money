@@ -5,7 +5,7 @@ import type { Capabilities, DataKind, DatasetDef, GameState, Id, TrainingConfig,
 import { BALANCE } from '../balance';
 import { getBonuses } from '../bonuses';
 import { clamp } from '../util';
-import { DATA_KIND_CAPS, RUN_TUNING, TrainingOption, configSignature, legacyConfig, optionById, speedMultiplier } from '../data/trainingOptions';
+import { DATA_KIND_CAPS, RUN_TUNING, TrainingOption, configSignature, legacyConfig, moeActiveFraction, optionById, speedMultiplier } from '../data/trainingOptions';
 import { isResearched } from './research';
 import { roleStrength } from './staff';
 import { clusterEfficiency } from './compute';
@@ -92,10 +92,26 @@ export function expertsOf(cfg: TrainingConfig): number {
   return cfg.moeExperts ?? RUN_TUNING.MOE_DEFAULT_EXPERTS;
 }
 
-/** FLOP-active parameters (billions): the total for dense models, the active experts for MoE. */
+/** FLOP-active parameters (billions): the total for dense models, the active experts for MoE (top-k aware). */
 export function activeParamsFor(paramsB: number, cfg: TrainingConfig): number {
   if (cfg.arch !== 'moe') return paramsB;
-  return paramsB * (RUN_TUNING.MOE_ACTIVE_FRACTION[expertsOf(cfg)] ?? RUN_TUNING.MOE_ACTIVE_FRACTION[RUN_TUNING.MOE_DEFAULT_EXPERTS]);
+  return paramsB * moeActiveFraction(expertsOf(cfg), cfg.moeTopK ?? 2);
+}
+
+/** Cost of extending a run (see extendRun). */
+export const EXTEND_TUNING = {
+  /** Extending a cosine run costs this much quality per unit of the extension fraction. WSD and constant are free. */
+  COSINE_EXTEND_COST: 0.08,
+};
+
+/**
+ * Embedding tax: the share of the active parameters a vocabulary of `vocabK` thousand takes up at this width.
+ * Clamped to half. The tokenizer only changes the loss through this, relative to the 32K baseline.
+ */
+function embeddingShare(vocabK: number, activeParamsB: number): number {
+  const N = Math.max(1e-9, activeParamsB) * 1e9;
+  const width = Math.cbrt((N * 128) / 12);
+  return clamp((vocabK * 1e3 * width) / N, 0, 0.5);
 }
 
 /** Parameters the loss sees (billions). MoE: N_eff = N_act^a x N_tot^(1-a). */
@@ -117,18 +133,24 @@ export function ablationFlag(cfg: TrainingConfig): string {
   return `ablation.${configSignature(cfg)}`;
 }
 
-/** One data kind in a run's mix: its share of the mix, and the token-weighted quality of its datasets. */
+/**
+ * One data kind in a run's mix: its share of the mix, the token-weighted quality of its datasets, its unique tokens
+ * (billions) and how many passes the run makes over them (1 when the run's token count is not known). Hand-built rows
+ * may leave the last two out, which reads as one epoch.
+ */
 export interface MixRow {
   kind: DataKind;
   share: number;
   quality: number;
+  unique?: number;
+  epochs?: number;
 }
 
 /**
  * Mix rows for the datasets in a run. Missing kinds in the mix weigh 1. All-zero weights fall back to an equal split.
- * Quality is the true one in 'true' mode, the believed one otherwise.
+ * Quality is the true one in 'true' mode, the believed one otherwise. `tokensB` (the run's token count) sets the epochs.
  */
-export function mixRows(s: GameState, datasetIds: readonly Id[], cfg: TrainingConfig, mode: PhysicsMode = 'belief'): MixRow[] {
+export function mixRows(s: GameState, datasetIds: readonly Id[], cfg: TrainingConfig, mode: PhysicsMode = 'belief', tokensB?: number): MixRow[] {
   const acc = new Map<DataKind, { tokens: number; weighted: number }>();
   for (const id of new Set(datasetIds)) {
     const d = datasetById(s, id);
@@ -148,7 +170,10 @@ export function mixRows(s: GameState, datasetIds: readonly Id[], cfg: TrainingCo
   }
   return kinds.map((kind, i) => {
     const a = acc.get(kind)!;
-    return { kind, share: weights[i] / sum, quality: a.tokens > 0 ? a.weighted / a.tokens : 0 };
+    const share = weights[i] / sum;
+    const unique = a.tokens;
+    const epochs = tokensB !== undefined && unique > 0 ? (tokensB * share) / unique : 1;
+    return { kind, share, quality: unique > 0 ? a.weighted / unique : 0, unique, epochs };
   });
 }
 
@@ -158,16 +183,17 @@ export function mixedQuality(rows: readonly MixRow[]): number {
 }
 
 /**
- * Capability swings from the data mix: relative to an equal split of the kinds in use, each kind pushes its
- * capabilities by up to MIX_SWING at the extreme (one kind takes everything).
+ * Capability swings from the data mix. Concave in share: the swing grows with the square root of the share, so a
+ * little of a kind helps more than the second helping. Relative to an equal split of the k kinds in the run; a kind
+ * left out of the mix (share 0) costs the full swing.
  */
 export function mixCapAdd(rows: readonly MixRow[]): Partial<Capabilities> {
-  const used = rows.filter((r) => r.share > 0);
-  const k = used.length;
+  const k = rows.length;
   const out: Partial<Capabilities> = {};
   if (k < 2) return out;
-  for (const r of used) {
-    const delta = (r.share - 1 / k) / (1 - 1 / k);
+  const root = Math.sqrt(1 / k);
+  for (const r of rows) {
+    const delta = r.share > 0 ? (Math.sqrt(r.share) - root) / (1 - root) : -1;
     for (const [cap, factor] of Object.entries(DATA_KIND_CAPS[r.kind]) as [keyof Capabilities, number][]) {
       out[cap] = (out[cap] ?? 0) + RUN_TUNING.MIX_SWING * factor * delta;
     }
@@ -182,7 +208,9 @@ export function instabilityFor(s: GameState, cfg: TrainingConfig): number {
   if (cfg.arch === 'moe') {
     if (isResearched(s, 'moe_load_balancing')) x += RUN_TUNING.MOE_LOAD_BALANCING_INSTAB;
     if (isResearched(s, 'aux_free_balancing')) x += RUN_TUNING.AUX_FREE_BALANCING_INSTAB;
+    x += RUN_TUNING.MOE_TOPK[cfg.moeTopK ?? 2]?.instab ?? 0;
   }
+  x += RUN_TUNING.SHAPE.instab * Math.max(0, cfg.shape ?? 0);
   const lr = clamp(cfg.lr, 0, 1);
   x += RUN_TUNING.LR_INSTAB * lr * lr * (isResearched(s, 'mup_transfer') ? RUN_TUNING.MUP_LR_INSTAB_MULT : 1);
   if (isResearched(s, 'qk_norm')) x += RUN_TUNING.QK_NORM_INSTAB;
@@ -229,10 +257,13 @@ export function lrOptimumOf(s: GameState, arch: Id, activeParamsB: number, mup: 
   return clamp(base - drift + lrOffsetOf(s, arch), RUN_TUNING.LR_OPT_MIN, RUN_TUNING.LR_OPT_MAX);
 }
 
-/** The true learning-rate quality factor: a peak at the optimum, falling off quadratically. */
-export function trueLrQuality(s: GameState, arch: Id, activeParamsB: number, lr: number, mup: boolean): number {
+/**
+ * The true learning-rate quality factor: a peak at the optimum, falling off quadratically. `curveMult` is the
+ * optimizer's lrCurveMult (how much a wrong LR hurts).
+ */
+export function trueLrQuality(s: GameState, arch: Id, activeParamsB: number, lr: number, mup: boolean, curveMult = 1): number {
   const opt = lrOptimumOf(s, arch, activeParamsB, mup);
-  const q = RUN_TUNING.LR_PEAK - RUN_TUNING.LR_CURVE * (clamp(lr, 0, 1) - opt) ** 2;
+  const q = RUN_TUNING.LR_PEAK - RUN_TUNING.LR_CURVE * curveMult * (clamp(lr, 0, 1) - opt) ** 2;
   return clamp(q, RUN_TUNING.LR_QUALITY_MIN, RUN_TUNING.LR_PEAK);
 }
 
@@ -319,7 +350,8 @@ export function beliefLrQuality(s: GameState, arch: Id, activeParamsB: number, l
 /** Learning-rate quality factor for a run sheet at an active size, in the given mode. */
 export function lrQualityIn(s: GameState, cfg: TrainingConfig, activeParamsB: number, mode: PhysicsMode): number {
   const mup = isResearched(s, 'mup_transfer');
-  return mode === 'true' ? trueLrQuality(s, cfg.arch, activeParamsB, cfg.lr, mup) : beliefLrQuality(s, cfg.arch, activeParamsB, cfg.lr, mup);
+  const curve = optionById(cfg.optimizer)?.lrCurveMult ?? 1;
+  return mode === 'true' ? trueLrQuality(s, cfg.arch, activeParamsB, cfg.lr, mup, curve) : beliefLrQuality(s, cfg.arch, activeParamsB, cfg.lr, mup);
 }
 
 /** Everything a run's numbers depend on, resolved against the current state. */
@@ -385,10 +417,12 @@ export function resolveRun(
   const opts = configOptions(cfg);
   const flopsMult = opts.reduce((p, o) => p * (o.flopsMult ?? 1), 1);
   const activeParamsB = activeParamsFor(paramsB, cfg);
-  const effParamsB = effParamsFor(paramsB, cfg);
+  // Embedding tax: a bigger vocabulary spends parameters on the embedding, relative to the 32K baseline.
+  const vocabK = optionById(cfg.tokenizer)?.vocabK ?? 32;
+  const effParamsB = effParamsFor(paramsB, cfg) * ((1 - embeddingShare(vocabK, activeParamsB)) / (1 - embeddingShare(32, activeParamsB)));
   const totalFlops = 6 * activeParamsB * 1e9 * tokensB * 1e9 * flopsMult;
 
-  const rows = mixRows(s, datasetIds, cfg, mode);
+  const rows = mixRows(s, datasetIds, cfg, mode, tokensB);
   const dataAdd = opts.reduce((t, o) => t + (o.dataQualityAdd ?? 0), 0);
   const tokenMult = opts.reduce((p, o) => p * (o.tokenMult ?? 1), 1);
   const dataQuality = clamp(mixedQuality(rows) * getBonuses(s).dataQuality + dataAdd, 0, 1);
@@ -400,16 +434,28 @@ export function resolveRun(
   const overheadDays = runOverheadDays(paramsB);
 
   const lrQuality = lrQualityIn(s, cfg, activeParamsB, mode);
-  // Synthetic-heavy mixes lose quality (model collapse), GAME_DESIGN 14.
-  const qualityMult = opts.reduce((p, o) => p * (o.qualityMult ?? 1), 1) * lrQuality * collapsePenalty(s, datasetIds);
+  // Synthetic-heavy mixes lose quality (model collapse), GAME_DESIGN 14. Each kind past four passes memorises.
+  const repeatMult = Math.max(
+    RUN_TUNING.OVER_REPEAT_FLOOR,
+    rows.reduce((p, r) => p * (1 - RUN_TUNING.OVER_REPEAT_PER_EPOCH * Math.max(0, (r.epochs ?? 1) - RUN_TUNING.OVER_REPEAT_EPOCHS) * r.share), 1),
+  );
+  const shape = cfg.shape ?? 0;
+  const shapeMult = 1 - RUN_TUNING.SHAPE.qualityPenalty * shape * shape;
+  const qualityMult = opts.reduce((p, o) => p * (o.qualityMult ?? 1), 1) * lrQuality * collapsePenalty(s, datasetIds, rows) * repeatMult * shapeMult;
 
   const capAdd: Partial<Capabilities> = {};
   const addCap = (k: keyof Capabilities, v: number) => {
     capAdd[k] = (capAdd[k] ?? 0) + v;
   };
   for (const o of opts) for (const [k, v] of Object.entries(o.capAdd ?? {})) addCap(k as keyof Capabilities, v ?? 0);
+  // Long context needs long documents and code in the mix; an annealing stage on long data makes up for the rest.
   const contextK = optionById(cfg.context)?.contextK ?? 2;
-  if (contextK > 2) addCap('longContext', RUN_TUNING.CONTEXT_CAP_PER_DOUBLING * Math.log2(contextK / 2));
+  if (contextK > 2) {
+    const longShare = (rows.find((r) => r.kind === 'books')?.share ?? 0) + (rows.find((r) => r.kind === 'code')?.share ?? 0);
+    const longData = cfg.anneal === 'anneal_long' ? 1 : clamp(0.4 + 2 * longShare, 0.4, 1);
+    addCap('longContext', RUN_TUNING.CONTEXT_CAP_PER_DOUBLING * Math.log2(contextK / 2) * longData);
+  }
+  for (const k of ['reasoning', 'math', 'knowledge', 'multilingual'] as const) addCap(k, RUN_TUNING.SHAPE[k] * shape);
   for (const [k, v] of Object.entries(mixCapAdd(rows)) as [keyof Capabilities, number][]) addCap(k, v);
   // v16: recipe × data interactions. The true world has all of them; the lab's belief only those it has seen.
   for (const syn of runSynergies(s, cfg, rows, mode)) for (const [k, v] of Object.entries(syn.capAdd)) addCap(k as keyof Capabilities, v ?? 0);
@@ -447,10 +493,60 @@ export function resolveRun(
     incidentRisk: Number.isFinite(days) ? incidentRate * days : Infinity,
     uncertainty: uncertaintyFor(s, cfg),
     ablated: s.flags[ablationFlag(cfg)] !== undefined,
-    inferenceMult: optionById(cfg.arch)?.inferenceMult ?? 1,
+    inferenceMult: configInferenceMult(cfg),
     webShare,
-    contaminationChance: decontam ? 0 : webShare * RUN_TUNING.ACCIDENTAL_CONTAMINATION_PER_WEB,
+    contaminationChance: decontam ? 0 : rows.reduce((t, r) => t + r.share * (RUN_TUNING.CONTAM_RATE[r.kind] ?? 0), 0),
   };
+}
+
+/** Serving efficiency of a run sheet: every option's inferenceMult, and a deeper model is a little dearer to serve. */
+export function configInferenceMult(cfg: TrainingConfig): number {
+  const opts = configOptions(cfg).reduce((p, o) => p * (o.inferenceMult ?? 1), 1);
+  return opts * (1 - RUN_TUNING.SHAPE.serve * (cfg.shape ?? 0));
+}
+
+/** Progress of a live run by FLOPs, in [0, 1]. */
+function progressOf(run: TrainingRun): number {
+  return run.totalFlops > 0 ? clamp(run.doneFlops / run.totalFlops, 0, 1) : 0;
+}
+
+/**
+ * Early stop: the run keeps the tokens it has seen and the schedule's keep share of the quality, and its FLOPs end at
+ * what was done. Mutates the run and returns the keep factor. The caller ends the run.
+ */
+export function truncateRun(s: GameState, run: TrainingRun): number {
+  const progress = progressOf(run);
+  const cfg = runConfig(s, run);
+  const keep = RUN_TUNING.KEEP[cfg.schedule] ?? RUN_TUNING.KEEP.cosine;
+  const keepFactor = keep.base + keep.slope * progress;
+  const tokensB = run.tokensB * progress;
+  const phys = resolveRun(s, run.paramsB, tokensB, run.datasetIds, run.techniques, cfg, 'true');
+  run.tokensB = tokensB;
+  run.predictedLoss = phys.loss;
+  run.dataQuality = phys.dataQuality;
+  run.qualityMult = (run.qualityMult ?? 1) * keepFactor;
+  run.totalFlops = run.doneFlops;
+  return keepFactor;
+}
+
+/**
+ * Extend a pretraining run by `fraction` more tokens. Returns an error for the player, or null when it was extended.
+ * A cosine run pays for the longer tail; WSD and constant schedules are free to extend.
+ */
+export function extendRun(s: GameState, run: TrainingRun, fraction: number): string | null {
+  if (!Number.isFinite(fraction) || fraction < RUN_TUNING.EXTEND_MIN || fraction > RUN_TUNING.EXTEND_MAX) {
+    return `Extend by between ${RUN_TUNING.EXTEND_MIN * 100}% and ${RUN_TUNING.EXTEND_MAX * 100}%.`;
+  }
+  const tokensB = run.tokensB * (1 + fraction);
+  if (tokensB > uniqueTokensOf(s, run.datasetIds) * RUN_TUNING.MAX_EPOCHS + 1e-9) return 'Not enough data headroom for that. Buy more data or extend less.';
+  const cfg = runConfig(s, run);
+  const phys = resolveRun(s, run.paramsB, tokensB, run.datasetIds, run.techniques, cfg, 'true');
+  run.tokensB = tokensB;
+  run.totalFlops = phys.totalFlops;
+  run.predictedLoss = phys.loss;
+  run.dataQuality = phys.dataQuality;
+  if (cfg.schedule === 'cosine') run.qualityMult = (run.qualityMult ?? 1) * (1 - EXTEND_TUNING.COSINE_EXTEND_COST * fraction);
+  return null;
 }
 
 /**

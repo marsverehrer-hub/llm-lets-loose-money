@@ -42,6 +42,7 @@ import {
   runConfig,
   trueLrQuality,
   uniqueTokensOf,
+  type MixRow,
   type RunPhysics,
 } from './trainingMath';
 import {
@@ -485,6 +486,12 @@ function pretrainBand(s: GameState, cfg: TrainingConfig, phys: RunPhysics, datas
     v: near ? 1 : LAB_TUNING.NO_SWEEP_FACTOR,
     why: near ? null : 'No learning-rate sweep for this architecture at this size.',
   });
+  // A touchy optimizer (high lrCurveMult) is riskier at a size nobody has swept.
+  const opt = optionById(cfg.optimizer);
+  const curve = opt?.lrCurveMult ?? 1;
+  if (!near && curve !== 1) {
+    factors.push({ v: 1 + 0.1 * (curve - 1), why: `${opt?.name ?? cfg.optimizer} is touchy about the learning rate and this size is unswept.` });
+  }
 
   // v16: each post-training stage can break through or fizzle, and untried recipe interactions hide in the mix.
   const stages = cfg.post?.length ?? 0;
@@ -534,7 +541,7 @@ function undertrainOverallOf(s: GameState, phys: RunPhysics, tokensB: number, da
 }
 
 /** Forecast lines about the data scale: undertraining (with the expected cost in overall points) and repeated data. */
-function scaleReasons(s: GameState, phys: RunPhysics, tokensB: number, datasetIds: readonly Id[], drop: number): string[] {
+function scaleReasons(s: GameState, phys: RunPhysics, tokensB: number, datasetIds: readonly Id[], drop: number, rows: readonly MixRow[]): string[] {
   const out: string[] = [];
   if (phys.underPenalty >= 0.5) {
     const lead = phys.tokensPerParam < SCALE_TUNING.UNDER_STRONG_RATIO ? 'Undertrained' : 'Slightly undertrained';
@@ -544,6 +551,13 @@ function scaleReasons(s: GameState, phys: RunPhysics, tokensB: number, datasetId
   }
   const repeats = repeatFactor(tokensB, uniqueTokensOf(s, datasetIds));
   if (repeats > 1.001) out.push(`Data repeated ${fmtScaleNumber(repeats)}×. Repeats count half.`);
+  for (const r of rows) {
+    const epochs = r.epochs ?? 1;
+    if (epochs > RUN_TUNING.OVER_REPEAT_EPOCHS) {
+      const name = r.kind.charAt(0).toUpperCase() + r.kind.slice(1);
+      out.push(`${name} repeated ${fmtScaleNumber(epochs)}×: past four passes the model memorises.`);
+    }
+  }
   return out;
 }
 
@@ -582,7 +596,7 @@ export function forecastFromPhys(
   const { sd, reasons: bandReasons } = pretrainBand(s, config, phys, datasetIds);
   const half = LAB_TUNING.Z80 * sd;
   const drop = undertrainOverallOf(s, phys, tokensB, datasetIds, techniques, sumCapAdd(phys.capAdd, extra), mid);
-  const reasons = [...scaleReasons(s, phys, tokensB, datasetIds, drop), ...bandReasons];
+  const reasons = [...scaleReasons(s, phys, tokensB, datasetIds, drop, mixRows(s, datasetIds, config, 'belief', tokensB)), ...bandReasons];
   return { low: Math.max(0, mid - half), mid, high: Math.min(100, mid + half), confidence: confidenceFor(sd), reasons, caps, undertrainPenalty: drop };
 }
 
@@ -992,7 +1006,7 @@ export const handlers: ActionHandlers = {
     const points: SweepPoint[] = lrs.map((lr) => ({
       lr,
       scale,
-      reading: trueLrQuality(s, cfg.arch, proxyActive, lr, mup) + rng.normal(0, sigma),
+      reading: trueLrQuality(s, cfg.arch, proxyActive, lr, mup, optionById(cfg.optimizer)?.lrCurveMult ?? 1) + rng.normal(0, sigma),
       day: doneDay,
     }));
     const lab = labOf(s);
