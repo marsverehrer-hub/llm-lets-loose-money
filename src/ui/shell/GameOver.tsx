@@ -1,4 +1,4 @@
-import { useState } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
 import type { ComponentChildren } from 'preact';
 import { ACHIEVEMENTS } from '../../sim/data/achievements';
 import { formatMoney } from '../../sim/util';
@@ -6,8 +6,11 @@ import { Button, RunChart, formatInt, runMarks } from '../components';
 import { Banner } from '../panels/panelKit';
 import { newGame, useGame, useGameSelect } from '../store';
 import { saveMessage } from '../saveText';
+import { recordGame } from '../records';
 import { openNewGame, openSaves } from './sheetEvents';
 import { plain, tdate } from './fmt';
+import { shareLine } from './daily';
+import { ShareLine } from './ShareLine';
 
 function Row({ k, v }: { k: string; v: ComponentChildren }) {
   return (
@@ -29,6 +32,9 @@ function GameOverBody() {
   const s = useGame();
   const [name, setName] = useState('');
   const [err, setErr] = useState('');
+  useEffect(() => {
+    recordGame(s);
+  }, []);
   const go = s.gameOver;
   if (!go) return null;
 
@@ -59,6 +65,8 @@ function GameOverBody() {
             <Row k="Best Elo" v={formatInt(Math.round(s.stats.bestElo))} />
             <Row k="Trophies" v={`${unlocked} / ${ACHIEVEMENTS.length}`} />
           </div>
+
+          {s.setup?.daily && <ShareLine text={shareLine(s)} />}
 
           <div class="gameover-new">
             <input

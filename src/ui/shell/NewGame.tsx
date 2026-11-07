@@ -1,17 +1,21 @@
 // OWNER: SCENARIO. v9 new-game screen (GAME_DESIGN §20.1). A full-screen sheet on every width: company name, scenario,
 // difficulty, options, then Start. It opens from the menu's "New game" (openNewGame) and by itself when there is no save.
 import { useEffect, useState } from 'preact/hooks';
-import type { DifficultyId, GameSetup } from '../../sim/types';
+import type { DifficultyId, GameSetup, ModifierId } from '../../sim/types';
 import { DIFFICULTIES, SCENARIOS, type ScenarioDef, type ScenarioRules } from '../../sim/data/scenarios';
+import { MODIFIERS } from '../../sim/data/modifiers';
 import { BALANCE } from '../../sim/balance';
 import { doctrineById } from '../../sim/data/doctrines';
 import { formatMoney } from '../../sim/util';
-import { Button, Check, Pill } from '../components';
+import { Button, Check, Pill, formatInt } from '../components';
 import { FIRST_RUN, newGame } from '../store';
 import { listSlots } from '../../sim/save';
 import { saveMessage } from '../saveText';
 import { Banner } from '../panels/panelKit';
 import { NEW_GAME_EVENT, openSaves } from './sheetEvents';
+import { dailySetup, hashText, todayUtc } from './daily';
+import { dateLabel, readRecords, recordKey, type RecordEntry } from '../records';
+import { lifetimeCount, nextStep, titleFor } from '../trophies';
 import './newgame.css';
 
 const BOARD_EVENT_LABEL: Record<string, string> = { board_coup: 'Board reviews often' };
@@ -40,9 +44,27 @@ export function parseSeed(text: string): number | undefined {
   const t = text.trim();
   if (!t) return undefined;
   if (/^\d+$/.test(t)) return Number(t) % 2 ** 31;
-  let h = 5381;
-  for (let i = 0; i < t.length; i++) h = ((h * 33) ^ t.charCodeAt(i)) >>> 0;
-  return h % 2 ** 31;
+  return hashText(t) % 2 ** 31;
+}
+
+/** Your best result for this scenario and difficulty, or that there is none yet. */
+function RecordLine({ rec, scenario, diff }: { rec: RecordEntry | undefined; scenario: string; diff: string }) {
+  if (!rec) return <p class="ng-record small muted">Your record: none yet in {scenario}, {diff}.</p>;
+  return (
+    <p class="ng-record small">
+      Your record in {scenario}, {diff}:{' '}
+      {rec.score && (
+        <>
+          best score <span class="num">{formatInt(rec.score.value)}</span> <span class="muted">{dateLabel(rec.score.date)}</span>,{' '}
+        </>
+      )}
+      {rec.peak && (
+        <>
+          best peak <span class="num">{formatMoney(rec.peak.value, 1)}</span> <span class="muted">{dateLabel(rec.peak.date)}</span>
+        </>
+      )}
+    </p>
+  );
 }
 
 const mult = (v: number) => `×${v}`;
@@ -136,6 +158,7 @@ export function NewGame() {
   const [sandbox, setSandbox] = useState(false);
   const [skipTutorial, setSkipTutorial] = useState(false);
   const [seed, setSeed] = useState('');
+  const [mods, setMods] = useState<ModifierId[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
 
@@ -161,13 +184,36 @@ export function NewGame() {
   const sc = SCENARIOS.find((x) => x.id === scenarioId) ?? SCENARIOS[0];
   const midEra = sc.startYear > BALANCE.START_YEAR;
   const diffName = DIFFICULTIES.find((d) => d.id === difficulty)?.name ?? 'Founder';
+  const today = todayUtc();
+  const daily = dailySetup(today);
+  const dailyOn = scenarioId === daily.scenarioId && difficulty === daily.difficulty && seed === String(daily.seed);
+  const dailyScenario = SCENARIOS.find((x) => x.id === daily.scenarioId) ?? SCENARIOS[0];
+  const dailyDiff = DIFFICULTIES.find((d) => d.id === daily.difficulty)?.name ?? 'Founder';
+  const modNames = MODIFIERS.filter((m) => mods.includes(m.id)).map((m) => m.name);
+  const lifetime = lifetimeCount();
+  const trophyTitle = titleFor(lifetime);
+  const next = nextStep(lifetime);
+
+  const pickDaily = () => {
+    setScenarioId(daily.scenarioId);
+    setDifficulty(daily.difficulty);
+    setSeed(String(daily.seed));
+  };
 
   const start = () => {
     if (busy) return;
     setBusy(true);
     // Paint the busy label first: a mid-era start fast-forwards the world synchronously, which takes a second or two.
     requestAnimationFrame(() => window.setTimeout(() => {
-      const setup: GameSetup = { scenarioId: sc.id, difficulty, sandbox, skipTutorial, startYear: sc.startYear };
+      const setup: GameSetup = {
+        scenarioId: sc.id,
+        difficulty,
+        sandbox,
+        skipTutorial,
+        startYear: sc.startYear,
+        daily: dailyOn ? today : undefined,
+        modifiers: mods.length ? mods : undefined,
+      };
       const r = newGame(name.trim() || undefined, parseSeed(seed), setup);
       setBusy(false);
       if (!r.ok) {
@@ -190,6 +236,15 @@ export function NewGame() {
             New game
           </h2>
           <p class="ng-sub small muted">Pick a start. Each choice changes the world, not just the numbers.</p>
+          <p class="ng-title-line small">
+            {trophyTitle ?? 'No title yet'} · <span class="num">{lifetime}</span> lifetime trophies
+            {next && (
+              <>
+                {' '}
+                · <span class="num">{next.at - lifetime}</span> to {next.title}
+              </>
+            )}
+          </p>
         </div>
         <button type="button" class="ng-close" aria-label="Close" onClick={() => !busy && setOpen(false)}>
           ×
@@ -197,6 +252,19 @@ export function NewGame() {
       </header>
 
       <div class="ng-wrap">
+        <section class="ng-section" aria-labelledby="ng-h-daily">
+          <h3 class="ng-h" id="ng-h-daily">
+            Daily challenge
+          </h3>
+          <div class="ng-daily-row">
+            <Button onClick={pickDaily}>Daily challenge</Button>
+            {dailyOn && <Pill>Selected</Pill>}
+            <span class="small muted">
+              {today}: {dailyScenario.name}, {dailyDiff}, one shared seed for everyone today.
+            </span>
+          </div>
+        </section>
+
         <section class="ng-section" aria-labelledby="ng-h-company">
           <h3 class="ng-h" id="ng-h-company">
             Company
@@ -242,6 +310,7 @@ export function NewGame() {
               <DifficultyTile key={d.id} id={d.id} on={d.id === difficulty} onPick={() => setDifficulty(d.id)} />
             ))}
           </div>
+          <RecordLine rec={readRecords()[recordKey(sc.id, difficulty)]} scenario={sc.name} diff={diffName} />
         </section>
 
         <section class="ng-section" aria-labelledby="ng-h-opts">
@@ -286,6 +355,26 @@ export function NewGame() {
             <span class="field-hint small muted">The same seed and setup give the same world.</span>
           </div>
         </section>
+
+        <section class="ng-section" aria-labelledby="ng-h-mods">
+          <h3 class="ng-h" id="ng-h-mods">
+            Run modifiers
+          </h3>
+          {MODIFIERS.map((m) => (
+            <Check
+              key={m.id}
+              class="ng-check"
+              checked={mods.includes(m.id)}
+              onChange={(on) => setMods((cur) => (on ? [...cur, m.id] : cur.filter((x) => x !== m.id)))}
+              label={
+                <span class="ng-check-text">
+                  <span>{m.name}</span>
+                  <span class="small muted">{m.pitch}</span>
+                </span>
+              }
+            />
+          ))}
+        </section>
       </div>
 
       <footer class="ng-footer">
@@ -293,6 +382,8 @@ export function NewGame() {
           <span class="ng-summary-text">
             {sc.name} · <span class="num">{sc.startYear}</span> · {diffName}
             {sandbox ? ' · Sandbox' : ''}
+            {dailyOn ? ` · Daily ${today}` : ''}
+            {modNames.length > 0 ? ` · ${modNames.join(', ')}` : ''}
           </span>
           {err && (
             <div role="alert">

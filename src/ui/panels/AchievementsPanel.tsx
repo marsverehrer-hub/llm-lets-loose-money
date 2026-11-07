@@ -2,8 +2,11 @@ import { useState } from 'preact/hooks';
 import { useGame } from '../store';
 import { dayToDate, formatMoney } from '../../sim/util';
 import { ACHIEVEMENTS } from '../../sim/data/achievements';
+import { DIFFICULTIES, SCENARIOS } from '../../sim/data/scenarios';
 import type { AchievementDef, GameState } from '../../sim/types';
 import { Card, EmptyState, PanelHeader, Pill, ProgressBar, Stat, Tabs, formatInt, formatPct } from '../components';
+import { dateLabel, readRecords } from '../records';
+import { lifetimeCount, nextStep, titleFor } from '../trophies';
 import './panels-a.css';
 import './trophies.css';
 
@@ -52,6 +55,18 @@ export function AchievementsPanel() {
   const [group, setGroup] = useState<Group>('start');
   const money = (v: number) => formatMoney(v, 1);
   const st = s.stats;
+  const records = Object.entries(readRecords()).map(([key, rec]) => {
+    const [scenarioId, difficulty] = key.split(':');
+    return {
+      key,
+      rec,
+      scenario: SCENARIOS.find((x) => x.id === scenarioId)?.name ?? scenarioId,
+      diff: DIFFICULTIES.find((d) => d.id === difficulty)?.name ?? difficulty,
+    };
+  });
+  const lifetime = lifetimeCount(s.achievements);
+  const trophyTitle = titleFor(lifetime);
+  const next = nextStep(lifetime);
 
   const groupTabs = GROUPS.map((g) => {
     const inGroup = entries.filter((e) => groupOf(e.def.id) === g.id);
@@ -89,12 +104,71 @@ export function AchievementsPanel() {
         </div>
       </details>
 
+      <Card title="Personal records" subtitle="Best result per scenario and difficulty on this device" flush>
+        {records.length === 0 ? (
+          <EmptyState title="No finished games yet" text="A result is kept when a game ends in an ending or in bankruptcy." />
+        ) : (
+          <div class="pa-pad table-wrap table-stack">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Scenario</th>
+                  <th>Difficulty</th>
+                  <th class="num">Best score</th>
+                  <th class="num">Best peak</th>
+                </tr>
+              </thead>
+              <tbody>
+                {records.map(({ key, rec, scenario, diff }) => (
+                  <tr key={key}>
+                    <td class="mb-head">
+                      <span class="bold">{scenario}</span>
+                    </td>
+                    <td data-label="Difficulty">{diff}</td>
+                    <td class="num" data-label="Best score">
+                      {rec.score ? (
+                        <>
+                          {formatInt(rec.score.value)} <span class="small muted">{dateLabel(rec.score.date)}</span>
+                        </>
+                      ) : (
+                        '—'
+                      )}
+                    </td>
+                    <td class="num" data-label="Best peak">
+                      {rec.peak ? (
+                        <>
+                          {money(rec.peak.value)} <span class="small muted">{dateLabel(rec.peak.date)}</span>
+                        </>
+                      ) : (
+                        '—'
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+
       <Card title="Achievements" subtitle="Newest first" flush>
         <div class="pa-pad tro-summary">
           <p class="tro-earned">
             Earned <span class="num bold">{unlocked}</span> of <span class="num">{total}</span>
           </p>
           <ProgressBar label="Collection" value={unlocked} max={Math.max(1, total)} tone={pct >= 1 ? 'good' : 'accent'} right={`${unlocked} / ${total}`} height={6} />
+          <p class="tro-earned">
+            Lifetime <span class="num bold">{lifetime}</span> trophies across all games
+            {trophyTitle && (
+              <>
+                {' '}
+                · title <span class="bold">{trophyTitle}</span>
+              </>
+            )}
+          </p>
+          {next && (
+            <ProgressBar label={`Toward ${next.title}`} value={lifetime} max={next.at} tone="accent" right={`${lifetime} / ${next.at}`} height={6} />
+          )}
           <Tabs<Group> class="tro-tabs" value={group} onChange={setGroup} tabs={groupTabs} />
         </div>
         {total === 0 ? (

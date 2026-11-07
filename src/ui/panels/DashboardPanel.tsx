@@ -6,6 +6,7 @@ import { lazyNamed } from '../lazy';
 import { OFFICE_TIERS } from '../../sim/data/roles';
 import type { GameState } from '../../sim/types';
 import { dayToDate } from '../../sim/util';
+import { modifierNames } from '../../sim/systems/modifiers';
 import { Card, PanelHeader, useIsMobile } from '../components';
 import { headcount } from '../components/derive';
 import { useGame } from '../store';
@@ -80,10 +81,14 @@ export function DashboardPanel() {
   const seats = office?.capacity ?? 0;
   const heads = headcount(s);
   const datacenters = s.compute.datacenters.length;
+  const mods = modifierNames(s);
 
   return (
     <div class="panel hq">
-      <PanelHeader title={s.company.name} subtitle={`${dateTag(s.day)} · ${office?.name ?? 'Unknown office'}`} />
+      <PanelHeader
+        title={s.company.name}
+        subtitle={`${dateTag(s.day)} · ${office?.name ?? 'Unknown office'}${mods.length ? ` · ${mods.join(', ')}` : ''}`}
+      />
 
       <AdvisorCard s={s} />
 

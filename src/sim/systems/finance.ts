@@ -8,6 +8,7 @@ import { arenaLeaderboard } from './competitors';
 import { bestPlayerModel, frontierQuality } from './market';
 import { headcount } from './staff';
 import { isSandbox, scenarioRule, vcGenerosity } from './scenario'; // v9 scenario
+import { modifierMult } from './modifiers';
 
 /** Funding ladder after the pre-seed. Stays on the last rung once reached. */
 export const ROUND_LADDER = ['Seed+', 'Series A', 'Series B', 'Series C', 'Series D', 'Series E', 'Series F', 'Sovereign Wealth Round'];
@@ -267,12 +268,12 @@ function growingFast(s: GameState): boolean {
   if (!past) return false;
   return past.revenue <= 0 || now >= GROWTH_FACTOR * past.revenue;
 }
-function makeOffer(s: GameState, rng: Rng): FundingOffer {
+export function makeOffer(s: GameState, rng: Rng): FundingOffer {
   const roundName = ROUND_LADDER[Math.min(raisedRoundCount(s), ROUND_LADDER.length - 1)];
   const pre = Math.max(MIN_PRE_MONEY, Math.round(s.finance.valuation * vcGenerosity(s))); // v9 scenario: difficulty VC generosity
   const raise = rng.range(OFFER_RAISE_MIN, OFFER_RAISE_MAX);
-  // amount / (pre + amount) = raise  =>  amount = pre * raise / (1 - raise)
-  const amount = Math.max(10_000, Math.round((pre * raise) / (1 - raise) / 10_000) * 10_000);
+  // amount / (pre + amount) = raise  =>  amount = pre * raise / (1 - raise), scaled by the run modifier
+  const amount = Math.max(10_000, Math.round((pre * raise * modifierMult(s, 'tight_money')) / (1 - raise) / 10_000) * 10_000);
   return {
     roundName,
     amount,

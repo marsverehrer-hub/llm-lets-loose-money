@@ -4,6 +4,7 @@ import type { ActionHandlers, Datacenter, GameState, GpuPreorder, Rng } from '..
 import { GPUS } from '../data/gpus';
 import { addRevenue, calendarYear, clamp, formatMoney, newId, notify, trySpend } from '../util';
 import { datacenterTierById, gpuById, gpusThatFitMw, resaleFraction } from './compute';
+import { modifierMult } from './modifiers';
 import {
   consumeGpuAllocation,
   gpuAllocationBooked,
@@ -61,7 +62,7 @@ export function gpuPriceMult(s: GameState, gpuId: string): number {
     const P = SUPPLY_PRICE;
     index = Math.min(P.CAP, 1 + P.SLOPE * clamp(ratio - P.KNEE, 0, P.HEAT_CAP));
   }
-  return index * (s.flags['rentMult'] ?? 1);
+  return index * (s.flags['rentMult'] ?? 1) * modifierMult(s, 'gpu_drought');
 }
 
 /** Used GPUs on the market for a model, and their price per GPU. */

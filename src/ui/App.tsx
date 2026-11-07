@@ -21,7 +21,8 @@ import { lazyNamed } from './lazy';
 import { FxDirector } from './fx/Director';
 import { initSound } from './fx/sound';
 import { onNavigate } from './nav';
-import { getState, subscribe, useGameSelect, sameRecord } from './store';
+import { getState, onAfterTick, subscribe, useGameSelect, sameRecord } from './store';
+import { noteTrophies } from './trophies';
 import { isPanelVisible, markSeen, subscribeUnlocks, syncUnlocks, unlockPanel, unseenPanels } from './unlocks';
 import { useIsMobile } from './components';
 import { MobileNav } from './shell/MobileNav';
@@ -163,6 +164,7 @@ export function App() {
 
   // Sound unlocks on the first gesture and UI clicks get a tick. Idempotent.
   useEffect(() => initSound(), []);
+  useEffect(() => onAfterTick(noteTrophies), []);
 
   // "?" toggles the shortcuts overlay; the MENU opens it through a window event.
   useEffect(() => {

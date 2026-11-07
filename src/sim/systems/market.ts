@@ -16,6 +16,7 @@ import { playerCrownCounts, rivalLines } from './classes';
 import { labInfo, labName } from './labs';
 import { masteryAppeal, productActiveB, routedQuality, routerModelOf } from './modelLife'; // v15
 import { traitAppeal } from './traits'; // v18
+import { modifierMult } from './modifiers';
 
 export interface ShareRow { id: string; name: string; color: string; isPlayer: boolean; users: number; share: number; quality: number; price: number }
 
@@ -561,7 +562,7 @@ export function marketTick(s: GameState, rng: Rng): void {
   const noise = (s.flags['hypeNoise'] ?? 0) * 0.97 + rng.normal(0, 0.6);
   s.flags['hypeNudge'] = nudge;
   s.flags['hypeNoise'] = noise;
-  const hypeTarget = clamp(interp(HYPE_BASE, year) + nudge + noise, 0, 100);
+  const hypeTarget = clamp(interp(HYPE_BASE, year) + (nudge + noise) * modifierMult(s, 'hype_cycle'), 0, 100);
   s.market.aiHype = clamp(s.market.aiHype + (hypeTarget - s.market.aiHype) * HYPE_RELAX_PER_DAY, 0, 100);
 
   // 2. Campaigns tick down and apply brand/hype; player brand and hype decay.

@@ -499,7 +499,15 @@ export function applyScenarioStart(s: GameState, setup: GameSetup): void {
   const sandbox = !!setup.sandbox;
   const mid = startDay > 0;
 
-  s.setup = { scenarioId: sc.id, difficulty: diff.id, sandbox, skipTutorial: !!setup.skipTutorial, startYear: sc.startYear };
+  s.setup = {
+    scenarioId: sc.id,
+    difficulty: diff.id,
+    sandbox,
+    skipTutorial: !!setup.skipTutorial,
+    startYear: sc.startYear,
+    daily: setup.daily,
+    modifiers: setup.modifiers,
+  };
   if (mid) {
     fastForward(s, startDay);
   }

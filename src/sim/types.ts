@@ -1635,12 +1635,18 @@ export interface ContractsState {
 // ---------------------------------------------------------------------------
 export type DifficultyId = 'intern' | 'founder' | 'unicorn' | 'doomer';
 
+/** Run modifiers the New Game screen can switch on (sim/data/modifiers.ts). */
+export type ModifierId = 'gpu_drought' | 'tight_money' | 'hype_cycle';
+
 export interface GameSetup {
   scenarioId: Id;              // 'garage' = classic
   difficulty: DifficultyId;
   sandbox: boolean;            // no bankruptcy, no goals
   skipTutorial: boolean;
   startYear: number;
+  /** The UTC date (YYYY-MM-DD) of a daily challenge. Set by the UI; the sim only keeps it. */
+  daily?: string;
+  modifiers?: ModifierId[];
 }
 
 export interface GoalState {

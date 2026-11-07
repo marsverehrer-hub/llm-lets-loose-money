@@ -11,6 +11,9 @@ import { Button, RunChart, formatInt, runMarks } from '../components';
 import { dispatch, useGame, useGameSelect } from '../store';
 import { openNewGame, openSaves } from './sheetEvents';
 import { plain, tdate } from './fmt';
+import { recordGame } from '../records';
+import { shareLine } from './daily';
+import { ShareLine } from './ShareLine';
 import './ending.css';
 
 // The Acquired ending is settled by the buyout offer, never chosen at the Conclusion.
@@ -157,6 +160,9 @@ function EpilogueBody() {
   const [closed, setClosed] = useState(false);
   useFocusTrap(root);
   useEffect(() => focusPrimary(root.current), []);
+  useEffect(() => {
+    recordGame(s);
+  }, []);
   if (!end || closed) return null;
 
   const def = defs().find((d) => d.id === end.id);
@@ -204,6 +210,8 @@ function EpilogueBody() {
             <dd class="num">{`${Object.keys(s.achievements).length} / ${ACHIEVEMENTS.length}`}</dd>
           </div>
         </dl>
+
+        {s.setup?.daily && <ShareLine text={shareLine(s)} />}
 
         <div>
           <p class="small muted">Valuation over the run</p>

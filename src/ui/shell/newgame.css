@@ -345,3 +345,16 @@
   line-height: 1.6;
   color: var(--fg-2);
 }
+.ng-daily-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  align-items: center;
+}
+.ng-record {
+  margin: 0.5rem 0 0;
+}
+.ng-title-line {
+  margin: 0.25rem 0 0;
+  color: var(--fg-2);
+}

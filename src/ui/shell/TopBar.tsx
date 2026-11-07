@@ -15,6 +15,7 @@ import { runwayLabel, runwayTone, tdate } from './fmt';
 import { daysIntoGame } from '../../sim/systems/scenario';
 import { annualRevenue, runwayDays, valuationBreakdown } from '../../sim/systems/finance';
 import { formatMoney } from '../../sim/util';
+import { lifetimeCount, titleFor } from '../trophies';
 import { requestMatchSpeed, useSession, type NetStatus } from '../../net/session';
 import { openLobby } from '../mp/lobbyState';
 import { AUTOPAUSE_TRIGGERS, setAutoPause, useAutoPause } from '../autopause';
@@ -262,6 +263,7 @@ export function TopBar() {
 
   const runway = runwayDays(s);
   const broke = s.finance.negativeCashDays > 0;
+  const trophyTitle = titleFor(lifetimeCount(s.achievements));
   const initials = s.company.name
     .split(/\s+/)
     .filter(Boolean)
@@ -291,7 +293,12 @@ export function TopBar() {
               onBlur={() => finishEdit(true)}
             />
           ) : (
-            <button type="button" class="brand-company" title="Click to rename" onClick={startEdit}>
+            <button
+              type="button"
+              class="brand-company"
+              title={trophyTitle ? `Click to rename · ${trophyTitle}` : 'Click to rename'}
+              onClick={startEdit}
+            >
               {s.company.name}
             </button>
           )}
