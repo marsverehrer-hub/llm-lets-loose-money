@@ -22,7 +22,8 @@ import type {
   TrainingRun,
 } from '../types';
 import { CAP_IDS } from '../types';
-import { RUN_TUNING, configSignature, optionById, validateConfig } from '../data/trainingOptions';
+import { configSignature, optionById, validateConfig } from '../data/trainingOptions';
+import { RUN_TUNING } from '../data/runTuning';
 import { EMERGENCES, emergenceById } from '../data/emergences';
 import { quirkById } from '../data/quirks';
 import { CHECKPOINT_NOTES, DATA_SURPRISE_COPY, LATENT_DISCOVERY_COPY, VERDICT_NEWS, pickCopy, type Verdict } from '../data/evalCopy';

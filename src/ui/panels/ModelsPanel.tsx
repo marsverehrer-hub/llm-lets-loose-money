@@ -507,7 +507,7 @@ function ModelRow({
       <button type="button" class="md-row-main" aria-pressed={selected} onClick={() => onSelect(m.id)}>
         <span class="md-row-name">
           {prefix && <span class="md-lin">{prefix}</span>}
-          {m.name}
+          {m.name || m.codename || 'Unnamed run'}
         </span>
         <span class="md-row-pills">
           {statusPills(m).map((p) => (
@@ -532,7 +532,7 @@ function ModelRow({
       </button>
       <span class="md-row-act">
         {unreleased && (
-          <button type="button" class="btn btn-sm btn-primary" data-tut={tutRelease ? 'release' : undefined} onClick={() => setView({ kind: 'release', modelId: m.id })}>
+          <button type="button" class={`btn btn-sm ${tutRelease ? 'btn-primary' : ''}`} data-tut={tutRelease ? 'release' : undefined} onClick={() => setView({ kind: 'release', modelId: m.id })}>
             Release
           </button>
         )}
