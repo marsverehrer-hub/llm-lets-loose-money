@@ -875,6 +875,9 @@ export interface Datacenter {
   site?: SiteId;
 }
 
+/** v19: the ways a game can end once someone reaches AGI. */
+export type EndingId = 'safe_launch' | 'race' | 'nationalised' | 'merger' | 'open_singularity' | 'second_place';
+
 /** v19: datacenter fabric tiers. */
 export type Interconnect = 'pcie' | 'nvlink' | 'infiniband';
 /** v19: datacenter sites. */
@@ -1266,6 +1269,10 @@ export interface GameState {
 
   tutorialStep: number;              // -1 = done/skipped
   gameOver: null | { reason: string; day: number };
+  /** v19: AGI reached (by you or a rival): the ending choice is waiting. Blocks the sim until chosen. */
+  pendingEnding?: { day: number; by: 'player' | Id } | null;
+  /** v19: the ending the player chose, with its score. The game can continue as a sandbox afterwards. */
+  ending?: { id: EndingId; day: number; score: number; by: 'player' | Id } | null;
 
   /** v4: present only in an online 1v1 match. */
   mp?: MpState;
@@ -1399,6 +1406,9 @@ export type GameAction =
   | { type: 'buyUsedGpus'; datacenterId: Id; gpuId: Id; count: number }
   | { type: 'setInterconnect'; datacenterId: Id; tier: Interconnect }
   | { type: 'startChipProgram' }
+  // v19: endings
+  | { type: 'chooseEnding'; id: EndingId }
+  | { type: 'continueAfterEnding' }
   | { type: 'buyGpus'; datacenterId: Id; gpuId: Id; count: number }
   | { type: 'sellGpus'; datacenterId: Id; gpuId: Id; count: number }
   | { type: 'setTrainingShare'; share: number }

@@ -36,6 +36,7 @@ import { safetyTick } from './systems/safetyCase'; // v19 safety cases and jailb
 import { supplyTick, handlers as supplyHandlers } from './systems/supply'; // v19 GPU supply
 import { chipTick, handlers as chipHandlers } from './systems/chipRnd'; // v19 own silicon
 import { studioTick } from './systems/studio'; // v19 tiny studios
+import { handlers as endingsHandlers } from './systems/endings'; // v19 AGI endings
 import { modelLifeTick, handlers as modelLifeHandlers } from './systems/modelLife'; // v15 patches, mastery, retirement, routers
 import { cupTick, handlers as cupHandlers } from './systems/tournament'; // v15 Arena Cup
 import { cloudTick, handlers as cloudHandlers } from './systems/cloudMarket'; // v16 cloud providers
@@ -123,6 +124,7 @@ const HANDLERS: ActionHandlers = Object.assign(
   quantizeHandlers,
   supplyHandlers,
   chipHandlers,
+  endingsHandlers,
   eventsHandlers,
   financeHandlers,
   mpHandlers,
@@ -145,7 +147,8 @@ export function isBlocked(s: GameState): boolean {
     (!!s.events.pending && s.events.pending.result === undefined) ||
     (!!incident && incident.result === undefined) ||
     !!s.pendingReveal ||
-    !!s.pendingMoment
+    !!s.pendingMoment ||
+    !!s.pendingEnding // v19: the AGI ending choice
   );
 }
 

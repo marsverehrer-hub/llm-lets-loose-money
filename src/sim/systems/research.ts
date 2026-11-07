@@ -1,4 +1,5 @@
 // OWNER: Agent A. Research tree progression.
+import { reachAgi } from './endings';
 import type { ActionHandlers, GameState, Rng, ResearchNode } from '../types';
 import { RESEARCH, RESEARCH_TRACKS, trackStepOf } from '../data/research';
 import { getBonuses } from '../bonuses';
@@ -122,6 +123,7 @@ function completeNode(s: GameState, node: ResearchNode, how: 'researched' | 'ado
   notify(s, `${how === 'adopted' ? 'Paper adopted' : 'Research complete'}: ${node.icon} ${node.name}`, 'milestone');
   pushNews(s, `${s.company.name} finishes "${node.name}". ${node.description}`, 'milestone');
   if (node.unlocksProduct) notify(s, `New product line unlocked: ${node.unlocksProduct}.`, 'good');
+  if (node.id === 'agi') reachAgi(s, 'player'); // v19: the endgame
 }
 
 export const handlers: ActionHandlers = {
