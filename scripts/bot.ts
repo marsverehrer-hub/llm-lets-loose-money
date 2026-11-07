@@ -9,11 +9,13 @@
 //   specialist  doctrine specialist. Medium-class bases, domain fine-tunes, bench tuning toward crowns that are close,
 //               vertical and grant bids, and the enterprise line.
 //   open        doctrine open. Medium and large models, every release in open mode, api and enterprise lines.
+//   enterprise  doctrine enterprise. Frontier-style growth, an enterprise line as early as the research allows, and every
+//               contract its models qualify for.
 // `idle` is not a strategy: botDay(st, true) only answers prompts and incidents (see balance.ts).
 import { gpuAllocationLeft, memoryWall } from '../src/sim/systems/scaleLimits';
 import { dispatch } from '../src/sim/engine';
 import { makeRng } from '../src/sim/rng';
-import type { DoctrineId, EventDef, FleetPriority, GameState, Id, Model, Product, ProductKind, RoleId, Rng, TrainingConfig, WeightClass } from '../src/sim/types';
+import type { ContractKind, DoctrineId, EventDef, FleetPriority, GameState, Id, Model, Product, ProductKind, RoleId, Rng, TrainingConfig, WeightClass } from '../src/sim/types';
 import { SEGMENT_OF } from '../src/sim/types';
 import { EVENTS } from '../src/sim/data/events';
 import { CLASS_RANK, classThresholds } from '../src/sim/data/weightClasses';
@@ -39,8 +41,8 @@ import { distillQuote } from '../src/sim/systems/derive';
 import { calendarYear, yearOf } from '../src/sim/util';
 import { ENDINGS } from '../src/sim/systems/endings';
 
-export type BotStrategy = 'frontier' | 'small' | 'specialist' | 'open';
-export const BOT_STRATEGIES: BotStrategy[] = ['frontier', 'small', 'specialist', 'open'];
+export type BotStrategy = 'frontier' | 'small' | 'specialist' | 'open' | 'enterprise';
+export const BOT_STRATEGIES: BotStrategy[] = ['frontier', 'small', 'specialist', 'open', 'enterprise'];
 
 /** Learning rates the bot sweeps once per architecture before its first big run. */
 export const BOT_SWEEP_LRS = [0.35, 0.55, 0.75];
@@ -81,7 +83,13 @@ export const BOT_EVENT_CHECK_CASH = 100_000_000;
 export const BOT_DATA_EVERY_DAYS = 30;
 export const BOT_DATASETS_PER_MONTH = 3;
 
-const STRATEGY_DOCTRINE: Record<BotStrategy, DoctrineId> = { frontier: 'frontier', small: 'efficient', specialist: 'specialist', open: 'open' };
+const STRATEGY_DOCTRINE: Record<BotStrategy, DoctrineId> = {
+  frontier: 'frontier',
+  small: 'efficient',
+  specialist: 'specialist',
+  open: 'open',
+  enterprise: 'enterprise',
+};
 
 /** Product kinds each strategy runs (the unlocked ones only). */
 const STRATEGY_KINDS: Record<BotStrategy, ProductKind[]> = {
@@ -89,6 +97,7 @@ const STRATEGY_KINDS: Record<BotStrategy, ProductKind[]> = {
   small: ['api', 'chat'],
   specialist: ['api', 'chat', 'enterprise'],
   open: ['api', 'enterprise'],
+  enterprise: ['api', 'enterprise'],
 };
 
 /** Specialisations each strategy fine-tunes for each product kind, best first. Prerequisites come first. Never benchmaxx. */
@@ -101,12 +110,21 @@ const SPEC_WANTS: Record<BotStrategy, Partial<Record<ProductKind, string[]>>> = 
     enterprise: ['reasoner', 'deep_researcher', 'safe_assistant', 'doctor', 'lawyer', 'quant'],
   },
   open: { api: ['coder', 'agentic_coder'], chat: ['instruct', 'companion'], enterprise: ['reasoner', 'deep_researcher', 'safe_assistant'] },
+  enterprise: { api: ['coder', 'agentic_coder'], enterprise: ['reasoner', 'deep_researcher', 'safe_assistant', 'doctor', 'lawyer', 'quant'] },
+};
+
+/** Contract kinds a strategy bids on. Small and enterprise are not listed: they bid on every deal their models qualify for. */
+const BID_KINDS: Partial<Record<BotStrategy, ContractKind[]>> = {
+  frontier: ['government', 'agentic'],
+  specialist: ['vertical', 'grant'],
+  open: ['onprem'],
 };
 
 /** Research the strategy queues ahead of the cheapest-first default. */
 const RESEARCH_GOALS: Partial<Record<BotStrategy, Id[]>> = {
   small: ['instruction_tuning'],
   specialist: ['instruction_tuning', 'code_models', 'chain_of_thought', 'enterprise_ready'],
+  enterprise: ['enterprise_ready'],
 };
 
 /** Quality-per-dollar score for a dataset: quality, scaled by the log of its size, over the log of its price. */
@@ -553,14 +571,13 @@ function benchTuneStep(st: GameState): void {
 }
 
 function bidStep(st: GameState, strategy: BotStrategy): void {
-  if (strategy !== 'small' && strategy !== 'specialist') return;
   const offers = st.contracts?.offers ?? [];
   if (offers.length === 0) return;
   const pending = new Set((st.contracts?.pending ?? []).map((b) => b.offerId));
+  const kinds = BID_KINDS[strategy];
   for (const o of offers) {
     if (pending.has(o.id)) continue;
-    // Specialists bid on verticals and grants only. Small labs bid on every deal their models qualify for.
-    if (strategy === 'specialist' && o.kind !== 'vertical' && o.kind !== 'grant') continue;
+    if (kinds && !kinds.includes(o.kind)) continue;
     const best = bestModelFor(st, o);
     if (best.qualifies && best.model) dispatch(st, { type: 'bidContract', offerId: o.id, modelId: best.model.id });
   }
@@ -654,12 +671,10 @@ function staffStep(st: GameState, strategy: BotStrategy, cash: number, net: numb
     else dispatch(st, { type: 'hire', role, count: n });
     return;
   }
-  if (headcount(st) + 2 > officeCapacity(st)) {
-    upgradeOfficeIfAffordable(st, cash);
-  } else {
-    const n = Math.max(1, Math.floor(headcount(st) * 0.05));
-    dispatch(st, { type: 'hire', role, count: n });
-  }
+  // Check the whole batch, not two heads: a 5% hire on a full floor used to overflow the office instead of moving.
+  const n = Math.max(1, Math.floor(headcount(st) * 0.05));
+  if (headcount(st) + n > officeCapacity(st)) upgradeOfficeIfAffordable(st, cash);
+  else dispatch(st, { type: 'hire', role, count: n });
 }
 
 /** A run this big (active params, B) is worth giving the whole fleet to, when bursting serving stays cheap. */

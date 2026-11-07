@@ -4,7 +4,7 @@ import type { ActionHandlers, GameState, Rng, ResearchNode } from '../types';
 import { RESEARCH, RESEARCH_TRACKS, trackStepOf } from '../data/research';
 import { getBonuses } from '../bonuses';
 import { calendarYear, formatMoney, notify, pushNews, trySpend, yearOf } from '../util';
-import { roleStrength } from './staff';
+import { moraleFactor } from './staff';
 import { internalResearchMult } from './release';
 import { communityResearchMult } from './scenario'; // v9 scenario
 
@@ -50,7 +50,16 @@ export const RESEARCH_TUNING = {
   BACKLOG_RATE: 0.75,
   /** The bank holds at most this many days of current output. */
   BACKLOG_CAP_DAYS: 120,
+  /** Researchers past this many count less: a big lab's extra hires share one set of papers to read. */
+  RESEARCHER_KNEE: 150,
+  RESEARCHER_EXPONENT: 0.75,
 };
+
+/** Researchers that count toward research output: linear to the knee, then sub-linear (n^0.75 past it). */
+export function effectiveResearchers(n: number): number {
+  const k = RESEARCH_TUNING.RESEARCHER_KNEE;
+  return n <= k ? n : k * Math.pow(n / k, RESEARCH_TUNING.RESEARCHER_EXPONENT);
+}
 
 /** Most research points the idle bank can hold: BACKLOG_CAP_DAYS of current output. */
 export function backlogCap(s: GameState): number {
@@ -77,7 +86,8 @@ export function availableResearch(s: GameState): ResearchNode[] {
 
 export function researchPointsPerDay(s: GameState): number {
   const starResearchers = s.staff.stars.filter((st) => st.hiredDay !== null && st.role === 'researcher').length;
-  const strength = roleStrength(s, 'researcher') + starResearchers * RESEARCH_TUNING.STAR_RESEARCHER_STRENGTH;
+  const r = s.staff.roles.researcher;
+  const strength = r.skill * moraleFactor(s) * effectiveResearchers(r.count) + starResearchers * RESEARCH_TUNING.STAR_RESEARCHER_STRENGTH;
   // v6: the best internally deployed model speeds research up (GAME_DESIGN §17.7).
   return strength * getBonuses(s).researchSpeed * internalResearchMult(s) * communityResearchMult(s); // v9 scenario: community research
 }

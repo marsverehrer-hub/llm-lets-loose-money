@@ -3,7 +3,7 @@
 //
 // Usage:
 //   npx tsx scripts/balance.ts --all [--years=20] [--seeds=7,11,23,31,42,57]
-//   npx tsx scripts/balance.ts --strategy=small|frontier|specialist|open|idle [--years=N] [--seeds=...]
+//   npx tsx scripts/balance.ts --strategy=small|frontier|specialist|open|enterprise|idle [--years=N] [--seeds=...]
 //   npx tsx scripts/balance.ts [years] [seeds] [--idle]        (legacy positional form: frontier, or idle with --idle)
 import { createInitialState } from '../src/sim/state';
 import { tick } from '../src/sim/engine';
@@ -52,6 +52,8 @@ interface Run {
   activeLabs2030: number | null;
   openBy2021: number;
   churnBy2030: number;
+  /** v20: thesis goals of the run's own focus that were met at the end (0-3). */
+  thesisMet: number;
 }
 
 function bestReleasedOverall(s: GameState): number {
@@ -87,6 +89,7 @@ function runOne(strategy: Strategy, seed: number, years: number): Run {
     activeLabs2030: null,
     openBy2021: 0,
     churnBy2030: 0,
+    thesisMet: 0,
   };
   const seenRuns = new Set<string>();
   // v18: count pretrains by the run ids the bot sees, sampled before and after each tick (a run can end inside a tick).
@@ -155,6 +158,8 @@ function runOne(strategy: Strategy, seed: number, years: number): Run {
   run.bestEnd = bestReleasedOverall(s);
   run.callsRaised = s.flags['callsRaised'] ?? 0;
   run.callRuns = s.flags['callRuns'] ?? 0;
+  const focus = s.company.doctrine;
+  run.thesisMet = focus ? Object.keys(s.thesis?.done ?? {}).filter((id) => id.startsWith(`${focus}.`)).length : 0;
   return run;
 }
 
@@ -228,6 +233,7 @@ const METRICS: Metric[] = [
   { label: 'first best overall >= 95', values: (r) => r.first95Day, fmt: (v) => yearOf(v).toFixed(1) },
   { label: 'maxGap 2017-19 (pts)', values: (r) => r.maxGap1719, fmt: (v) => (v >= 0 ? '+' : '') + v.toFixed(1) },
   { label: 'calls per pretrain', values: (r) => callsPerPretrain(r), fmt: (v) => v.toFixed(1) },
+  { label: 'thesis goals met (of 3)', values: (r) => r.thesisMet, fmt: (v) => v.toFixed(0) },
 ];
 
 function bankruptCount(runs: Run[]): string {
@@ -400,6 +406,39 @@ function designChecks(byStrategy: Map<Strategy, Run[]>): Check[] {
     out.push({ label: '§32 an open model by 2021', pass: open !== null && open >= 1, detail: `median ${open}` });
     const churn = medianOf(allRuns.map((r) => r.churnBy2030));
     out.push({ label: '§32 a rival bankruptcy or acquisition by 2030', pass: churn !== null && churn >= 1, detail: `median ${churn}` });
+  }
+
+  // §33 (v20): the paths diverge, a small lab stays lean, and each path meets goals of its own.
+  if (BOT_STRATEGIES.every((s) => runsOf(s))) {
+    const peaks = BOT_STRATEGIES.map((s) => medianOf(runsOf(s)!.map((r) => r.peakVal)) ?? 0);
+    const ratio = Math.max(...peaks) / Math.max(1, Math.min(...peaks));
+    out.push({
+      label: '§33 strategies diverge: max/min median peak valuation >= 3x',
+      pass: ratio >= 3,
+      detail: `${ratio.toFixed(1)}x (${BOT_STRATEGIES.map((s, i) => `${s} ${formatMoney(peaks[i])}`).join(', ')})`,
+    });
+  } else {
+    out.push({ label: '§33 strategies diverge: max/min median peak valuation >= 3x', pass: null, detail: 'needs all strategies (use --all)' });
+  }
+  if (small) {
+    const staff = medianOf(small.map((r) => r.maxStaff));
+    out.push({ label: '§33 small max staff <= 200 (median)', pass: staff !== null && staff <= 200, detail: `median ${staff ?? 'n/a'}` });
+  } else {
+    out.push({ label: '§33 small max staff <= 200 (median)', pass: null, detail: 'small not run' });
+  }
+  if (BOT_STRATEGIES.every((s) => runsOf(s))) {
+    // Two of three goals counts as met; a path passes when that holds in at least two of three seeds.
+    const met = BOT_STRATEGIES.map((s) => {
+      const runs = runsOf(s)!;
+      return { s, ok: runs.filter((r) => r.thesisMet >= 2).length, n: runs.length };
+    });
+    out.push({
+      label: '§33 each strategy meets >= 2 of 3 thesis goals in >= 2 of 3 seeds',
+      pass: met.every((m) => m.ok >= Math.ceil((m.n * 2) / 3)),
+      detail: met.map((m) => `${m.s} ${m.ok}/${m.n}`).join(', '),
+    });
+  } else {
+    out.push({ label: '§33 each strategy meets >= 2 of 3 thesis goals in >= 2 of 3 seeds', pass: null, detail: 'needs all strategies (use --all)' });
   }
 
   // Overall must not saturate early.

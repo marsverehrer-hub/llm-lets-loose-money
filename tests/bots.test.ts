@@ -10,7 +10,7 @@ import { effParamsFor } from '../src/sim/systems/trainingMath';
 import { calendarYear } from '../src/sim/util';
 import { botDay, BOT_STRATEGIES, eventChoiceOrder, eventOptionRisks, type BotStrategy } from '../scripts/bot';
 
-const DOCTRINE: Record<BotStrategy, string> = { frontier: 'frontier', small: 'efficient', specialist: 'specialist', open: 'open' };
+const DOCTRINE: Record<BotStrategy, string> = { frontier: 'frontier', small: 'efficient', specialist: 'specialist', open: 'open', enterprise: 'enterprise' };
 
 /** Plays the strategy for `days` sim days. Returns how many ticks did not advance the sim (blocked by a prompt). */
 function play(s: GameState, strategy: BotStrategy, days: number): number {
