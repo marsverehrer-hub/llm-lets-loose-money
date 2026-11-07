@@ -157,11 +157,23 @@
 .topbar-stat.ts-runway.warn .topbar-value { color: var(--warn); }
 .topbar-stat.ts-runway.bad { background: var(--down-3); }
 .topbar-stat.ts-runway.bad .topbar-value { color: var(--down); }
-/* Lower-priority readouts drop out as the window narrows. Selectors are doubled so they beat .tip-anchor. */
-@media (max-width: 1320px) { .topbar-stats .topbar-stat.ts-hype, .topbar-stats .tip-anchor.ts-hype { display: none; } }
+.topbar-stat.ts-runway.muted .topbar-value { color: var(--fg-2); }
+.topbar-more { align-self: center; }
+.topbar-more .popover-trigger { height: 40px; border-radius: var(--r-md); }
+.topbar-more-list { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.topbar-more-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 36px;
+  color: var(--fg-2);
+  font-size: var(--fs-sm);
+}
+.topbar-more-row .num { color: var(--fg); font-weight: 700; }
+/* Lower-priority readouts drop out as the window narrows. Revenue, users and hype live behind More. */
 @media (max-width: 1220px) { .topbar-stats .topbar-stat.ts-val { display: none; } }
 @media (max-width: 1100px) { .brand { min-width: 0; } }
-@media (max-width: 1100px) { .topbar-stats .topbar-stat.ts-rev { display: none; } }
 @media (max-width: 900px) { .topbar-stats .topbar-stat.ts-runway { display: none; } }
 @media (max-width: 1000px) { .topbar .tb-text { display: none; } }
 @media (max-width: 900px) { .brand-company { max-width: 140px; } }
@@ -216,14 +228,6 @@
   font-weight: 800;
   line-height: 18px;
   text-align: center;
-}
-.tut-pulse-target {
-  border-radius: var(--r-md);
-  box-shadow: 0 0 0 3px var(--accent);
-  animation: tut-pulse 1.4s ease-in-out infinite;
-}
-@keyframes tut-pulse {
-  50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 25%, transparent); }
 }
 
 /* Menu dropdown */
@@ -286,8 +290,6 @@
   color: var(--fg-3);
   font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
 }
 .menu-check {
   display: flex;
@@ -303,8 +305,6 @@
   cursor: pointer;
 }
 .menu-check:hover { background: var(--bg-2); }
-.menu-check input { flex-shrink: 0; margin: 0; accent-color: var(--accent); }
-.menu-check input:disabled + span { color: var(--fg-4); }
 .menu-note {
   padding: 2px 12px 6px;
   color: var(--fg-3);
@@ -359,7 +359,6 @@
   font-family: var(--display);
   font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.02em;
 }
 .sn-brand-text { display: flex; flex-direction: column; min-width: 0; }
 .sn-brand-name { font-family: var(--display); font-size: 15px; font-weight: 700; line-height: 1.2; }
@@ -415,12 +414,19 @@
   background: var(--accent);
 }
 .hub-badge.warn { background: var(--down); }
-/* Tutorial target: a soft pulsing ring. */
-.hub-item.tut-pulse,
-.hubtab.tut-pulse,
-.mtab.tut-pulse {
-  box-shadow: 0 0 0 2px var(--accent);
-  animation: tut-pulse 1.4s ease-in-out infinite;
+/* Tutorial target: an accent ring that breathes (its opacity eases, the element itself stays put). */
+.tut-pulse { position: relative; }
+.tut-pulse::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 2px var(--accent);
+  pointer-events: none;
+  animation: tut-ring 1.4s ease-in-out infinite;
+}
+@keyframes tut-ring {
+  50% { opacity: 0.45; }
 }
 .sn-foot {
   margin-top: auto;
@@ -513,8 +519,6 @@
   color: var(--accent);
   font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
 }
 .ticker-viewport {
   position: relative;
@@ -569,13 +573,14 @@
 }
 
 /* ---------- toasts --------------------------------------------------------- */
+/* Bottom-left, over the empty gutter: the right side holds most row actions. Phones: mobile.css. */
 .toasts {
   position: fixed;
-  right: 16px;
+  left: 16px;
   bottom: calc(var(--ticker-h) + 16px);
   z-index: 45;
-  width: 360px;
-  max-width: calc(100vw / var(--ui-zoom, 1) - 20px);
+  width: 340px;
+  max-width: calc(100vw / var(--ui-zoom, 1) - 32px);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -584,13 +589,13 @@
   --tone: var(--fg-3);
   position: relative;
   padding: 10px 34px 12px 16px;
-  background: var(--bg-1);
+  background: var(--bg-2);
   border: 1px solid var(--line-2);
   border-radius: var(--r-md);
   box-shadow: var(--shadow-2), inset 4px 0 0 var(--tone);
   animation: toast-in var(--t-med) var(--ease);
 }
-.toast:hover { background: var(--bg-2); }
+.toast:hover { background: var(--bg-3); }
 .toast-good { --tone: var(--up); }
 .toast-bad { --tone: var(--down); }
 .toast-info { --tone: var(--blue); }
@@ -598,9 +603,7 @@
 .toast-title {
   color: var(--tone);
   font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-weight: 700;
 }
 .toast-text {
   margin-top: 3px;
@@ -625,7 +628,7 @@
 }
 .toast-close:hover { color: var(--fg); background: var(--bg-3); }
 @keyframes toast-in {
-  from { opacity: 0; transform: translateX(16px); }
+  from { transform: translateX(-16px); }
 }
 
 /* ---------- event modal and game over ------------------------------------- */
@@ -641,9 +644,7 @@
   color: var(--fg-3);
   font-family: var(--font);
   font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-weight: 700;
 }
 .event-modal.modal-danger .modal-title { color: var(--down); }
 .event-title {
@@ -689,8 +690,6 @@
   color: var(--fg-3);
   font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
 }
 .choices {
   display: flex;
@@ -757,10 +756,8 @@
   color: var(--down);
   font-family: var(--display);
   font-size: 34px;
-  font-weight: 900;
-  font-style: italic;
+  font-weight: 800;
   line-height: 1;
-  text-transform: uppercase;
 }
 .gameover-reason {
   margin-top: 6px;

@@ -51,14 +51,10 @@ button.dock-cell:hover,
   cursor: pointer;
 }
 .dock-res { flex: 0 1 320px; }
-.dock-level,
-.dock-board { flex: 0 0 auto; }
 .dock-k {
   color: var(--fg-3);
   font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-weight: 700;
 }
 .dock-name {
   min-width: 0;
@@ -88,21 +84,6 @@ button.dock-cell:hover,
 .dock-bar.good .dock-bar-fill { background: var(--up); }
 .dock-bar.warn .dock-bar-fill { background: var(--warn); }
 .dock-bar.hot .dock-bar-fill { background: var(--down); }
-.dock-level .dock-bar { flex: 0 0 64px; min-width: 64px; }
-.dock-lvl { font-weight: 800; }
-.dock-pts {
-  padding: 0 7px;
-  border-radius: var(--r-pill);
-  background: var(--accent);
-  color: var(--on-accent);
-  font-size: 12px;
-  font-weight: 800;
-}
-.dock-streak {
-  color: var(--down);
-  font-size: 12px;
-  font-weight: 800;
-}
 .dock-goals { display: inline-flex; gap: 4px; }
 .dock-goal {
   width: 10px;
@@ -114,18 +95,74 @@ button.dock-cell:hover,
   background: var(--up);
   border-color: var(--up);
 }
-/* An idle slot is the loudest thing on the strip. */
+/* An idle slot reads calmly: secondary text, no accent fill. */
 .dock-idle {
   flex: 1 1 auto;
-  color: var(--accent);
-  background: var(--accent-3);
-  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  color: var(--fg-2);
 }
-.dock-idle .dock-k { color: var(--accent); }
-.dock-idle:hover { background: color-mix(in srgb, var(--accent) 22%, var(--bg-1)); }
-.dock-go { margin-left: auto; font-weight: 800; }
+.dock-idle .dock-k { color: var(--fg-3); }
+.dock-go { margin-left: auto; color: var(--fg-3); font-weight: 800; }
 .dock-train .tempo { flex-shrink: 0; }
 
+/* Lab: one cell, a popover with the level, the Arena Cup and the board quarter. */
+.dock-lab { flex: 0 0 auto; }
+.rundock .dock-lab .popover-trigger {
+  gap: 10px;
+  height: 38px;
+  padding: 0 14px;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  color: var(--fg);
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+}
+.rundock .dock-lab .popover-trigger:hover { background: var(--bg-2); }
+.dock-lab.has-points .popover-trigger { border-color: var(--accent); }
+.dock-lab .dock-bar { flex: 0 0 64px; min-width: 64px; }
+.dock-lvl { font-weight: 800; }
+.dock-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--r-pill);
+  background: var(--accent);
+}
+.lab-pop {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.lab-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  color: var(--fg);
+  font: inherit;
+  text-align: left;
+}
+.lab-row-link { cursor: pointer; }
+.lab-row-link:hover { background: var(--bg-3); }
+.lab-row.is-open { border-color: var(--accent); }
+.lab-row-main {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.lab-row-k { font-weight: 700; }
+.lab-row-v {
+  color: var(--fg-2);
+  font-size: var(--fs-sm);
+}
+.lab-row-v.muted { color: var(--fg-3); }
+
+/* Phones: the three cells share the strip. */
 @media (max-width: 1100px) {
   .dock-res { flex-basis: 180px; }
   .dock-res .dock-name { display: none; }
@@ -134,6 +171,7 @@ button.dock-cell:hover,
 @media (max-width: 760px) {
   .rundock { height: 46px; gap: 6px; padding: 0 8px; }
   .dock-cell { height: 34px; padding: 0 10px; gap: 6px; overflow: hidden; }
+  .rundock .dock-lab .popover-trigger { height: 34px; padding: 0 10px; gap: 6px; }
   .dock-train { padding: 0; flex: 1 1 auto; }
   .dock-link { padding: 0 8px; gap: 6px; }
   .dock-name { max-width: 28vw; }
@@ -143,15 +181,4 @@ button.dock-cell:hover,
   .dock-res .dock-v { display: none; }
   .dock-res .dock-bar { min-width: 0; }
   .dock-idle .dock-v { overflow: hidden; text-overflow: ellipsis; }
-  .dock-level { flex: 0 0 auto; padding: 0 8px; }
-  .dock-level .dock-bar { display: none; }
 }
-.dock-cup { flex: 0 0 auto; }
-.dock-cup.is-open .dock-k,
-.dock-cup.is-open .dock-v:first-of-type { color: var(--amber); }
-
-/* v17: the next move, on every screen. */
-.dock-next { flex: 1 1 260px; min-width: 0; overflow: hidden; }
-.dock-next .dock-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
-:root .dock-next.is-urgent { border-color: var(--down); box-shadow: inset 3px 0 0 var(--down); }
-:root .dock-next.is-urgent .dock-k { color: var(--down); }

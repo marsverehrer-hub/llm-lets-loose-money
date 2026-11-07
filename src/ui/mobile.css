@@ -409,13 +409,13 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  /* Alerts: just above the news ticker and tab bar, full width, two at most (Toasts.tsx). The top of the screen is
-     left for the multiplayer bars. --tut-h lifts them above the tutorial card when it is up (Tutorial.tsx). */
+  /* Alerts: just above the news ticker and tab bar, full width minus the 16px gutters, one at a time (Toasts.tsx).
+     The top of the screen is left for the multiplayer bars. --tut-h lifts them above the tutorial card when it is up. */
   .toasts {
     top: auto;
-    right: 8px;
+    right: 16px;
     bottom: calc(var(--bottom-total) + 8px + var(--tut-h, 0px));
-    left: 8px;
+    left: 16px;
     width: auto;
     max-width: none;
   }

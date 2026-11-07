@@ -6,25 +6,26 @@ import { plain } from './fmt';
 import { BANNER_EVENT, type BannerDetail } from '../fx/banner';
 
 const TITLE: Record<NoticeKind, string> = { good: 'News', bad: 'Alert', info: 'Update', milestone: 'Milestone' };
-/** Auto-dismiss time in ms. Milestones stay a little longer. */
-const LIFETIME: Record<NoticeKind, number> = { good: 4500, bad: 6000, info: 3500, milestone: 6000 };
+/** Auto-dismiss time in ms. Bad news stays longest, so it can be read. */
+const LIFETIME: Record<NoticeKind, number> = { good: 4000, bad: 6000, info: 3000, milestone: 5000 };
 /** Only the newest toasts are shown. Older ones wait in state and appear as room frees up. */
-const MAX_VISIBLE = 3; // v13: was 4; a stack of four covered half the screen
+const MAX_VISIBLE = 2;
 /** How long a milestone banner stays in the stack. */
 const FLASH_MS = 4000;
 
-/** On phones at most two alerts show (one when a milestone banner is up), full width under the top bar. */
-const MAX_PHONE = 2;
+/** On phones one alert shows at a time, full width above the tab bar. */
+const MAX_PHONE = 1;
 
 /**
- * Stacked alert windows, bottom-right above the ticker (top, full width, on phones). Each auto-dismisses; the timer
- * pauses while hovered. Re-renders only when the visible notifications change, not on every day.
+ * Stacked alert windows, bottom-left over the empty gutter, above the ticker (full width above the tab bar on phones).
+ * Each auto-dismisses; the timer pauses while hovered. Re-renders only when the visible notifications change.
  */
 export function Toasts() {
   const isPhone = useIsMobile();
   const [flash, setFlash] = useState<(BannerDetail & { key: number }) | null>(null);
-  const latest = useGameSelect((s) => s.notifications.slice(-MAX_VISIBLE), sameItems);
-  const room = isPhone ? (flash ? MAX_PHONE - 1 : MAX_PHONE) : MAX_VISIBLE;
+  const cap = isPhone ? MAX_PHONE : MAX_VISIBLE;
+  const latest = useGameSelect((s) => s.notifications.slice(-cap), sameItems);
+  const room = flash && isPhone ? 0 : cap;
   // A milestone banner already shows its text, so its toast twin waits until the banner is gone.
   const visible = (room > 0 ? latest.slice(-room) : []).filter((n) => !flash || plain(n.text) !== flash.text);
 

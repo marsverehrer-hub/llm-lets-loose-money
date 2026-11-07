@@ -137,9 +137,12 @@ export function syncUnlocks(s: GameState): boolean {
     if (first || all) s.flags[SEEN + r.id] = s.day;
     else news.push(r.id);
   }
-  for (const id of news) {
-    const info = PANEL_INFO[id];
-    notify(s, `New screen: ${info.label}. ${info.tagline}`, 'info');
+  // One notice per sync, however many screens opened: "New screens: Products, Market." or the one-screen form.
+  if (news.length === 1) {
+    const info = PANEL_INFO[news[0]];
+    notify(s, `New screen: ${info.label}.${info.tagline ? ` ${info.tagline}` : ''}`, 'info');
+  } else if (news.length > 1) {
+    notify(s, `New screens: ${news.map((id) => PANEL_INFO[id].label).join(', ')}.`, 'info');
   }
   if (changed) announce();
   return changed;

@@ -1,6 +1,6 @@
 // OWNER: PROGRESSION UI (v13, GAME_DESIGN §23.5). The run dock: a slim strip under the top bar on every screen with
-// the live training run (progress, ETA, tempo), research, the lab level and the board's quarter. An idle training
-// slot or research desk shows as a call to action, because an idle lab is the one thing the player should never miss.
+// the live training run (progress, ETA, tempo), research and the lab (level, Arena Cup, board quarter). An idle
+// training slot or research desk reads calmly; the HQ advisor is the only "what next" voice.
 import type { GameState } from '../../sim/types';
 import { RESEARCH } from '../../sim/data/research';
 import { effectiveResearchCost, recommendedResearch } from '../../sim/systems/research';
@@ -9,11 +9,10 @@ import { levelProgress, progressOf } from '../../sim/systems/progression';
 import { quarterLabel } from '../../sim/systems/board';
 import { cupThemeLabel } from '../../sim/systems/tournament';
 import { trainingStatus } from '../components/derive';
-import { formatDays, useIsMobile } from '../components';
+import { Popover, formatDays, useIsMobile } from '../components';
 import { navigate } from '../nav';
 import { useGame } from '../store';
 import { TempoControl } from '../panels/lab/TempoControl';
-import { nextStep } from '../panels/hq/nextStep';
 import { etaOf as mediaEta } from '../panels/model/MediaStudio';
 import './rundock.css';
 import '../panels/lab/lab.css';
@@ -53,7 +52,7 @@ function TrainCell({ s, phone }: { s: GameState; phone: boolean }) {
     return (
       <button type="button" class="dock-cell dock-idle" onClick={() => navigate('models', { open: 'train' })} title="The training slot is empty">
         <span class="dock-k">Train</span>
-        <span class="dock-v">{queued > 0 ? `${queued} queued, waiting` : phone ? 'Idle. Start a run' : 'Slot idle. Start a run'}</span>
+        <span class="dock-v">{queued > 0 ? `${queued} queued, waiting` : 'Idle · Start a run'}</span>
         <span class="dock-go" aria-hidden="true">›</span>
       </button>
     );
@@ -92,7 +91,7 @@ function ResearchCell({ s, phone }: { s: GameState; phone: boolean }) {
         title={rec ? `Nobody is researching anything. Next: ${rec.label}. ${rec.why}` : 'Nobody is researching anything'}
       >
         <span class="dock-k">{phone ? 'Res' : 'Research'}</span>
-        <span class="dock-v">{phone ? 'Idle' : rec ? `Next: ${rec.label}` : 'Idle. Pick a topic'}</span>
+        <span class="dock-v">{phone ? 'Idle' : rec ? `Idle · Next: ${rec.label}` : 'Idle · Pick a topic'}</span>
         <span class="dock-go" aria-hidden="true">›</span>
       </button>
     );
@@ -111,62 +110,99 @@ function ResearchCell({ s, phone }: { s: GameState; phone: boolean }) {
   );
 }
 
-function LevelCell({ s }: { s: GameState }) {
-  const p = progressOf(s);
-  const lp = levelProgress(p);
-  return (
-    <button type="button" class={`dock-cell dock-level ${p.perkPoints > 0 ? 'has-points' : ''}`} onClick={() => navigate('lab')} title={`Lab level ${p.level}. ${lp.into}/${lp.need} XP to the next.`}>
-      <span class="dock-k">LVL</span>
-      <span class="dock-v num dock-lvl">{p.level}</span>
-      <Bar frac={lp.frac} tone="good" />
-      {p.perkPoints > 0 && <span class="dock-pts num">+{p.perkPoints}</span>}
-      {p.streak >= 2 && <span class="dock-streak num" title="Hot streak">x{p.streak}</span>}
-    </button>
-  );
-}
-
-function BoardCell({ s }: { s: GameState }) {
-  const b = s.board;
-  if (!b || b.objectives.length === 0) return null;
-  const done = b.objectives.filter((o) => o.doneDay !== null).length;
-  const left = Math.max(0, b.quarterEnd - s.day);
-  return (
-    <button type="button" class="dock-cell dock-board" onClick={() => navigate('lab')} title="This quarter's board goals">
-      <span class="dock-k">{quarterLabel(b.quarterStart).split(' ')[0]}</span>
-      <span class="dock-goals" aria-label={`${done} of ${b.objectives.length} goals met`}>
-        {b.objectives.map((o) => (
-          <span key={o.id} class={o.doneDay !== null ? 'dock-goal hit' : 'dock-goal'} />
-        ))}
-      </span>
-      <span class="dock-v muted num">{formatDays(left)}</span>
-    </button>
-  );
-}
-
-/** v15: the open Arena Cup, shown until play day. Amber while you have no entry. */
-function CupCell({ s }: { s: GameState }) {
+/** The open Arena Cup, shown until play day. Null when there is no cup or no model to enter it with. */
+function openCup(s: GameState) {
   const open = s.cup?.open;
   if (!open || !s.models.some((m) => m.releasedDay !== null && !m.deprecated)) return null;
-  const left = Math.max(0, open.playDay - s.day);
-  return (
-    <button type="button" class={`dock-cell dock-cup ${open.entrantModelId ? '' : 'is-open'}`} onClick={() => navigate('lab')} title={`${cupThemeLabel(open.theme)} #${open.edition}`}>
-      <span class="dock-k">Cup</span>
-      <span class="dock-v">{open.entrantModelId ? 'Entered' : 'Enter'}</span>
-      <span class="dock-v muted num">{formatDays(left)}</span>
-    </button>
-  );
+  return { open, left: Math.max(0, open.playDay - s.day) };
 }
 
-/** v17: the single most useful move, on every screen. Red when something is urgent. */
-function NextCell({ s }: { s: GameState }) {
-  const st = nextStep(s);
-  if (!st) return null;
+/** Lab: one cell for level, the Arena Cup and the board. Opens a popover with a row for each. */
+function LabCell({ s, phone }: { s: GameState; phone: boolean }) {
+  const p = progressOf(s);
+  const lp = levelProgress(p);
+  const cup = openCup(s);
+  const b = s.board && s.board.objectives.length > 0 ? s.board : null;
+  const boardDone = b ? b.objectives.filter((o) => o.doneDay !== null).length : 0;
+  const boardLeft = b ? Math.max(0, b.quarterEnd - s.day) : 0;
   return (
-    <button type="button" class={`dock-cell dock-next ${st.priority === 'urgent' ? 'is-urgent' : ''}`} onClick={() => navigate(st.panel, st.intent)} title={st.why}>
-      <span class="dock-k">{st.priority === 'urgent' ? 'Urgent' : 'Next'}</span>
-      <span class="dock-name">{st.text}</span>
-      <span class="dock-go" aria-hidden="true">›</span>
-    </button>
+    <Popover
+      title="Lab"
+      width={330}
+      align="right"
+      class={`dock-lab ${p.perkPoints > 0 ? 'has-points' : ''}`}
+      label={
+        <>
+          <span class="dock-k">Lab</span>
+          <span class="dock-v num dock-lvl">Lvl {p.level}</span>
+          {!phone && <Bar frac={lp.frac} tone="good" />}
+          {p.perkPoints > 0 && <span class="dock-dot" role="img" aria-label={`${p.perkPoints} perk points to spend`} />}
+        </>
+      }
+    >
+      {(close) => (
+        <div class="lab-pop">
+          <div class="lab-row">
+            <div class="lab-row-main">
+              <span class="lab-row-k">Level {p.level}</span>
+              <span class="lab-row-v muted num">
+                {lp.into}/{lp.need} XP to the next
+                {p.streak >= 2 ? ` · hot streak ×${p.streak}` : ''}
+              </span>
+              <span class="lab-row-v">{p.perkPoints > 0 ? `${p.perkPoints} perk point${p.perkPoints === 1 ? '' : 's'} to spend` : 'No perk points to spend'}</span>
+            </div>
+            <button
+              type="button"
+              class="btn btn-sm"
+              onClick={() => {
+                close();
+                navigate('lab');
+              }}
+            >
+              Perks
+            </button>
+          </div>
+          {cup && (
+            <button
+              type="button"
+              class={`lab-row lab-row-link ${cup.open.entrantModelId ? '' : 'is-open'}`}
+              title={`${cupThemeLabel(cup.open.theme)} #${cup.open.edition}`}
+              onClick={() => {
+                close();
+                navigate('lab');
+              }}
+            >
+              <span class="lab-row-main">
+                <span class="lab-row-k">Arena Cup</span>
+                <span class="lab-row-v">{cup.open.entrantModelId ? 'Entered' : 'Enter a model'}</span>
+              </span>
+              <span class="lab-row-v muted num">{formatDays(cup.left)}</span>
+            </button>
+          )}
+          {b && (
+            <button
+              type="button"
+              class="lab-row lab-row-link"
+              title="This quarter's board goals"
+              onClick={() => {
+                close();
+                navigate('lab');
+              }}
+            >
+              <span class="lab-row-main">
+                <span class="lab-row-k">{quarterLabel(b.quarterStart)}</span>
+                <span class="dock-goals" aria-label={`${boardDone} of ${b.objectives.length} goals met`}>
+                  {b.objectives.map((o) => (
+                    <span key={o.id} class={o.doneDay !== null ? 'dock-goal hit' : 'dock-goal'} />
+                  ))}
+                </span>
+              </span>
+              <span class="lab-row-v muted num">{formatDays(boardLeft)} left</span>
+            </button>
+          )}
+        </div>
+      )}
+    </Popover>
   );
 }
 
@@ -178,10 +214,7 @@ export function RunDock() {
     <div class="rundock" aria-label="Lab status">
       <TrainCell s={s} phone={phone} />
       <ResearchCell s={s} phone={phone} />
-      {!phone && <NextCell s={s} />}
-      <LevelCell s={s} />
-      {!phone && <CupCell s={s} />}
-      {!phone && <BoardCell s={s} />}
+      <LabCell s={s} phone={phone} />
     </div>
   );
 }

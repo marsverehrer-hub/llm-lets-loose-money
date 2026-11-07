@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Speed } from '../../sim/types';
-import { AnimatedNumber, Button, Modal, Tooltip, clamp, resetPanelIntros } from '../components';
+import { AnimatedNumber, Button, Modal, Popover, Tooltip, clamp, formatCount, resetPanelIntros } from '../components';
+import { Check } from '../components/Check';
 import { dispatch, getState, saveNow, useGame } from '../store';
 import { hiddenPanels, showAllScreens, showNotice } from '../unlocks';
 import { saveMessage } from '../saveText';
@@ -9,7 +10,7 @@ import { openShortcuts } from './Shortcuts';
 import { readTheme, setTheme, type Theme } from './theme';
 import { CAMERA_MODE_LABEL, NEXT_CAMERA_MODE, setCameraMode, useCameraMode } from '../cameraPref'; // v13
 import { InterfaceSizeRow } from './InterfaceSize';
-import { runwayLabel, tdate } from './fmt';
+import { runwayLabel, runwayTone, tdate } from './fmt';
 import { runwayDays } from '../../sim/systems/finance';
 import { formatMoney } from '../../sim/util';
 import { requestMatchSpeed, useSession, type NetStatus } from '../../net/session';
@@ -214,9 +215,10 @@ export function TopBar() {
   const aiHype = clamp(s.market.aiHype, 0, 100);
   const valLabel = s.company.isPublic ? 'Mkt cap' : 'Valuation';
   const statusTag = s.gameOver ? 'Game over' : eventPending ? 'Decision pending' : paused ? 'Paused' : '';
+  // Active products' users, the same count the KPI strip charts.
+  const users = s.products.reduce((t, p) => (p.active ? t + p.users : t), 0);
 
   const runway = runwayDays(s);
-  const runwayTone = !isFinite(runway) ? 'good' : runway < 180 ? 'bad' : runway < 540 ? 'warn' : 'good';
   const broke = s.finance.negativeCashDays > 0;
   const initials = s.company.name
     .split(/\s+/)
@@ -270,17 +272,11 @@ export function TopBar() {
           </span>
         </div>
         <div
-          class={`topbar-stat ts-runway ${runwayTone}`}
+          class={`topbar-stat ts-runway ${runwayTone(runway, s.day)}`}
           title={broke ? `${s.finance.negativeCashDays} days in the red. Bankruptcy at 30.` : 'How long the cash lasts at today\'s burn'}
         >
           <span class="topbar-label">Runway</span>
-          <span class="topbar-value">{broke ? `${s.finance.negativeCashDays}d in the red` : runwayLabel(runway)}</span>
-        </div>
-        <div class="topbar-stat ts-rev" title="Revenue booked today">
-          <span class="topbar-label">Revenue</span>
-          <span class="topbar-value">
-            <AnimatedNumber value={s.finance.dailyRevenue} format={(v) => `${formatMoney(v, 1)}/d`} />
-          </span>
+          <span class="topbar-value">{broke ? `${s.finance.negativeCashDays}d in the red` : runwayLabel(runway, s.day)}</span>
         </div>
         <div class="topbar-stat ts-val" title={s.company.isPublic ? 'Public market capitalisation' : 'Private valuation'}>
           <span class="topbar-label">{valLabel}</span>
@@ -288,20 +284,33 @@ export function TopBar() {
             <AnimatedNumber value={s.finance.valuation} format={(v) => formatMoney(v, 0)} />
           </span>
         </div>
-        <Tooltip
-          class="ts-hype"
-          content={
-            <>
-              AI hype is the world's mood about AI: high hype means bigger funding rounds and more users. Your own hype is{' '}
-              <b>{Math.round(s.company.hype)}</b>, brand awareness <b>{Math.round(s.company.brand)}</b>.
-            </>
-          }
-        >
-          <div class="topbar-stat">
-            <span class="topbar-label">AI hype</span>
-            <span class="topbar-value">{Math.round(aiHype)}</span>
+        <Popover label="More" width={260} align="right" class="topbar-more">
+          <div class="topbar-more-list">
+            <div class="topbar-more-row">
+              <span>Revenue per day</span>
+              <span class="num">
+                <AnimatedNumber value={s.finance.dailyRevenue} format={(v) => `${formatMoney(v, 1)}/d`} />
+              </span>
+            </div>
+            <div class="topbar-more-row">
+              <Tooltip
+                content={
+                  <>
+                    AI hype is the world's mood about AI: high hype means bigger funding rounds and more users. Your own hype is{' '}
+                    <b>{Math.round(s.company.hype)}</b>, brand awareness <b>{Math.round(s.company.brand)}</b>.
+                  </>
+                }
+              >
+                <span>AI hype</span>
+              </Tooltip>
+              <span class="num">{Math.round(aiHype)}</span>
+            </div>
+            <div class="topbar-more-row">
+              <span>Users</span>
+              <span class="num">{formatCount(users)}</span>
+            </div>
           </div>
-        </Tooltip>
+        </Popover>
       </div>
 
       <div class="topbar-end">
@@ -317,7 +326,7 @@ export function TopBar() {
             <span class="mp-room-code">{session.room}</span>
           </button>
         )}
-        <div class={`speed-group ${s.tutorialStep === 3 ? 'tut-pulse-target' : ''}`} role="group" aria-label="Game speed">
+        <div class="speed-group" role="group" aria-label="Game speed" data-tut="speed">
           <button
             type="button"
             class={`btn btn-sm ${paused ? 'on' : ''}`}
@@ -334,6 +343,7 @@ export function TopBar() {
               type="button"
               class={`btn btn-sm ${s.speed === sp.speed ? 'on' : ''}`}
               title={`${sp.label} speed (${sp.key})`}
+              aria-label={`Speed ${sp.label}`}
               aria-pressed={s.speed === sp.speed}
               onClick={() => setSpeed(sp.speed)}
             >
@@ -503,15 +513,15 @@ export function TopBar() {
               <div class="menu-sep" />
               <div class="menu-head">Pause when…</div>
               {AUTOPAUSE_TRIGGERS.map((t) => (
-                <label key={t.id} class="menu-check">
-                  <input
-                    type="checkbox"
-                    checked={autoPause[t.id]}
-                    disabled={!!s.mp}
-                    onChange={(e) => setAutoPause(t.id, (e.target as HTMLInputElement).checked)}
-                  />
-                  <span>{t.label}</span>
-                </label>
+                <Check
+                  key={t.id}
+                  toggle
+                  class="menu-check"
+                  label={t.label}
+                  checked={autoPause[t.id]}
+                  disabled={!!s.mp}
+                  onChange={(v) => setAutoPause(t.id, v)}
+                />
               ))}
               {s.mp && <div class="menu-note">Off during a multiplayer match.</div>}
               <div class="menu-sep" />
