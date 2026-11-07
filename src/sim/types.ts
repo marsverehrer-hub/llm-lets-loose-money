@@ -110,6 +110,8 @@ export interface GpuDef {
   rentPerDay: number;      // $ per GPU per day in the cloud
   powerKw: number;         // kW per GPU (drives datacenter power bill)
   memGB?: number;          // v16: HBM per GPU; caps trainable model size (systems/scaleLimits.ts)
+  /** v18: low-precision formats with hardware support. A precision without support runs emulated (no speedup). */
+  formats?: HwFormat[];
   flavor: string;
 }
 
@@ -370,7 +372,22 @@ export interface TrainingOptionDef {
   capAdd?: Partial<Capabilities>;
   /** context group only: context window in K tokens. */
   contextK?: number;
+  /** v18: multiplies training bytes per parameter (memory wall). Default 1. */
+  memoryMult?: number;
+  /** v18: multiplies the learning-rate penalty curve (how much a wrong LR hurts). Default 1. */
+  lrCurveMult?: number;
+  /** v18 precision only: the speedMult needs GPUs that support this format. */
+  hwFormat?: HwFormat;
+  /** v18 tokenizer only: vocabulary size in thousands (embedding tax). */
+  vocabK?: number;
 }
+
+/** v18: low-precision number formats a GPU can run natively. */
+export type HwFormat = 'bf16' | 'fp8' | 'fp4';
+
+/** v18: side effects post-training leaves on a model, hidden until eval. */
+export type TraitId = 'sycophancy' | 'rewardHacking' | 'overRefusal';
+export const TRAIT_IDS: TraitId[] = ['sycophancy', 'rewardHacking', 'overRefusal'];
 
 /** Everything the player chooses on the pre-training run sheet. */
 export interface TrainingConfig {
@@ -391,6 +408,10 @@ export interface TrainingConfig {
   post?: Id[];
   /** v16: data annealing for the last stretch of the run (option id, group 'anneal'). Missing = none. */
   anneal?: Id;
+  /** v18: -1 wide/shallow .. +1 deep/narrow, steps of 0.5. Missing = 0. */
+  shape?: number;
+  /** v18: experts active per token (MoE only). Missing = 2. */
+  moeTopK?: 1 | 2 | 4 | 8;
 }
 
 /** Model persona knobs set during instruct/chat-style fine-tunes. Each -1..1, 0 = neutral. */
@@ -417,6 +438,14 @@ export interface RunIncidentDef {
   weight: (s: GameState, run: TrainingRun) => number;
   good?: boolean;
   choices: RunIncidentChoice[];
+}
+
+/** v18: a planned decision point mid-run (data/runCalls.ts). weight() > 0 means eligible. Choice 0 is always "carry on". */
+export interface RunCallDef extends RunIncidentDef {
+  /** Progress fraction the call is planned at (jittered per run). */
+  at: number;
+  /** Lower = picked first when a run has room for fewer calls than are eligible. */
+  priority: number;
 }
 
 /** A personality trait a model can come out of training with. */
@@ -458,6 +487,8 @@ export interface Model {
   parentId?: Id | null;
   /** Spec ids from the base model down to this one, e.g. ['instruct','companion']. */
   lineage?: Id[];
+  /** v18: post-training side effects (severity 0..1), revealed at eval. */
+  traits?: Partial<Record<TraitId, number>>;
   contextK?: number;           // context window in thousands of tokens
   modalities?: ('text' | 'vision' | 'audio')[];
   /** Trained on benchmark test sets: inflated numbers, scandal risk. */
@@ -570,7 +601,11 @@ export interface TrainingRun {
   /** Flat cap changes picked up during the run (emergent abilities etc.). */
   capAdd?: Partial<Capabilities>;
   /** Incident awaiting a decision; the sim pauses until resolved. */
-  pendingIncident?: { defId: Id; day: number; result?: string; deltas?: TangibleDelta[] } | null;
+  pendingIncident?: { defId: Id; day: number; result?: string; deltas?: TangibleDelta[]; call?: boolean } | null;
+  /** v18: planned decision calls still to come, sorted by `at`. */
+  calls?: { id: Id; at: number }[];
+  /** v18: choice index applied automatically to future loss_spike incidents. */
+  spikePolicy?: number;
   /** Log lines for the run (incidents, rollbacks). */
   log?: { day: number; text: string; kind: NoticeKind }[];
   /** Days the run is stalled (rollbacks, hardware). Progress is not made while > 0. */
@@ -635,6 +670,8 @@ export interface RunHidden {
   grokking?: [number, number];
   /** v16: how well each post-training stage took (multiplier on its capAdd; ~1, breakthroughs ~2, duds ~0). */
   postTake?: Record<Id, number>;
+  /** v18: post-training side effects, severity 0..1. */
+  traits?: Partial<Record<TraitId, number>>;
 }
 
 export interface CheckpointReading {
@@ -728,6 +765,8 @@ export interface EvalReveal {
   benchmarks: Record<Id, number>;
   /** v16: lab-notebook lines that explain the result (stage breakthroughs and duds, recipe interactions, luck). */
   notes?: string[];
+  /** v18: post-training side effects revealed at eval. */
+  traits?: Partial<Record<TraitId, number>>;
 }
 
 export interface Datacenter {

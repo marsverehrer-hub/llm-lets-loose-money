@@ -63,3 +63,7 @@ export { NetView } from './NetView';
 export type { NetViewProps } from './NetView';
 export { netSpecOfText, netSpecOfMedia, depthWidth, weightsSize } from './netSpec';
 export type { NetSpec, NetFamily } from './netSpec';
+export { Check } from './Check';
+export type { CheckProps } from './Check';
+export { Select } from './Select';
+export type { SelectProps, SelectOption } from './Select';

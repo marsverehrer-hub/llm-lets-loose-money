@@ -1,8 +1,8 @@
 import type { ComponentChildren } from 'preact';
-import { useState } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
 
 export interface PanelIntroProps {
-  /** Stable id; the dismissal is remembered per id in localStorage. */
+  /** Stable id; the tip shows on the first visit only (remembered per id in localStorage). */
   id: string;
   /** One sentence: what this screen is for. */
   children: ComponentChildren;
@@ -24,22 +24,25 @@ function writeDismissed(v: Record<string, true>): void {
   try {
     localStorage.setItem(KEY, JSON.stringify(v));
   } catch {
-    // storage blocked: the intro just shows again next time
+    // storage blocked: the tip just shows again next time
   }
 }
 
-/** Forget every dismissed intro (Menu > Show screen tips again). */
+/** Forget every seen tip (Menu > Show screen tips again). */
 export function resetPanelIntros(): void {
   writeDismissed({});
 }
 
 /**
- * v10: a short "what this screen is for" strip at the top of a panel, for players who don't know the genre or
- * the AI industry. Dismissible; stays dismissed per panel.
+ * v18: a single quiet "what this screen is for" line. It shows on the first visit to a screen and is marked seen
+ * right away, so it never nags; Menu > Show screen tips again brings them back.
  */
 export function PanelIntro({ id, children, steps }: PanelIntroProps) {
-  const [hidden, setHidden] = useState(() => !!readDismissed()[id]);
-  if (hidden) return null;
+  const [show] = useState(() => !readDismissed()[id]);
+  useEffect(() => {
+    if (show) writeDismissed({ ...readDismissed(), [id]: true });
+  }, [id, show]);
+  if (!show) return null;
   return (
     <div class="panel-intro" role="note">
       <div class="panel-intro-body">
@@ -52,16 +55,6 @@ export function PanelIntro({ id, children, steps }: PanelIntroProps) {
           </ol>
         )}
       </div>
-      <button
-        type="button"
-        class="btn btn-sm btn-ghost"
-        onClick={() => {
-          writeDismissed({ ...readDismissed(), [id]: true });
-          setHidden(true);
-        }}
-      >
-        Got it
-      </button>
     </div>
   );
 }
