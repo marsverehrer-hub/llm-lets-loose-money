@@ -13,7 +13,7 @@ import { NextOfficeButton } from './staff/OfficeSheet';
 import { SceneView } from '../../scenes/SceneView';
 import { createScene as createDepartments, CAM as DEPT_CAM } from '../../scenes/staff';
 import { moraleTone, peoplePerGlyph, retention, teamStats } from './staff/model';
-import { ViewSection } from './compute/ViewSection';
+import { ViewFold } from './ViewFold';
 import './panels.css';
 import './staff/staff.css';
 
@@ -143,7 +143,7 @@ export function StaffPanel() {
       </Card>
 
       <Card title="The office floor" class="sf-floor-card">
-        <ViewSection panel="staff">
+        <ViewFold panel="staff">
           <SceneView
             state={s}
             make={createDepartments}
@@ -155,7 +155,7 @@ export function StaffPanel() {
               if (hit.id.startsWith('team:')) toggle(hit.id.slice(5) as RoleId);
             }}
           />
-        </ViewSection>
+        </ViewFold>
 
         <div class="sf-readout" aria-live="polite">
           {activeTeam ? (

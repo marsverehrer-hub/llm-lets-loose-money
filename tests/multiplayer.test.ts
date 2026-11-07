@@ -87,7 +87,8 @@ describe('two bot-driven sims over the network', () => {
     expect(g.mp!.result).toBeNull();
     expect(h.mp!.rival).not.toBeNull();
     expect(g.mp!.rival).not.toBeNull();
-    expect(h.mp!.rivalDay).toBeGreaterThanOrEqual(h.day - 2);
+    // A side pauses on a decision call until its bot answers the next day, so snapshots can lag a few days.
+    expect(h.mp!.rivalDay).toBeGreaterThanOrEqual(h.day - 6);
     expect(h.mp!.history.length).toBeGreaterThan(100);
 
     // Our rival entry mirrors their snapshot, and it's excluded from AI release logic (no def in COMPETITORS).

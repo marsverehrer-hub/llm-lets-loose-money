@@ -13,7 +13,7 @@ import './marketing/marketing.css';
 import { SceneView } from '../../scenes/SceneView';
 import { createScene as createCity, CAM as CITY_CAM } from '../../scenes/marketing';
 import { navigate } from '../nav';
-import { CameraDisclosure } from './CameraDisclosure';
+import { ViewFold } from './ViewFold';
 
 /** One weekly sample of the company's brand and hype. The sim does not record these yet (see the report). */
 interface BrandSample {
@@ -70,7 +70,7 @@ export function MarketingPanel() {
         <LineChart series={series} height={190} yFormat={(v) => String(Math.round(v))} emptyText="Trend starts after the first weekly sample." />
       </Card>
 
-      <CameraDisclosure panel="marketing">
+      <ViewFold panel="marketing">
         <SceneView
           state={s}
           make={createCity}
@@ -83,7 +83,7 @@ export function MarketingPanel() {
               document.querySelector('.mk-camp-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
           }}
         />
-      </CameraDisclosure>
+      </ViewFold>
 
       <div class="mk-lower">
         <Card title="Funnel" subtitle="Market size to your users, per segment">

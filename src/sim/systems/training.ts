@@ -529,10 +529,11 @@ function fireIncident(s: GameState, run: TrainingRun, rng: Rng): void {
 
 /**
  * v18: plan a run's decision calls at launch. No rng draws: eligibility, priority and the jitter all come from hashUniform.
- * Runs under 12 days get none, then one call under 40, two under 100 and three after that.
+ * Runs under 14 days get none, then one call under 40, two under 100 and three after that.
  */
 export function planRunCalls(s: GameState, run: TrainingRun, days: number): { id: Id; at: number }[] {
-  const n = !Number.isFinite(days) || days < 12 ? 0 : days < 40 ? 1 : days < 100 ? 2 : 3;
+  // v18: short runs never pause; the big bets earn decisions.
+  const n = !Number.isFinite(days) || days < 14 ? 0 : days < 40 ? 1 : days < 100 ? 2 : 3;
   if (n === 0) return [];
   const keyed = RUN_CALLS.filter((c) => c.weight(s, run) > 0).map((c) => ({ c, u: hashUniform(s.seed, run.id + c.id) }));
   keyed.sort((a, b) => a.c.priority - b.c.priority || a.u - b.u);
@@ -770,6 +771,7 @@ export const handlers: ActionHandlers = {
       overheadLeft: phys.overheadDays,
     };
     s.training.calls = planRunCalls(s, s.training, phys.days);
+    if (s.training.calls.length > 0) s.flags['callRuns'] = (s.flags['callRuns'] ?? 0) + 1;
     recomputeTrueOverall(s, s.training);
     const days = Number.isFinite(phys.days) ? Math.ceil(phys.days) : 0;
     notify(

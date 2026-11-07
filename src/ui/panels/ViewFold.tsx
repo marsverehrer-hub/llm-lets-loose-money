@@ -1,11 +1,11 @@
-// The "View" disclosure around a panel's camera scene (P-sweeps rule c): closed under 1200px wide, open above, and the
-// choice is remembered per panel in localStorage. Storage can be blocked, so every access is guarded.
+// The fold around a panel's camera scene: a "plate" in the paper. Closed under 1200px wide and open above by default;
+// the choice is remembered per panel in localStorage. The scene only mounts while open, so a closed plate costs nothing.
 import type { ComponentChildren } from 'preact';
 import { useState } from 'preact/hooks';
 
 const wide = (): boolean => (globalThis.innerWidth ?? 1440) >= 1200;
 
-export function ViewFold({ panel, children }: { panel: string; children: ComponentChildren }) {
+export function ViewFold({ panel, class: cls, label = 'Camera plate', children }: { panel: string; class?: string; label?: string; children: ComponentChildren }) {
   const key = `llm-lets-loose-money/view-${panel}`;
   const [open, setOpen] = useState<boolean>(() => {
     try {
@@ -18,7 +18,7 @@ export function ViewFold({ panel, children }: { panel: string; children: Compone
   });
   return (
     <details
-      class="disclosure view-fold"
+      class={`disclosure view-fold${cls ? ` ${cls}` : ''}`}
       open={open}
       onToggle={(e) => {
         const o = (e.currentTarget as HTMLDetailsElement).open;
@@ -30,8 +30,8 @@ export function ViewFold({ panel, children }: { panel: string; children: Compone
         }
       }}
     >
-      <summary>View</summary>
-      {children}
+      <summary>{label}</summary>
+      {open && children}
     </details>
   );
 }

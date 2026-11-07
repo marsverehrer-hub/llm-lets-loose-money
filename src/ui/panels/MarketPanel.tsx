@@ -16,7 +16,7 @@ import { useGame } from '../store';
 import { SEGMENT_NAME } from './marketing/campaignCopy';
 import { SceneView } from '../../scenes/SceneView';
 import { createScene as createTown, CAM as TOWN_CAM } from '../../scenes/market';
-import { CameraDisclosure } from './CameraDisclosure';
+import { ViewFold } from './ViewFold';
 import './panels-a.css';
 import './nt-tiers.css';
 
@@ -201,7 +201,7 @@ export function MarketPanel() {
         </div>
       )}
 
-      <CameraDisclosure panel="market">
+      <ViewFold panel="market">
         <SceneView
           state={s}
           make={createTown}
@@ -213,7 +213,7 @@ export function MarketPanel() {
             if (hit.id.startsWith('lab:')) setSel(hit.id.slice(4) === 'player' ? null : hit.id.slice(4));
           }}
         />
-      </CameraDisclosure>
+      </ViewFold>
 
       <Card
         class={board === 'arena' ? 'mkt-arena' : 'mkt-tiers'}

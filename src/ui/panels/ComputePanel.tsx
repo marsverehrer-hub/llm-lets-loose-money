@@ -11,7 +11,7 @@ import { BlockSheet, BuildBody, RentBody } from './compute/ComputeSheets';
 import { CloudMarket } from './compute/CloudMarket'; // v16 cloud providers
 import { NeocloudTab } from './compute/NeocloudTab'; // v16 neocloud
 import { HallList } from './compute/HallList';
-import { ViewSection } from './compute/ViewSection';
+import { ViewFold } from './ViewFold';
 import { useIntent } from '../nav';
 import './panels.css';
 import './compute/compute.css';
@@ -83,7 +83,7 @@ export function ComputePanel() {
         )}
       </Card>
 
-      <ViewSection panel="compute">
+      <ViewFold panel="compute">
         <SceneView
           state={s}
           make={createDatacenter}
@@ -101,7 +101,7 @@ export function ComputePanel() {
             <i class="cc-swatch cc-training" /> training <i class="cc-swatch cc-serving" /> serving <i class="cc-swatch cc-idle" /> idle · click a hall to manage it
           </span>
         </p>
-      </ViewSection>
+      </ViewFold>
 
       <div class="cc-two">
         <FleetPicker s={s} />

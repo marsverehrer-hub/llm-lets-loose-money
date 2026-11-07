@@ -210,40 +210,6 @@ export function Banner(props: { tone?: Tone; icon?: string; children?: any }) {
   );
 }
 
-/**
- * A panel's camera or office scene, folded into a "View" disclosure: open above 1200px, closed below, remembered per
- * panel. Storage is a per-viewer convenience, so a blocked localStorage just falls back to the width default.
- */
-export function ViewDisclosure({ panel, children }: { panel: string; children?: any }) {
-  const key = `llm-lets-loose-money/view-${panel}`;
-  const [open, setOpen] = useState<boolean>(() => {
-    try {
-      const saved = localStorage.getItem(key);
-      if (saved !== null) return saved === '1';
-    } catch {
-      /* storage blocked: use the default */
-    }
-    return window.innerWidth >= 1200;
-  });
-  return (
-    <details
-      class="disclosure view-disclosure"
-      open={open}
-      onToggle={(e) => {
-        const next = (e.currentTarget as HTMLDetailsElement).open;
-        setOpen(next);
-        try {
-          localStorage.setItem(key, next ? '1' : '0');
-        } catch {
-          /* storage blocked: the choice lasts for this visit */
-        }
-      }}
-    >
-      <summary>View</summary>
-      {children}
-    </details>
-  );
-}
 
 /** Two-click destructive button: first click arms it, second confirms. Disarms after 3s. */
 export function ConfirmButton(props: {

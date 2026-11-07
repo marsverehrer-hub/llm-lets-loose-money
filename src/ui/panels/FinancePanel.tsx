@@ -15,7 +15,7 @@ import './panels-a.css';
 import './finance.css';
 import { SceneView } from '../../scenes/SceneView';
 import { createScene as createTreasury, CAM as TREASURY_CAM } from '../../scenes/finance';
-import { CameraDisclosure } from './CameraDisclosure';
+import { ViewFold } from './ViewFold';
 
 type Metric = 'cash' | 'valuation' | 'flow';
 
@@ -505,7 +505,7 @@ export function FinancePanel() {
         </Card>
       </div>
 
-      <CameraDisclosure panel="finance">
+      <ViewFold panel="finance">
         <SceneView
           state={s}
           make={createTreasury}
@@ -513,7 +513,7 @@ export function FinancePanel() {
           camId="CAM-09"
           label="The treasury: your cash in the vault, money flowing in and out by category, investors at the table and the stock board"
         />
-      </CameraDisclosure>
+      </ViewFold>
 
       <div class="grid-split fin-row-chart">
         <Card

@@ -4,7 +4,8 @@ import { getState, useGame } from '../store';
 import { formatMoney } from '../../sim/util';
 import { PanelHeader, PanelIntro, Card, Stat } from '../components';
 import type { ProductKind } from '../../sim/types';
-import { Empty, ViewDisclosure } from './panelKit';
+import { Empty } from './panelKit';
+import { ViewFold } from './ViewFold';
 import { liveLines, MAX_LINES_PER_KIND, unlockedProductKinds } from '../../sim/systems/products';
 import { useIntent } from '../nav';
 import { economics } from './products/productsKit';
@@ -72,7 +73,7 @@ export function ProductsPanel() {
         </Card>
       </div>
 
-      <ViewDisclosure panel="products">
+      <ViewFold panel="products">
         <SceneView
           state={s}
           make={createStreet}
@@ -85,7 +86,7 @@ export function ProductsPanel() {
             else if (hit.id.startsWith('lot:')) setLaunchKind(hit.id.slice(4) as ProductKind);
           }}
         />
-      </ViewDisclosure>
+      </ViewFold>
 
       <LaunchSheet kind={launchKind} onClose={() => setLaunchKind(null)} />
     </div>

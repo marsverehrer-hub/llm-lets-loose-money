@@ -1795,7 +1795,7 @@ Nothing is a free upgrade. Each non-baseline option has at least one downside (`
 - Long-context windows need books or code: the context gain scales with their share, unless the run anneals long.
 
 ### 31.4 Mid-run decision calls (`data/runCalls.ts`)
-A pretrain raises up to three calls, planned at launch (none under 12 days; one under 40; two under 100; three after).
+A pretrain raises up to three calls, planned at launch (none under 14 days; one under 40; two under 100; three after).
 Calls use the incident machinery, so the sim pauses for them, but **choice 0 is always "carry on, nothing changes"**:
 a passive player is never worse off for ignoring one.
 

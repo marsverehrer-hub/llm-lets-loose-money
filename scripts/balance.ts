@@ -46,6 +46,7 @@ interface Run {
   /** v18: pretraining runs started, and decision calls raised during them (§31). */
   pretrains: number;
   callsRaised: number;
+  callRuns: number;
 }
 
 function bestReleasedOverall(s: GameState): number {
@@ -76,6 +77,7 @@ function runOne(strategy: Strategy, seed: number, years: number): Run {
     blockedTicks: 0,
     pretrains: 0,
     callsRaised: 0,
+    callRuns: 0,
   };
   const seenRuns = new Set<string>();
   // v18: count pretrains by the run ids the bot sees, sampled before and after each tick (a run can end inside a tick).
@@ -136,6 +138,7 @@ function runOne(strategy: Strategy, seed: number, years: number): Run {
   run.contractShare = totalRev > 0 ? contractRev / totalRev : 0;
   run.bestEnd = bestReleasedOverall(s);
   run.callsRaised = s.flags['callsRaised'] ?? 0;
+  run.callRuns = s.flags['callRuns'] ?? 0;
   return run;
 }
 
@@ -183,6 +186,8 @@ function cell(vals: Num[], fmt: (v: number) => string): string {
 
 /** v18: decision calls per pretrain (a seed with no pretrain counts as 0). */
 const callsPerPretrain = (r: Run): number => (r.pretrains > 0 ? r.callsRaised / r.pretrains : 0);
+/** v18: calls per run long enough to plan any (runs under 14 days never pause). */
+const callsPerCallRun = (r: Run): number => (r.callRuns > 0 ? r.callsRaised / r.callRuns : 0);
 
 /** Metric rows of the comparison table. `better` is the direction used for the dominance check. */
 interface Metric {
@@ -351,17 +356,17 @@ function designChecks(byStrategy: Map<Strategy, Run[]>): Check[] {
     out.push({ label: '§19 no strategy dominates every column', pass: null, detail: 'needs all four strategies (use --all)' });
   }
 
-  // §31: a pretrain raises one to three decision calls on average (the bot always picks carry on).
-  const pooled = BOT_STRATEGIES.flatMap((s) => runsOf(s) ?? []).filter((r) => r.pretrains > 0);
+  // §31: a run long enough to plan calls raises one to three of them (the bot always picks carry on).
+  const pooled = BOT_STRATEGIES.flatMap((s) => runsOf(s) ?? []).filter((r) => r.callRuns > 0);
   if (pooled.length) {
-    const med = medianOf(pooled.map(callsPerPretrain));
+    const med = medianOf(pooled.map(callsPerCallRun));
     out.push({
-      label: '§31 median 1-3 calls per pretrain',
+      label: '§31 median 1-3 calls per long run',
       pass: med !== null && med >= 1 && med <= 3,
-      detail: `median ${med === null ? 'n/a' : med.toFixed(2)} over ${pooled.length} runs with a pretrain`,
+      detail: `median ${med === null ? 'n/a' : med.toFixed(2)} over ${pooled.length} seeds with a long run`,
     });
   } else {
-    out.push({ label: '§31 median 1-3 calls per pretrain', pass: null, detail: 'no pretrain ran' });
+    out.push({ label: '§31 median 1-3 calls per long run', pass: null, detail: 'no run long enough for calls' });
   }
 
   // Overall must not saturate early.

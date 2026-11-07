@@ -46,7 +46,7 @@ describe('planning', () => {
   it('plans no calls for a short run and up to three for a long one', () => {
     const s = fleet(1);
     const run = startRun(s, 5, 100);
-    expect(planRunCalls(s, run, 5)).toEqual([]);
+    expect(planRunCalls(s, run, 13)).toEqual([]);
     expect(planRunCalls(s, run, Infinity)).toEqual([]);
     expect(planRunCalls(s, run, 200).length).toBeLessThanOrEqual(3);
   });
