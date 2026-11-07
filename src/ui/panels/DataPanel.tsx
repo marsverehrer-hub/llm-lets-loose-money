@@ -1,11 +1,13 @@
-// The Data screen. Leads with "Your tokens" (a treemap of what you own) and two numbers training reads. The
-// catalogue has its filters in one row; a set's detail opens in a sheet; the make-your-own-data tools are tabs on the page.
+// The Data screen. Two numbers training reads and the warehouse plate sit on top; three tabs hold the rest: the catalogue
+// (your token map, then the sets for sale with its filters), get data (the eight ways in) and refinery (make your own data).
+// A set's detail opens in a sheet. The chosen tab is kept in useState only.
 import { useState } from 'preact/hooks';
 import { useGame } from '../store';
 import { calendarYear } from '../../sim/util';
 import { DATA_TUNING, availableDatasetsV2, collapsePenalty, dataStats, syntheticShare, type DatasetRow } from '../../sim/systems/data';
 import type { GameState, Id } from '../../sim/types';
 import { Card, HelpTip, PanelHeader, PanelIntro, Tabs } from '../components';
+import type { TabDef } from '../components';
 import './panels.css';
 import './data.css';
 import { GetDataArea } from './DataOpsArea';
@@ -19,6 +21,13 @@ import { CommissionBody, LicenceBody, SyntheticBody, TOOL_TITLE, UserDataBody, l
 import { DEFAULT_VIEW, heroNumbers, ownedItems, type CatalogueView } from './data/model';
 import { fmtTok, pct, plural, usd } from './data/labels';
 
+type DataPart = 'catalogue' | 'getdata' | 'refinery';
+const PARTS: TabDef<DataPart>[] = [
+  { id: 'catalogue', label: 'Catalogue' },
+  { id: 'getdata', label: 'Get data' },
+  { id: 'refinery', label: 'Refinery' },
+];
+
 export function DataPanel() {
   const s = useGame();
   const rows: DatasetRow[] = availableDatasetsV2(s);
@@ -28,9 +37,11 @@ export function DataPanel() {
   const [view, setView] = useState<CatalogueView>(DEFAULT_VIEW);
   const [selId, setSelId] = useState<Id | null>(null);
   const [tool, setTool] = useState<ToolId>('commission');
+  const [part, setPart] = useState<DataPart>('catalogue');
   const openTool = (t: ToolId) => {
     setTool(t);
-    document.getElementById('dt-make')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setPart('refinery');
+    requestAnimationFrame(() => document.getElementById('dt-make')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   };
   const selRow = selId ? rows.find((r) => r.def.id === selId) : undefined;
   const patch = (p: Partial<CatalogueView>) => setView((v) => ({ ...v, ...p }));
@@ -65,16 +76,11 @@ export function DataPanel() {
           Pick a block in the map or a row in the catalogue to open a set. Audit a set to learn its real quality: until then it is the seller's claim.
         </PanelIntro>
 
-        <section class="dt-hero" aria-label="Your tokens">
-          <Card title="Your tokens" subtitle={`${hero.owned} ${hero.owned === 1 ? 'set' : 'sets'}`} class="dt-hero-map">
-            <TokenMap items={items} onOpen={setSelId} />
-          </Card>
-          <div class="dt-nums">
-            <DataFacts s={s} onTool={openTool} />
-          </div>
+        <section class="dt-figures" aria-label="Your numbers">
+          <DataFacts s={s} onTool={openTool} />
         </section>
 
-        <ViewFold panel="data">
+        <ViewFold panel="data" defaultOpen={false}>
           <SceneView
             state={s}
             make={createWarehouse}
@@ -84,21 +90,39 @@ export function DataPanel() {
             onSelect={(hit) => {
               if (hit.id.startsWith('domain:')) {
                 patch({ domain: hit.id.slice(7) as CatalogueView['domain'], status: 'owned' as CatalogueView['status'] });
-                document.querySelector('.dt-filter-inline')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                setPart('catalogue');
+                requestAnimationFrame(() => document.querySelector('.dt-filter-inline')?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
               }
             }}
           />
         </ViewFold>
 
-        <GetDataArea
-          s={s}
-          market={
-            <>
-              <Catalogue s={s} rows={rows} view={view} patch={patch} selId={selId} onOpen={setSelId} />
-              <MakeData s={s} tool={tool} onTool={setTool} />
-            </>
-          }
-        />
+        <Tabs<DataPart> class="dt-tabs" value={part} onChange={setPart} tabs={PARTS} />
+
+        {part === 'catalogue' && (
+          <>
+            <Card title="Your tokens" subtitle={`${hero.owned} ${hero.owned === 1 ? 'set' : 'sets'}`} class="dt-hero-map">
+              <TokenMap items={items} onOpen={setSelId} />
+            </Card>
+            <Catalogue s={s} rows={rows} view={view} patch={patch} selId={selId} onOpen={setSelId} />
+          </>
+        )}
+
+        {part === 'getdata' && (
+          <GetDataArea
+            s={s}
+            market={
+              <p class="dt-market-pointer">
+                {plural(rows.filter((r) => r.status === 'owned').length, 'set')} owned.{' '}
+                <button type="button" class="btn btn-sm" onClick={() => setPart('catalogue')}>
+                  Open the catalogue
+                </button>
+              </p>
+            }
+          />
+        )}
+
+        {part === 'refinery' && <MakeData s={s} tool={tool} onTool={setTool} />}
       </div>
 
       <SetSheet s={s} row={selRow} year={year} onClose={() => setSelId(null)} />

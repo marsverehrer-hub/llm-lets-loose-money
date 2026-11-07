@@ -5,7 +5,8 @@ import { useState } from 'preact/hooks';
 
 const wide = (): boolean => (globalThis.innerWidth ?? 1440) >= 1200;
 
-export function ViewFold({ panel, class: cls, label = 'Camera plate', children }: { panel: string; class?: string; label?: string; children: ComponentChildren }) {
+/** defaultOpen applies only when nothing is stored for the panel yet; undefined keeps the width rule. */
+export function ViewFold({ panel, class: cls, label = 'Camera plate', defaultOpen, children }: { panel: string; class?: string; label?: string; defaultOpen?: boolean; children: ComponentChildren }) {
   const key = `llm-lets-loose-money/view-${panel}`;
   const [open, setOpen] = useState<boolean>(() => {
     try {
@@ -14,7 +15,7 @@ export function ViewFold({ panel, class: cls, label = 'Camera plate', children }
     } catch {
       /* storage blocked: fall back to the width rule */
     }
-    return wide();
+    return defaultOpen ?? wide();
   });
   return (
     <details

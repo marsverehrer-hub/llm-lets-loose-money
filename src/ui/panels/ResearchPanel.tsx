@@ -194,7 +194,7 @@ export function ResearchPanel() {
 
       {(v.current || (s.research.queue ?? []).length > 0) && <ResearchQueueStrip perDay={v.perDay} />}
 
-      <ViewFold panel="research">
+      <ViewFold panel="research" defaultOpen={false}>
         <SceneView
           state={s}
           make={createLab}
