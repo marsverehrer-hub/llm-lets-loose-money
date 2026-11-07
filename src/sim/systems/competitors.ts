@@ -11,7 +11,7 @@ import { rivalExclusiveMalus } from './data';
 import { applyHostLabs } from './multiplayer';
 import { labInfo } from './labs';
 import { rivalQualityOffset } from './scenario'; // v9 scenario
-import { canActivate, onRivalRelease, rivalBase, rivalsTick } from './rivals';
+import { canActivate, onRivalRelease, rivalBase, rivalReleaseName, rivalsTick } from './rivals';
 
 // frontierQuality lives in market.ts (to avoid an import cycle); re-exported here for callers.
 export { frontierQuality };
@@ -359,7 +359,7 @@ function releaseModel(s: GameState, rng: Rng, def: CompetitorDef, c: Competitor)
   }
   const { caps, scores, overall } = built;
 
-  const name = nextRivalName(s, def, c, caps);
+  const name = rivalReleaseName(s, def, built.overall, nextRivalName(s, def, c, caps)); // v19: the size in the name is the real one
 
   c.model = { name, scores, overall, elo: 800 + overall * 8, releasedDay: s.day, caps, benchmarks: benchmarkTable(caps, calendarYear(s.day), null) };
   c.modelsReleased += 1;

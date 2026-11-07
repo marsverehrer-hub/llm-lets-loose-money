@@ -17,6 +17,7 @@ import { SEGMENTS, mtokPerUserDay } from '../market';
 import { researchCost, RESEARCH_TUNING } from '../research';
 import { hashUniform, trueQualityOf } from '../data';
 import { RIVAL_TUNING } from './tuning';
+import { classThresholds } from '../../data/weightClasses';
 import { planMods } from './plans';
 
 const T = RIVAL_TUNING;
@@ -391,16 +392,59 @@ function pointReleaseSize(overall: number, prev: RivalModel | undefined, day: nu
   return { paramsB, tokensB: Math.max(prev?.tokensB ?? 0, 20 * paramsB), dataQuality, arch: prev?.arch ?? 'dense', trainedDay: day, datasetIds: prev?.datasetIds ?? ([] as Id[]) };
 }
 
+/** The size of the release a lab is about to ship: the finished run's, or a point release sized to its score. */
+function releaseSize(s: GameState, lab: RivalLab, overall: number) {
+  const ready = lab.ready;
+  if (ready) return { paramsB: ready.paramsB, tokensB: ready.tokensB, dataQuality: ready.dataQuality, arch: ready.arch, trainedDay: ready.trainedDay, datasetIds: lab.datasets.slice() };
+  return pointReleaseSize(overall, lab.models[lab.models.length - 1], s.day);
+}
+
+/** "7B", "1.5B", "389B", "2T": how a parameter count reads in a model name. */
+export function sizeTag(paramsB: number): string {
+  if (paramsB >= 1000) return `${Math.round(paramsB / 100) / 10}T`;
+  if (paramsB >= 10) return `${Math.round(paramsB)}B`;
+  return `${Math.max(0.1, Math.round(paramsB * 10) / 10)}B`;
+}
+
+/**
+ * House names carry a size ("Qwerty2.5-72B", "...-235B-A22B"). Rewrite it to the model's real size so the name never
+ * lies: the total, and the active parameters for a mixture of experts (dropped for a dense model).
+ */
+export function fitNameToSize(name: string, paramsB: number, arch: string, year?: number): string {
+  const active = arch === 'moe' ? paramsB * RIVAL_TUNING.MOE_ACTIVE_SHARE : null;
+  let out = name.replace(/-A\d+(?:\.\d+)?B\b/, active ? `-A${sizeTag(active)}` : '');
+  // "8x22B" is experts x expert size: keep the expert count, size each expert from the total.
+  const moe = out.match(/(\d+)x\d+(?:\.\d+)?B\b/);
+  if (moe) out = out.replace(moe[0], `${moe[1]}x${sizeTag(paramsB / Number(moe[1]))}`);
+  else out = out.replace(/(?<![A-Za-z0-9.])\d+(?:\.\d+)?[BT]\b/, sizeTag(paramsB));
+  if (year !== undefined) out = fitSizeWord(out, active ?? paramsB, year);
+  return out;
+}
+
+const SMALL_WORDS = /\b(Nano|Mini|Tiny|Lite|Small)\b/;
+const BIG_WORDS = /\b(Large|Max|Ultra|Big|Grand)\b/;
+
+/** "Small" and "Large" in a name follow the year's weight class (a 300B model is not Small, a 3B one is not Max). */
+function fitSizeWord(name: string, activeB: number, year: number): string {
+  const t = classThresholds(year);
+  if (activeB > t.small && SMALL_WORDS.test(name)) return name.replace(SMALL_WORDS, activeB > t.medium ? 'Large' : 'Medium');
+  if (activeB <= t.small && BIG_WORDS.test(name)) return name.replace(BIG_WORDS, activeB <= t.nano ? 'Mini' : 'Small');
+  return name;
+}
+
+/** The name a rival release ships under (competitors.ts releaseModel calls this before any news goes out). */
+export function rivalReleaseName(s: GameState, def: CompetitorDef, overall: number, houseName: string): string {
+  const lab = labOf(s, def);
+  if (!lab) return houseName;
+  const size = releaseSize(s, lab, overall);
+  return fitNameToSize(houseName, size.paramsB, size.arch, yearOf(s.day));
+}
+
 export function onRivalRelease(s: GameState, def: CompetitorDef, c: Competitor): void {
   const lab = labOf(s, def);
   const mdl = c.model;
   if (!lab || !mdl) return;
-  const prev: RivalModel | undefined = lab.models[lab.models.length - 1];
-  const ready = lab.ready;
-  // A trained run gives the real size and data; a point release keeps the previous model's.
-  const size = ready
-    ? { paramsB: ready.paramsB, tokensB: ready.tokensB, dataQuality: ready.dataQuality, arch: ready.arch, trainedDay: ready.trainedDay, datasetIds: lab.datasets.slice() }
-    : pointReleaseSize(mdl.overall, prev, s.day);
+  const size = releaseSize(s, lab, mdl.overall);
   const open = hashUniform(s.seed, `${def.id}:${mdl.name}`) < (def.openBias ?? 0) + planMods(lab).open;
   const license: RivalModel['license'] = open ? (def.kind === 'open' ? 'permissive' : 'noncommercial') : 'research';
   const caps: Capabilities = mdl.caps ?? emptyCaps();

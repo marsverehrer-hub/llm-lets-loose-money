@@ -17,6 +17,8 @@ export const RIVAL_TUNING = {
   TRAINING_SHARE: 0.6,
   /** Shortest a rival run can be (setup, evals, red-teaming), in days. */
   MIN_RUN_DAYS: 21,
+  /** Share of a mixture-of-experts model active per token (for the "-A22B" part of a name). */
+  MOE_ACTIVE_SHARE: 0.18,
   /** Weeks of burn a lab keeps in reserve before buying hardware. */
   COMPUTE_RESERVE_WEEKS: 104,
   /** B2 money: staff and owned-GPU costs, in $ per year or per GPU. */

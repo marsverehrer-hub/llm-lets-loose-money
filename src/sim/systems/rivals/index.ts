@@ -11,7 +11,7 @@ import { plansYear } from './plans';
 import { dayToDate } from '../../util';
 
 export { RIVAL_TUNING } from './tuning';
-export { rivalBase, onRivalRelease } from './brain';
+export { rivalBase, onRivalRelease, rivalReleaseName } from './brain';
 export { canActivate } from './lifecycle';
 export { planMods, PLAN_NAME } from './plans';
 
