@@ -10,7 +10,7 @@ export interface RadarAxis {
 export interface RadarSeries {
   /** Legend name, e.g. "Loosey-2" or "Best rival". */
   name: string;
-  /** CSS colour, usually a token: 'var(--amber)'. */
+  /** CSS colour, usually a token: 'var(--accent)'. */
   color: string;
   /** Value per axis id. Missing axes count as 0. */
   values: Record<string, number>;

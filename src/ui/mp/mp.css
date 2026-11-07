@@ -149,7 +149,7 @@
   gap: 8px;
   padding: 0 14px;
   background: var(--bg-2);
-  border-bottom: 1px solid var(--amber-2);
+  border-bottom: 1px solid var(--accent-2);
   color: var(--fg-2);
   font-size: var(--fs-xs);
   pointer-events: none;
@@ -462,7 +462,7 @@
   border-radius: var(--r-sm);
 }
 .mps-live {
-  border-color: var(--amber-3);
+  border-color: var(--accent-3);
 }
 .mps-h {
   margin: 0;
@@ -638,7 +638,7 @@
   height: 24px;
   display: grid;
   place-items: center;
-  border: 1px solid var(--amber-3);
+  border: 1px solid var(--accent-3);
   color: var(--accent);
   font-family: var(--mono);
   font-size: var(--fs-sm);
@@ -856,7 +856,7 @@
 }
 .mp-vote.is-ask,
 .mp-vote.is-count {
-  border-color: var(--amber-2);
+  border-color: var(--accent-2);
 }
 .mp-vote-note {
   padding: 8px 12px;

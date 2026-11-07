@@ -100,10 +100,10 @@ function Capabilities({ s, m }: { s: GameState; m: Model }) {
   if (m.releasedDay === null) {
     const expected = m.forecast?.caps;
     if (!expected) return <span class="mpg-desc">Capabilities stay unknown until release. Benchmarks give hints.</span>;
-    return <Radar axes={CAP_AXES} series={[{ name: 'Expected', color: 'var(--amber)', values: expected }, ...rivalSeries]} />;
+    return <Radar axes={CAP_AXES} series={[{ name: 'Expected', color: 'var(--accent)', values: expected }, ...rivalSeries]} />;
   }
   const caps = modelCaps(m, s);
-  return <Radar axes={CAP_AXES} series={[{ name: m.name, color: 'var(--amber)', values: caps }, ...rivalSeries]} />;
+  return <Radar axes={CAP_AXES} series={[{ name: m.name, color: 'var(--accent)', values: caps }, ...rivalSeries]} />;
 }
 
 function Quirks({ m }: { m: Model }) {

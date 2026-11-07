@@ -27,8 +27,7 @@ export type TrainingOption = TrainingOptionDef & {
 };
 
 /** Sheet fields added in v18 (shape, MoE top-k). Read through this so the sheet type stays as the shared contract has it. */
-type SheetExtras = { shape?: number; moeTopK?: number };
-const sheetOf = (cfg: TrainingConfig) => cfg as TrainingConfig & SheetExtras;
+const sheetOf = (cfg: TrainingConfig) => cfg; // shape and moeTopK live on TrainingConfig (v18 contract)
 
 export const TRAINING_OPTION_GROUPS: TrainingOptionGroup[] = ['arch', 'tokenizer', 'context', 'optimizer', 'precision', 'schedule', 'filter', 'post', 'anneal'];
 

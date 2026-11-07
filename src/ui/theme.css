@@ -64,10 +64,6 @@
   --marker: rgba(232, 200, 60, 0.32);
   --marker-strong: rgba(232, 200, 60, 0.5);
   --note: #3a331c;
-  --amber: var(--accent);
-  --amber-2: var(--accent-2);
-  --amber-3: var(--accent-3);
-  --yellow: var(--warn);
 
   /* Meaning: plum = best in the world (and set in bold), green ink = good, red pen = bad, ochre = caution. */
   --sota: #c99cf2;
@@ -793,7 +789,7 @@ textarea {
 .pill-violet { color: var(--accent); }
 .pill-info,
 .pill-cyan { color: var(--blue); }
-.pill-milestone { color: var(--yellow); }
+.pill-milestone { color: var(--sota); }
 .pill-muted { color: var(--fg-3); }
 
 .dot {
@@ -810,7 +806,7 @@ textarea {
 .dot-violet { background: var(--accent); }
 .dot-info,
 .dot-cyan { background: var(--blue); }
-.dot-milestone { background: var(--yellow); }
+.dot-milestone { background: var(--sota); }
 .dot-pulse { animation: blink 1.2s ease-in-out infinite; }
 
 /* ---------- bars ----------------------------------------------------------- */

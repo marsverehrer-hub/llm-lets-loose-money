@@ -1,9 +1,10 @@
-import type { GpuDef, DatacenterTier } from '../types';
+import type { GpuDef, DatacenterTier, HwFormat } from '../types';
 
 /** Hardware number formats a GPU runs natively. Other formats are emulated at the bf16/fp16 speed (systems/scaleLimits.ts). */
-export type HwFormat = 'bf16' | 'fp8' | 'fp4';
+export type { HwFormat } from '../types';
 /** A GPU with its native formats (a GpuDef field once types.ts carries it). */
-export type GpuSpec = GpuDef & { formats?: HwFormat[] };
+/** The contract's GpuDef already carries `formats` (v18); kept as an alias for existing imports. */
+export type GpuSpec = GpuDef;
 
 /** Speed of each precision on hardware that runs it natively (the fp32 baseline is 1). Emulated formats run slower. */
 export const PRECISION_SPEED = { fp16: 1.7, bf16: 1.8, fp8: 2.6, fp4: 3.6 } as const;

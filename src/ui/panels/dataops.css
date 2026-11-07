@@ -93,10 +93,10 @@
   cursor: pointer;
   white-space: nowrap;
 }
-.do-chip:hover { border-color: var(--amber); color: var(--amber); }
+.do-chip:hover { border-color: var(--accent); color: var(--accent); }
 .do-chip[aria-pressed='true'] {
-  background: var(--amber);
-  border-color: var(--amber);
+  background: var(--accent);
+  border-color: var(--accent);
   color: var(--on-accent);
   font-weight: 600;
 }
@@ -124,7 +124,7 @@
   width: 20px;
   height: 20px;
   flex: 0 0 auto;
-  accent-color: var(--amber);
+  accent-color: var(--accent);
 }
 
 .do-actions {
@@ -236,7 +236,7 @@
 .do-bar > span {
   display: block;
   height: 100%;
-  background: var(--amber);
+  background: var(--accent);
 }
 
 /* ---------- cards in a grid ----------------------------------------------- */
@@ -291,7 +291,7 @@
 }
 /* A closed tab says why, in the same line as its intro. */
 .do-intro.do-lock {
-  color: var(--yellow);
+  color: var(--warn);
 }
 
 /* Flat bars: taller than the job bar, with the colour chosen by state. */
@@ -456,7 +456,7 @@
   cursor: pointer;
 }
 .do-details > summary:hover {
-  color: var(--amber);
+  color: var(--accent);
 }
 .do-details > .do-list,
 .do-details > .do-note {

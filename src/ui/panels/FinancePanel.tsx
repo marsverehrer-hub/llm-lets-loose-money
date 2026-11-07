@@ -603,7 +603,7 @@ export function FinancePanel() {
 
       {tab === 'overview' && (
         <>
-          <ViewFold panel="finance">
+          <ViewFold panel="finance" defaultOpen={false}>
             <SceneView
               state={s}
               make={createTreasury}

@@ -565,7 +565,7 @@
 }
 .ticker-item.good .ticker-mark { background: var(--up); }
 .ticker-item.bad .ticker-mark { background: var(--down); }
-.ticker-item.milestone .ticker-mark { background: var(--yellow); }
+.ticker-item.milestone .ticker-mark { background: var(--warn); }
 .ticker-item.info .ticker-mark { background: var(--blue); }
 @keyframes ticker {
   from { transform: translateX(0); }
@@ -599,7 +599,7 @@
 .toast-good { --tone: var(--up); }
 .toast-bad { --tone: var(--down); }
 .toast-info { --tone: var(--blue); }
-.toast-milestone { --tone: var(--yellow); }
+.toast-milestone { --tone: var(--warn); }
 .toast-title {
   color: var(--tone);
   font-size: 12px;

@@ -29,7 +29,7 @@
 }
 .stack-card.sel,
 .stack-card.is-selected {
-  border-color: var(--amber);
+  border-color: var(--accent);
 }
 .stack-card.me {
   box-shadow: inset 3px 0 0 var(--accent);
@@ -554,7 +554,7 @@
     background: var(--bg-2);
   }
   .table-scroll .table tr.sel td:first-child {
-    background: var(--amber);
+    background: var(--accent);
   }
   /* Existing tables can stack too: add class table-stack, and data-label on each td. */
   .table-stack thead {
@@ -638,8 +638,8 @@
     cursor: pointer;
   }
   .office-toggle:hover {
-    color: var(--amber);
-    border-color: var(--amber);
+    color: var(--accent);
+    border-color: var(--accent);
   }
 }
 

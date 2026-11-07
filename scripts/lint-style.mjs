@@ -18,7 +18,8 @@ for (const d of dirs) walk(join(root, d));
 
 /** Literal radii up to this size are fine for small parts (chips, keys, swatches). Bigger shapes use the tokens. */
 const MAX_LITERAL_RADIUS = 16;
-const STRICT = process.argv.includes('--strict');
+// v18: strict is the default now that every screen is migrated; --strict is kept as a no-op for scripts.
+const STRICT = true;
 
 const problems = [];
 const EMOJI = /\p{Extended_Pictographic}/u;

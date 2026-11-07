@@ -23,7 +23,7 @@
   font-size: var(--fs-xs);
   cursor: pointer;
 }
-.cam-toggle:hover { color: var(--amber); border-color: var(--amber); }
+.cam-toggle:hover { color: var(--accent); border-color: var(--accent); }
 .scene-view.scene-collapsed { display: flex; align-items: center; min-height: 36px; }
 .scene-view.scene-collapsed .cam-toggle { top: 50%; bottom: auto; transform: translateY(-50%); }
 @media (max-width: 760px) {

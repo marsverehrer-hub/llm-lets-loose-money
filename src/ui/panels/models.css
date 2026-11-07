@@ -116,7 +116,7 @@
   bottom: -4px;
   width: 2px;
   margin-left: -1px;
-  background: var(--amber);
+  background: var(--accent);
 }
 .md-band-nums {
   position: relative;
@@ -130,7 +130,7 @@
   position: absolute;
   top: 0;
   transform: translateX(-50%);
-  color: var(--amber);
+  color: var(--accent);
   white-space: nowrap;
 }
 .md-band-inline { font-size: var(--fs-xs); }
@@ -166,12 +166,12 @@
   font-size: var(--fs-xs);
   font-variant-numeric: tabular-nums;
 }
-.md-ax-amber { fill: var(--amber); }
+.md-ax-amber { fill: var(--accent); }
 .md-ax-fc { fill: var(--fg-2); }
 .md-line-real { stroke: var(--blue); stroke-width: 1.5; }
 .md-line-fc { stroke: var(--fg-2); stroke-width: 1.5; stroke-dasharray: 5 4; }
 .md-dot-now { fill: var(--blue); }
-.md-marker { stroke: var(--amber); stroke-width: 1; stroke-dasharray: 3 3; }
+.md-marker { stroke: var(--accent); stroke-width: 1; stroke-dasharray: 3 3; }
 .md-pt-near { fill: var(--blue); }
 .md-pt-far { fill: none; stroke: var(--fg-3); stroke-width: 1.25; }
 .md-key-row {
@@ -233,14 +233,14 @@
   align-items: baseline;
   gap: 10px;
   padding: 6px 10px;
-  border-left: 2px solid var(--amber);
+  border-left: 2px solid var(--accent);
   background: var(--bg-2);
   color: var(--fg);
   font-size: var(--fs-sm);
   line-height: 1.45;
 }
 .md-emerge-at {
-  color: var(--amber);
+  color: var(--accent);
   white-space: nowrap;
 }
 .md-emerge-text {
@@ -367,7 +367,7 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  background: var(--amber);
+  background: var(--accent);
 }
 .md-bi-v { text-align: right; color: var(--fg); }
 .md-release {

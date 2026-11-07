@@ -77,12 +77,12 @@
   white-space: nowrap;
 }
 .nl-chip:hover {
-  border-color: var(--amber);
-  color: var(--amber);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 .nl-chip.on {
-  background: var(--amber);
-  border-color: var(--amber);
+  background: var(--accent);
+  border-color: var(--accent);
   color: var(--on-accent);
   font-weight: 600;
 }
@@ -137,7 +137,7 @@
 .nl-good .nl-kind { color: var(--up); }
 .nl-bad .nl-kind { color: var(--down); }
 .nl-info .nl-kind { color: var(--blue); }
-.nl-milestone .nl-kind { color: var(--yellow); }
+.nl-milestone .nl-kind { color: var(--warn); }
 .nl-text {
   color: var(--fg);
   font-size: var(--fs-sm);
@@ -150,7 +150,7 @@
   display: inline-block;
   margin-left: 6px;
   padding: 0 4px;
-  background: var(--amber);
+  background: var(--accent);
   color: var(--on-accent);
   font-family: var(--mono);
   font-size: var(--fs-xs);

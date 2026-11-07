@@ -77,14 +77,14 @@
 .ft-step-on {
   color: var(--fg);
   font-weight: 600;
-  border-bottom-color: var(--amber);
+  border-bottom-color: var(--accent);
 }
 .ft-step-n {
   margin-right: 6px;
   color: var(--fg-3);
 }
 .ft-step-on .ft-step-n {
-  color: var(--amber);
+  color: var(--accent);
 }
 
 /* ---- step body --------------------------------------------------------- */
@@ -175,7 +175,7 @@
 .ft-tile-on:hover {
   background: var(--bg-2);
   border-color: var(--line-2);
-  border-left: 3px solid var(--amber);
+  border-left: 3px solid var(--accent);
 }
 .ft-tile-name {
   font-weight: 600;
@@ -470,7 +470,7 @@
   bottom: -4px;
   width: 2px;
   margin-left: -1px;
-  background: var(--amber);
+  background: var(--accent);
 }
 .ft-band-nums {
   position: relative;

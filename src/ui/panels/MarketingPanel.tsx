@@ -67,7 +67,7 @@ export function MarketingPanel() {
         </Card>
       )}
 
-      <ViewFold panel="marketing">
+      <ViewFold panel="marketing" defaultOpen={false}>
         <SceneView
           state={s}
           make={createCity}

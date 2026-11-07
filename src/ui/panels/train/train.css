@@ -39,9 +39,9 @@
 .tw-step.is-current {
   color: var(--fg);
   font-weight: 600;
-  border-bottom-color: var(--amber);
+  border-bottom-color: var(--accent);
 }
-.tw-step.is-current .tw-step-n { color: var(--amber); }
+.tw-step.is-current .tw-step-n { color: var(--accent); }
 .tw-step-n {
   font-size: var(--fs-xs);
   color: var(--fg-3);
@@ -397,7 +397,7 @@
 .tw-tile:focus-visible { border-color: var(--fg-3); }
 .tw-tile.is-on {
   background: var(--bg-2);
-  border-color: var(--amber);
+  border-color: var(--accent);
   border-left-width: 3px;
 }
 .tw-tile-head {
@@ -646,7 +646,7 @@
   cursor: pointer;
   font-size: var(--fs-sm);
 }
-.tw-check-row input { margin-top: 3px; flex-shrink: 0; accent-color: var(--amber); }
+.tw-check-row input { margin-top: 3px; flex-shrink: 0; accent-color: var(--accent); }
 
 /* ---------- review ----------------------------------------------------------- */
 .tw-review {

@@ -36,7 +36,7 @@
   font-variant-numeric: tabular-nums;
 }
 .rs-kpi.is-behind .rs-kpi-value {
-  color: var(--amber);
+  color: var(--accent);
 }
 .rs-kpi-name {
   overflow: hidden;
@@ -107,7 +107,7 @@
   color: var(--fg-4);
 }
 .tl-col.is-now .tl-year {
-  color: var(--amber);
+  color: var(--accent);
 }
 .tl-year {
   padding: 0;
@@ -124,7 +124,7 @@
 .tl-year[aria-pressed='true'] {
   color: var(--fg);
   text-decoration: underline;
-  text-decoration-color: var(--amber);
+  text-decoration-color: var(--accent);
   text-underline-offset: 3px;
 }
 .tl-year-short {
@@ -157,8 +157,8 @@
   background: var(--up);
 }
 .tl-cell[data-state='active'] {
-  border-color: var(--amber);
-  background: var(--amber);
+  border-color: var(--accent);
+  background: var(--accent);
 }
 .tl-cell[data-state='available'] {
   border-color: var(--blue);
@@ -173,7 +173,7 @@
   outline-offset: 1px;
 }
 .tl-cell:focus-visible {
-  outline: 2px solid var(--amber);
+  outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
 .tl-cell.is-sel {
@@ -196,7 +196,7 @@
 }
 .tl-key-now {
   margin-left: auto;
-  color: var(--amber);
+  color: var(--accent);
 }
 .tl-sw {
   display: inline-block;
@@ -209,8 +209,8 @@
   background: var(--up);
 }
 .tl-sw[data-state='active'] {
-  border-color: var(--amber);
-  background: var(--amber);
+  border-color: var(--accent);
+  background: var(--accent);
 }
 .tl-sw[data-state='available'] {
   border-color: var(--blue);
@@ -295,7 +295,7 @@
   stroke-width: 1;
 }
 .rs-edge.is-hot {
-  stroke: var(--amber);
+  stroke: var(--accent);
   stroke-width: 1.5;
 }
 .rs-tier {
@@ -325,11 +325,11 @@
   border-radius: var(--r-md);
 }
 .rs-node:focus-visible {
-  outline: 2px solid var(--amber);
+  outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
 .rs-node[data-sel='true'] {
-  border-color: var(--amber);
+  border-color: var(--accent);
   background: var(--bg-2);
 }
 .rs-node[data-state='done'] {
@@ -348,7 +348,7 @@
   bottom: 0;
   left: 0;
   height: 3px;
-  background: var(--amber);
+  background: var(--accent);
 }
 .rs-node-head {
   display: flex;
@@ -821,7 +821,7 @@
 }
 .rs-search:focus {
   outline: none;
-  border-color: var(--amber);
+  border-color: var(--accent);
 }
 .rs-chips {
   display: flex;
@@ -849,7 +849,7 @@
   color: var(--fg);
 }
 .rs-chip-btn.on {
-  border-color: var(--amber);
+  border-color: var(--accent);
   color: var(--fg);
 }
 .rs-chip-pct {
@@ -864,7 +864,7 @@
   background: var(--up);
 }
 .rs-chip-btn.on .rs-chip-bar {
-  background: var(--amber);
+  background: var(--accent);
 }
 @media (max-width: 760px) {
   .rs-toolbar {
@@ -928,7 +928,7 @@
   cursor: pointer;
 }
 .rs-ready-name:hover {
-  color: var(--amber);
+  color: var(--accent);
 }
 .rs-ready-effect {
   flex: 1;
@@ -999,7 +999,7 @@
   border-top-width: 2px;
 }
 .rs-node[data-state='active'] {
-  border-color: var(--amber);
+  border-color: var(--accent);
   border-top-width: 2px;
 }
 .rs-node[data-state='done'] {
@@ -1011,7 +1011,7 @@
   color: var(--fg-3);
 }
 .rs-node[data-sel='true'] {
-  border-color: var(--amber);
+  border-color: var(--accent);
 }
 .rs-node-act {
   margin-top: auto;

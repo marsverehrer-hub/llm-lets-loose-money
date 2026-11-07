@@ -82,12 +82,12 @@
   border: 1px solid var(--line-2);
   border-radius: 4px;
 }
-.mpg-tl-step.is-done { border-top-color: var(--amber-2); }
+.mpg-tl-step.is-done { border-top-color: var(--accent-2); }
 .mpg-tl-step.is-done .mpg-tl-dot {
-  background: var(--amber);
-  border-color: var(--amber);
+  background: var(--accent);
+  border-color: var(--accent);
 }
-.mpg-tl-step.is-running .mpg-tl-dot { border-color: var(--amber); }
+.mpg-tl-step.is-running .mpg-tl-dot { border-color: var(--accent); }
 .mpg-tl-k {
   color: var(--fg);
   font-size: var(--fs-sm);
@@ -256,8 +256,8 @@ p.mpg-desc {
   border-radius: var(--r-md);
 }
 .mpg-chip:hover {
-  border-color: var(--amber);
-  color: var(--amber);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 .mpg-term {
   display: flex;
@@ -365,7 +365,7 @@ p.mpg-desc {
   height: 8px;
   background: var(--bg-3);
 }
-.mpg-leak-cell.is-on .mpg-leak-bar { background: var(--amber); }
+.mpg-leak-cell.is-on .mpg-leak-bar { background: var(--accent); }
 .mpg-leak-cell.is-low.is-on .mpg-leak-bar { background: var(--up); }
 .mpg-leak-cell.is-high.is-on .mpg-leak-bar { background: var(--down); }
 .mpg-leak-cell.is-on .mpg-label { color: var(--fg); }

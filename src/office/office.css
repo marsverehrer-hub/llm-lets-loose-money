@@ -62,7 +62,7 @@
   pointer-events: none;
   padding: 4px 8px;
   background: var(--bg-1);
-  border: 1px solid var(--amber);
+  border: 1px solid var(--accent);
   color: var(--fg);
   font-size: var(--fs-xs);
   white-space: nowrap;
@@ -90,7 +90,7 @@
   font-size: var(--fs-sm);
   cursor: pointer;
 }
-.office-toggle.office-show:hover:not(:disabled) { color: var(--amber); }
+.office-toggle.office-show:hover:not(:disabled) { color: var(--accent); }
 .office-toggle.office-show:disabled { cursor: default; color: var(--fg-3); }
 .office-view .cam-toggle {
   position: absolute;
@@ -107,4 +107,4 @@
   cursor: pointer;
   border-radius: var(--r-sm);
 }
-.office-view .cam-toggle:hover { color: var(--amber); border-color: var(--amber); }
+.office-view .cam-toggle:hover { color: var(--accent); border-color: var(--accent); }
