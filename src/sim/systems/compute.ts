@@ -1,9 +1,12 @@
 // OWNER: Agent A. GPUs, cloud rental, datacenters, power, capacity split.
 // v10 (GAME_DESIGN §21.1): the fleet split lives here, next to the capacity readers, so compute and serving share one
 // set of numbers. Own GPUs serve products first; demand they cannot cover is bought from the cloud as burst capacity.
-import type { ActionHandlers, FleetBreakdown, FleetPriority, GameState, Id, Model, Rng, GpuDef, DatacenterTier, Datacenter, ServingSlice } from '../types';
+import type { ActionHandlers, FleetBreakdown, FleetPriority, GameState, Id, Model, Rng, GpuDef, DatacenterTier, Datacenter, ServingSlice, Interconnect, SiteId } from '../types';
 import { BALANCE } from '../balance';
 import { GPUS, DATACENTER_TIERS } from '../data/gpus';
+import { SITES, DEFAULT_SITE } from '../data/sites'; // v19 sites
+import { makeRng } from '../rng';
+import { gpuPriceMult } from './supply'; // v19 GPU supply (1 until D1 lands)
 import { RESEARCH } from '../data/research';
 import { addExpense, addRevenue, calendarYear, clamp, formatMoney, newId, notify, pushNews, trySpend } from '../util';
 import { getBonuses } from '../bonuses';
@@ -44,6 +47,12 @@ export const COMPUTE_TUNING = {
   LIQUID_PUE_MULT: 0.85,
   LIQUID_FAIL_MULT: 0.75,
   INFINIBAND_COST_SHARE: 0.25,
+  /** v19: fabric upgrades (interconnect), priced as a share of the tier's build cost; NVLink from 2018, InfiniBand from 2019. */
+  NVLINK_COST_SHARE: 0.1,
+  NVLINK_YEAR: 2018,
+  INFINIBAND_YEAR: 2019,
+  /** v19: failure-rate growth per decade of training GPUs beyond 1 000 (clusterFailureMult). */
+  CLUSTER_FAILURE_PER_DECADE: 0.15,
   /** Inference efficiency gain per sqrt(engineer strength). */
   ENGINEER_BOOST: 0.08,
   MAX_GPU_ORDER: 1_000_000,
@@ -83,6 +92,63 @@ function installedCount(dc: Datacenter): number {
   for (const c of Object.values(dc.gpus)) n += c;
   return n;
 }
+
+/** v19: training clusters a fabric can hold efficiently. pcie is a 64-GPU box; InfiniBand is no limit. */
+export const INTERCONNECT_CLUSTER_CAP: Record<Interconnect, number> = { pcie: 64, nvlink: 2_048, infiniband: Infinity };
+const INTERCONNECT_RANK: Record<Interconnect, number> = { pcie: 0, nvlink: 1, infiniband: 2 };
+const INTERCONNECT_COST_SHARE: Record<Interconnect, number> = {
+  pcie: 0,
+  nvlink: COMPUTE_TUNING.NVLINK_COST_SHARE,
+  infiniband: COMPUTE_TUNING.INFINIBAND_COST_SHARE,
+};
+
+/** v19: a hall's fabric. Old saves: InfiniBand when that upgrade is on, otherwise PCIe. */
+export function interconnectOf(dc: Datacenter): Interconnect {
+  if (dc.infiniband) return 'infiniband';
+  return dc.interconnect ?? 'pcie';
+}
+
+/**
+ * v19: the fabric cap on one training cluster, from the finished hall holding the most installed GPUs. No such hall
+ * (cloud only) assumes InfiniBand.
+ * shortcut: a run is capped by its biggest hall alone, not spread over halls; upgrade with cross-hall training.
+ */
+export function fabricClusterCap(s: GameState): number {
+  let best: Datacenter | undefined;
+  for (const dc of s.compute.datacenters) {
+    if (!isFinished(dc) || installedCount(dc) <= 0) continue;
+    if (!best || installedCount(dc) > installedCount(best)) best = dc;
+  }
+  return best ? INTERCONNECT_CLUSTER_CAP[interconnectOf(best)] : Infinity;
+}
+
+/** v19: the site a hall was built on (old saves: grid). */
+export function siteOf(dc: Datacenter): SiteId {
+  return dc.site ?? DEFAULT_SITE;
+}
+
+/** v19: a site's research and year gates are open. */
+export function siteOpen(s: GameState, site: SiteId): boolean {
+  const def = SITES[site];
+  return calendarYear(s.day) >= def.unlockYear && (!def.requiresResearch || isResearched(s, def.requiresResearch));
+}
+
+/** v19: megawatts a hall draws: installed GPUs x kW x PUE. */
+export function hallMegawatts(dc: Datacenter): number {
+  let kw = 0;
+  for (const [gid, n] of Object.entries(dc.gpus)) kw += n * (gpuById(gid)?.powerKw ?? 0);
+  return (kw * datacenterPue(dc)) / 1000;
+}
+
+/** v19: megawatts a hall may still draw under its site's cap (0 when full). Buying GPUs past it is refused. */
+export function siteMwLeft(_s: GameState, dc: Datacenter): number {
+  return Math.max(0, SITES[siteOf(dc)].mwCap - hallMegawatts(dc));
+}
+
+/** v19: a hall dark from a grid outage: its GPUs serve and train nothing until the day passes. */
+export function hallOffline(s: GameState, dc: Datacenter): boolean {
+  return s.day < (s.flags[`outage.${dc.id}`] ?? 0);
+}
 export function rentMultiplier(s: GameState): number {
   const m = s.flags['rentMult'];
   return m === undefined ? 1 : m;
@@ -97,7 +163,7 @@ function powerPerDay(dc: Datacenter): number {
   if (!tier) return 0;
   let kw = 0;
   for (const [gid, n] of Object.entries(dc.gpus)) kw += n * (gpuById(gid)?.powerKw ?? 0);
-  return kw * datacenterPue(dc) * COMPUTE_TUNING.HOURS_PER_DAY * tier.powerPricePerKwh;
+  return kw * datacenterPue(dc) * COMPUTE_TUNING.HOURS_PER_DAY * tier.powerPricePerKwh * SITES[siteOf(dc)].powerPriceMult;
 }
 /** v14: hardware operations per day for one datacenter: maintenance, networking, spares and on-call per installed GPU. */
 function hardwarePerDay(dc: Datacenter): number {
@@ -216,8 +282,10 @@ export interface ClusterEfficiency {
 }
 
 function clusterFor(s: GameState, usedGpus: number): ClusterEfficiency {
-  let maxEfficientGpus = CLUSTER_TIERS[0][1];
-  for (const [id, cap] of CLUSTER_TIERS) if (isResearched(s, id)) maxEfficientGpus = Math.max(maxEfficientGpus, cap);
+  let researchCap = CLUSTER_TIERS[0][1];
+  for (const [id, cap] of CLUSTER_TIERS) if (isResearched(s, id)) researchCap = Math.max(researchCap, cap);
+  // v19: the fabric caps the cluster too (pcie 64, nvlink 2 048, InfiniBand none).
+  const maxEfficientGpus = Math.min(researchCap, fabricClusterCap(s));
   let efficiency = 1;
   if (usedGpus > maxEfficientGpus) {
     efficiency = (maxEfficientGpus + CLUSTER_BEYOND_CAP_SHARE * (usedGpus - maxEfficientGpus)) / usedGpus;
@@ -245,7 +313,7 @@ export function ownPflops(s: GameState): number {
   for (const [gid, n] of Object.entries(cloudLeaseGpus(s))) rented += n * (gpuById(gid)?.pflops ?? 0); // v16
   let installed = 0;
   for (const dc of s.compute.datacenters) {
-    if (!inFleet(s, dc)) continue;
+    if (!inFleet(s, dc) || hallOffline(s, dc)) continue; // v19: a grid outage takes the hall's GPUs out for the day
     for (const [gid, n] of Object.entries(dc.gpus)) installed += n * (gpuById(gid)?.pflops ?? 0);
   }
   return rented + installed;
@@ -345,6 +413,15 @@ export function fleetNumbers(s: GameState, priority: FleetPriority, run: boolean
     training,
     idle: Math.max(0, total - servingOwn - training),
   };
+}
+
+/**
+ * v19: incident odds multiplier for training on the efficient cluster: 1 + 0.15 × log10(training GPUs / 1 000).
+ * training.ts does not use it yet; the lead wires it into training incidents.
+ */
+export function clusterFailureMult(s: GameState): number {
+  const gpus = Math.max(1, clusterEfficiency(s).usedGpus);
+  return 1 + COMPUTE_TUNING.CLUSTER_FAILURE_PER_DECADE * Math.log10(Math.max(1, gpus / 1000));
 }
 
 function trainingEfficiency(s: GameState, n: FleetNumbers): number {
@@ -518,6 +595,19 @@ export function computeTick(s: GameState, _rng: Rng): void {
     }
   }
 
+  // v19: grid outages. A hall with GPUs can go dark for 1-2 days, at its site's odds. The roll is seeded per day and
+  // hall, so the sim's own rng sequence (and every saved game) is untouched.
+  s.compute.datacenters.forEach((dc, i) => {
+    if (!isFinished(dc) || hallOffline(s, dc) || installedCount(dc) <= 0) return;
+    const odds = SITES[siteOf(dc)].outagePerDay;
+    const roll = makeRng({ rngState: s.day * 1009 + i }).next();
+    if (roll >= odds) return;
+    const days = roll < odds / 2 ? 2 : 1;
+    s.flags[`outage.${dc.id}`] = s.day + days;
+    s.flags['stat.outages'] = (s.flags['stat.outages'] ?? 0) + 1;
+    notify(s, `${dc.name} lost power for ${days} day${days === 1 ? '' : 's'}. Its GPUs are offline until the grid comes back.`, 'bad');
+  });
+
   // Derived capacity for this day (the serving tick refreshes it again after the products have their demand)
   const cap = computeCapacity(s);
   s.compute.totalPflops = cap.total;
@@ -572,11 +662,22 @@ export const handlers: ActionHandlers = {
       notify(s, `${tier.name} needs research: ${node?.name ?? tier.requiresResearch}.`, 'bad');
       return;
     }
+    const site = a.site ?? DEFAULT_SITE;
+    if (!SITES[site]) {
+      notify(s, 'Unknown site.', 'bad');
+      return;
+    }
+    if (!siteOpen(s, site)) {
+      const node = SITES[site].requiresResearch ? RESEARCH.find((r) => r.id === SITES[site].requiresResearch) : undefined;
+      notify(s, `${SITES[site].name} is not open yet${node ? `: it needs research: ${node.name}` : ''}.`, 'bad');
+      return;
+    }
+    const buildDays = Math.max(1, Math.round(tier.buildDays * SITES[site].buildDaysMult));
     const name = a.name.trim().slice(0, 32) || `${tier.name} #${s.compute.datacenters.length + 1}`;
     if (!trySpend(s, 'capex', tier.buildCost, tier.name)) return;
-    const dc: Datacenter = { id: newId(s, 'dc'), name, tierId: tier.id, gpus: {}, buildDaysLeft: tier.buildDays };
+    const dc: Datacenter = { id: newId(s, 'dc'), name, tierId: tier.id, gpus: {}, buildDaysLeft: buildDays, site };
     s.compute.datacenters.push(dc);
-    notify(s, `Breaking ground on ${name}: ready in ${tier.buildDays} days.`, 'good');
+    notify(s, `Breaking ground on ${name} at ${SITES[site].name}: ready in ${buildDays} days.`, 'good');
   },
 
   buyGpus: (s, a) => {
@@ -613,7 +714,15 @@ export const handlers: ActionHandlers = {
       notify(s, `The vendor allocates you ${alloc.toLocaleString('en-US')} more ${gpu.name} this quarter. Older generations ship in bulk; brand gets you more.`, 'bad');
       return;
     }
-    if (!trySpend(s, 'capex', a.count * gpu.buyPrice, `${a.count} × ${gpu.name}`)) return;
+    // v19: the site's megawatt cap, then demand's price (supply.ts; 1 until D1 lands).
+    const mw = (a.count * gpu.powerKw * datacenterPue(dc)) / 1000;
+    const mwLeft = siteMwLeft(s, dc);
+    if (mw > mwLeft) {
+      notify(s, `${SITES[siteOf(dc)].name} can feed ${dc.name} ${mwLeft.toFixed(1)} more MW. ${a.count} × ${gpu.name} needs ${mw.toFixed(1)} MW.`, 'bad');
+      return;
+    }
+    const price = gpu.buyPrice * gpuPriceMult(s, gpu.id);
+    if (!trySpend(s, 'capex', a.count * price, `${a.count} × ${gpu.name}`)) return;
     consumeGpuAllocation(s, gpu.id, a.count);
     // v14: track the batch's age as a count-weighted average purchase day.
     const had = dc.gpus[gpu.id] ?? 0;
@@ -650,6 +759,39 @@ export const handlers: ActionHandlers = {
       if (dc.wear) delete dc.wear[gpu.id];
     }
     notify(s, `Sold ${a.count} × ${gpu.name} for ${formatMoney(refund)}.`, 'info');
+  },
+
+  // v19: fabric upgrade for a hall. Pays the difference between the tiers; InfiniBand also sets the v16 flag that
+  // neocloud customers look for.
+  setInterconnect: (s, a) => {
+    const dc = s.compute.datacenters.find((d) => d.id === a.datacenterId);
+    const tier = dc ? datacenterTierById(dc.tierId) : undefined;
+    if (!dc || !tier) {
+      notify(s, 'Unknown datacenter.', 'bad');
+      return;
+    }
+    if (!isFinished(dc)) {
+      notify(s, `${dc.name} is still under construction.`, 'bad');
+      return;
+    }
+    if (a.tier !== 'nvlink' && a.tier !== 'infiniband') return; // PCIe is what a hall starts with
+    const year = calendarYear(s.day);
+    const gate = a.tier === 'nvlink' ? COMPUTE_TUNING.NVLINK_YEAR : COMPUTE_TUNING.INFINIBAND_YEAR;
+    if (year < gate) {
+      notify(s, `${a.tier === 'nvlink' ? 'NVLink-ish' : 'InfiniBand-ish'} fabric is not available until ${gate}.`, 'bad');
+      return;
+    }
+    const current = interconnectOf(dc);
+    if (INTERCONNECT_RANK[current] >= INTERCONNECT_RANK[a.tier]) {
+      notify(s, `${dc.name} already has ${current === 'infiniband' ? 'InfiniBand' : 'NVLink'} or better.`, 'info');
+      return;
+    }
+    const share = INTERCONNECT_COST_SHARE[a.tier] - INTERCONNECT_COST_SHARE[current];
+    const label = a.tier === 'nvlink' ? 'NVLink-ish fabric' : 'InfiniBand-ish fabric';
+    if (!trySpend(s, 'capex', tier.buildCost * share, label)) return;
+    dc.interconnect = a.tier;
+    if (a.tier === 'infiniband') dc.infiniband = true;
+    notify(s, `${dc.name} now runs on ${label}: training clusters up to ${a.tier === 'nvlink' ? '2,048' : 'any size'} GPUs stay efficient.`, 'good');
   },
 
   // Legacy action: maps the share to the nearest fleet priority (v10).
