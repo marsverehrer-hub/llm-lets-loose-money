@@ -581,6 +581,9 @@
   gap: 12px;
   flex-wrap: wrap;
 }
+.mps-invite-link {
+  width: 100%;
+}
 .mps-tiles {
   display: flex;
   gap: 6px;

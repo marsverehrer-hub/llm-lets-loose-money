@@ -14,7 +14,7 @@ import { NoticeLog } from './shell/NoticeLog';
 import { DoctrinePicker } from './shell/DoctrinePicker';
 import { Shortcuts, SHORTCUTS_EVENT } from './shell/Shortcuts';
 import { DashboardPanel } from './panels/DashboardPanel';
-import { useLobbyOpen } from './mp/lobbyState';
+import { takeInviteLink, useLobbyOpen } from './mp/lobbyState';
 import { tutorialTarget } from './tutorial/steps';
 import { useMissionRun } from './missions/missions';
 import { lazyNamed } from './lazy';
@@ -140,6 +140,7 @@ export function App() {
   };
 
   useEffect(() => onNavigate(select), []);
+  useEffect(takeInviteLink, []); // an invite link (?join=CODE) opens the lobby
   // Dev-only hook for screenshot scripts.
   useEffect(() => {
     if (import.meta.env.DEV) (window as any).__nav = select;

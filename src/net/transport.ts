@@ -21,6 +21,33 @@ export interface Listener {
 
 const OPEN_TIMEOUT_MS = 15000;
 
+/**
+ * Extra ICE servers from the build-time VITE_ICE_SERVERS (a JSON array of RTCIceServer), e.g. a TURN relay for networks
+ * that block direct WebRTC. Anything else is ignored with a warning.
+ */
+export function parseIceServers(raw: unknown): RTCIceServer[] {
+  if (typeof raw !== 'string' || !raw.trim()) return [];
+  try {
+    const v: unknown = JSON.parse(raw);
+    if (Array.isArray(v) && v.every((x) => typeof x === 'object' && x !== null && 'urls' in x)) return v as RTCIceServer[];
+  } catch {
+    // reported below
+  }
+  console.warn('VITE_ICE_SERVERS is not a JSON array of RTCIceServer objects; ignored.');
+  return [];
+}
+
+/** PeerJS, configured with its own defaults (STUN and its TURN fallback) plus the build's extra servers. */
+async function loadPeer() {
+  const { default: Peer, util } = await import('peerjs');
+  // Passing a config replaces PeerJS's defaults, so they are kept here.
+  const config = {
+    ...util.defaultConfig,
+    iceServers: [...util.defaultConfig.iceServers, ...parseIceServers(import.meta.env.VITE_ICE_SERVERS)],
+  };
+  return { Peer, config };
+}
+
 abstract class BaseTransport implements Transport {
   private msgCbs: Array<(m: NetMsg) => void> = [];
   private closeCbs: Array<(reason: string) => void> = [];
@@ -116,9 +143,9 @@ export async function listenPeer(
   onTransport: (t: Transport) => void,
   onLost: (detail: string) => void,
 ): Promise<Listener> {
-  const { default: Peer } = await import('peerjs');
+  const { Peer, config } = await loadPeer();
   return new Promise<Listener>((resolve, reject) => {
-    const peer = new Peer(peerIdFor(room));
+    const peer = new Peer(peerIdFor(room), { config });
     let listening = false;
     let settled = false;
     peer.on('open', () => {
@@ -149,9 +176,9 @@ export async function listenPeer(
 
 /** Guest side: connect to the host's room id. Resolves with an open data channel. */
 export async function dialPeer(room: string): Promise<Transport> {
-  const { default: Peer } = await import('peerjs');
+  const { Peer, config } = await loadPeer();
   return new Promise<Transport>((resolve, reject) => {
-    const peer = new Peer();
+    const peer = new Peer({ config });
     let settled = false;
     const fail = (msg: string) => {
       if (settled) return;

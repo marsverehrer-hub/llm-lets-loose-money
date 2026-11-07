@@ -10,7 +10,7 @@ import { activeMpSaveId, deleteMpSave, listMpSaves, onMpSavesChange, renameMpSav
 import { formatDate, formatMoney } from '../../sim/util';
 import { Banner, ConfirmButton } from '../panels/panelKit';
 import { navigate } from '../nav';
-import { closeLobby } from './lobbyState';
+import { closeLobby, inviteUrl, takeJoinCode } from './lobbyState';
 import './mp.css';
 
 type Tab = 'host' | 'join';
@@ -141,7 +141,8 @@ function resultPill(m: MpSaveMeta, inPlay: boolean) {
 
 function LiveMatch({ session }: { session: SessionInfo }) {
   const s = useGame();
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<'' | 'code' | 'link'>('');
+  const [linkShown, setLinkShown] = useState(false);
   const [saved, setSaved] = useState<'' | 'ok' | 'fail'>('');
   const [leaveArmed, setLeaveArmed] = useState(false);
   const timer = useRef(0);
@@ -165,16 +166,18 @@ function LiveMatch({ session }: { session: SessionInfo }) {
     fn();
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => {
-      setCopied(false);
+      setCopied('');
       setSaved('');
     }, 1600);
   };
-  const copy = async () => {
+  const copy = async (text: string, what: 'code' | 'link') => {
     try {
-      await navigator.clipboard.writeText(room);
-      flash(() => setCopied(true));
+      await navigator.clipboard.writeText(text);
+      flash(() => setCopied(what));
     } catch {
-      setCopied(false);
+      // No clipboard here (insecure page, old browser): show the text selected so it can be copied by hand.
+      if (what === 'link') setLinkShown(true);
+      else setCopied('');
     }
   };
   const leave = () => {
@@ -209,10 +212,25 @@ function LiveMatch({ session }: { session: SessionInfo }) {
           <div class="field-label">Room code</div>
           <CodeTiles code={room} label={`Room code ${room.split('').join(' ')}`} />
         </div>
-        <Button size="sm" onClick={copy}>
-          {copied ? 'Copied' : 'Copy code'}
+        <Button size="sm" onClick={() => copy(room, 'code')}>
+          {copied === 'code' ? 'Copied' : 'Copy code'}
         </Button>
+        {session.role === 'host' && room && (
+          <Button size="sm" onClick={() => copy(inviteUrl(location.href, room), 'link')}>
+            {copied === 'link' ? 'Link copied' : 'Copy invite link'}
+          </Button>
+        )}
       </div>
+      {linkShown && (
+        <input
+          class="input mps-invite-link"
+          readOnly
+          autoFocus
+          aria-label="Invite link"
+          value={inviteUrl(location.href, room)}
+          onFocus={(e) => (e.currentTarget as HTMLInputElement).select()}
+        />
+      )}
       <div class="mp-status" role="status">
         {st.tone !== 'muted' && <span class={`dot ${DOT[st.tone]}`} aria-hidden="true" />}
         <span class={`mp-status-${st.tone}`}>{st.text}</span>
@@ -248,15 +266,15 @@ function LiveMatch({ session }: { session: SessionInfo }) {
 // New match
 // ---------------------------------------------------------------------------
 
-function NewMatch() {
+function NewMatch({ joinCode }: { joinCode: string }) {
   const s = useGame();
   const session = useSession();
-  const [tab, setTab] = useState<Tab>('host');
+  const [tab, setTab] = useState<Tab>(joinCode ? 'join' : 'host');
   const [saveName, setSaveName] = useState('');
   const [name, setName] = useState(() => s.company.name);
   const [color, setColor] = useState<string>(MP_COLORS[0]);
   const [length, setLength] = useState<LengthId>('10');
-  const [code, setCode] = useState('');
+  const [code, setCode] = useState(joinCode);
   const [relay, setRelay] = useState('');
   const [pending, setPending] = useState(false);
   const [err, setErr] = useState('');
@@ -567,6 +585,7 @@ export function Lobby() {
   const s = useGame();
   const session = useSession();
   const live = !!s.mp || session.status === 'waiting' || session.status === 'connecting';
+  const [joinCode] = useState(() => cleanRoomCode(takeJoinCode()));
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -591,7 +610,7 @@ export function Lobby() {
       <div class="mps-body">
         {live && <LiveMatch session={session} />}
         <div class={`mps-grid${live ? ' is-solo' : ''}`}>
-          {!live && <NewMatch />}
+          {!live && <NewMatch joinCode={joinCode} />}
           <SavedMatches />
         </div>
       </div>
