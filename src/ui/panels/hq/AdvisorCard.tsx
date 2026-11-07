@@ -5,7 +5,7 @@ import type { GameState } from '../../../sim/types';
 import { CHAPTERS, chapterIndex, currentChapter } from '../../../sim/systems/chapters';
 import { Button, Card, EmptyState, Pill, Popover, ProgressBar, formatPct } from '../../components';
 import { navigate } from '../../nav';
-import { GoalsCard } from '../GoalsCard';
+import { GoalsCard, ThesisCard } from '../GoalsCard';
 import { BoardCard } from '../lab/BoardCard';
 import { nextSteps, type Step } from './nextStep';
 import { tutorialTarget } from '../../tutorial/Tutorial';
@@ -47,6 +47,7 @@ export function AdvisorCard({ s }: { s: GameState }) {
           <div class="adv-goals">
             <BoardCard s={s} />
             <GoalsCard />
+            <ThesisCard />
           </div>
         </Popover>
       }

@@ -77,6 +77,8 @@ export const BOT_CROWN_GAP = 4;
 export const BOT_MAX_TUNES_PER_MODEL = 3;
 /** Small bot headcount ceiling: lean early, a little more after the cap year. */
 export const BOT_SMALL_STAFF_CAP = { early: 40, late: 120, lateYear: 2023 };
+/** v20: the headcount each playstyle grows to (the small bot has its own cap above). A path, not a bug, decides the size. */
+export const BOT_STAFF_CEILING: Record<BotStrategy, number> = { frontier: 6000, small: 120, specialist: 800, open: 1500, enterprise: 2500 };
 /** Event options are dry-run for their worst case below this much cash (see eventChoiceOrder). */
 export const BOT_EVENT_CHECK_CASH = 100_000_000;
 /** Data is bought in batches: this many sets every this many days, best quality per dollar first. */
@@ -655,8 +657,8 @@ function upgradeOfficeIfAffordable(st: GameState, cash: number): void {
 }
 
 function staffStep(st: GameState, strategy: BotStrategy, cash: number, net: number): void {
-  // Grow while runway is healthy
-  const runwayOk = cash > dailyPayroll(st) * 365 * 1.5 || net > 0;
+  // Grow while runway is healthy: profitable, or 18 months of the whole burn (compute too, not only payroll) in the bank.
+  const runwayOk = net > 0 || cash > -net * 548;
   if (st.day % 7 !== 0 || !runwayOk) return;
   // v17.2: sales and marketing are pure burn before there is anything to sell (chat and enterprise open later).
   const roles: RoleId[] = calendarYear(st.day) < 2019 ? ['researcher', 'researcher', 'engineer', 'safety'] : ['researcher', 'researcher', 'engineer', 'safety', 'sales', 'marketing'];
@@ -672,7 +674,9 @@ function staffStep(st: GameState, strategy: BotStrategy, cash: number, net: numb
     return;
   }
   // Check the whole batch, not two heads: a 5% hire on a full floor used to overflow the office instead of moving.
-  const n = Math.max(1, Math.floor(headcount(st) * 0.05));
+  const room = BOT_STAFF_CEILING[strategy] - headcount(st);
+  if (room <= 0) return;
+  const n = Math.min(room, Math.max(1, Math.floor(headcount(st) * 0.05)));
   if (headcount(st) + n > officeCapacity(st)) upgradeOfficeIfAffordable(st, cash);
   else dispatch(st, { type: 'hire', role, count: n });
 }
