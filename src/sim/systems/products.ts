@@ -10,6 +10,7 @@ import { RUN_TUNING } from '../data/trainingOptions';
 import { isResearched } from './research';
 import { frontierQuality, modelById, mtokPerUserDay, refPriceFor, segQuality, setProductUsers, triggerChatMoment, CHAT_MOMENT_MIN_OVERALL, MODEL_SWAP_BOOST_DAYS } from './market';
 import { openUserMult, previewDemandCap } from './release';
+import { productRefusal } from './hub';
 
 /** One-off launch fee per product kind. */
 export const LAUNCH_FEE: Record<ProductKind, number> = { api: 20_000, chat: 200_000, enterprise: 500_000 };
@@ -140,6 +141,11 @@ export const handlers: ActionHandlers = {
       notify(s, 'Pick a released model. Unreleased models are a secret.', 'bad');
       return;
     }
+    const refusal = productRefusal(model);
+    if (refusal) {
+      notify(s, refusal, 'bad');
+      return;
+    }
     if (!(a.price > 0) || !isFinite(a.price)) {
       notify(s, 'Price must be a positive number.', 'bad');
       return;
@@ -190,6 +196,11 @@ export const handlers: ActionHandlers = {
       model = liveModel(s, a.modelId);
       if (!model) {
         notify(s, 'Only released, non-deprecated models can power a product.', 'bad');
+        return;
+      }
+      const refusal = productRefusal(model);
+      if (refusal) {
+        notify(s, refusal, 'bad');
         return;
       }
     }
