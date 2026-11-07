@@ -46,6 +46,12 @@ export const GUIDANCE_TUNING: Record<GuidanceLevel, { mult: number; move: number
   in_line: { mult: 1, move: 4 },
   aggressive: { mult: 1.15, move: 8 },
 };
+/** Guidance is set early in the quarter; changing it once the quarter's revenue is mostly known would be free money. */
+export const GUIDANCE_WINDOW_DAYS = 14;
+
+export function guidanceOpen(s: GameState, b: BoardState): boolean {
+  return !!b.guidance && s.day - b.quarterStart <= GUIDANCE_WINDOW_DAYS;
+}
 
 const T = BOARD_TUNING;
 const RNG_FLAG = 'board.rng';
@@ -388,6 +394,10 @@ export const handlers: ActionHandlers = {
   setGuidance: (s, a) => {
     const b = ensureBoard(s);
     if (!b.guidance) return;
+    if (!guidanceOpen(s, b)) {
+      notify(s, `Guidance is locked: it can only be set in the first ${GUIDANCE_WINDOW_DAYS} days of the quarter.`, 'bad');
+      return;
+    }
     b.guidance.level = a.level;
     notify(s, `Guidance set to ${a.level.replace('_', ' ')}: ${formatMoney(guidanceTarget(b, b.guidance))} for the quarter.`, 'info');
   },

@@ -11,7 +11,7 @@ const dayOf = (y: number, m: number, d: number) => (Date.UTC(y, m, d) - Date.UTC
 const valuationMult = (s: ReturnType<typeof publicLab>) => getBonuses(s).valuation ?? 1;
 
 /** A public lab with a daily revenue of 100k at the start of a quarter, its goals cleared so only guidance moves confidence. */
-function publicLab() {
+function publicLab(level?: 'conservative' | 'in_line' | 'aggressive') {
   const s = createInitialState(7);
   s.day = dayOf(2018, 0, 2);
   s.company.isPublic = true;
@@ -19,6 +19,7 @@ function publicLab() {
   const b = ensureBoard(s);
   b.objectives = [];
   s.events.pending = null;
+  if (level) dispatch(s, { type: 'setGuidance', level }); // early in the quarter, while guidance is open
   s.day = b.quarterEnd - 1; // the last day of the quarter; the next tick closes it
   return s;
 }
@@ -42,13 +43,19 @@ describe('earnings guidance', () => {
   });
 
   it('a miss at quarter end moves valuation down, more when aggressive', () => {
-    const s = publicLab();
-    dispatch(s, { type: 'setGuidance', level: 'aggressive' });
+    const s = publicLab('aggressive');
+    expect(s.board!.guidance!.level).toBe('aggressive');
     const before = valuationMult(s);
     tick(s); // no revenue booked: the quarter misses
 
     expect(s.board!.confidence).toBeLessThan(50);
     expect(valuationMult(s)).toBeLessThan(before);
     expect(s.noticeLog?.some((n) => n.text.startsWith('Guidance missed'))).toBe(true);
+  });
+
+  it('is locked after the first weeks of the quarter', () => {
+    const s = publicLab(); // now on the quarter's last day
+    dispatch(s, { type: 'setGuidance', level: 'conservative' });
+    expect(s.board!.guidance!.level).toBe('in_line');
   });
 });

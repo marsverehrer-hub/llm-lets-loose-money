@@ -3,7 +3,7 @@ import { useState } from 'preact/hooks';
 import { BALANCE } from '../../sim/balance';
 import { doctrineById } from '../../sim/data/doctrines';
 import { scenarioById } from '../../sim/data/scenarios';
-import { guidanceTarget } from '../../sim/systems/board';
+import { GUIDANCE_WINDOW_DAYS, guidanceOpen, guidanceTarget } from '../../sim/systems/board';
 import { PLAYER_PLANS, planStanding } from '../../sim/systems/playerPlans';
 import { thesisGoals, thesisMet } from '../../sim/systems/thesis';
 import { scenarioScore } from '../../sim/systems/scenario';
@@ -182,9 +182,10 @@ export function PlanCard() {
           </p>
           {g ? (
             <>
-              <Select value={g.level} onChange={(v) => dispatch({ type: 'setGuidance', level: v as GuidanceLevel })} options={GUIDANCE_OPTIONS} ariaLabel="Earnings guidance" />
+              <Select value={g.level} onChange={(v) => dispatch({ type: 'setGuidance', level: v as GuidanceLevel })} options={GUIDANCE_OPTIONS} ariaLabel="Earnings guidance" disabled={!guidanceOpen(s, b)} />
               <p class="small muted">
                 Target <span class="num">{formatMoney(guidanceTarget(b, g))}</span> revenue this quarter. So far <span class="num">{formatMoney(soFar)}</span>.
+                {!guidanceOpen(s, b) && ` Locked after the quarter's first ${GUIDANCE_WINDOW_DAYS} days.`}
               </p>
             </>
           ) : (
