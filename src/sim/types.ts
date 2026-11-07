@@ -876,7 +876,7 @@ export interface Datacenter {
 }
 
 /** v19: the ways a game can end once someone reaches AGI. */
-export type EndingId = 'safe_launch' | 'race' | 'nationalised' | 'merger' | 'open_singularity' | 'second_place';
+export type EndingId = 'safe_launch' | 'race' | 'nationalised' | 'merger' | 'open_singularity' | 'second_place' | 'boutique' | 'indispensable';
 
 /** v19: datacenter fabric tiers. */
 export type Interconnect = 'pcie' | 'nvlink' | 'infiniband';

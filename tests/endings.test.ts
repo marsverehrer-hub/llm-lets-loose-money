@@ -129,8 +129,8 @@ describe('ending gates', () => {
   });
 
   it('every ending has 60 to 120 words of text and a unique id', () => {
-    expect(ENDINGS).toHaveLength(6);
-    expect(new Set(ENDINGS.map((e) => e.id)).size).toBe(6);
+    expect(ENDINGS).toHaveLength(8);
+    expect(new Set(ENDINGS.map((e) => e.id)).size).toBe(8);
     for (const e of ENDINGS) {
       const words = e.text.trim().split(/\s+/).length;
       expect(words, e.id).toBeGreaterThanOrEqual(60);

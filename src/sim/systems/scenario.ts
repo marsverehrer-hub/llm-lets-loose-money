@@ -18,6 +18,7 @@ import { competitorCaps, contextWindowK, evaluateModel, modalitiesFor, overallSc
 import { frontierQuality } from './market';
 import { measureEvalSuite } from './vault';
 import { startNeocloud } from './neocloud'; // v16 neocloud scenario
+import { thesisMet } from './thesis'; // v20 thesis goals add to the score
 
 /** Flags. The sandbox flag is set when a goal is missed; the fast-forward flag only exists during createInitialState. */
 export const SCENARIO_FLAG = {
@@ -138,7 +139,7 @@ export function scenarioScore(s: GameState): { score: number; days: number; crow
   const valuation = Math.max(0, s.finance.valuation);
   const mult = difficulty(s).scoreMult;
   const pace = clamp(1 - days / 3650, 0.2, 1);
-  const base = 1000 + crowns * 50 + Math.log10(Math.max(valuation, 1e6) / 1e6) * 100;
+  const base = 1000 + crowns * 50 + Math.log10(Math.max(valuation, 1e6) / 1e6) * 100 + thesisMet(s) * 100;
   return { score: Math.round(base * pace * mult), days, crowns, valuation, mult };
 }
 

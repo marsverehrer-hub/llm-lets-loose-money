@@ -8,6 +8,8 @@ import { calendarYear, clamp, notify, pushNews } from '../util';
 import { difficulty, SCENARIO_FLAG } from './scenario';
 import { hashUniform } from './data';
 import { safetyCase } from './safetyCase';
+import { contractRevenuePerDay } from './contracts';
+import { thesisMet } from './thesis';
 
 export interface EndingDef {
   id: EndingId;
@@ -110,6 +112,39 @@ export const ENDINGS: EndingDef[] = [
       'They got there first. Their model is on every front page, their launch video has a choir in it, and your best researchers are updating their profiles in a shade of blue you have not approved. You can join them, which the rival calls a partnership and your lawyers call a merger. You can wait for the regulators to sort it out, which is what they were always going to do. Or you can keep going, quietly, on the second-best model in the building, and tell the board it was the plan all along. The board will believe you. The board always does.',
     available: (s) => ({ ok: rivalFirst(s), why: 'Nobody got there before you.' }),
   },
+  {
+    id: 'boutique',
+    name: 'The Boutique',
+    text:
+      'We have a few hundred engineers, a waiting list, and a revenue line that rises at a polite angle. We are profitable, which the industry finds rude. Our models are small, carefully documented, and sold to people who read the documentation. A fund offers us a valuation with a great many zeros, and we decline with a handwritten note that says "not for us". Investors are told we are not chasing scale, which they hear as a challenge. The team takes a long lunch and calls it a retreat. Somewhere a larger lab reads our pricing page and quietly panics.',
+    available: (s) => {
+      const focus = s.company.doctrine === 'efficient';
+      const profit = s.finance.dailyRevenue > s.finance.dailyExpenses;
+      const value = s.finance.valuation >= 50e9;
+      const ok = focus && profit && value;
+      const why = !focus
+        ? 'Boutiques do not chase the frontier, or anything else. Pick the efficient focus first.'
+        : !profit
+          ? 'You are still losing money. A boutique that loses money is a hobby.'
+          : 'Your valuation is under $50B. Nobody calls a company that size a boutique, least of all the company.';
+      return { ok, why: ok ? '' : why };
+    },
+  },
+  {
+    id: 'indispensable',
+    name: 'Indispensable',
+    text:
+      'Nobody chose us. Every hospital, ministry and insurer we serve signed a three-year contract with a clause nobody read, and now leaving would cost more than staying. Our support line is staffed by people who know your name. Our service agreements run longer than the roadmaps of three competitors combined. At board meetings the question is no longer whether we are a good company, but whether we are still a company at all, or simply the load-bearing wall of several other companies. Renewal season is treated as a public holiday.',
+    available: (s) => {
+      const focus = s.company.doctrine === 'specialist' || s.company.doctrine === 'enterprise';
+      const book = contractRevenuePerDay(s) * 365 >= 2e9;
+      const ok = focus && book;
+      const why = !focus
+        ? 'Nobody has to renew you yet. Pick the specialist or enterprise focus first.'
+        : 'Your contract book is under $2B a year. Far too easy to replace.';
+      return { ok, why: ok ? '' : why };
+    },
+  },
 ];
 
 /** The race's random incident: a fixed draw per game (from the seed), from -1 to 1. Negative is the incident. */
@@ -130,6 +165,8 @@ const BASE: Record<EndingId, number> = {
   merger: 1800,
   race: 2200,
   second_place: 800,
+  boutique: 2400,
+  indispensable: 2300,
 };
 
 export function endingScore(s: GameState, id: EndingId): number {
@@ -137,7 +174,8 @@ export function endingScore(s: GameState, id: EndingId): number {
   const valuation = Math.max(0, s.finance.valuation);
   const worth = Math.log10(Math.max(valuation, 1e6) / 1e6) * 150;
   const pace = clamp(1 + (2035 - calendarYear(s.day)) * 0.04, 0.8, 1.4);
-  return Math.round((base + worth) * difficulty(s).scoreMult * pace);
+  const goals = thesisMet(s) * 350; // each thesis goal met is worth as much as a fair chunk of the company
+  return Math.round((base + worth + goals) * difficulty(s).scoreMult * pace);
 }
 
 export const handlers: ActionHandlers = {
