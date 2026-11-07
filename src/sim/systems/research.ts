@@ -45,7 +45,16 @@ export const RESEARCH_TUNING = {
   EARLY_YEARS: 1,
   /** Flat research strength contributed by each hired star researcher (their bonuses apply on top). */
   STAR_RESEARCHER_STRENGTH: 1.5,
+  /** Idle lab: share of research output banked for the next topic. */
+  BACKLOG_RATE: 0.75,
+  /** The bank holds at most this many days of current output. */
+  BACKLOG_CAP_DAYS: 120,
 };
+
+/** Most research points the idle bank can hold: BACKLOG_CAP_DAYS of current output. */
+export function backlogCap(s: GameState): number {
+  return RESEARCH_TUNING.BACKLOG_CAP_DAYS * researchPointsPerDay(s);
+}
 
 export function isResearched(s: GameState, id: string): boolean {
   return s.research.completed.includes(id);
@@ -84,6 +93,8 @@ export function researchTick(s: GameState, _rng: Rng): void {
   const id = s.research.current;
   if (!id) {
     s.research.progress = 0;
+    // Idle labs bank part of their output for the next topic (setResearch picks it up), up to the cap.
+    s.research.banked = Math.min(backlogCap(s), (s.research.banked ?? 0) + RESEARCH_TUNING.BACKLOG_RATE * s.research.pointsPerDay);
     return;
   }
   const node = nodeById(id);
@@ -93,7 +104,12 @@ export function researchTick(s: GameState, _rng: Rng): void {
     return;
   }
   s.research.progress += s.research.pointsPerDay;
-  if (s.research.progress >= effectiveResearchCost(s, node)) completeNode(s, node);
+  const cost = effectiveResearchCost(s, node);
+  if (s.research.progress >= cost) {
+    const overflow = s.research.progress - cost;
+    completeNode(s, node);
+    if (overflow > 0) s.research.banked = Math.min(backlogCap(s), (s.research.banked ?? 0) + overflow);
+  }
 }
 
 function completeNode(s: GameState, node: ResearchNode, how: 'researched' | 'adopted' = 'researched'): void {

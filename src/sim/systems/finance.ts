@@ -280,7 +280,7 @@ export function financeTick(s: GameState, rng: Rng): void {
         }
         s.flags.lastOfferDay = s.day;
         s.finance.pendingOffer = made;
-        notify(s, `${made.investor} offers ${formatMoney(made.amount)} for a ${made.roundName}. Expires in ${OFFER_TTL_DAYS} days.`, 'info');
+        notify(s, `${made.investor} offers ${formatMoney(made.amount)} for a ${made.roundName}. Expires in ${OFFER_TTL_DAYS} days.`, 'info', { toast: true });
       } else {
         s.finance.nextOfferDay = s.day + OFFER_RECHECK_DAYS;
       }

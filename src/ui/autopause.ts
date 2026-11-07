@@ -29,9 +29,9 @@ const DEFAULTS: Record<AutoPauseTrigger, boolean> = {
   training: true,
   research: false,
   funding: true,
-  rival: true,
+  rival: false,
   runway: true,
-  outage: false,
+  outage: true,
   data: false,
 };
 

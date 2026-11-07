@@ -213,7 +213,8 @@ describe('benching', () => {
     const announcements: string[] = [];
     for (let i = 0; i < quote.days; i++) {
       advance(s, 1);
-      for (const n of s.notifications) if (/^Evals for Vault run/.test(n.text)) announcements.push(n.text);
+      // Background results go to the inbox (noticeLog), not the toast stack.
+      for (const n of s.noticeLog ?? []) if (/^Evals for Vault run/.test(n.text)) announcements.push(n.text);
     }
     expect(benchPending(model)).toEqual([]);
     for (const id of ids) expect(model.benchRuns?.[id]).toBeDefined();

@@ -640,7 +640,7 @@ function weeklyStandings(s: GameState, labs: Lab[], rows: ArenaRow[]): void {
     s.flags[key] = above ? 1 : 0;
     if (prevRank === undefined || wasAbove === undefined || (wasAbove === 1) === above) continue;
     if (above) notify(s, `${def.name} passes you on the Arena (#${prevRank} → #${rank})`, 'bad');
-    else notify(s, `You pass ${def.name} (#${prevRank} → #${rank})`, 'good');
+    else notify(s, `You pass ${def.name} (#${prevRank} → #${rank})`, 'good', { toast: true });
   }
 }
 

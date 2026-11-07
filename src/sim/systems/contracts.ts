@@ -406,7 +406,7 @@ function signContract(s: GameState, cs: ContractsState, offer: ContractOffer, mo
   };
   cs.active.push(active);
   addRevenue(s, 'contracts', offer.upfront);
-  notify(s, `${offer.client} signs with ${s.company.name}: ${model.name} takes "${offer.title}".`, 'good');
+  notify(s, `${offer.client} signs with ${s.company.name}: ${model.name} takes "${offer.title}".`, 'good', { toast: true });
   pushNews(s, `${offer.client} signs ${s.company.name} for ${offer.title.toLowerCase()}.`, 'good');
   record(s, cs, { client: offer.client, title: offer.title, outcome: 'won', value: dealValue(offer) });
 }
@@ -454,7 +454,7 @@ function complete(s: GameState, cs: ContractsState, a: ActiveContract, rng: Rng,
   const def = contractDefById(a.offer.defId);
   if (stillQualifies && def) {
     cs.offers.push(makeOffer(s, rng, def, a.offer.client, { renewal: true }));
-    notify(s, `${a.offer.client} wants to renew at ${T.RENEWAL_MULT}x.`, 'info');
+    notify(s, `${a.offer.client} wants to renew at ${T.RENEWAL_MULT}x.`, 'info', { toast: true });
   }
 }
 

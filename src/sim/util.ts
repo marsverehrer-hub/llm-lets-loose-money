@@ -57,15 +57,29 @@ export function trySpend(s: GameState, category: string, amount: number, what = 
 }
 
 let noticeSeq = 1;
-export function notify(s: GameState, text: string, kind: NoticeKind = 'info'): void {
-  // Collapse repeats: drop any unread toast with the same text so the newest one shows once.
-  s.notifications = s.notifications.filter((n) => n.text !== text);
-  s.notifications.push({ id: noticeSeq++ + s.day * 1000, day: s.day, text, kind });
-  if (s.notifications.length > 8) s.notifications.splice(0, s.notifications.length - 8);
+/** Depth of engine.tick systems running now. Background notices from them are not toasts unless they are bad or milestones. */
+let tickDepth = 0;
+/** Runs fn as background sim work (the systems loop), so its routine notices stay out of the toast stack. */
+export function inTick<T>(fn: () => T): T {
+  tickDepth++;
+  try {
+    return fn();
+  } finally {
+    tickDepth--;
+  }
+}
+
+export function notify(s: GameState, text: string, kind: NoticeKind = 'info', opts?: { toast?: boolean }): void {
+  const toast = opts?.toast ?? (tickDepth === 0 || kind === 'bad' || kind === 'milestone');
   // Full history for the notification log (GAME_DESIGN §18.4). Not collapsed: the log keeps every line.
   if (!s.noticeLog) s.noticeLog = [];
   s.noticeLog.push({ day: s.day, text, kind });
   if (s.noticeLog.length > 300) s.noticeLog.splice(0, s.noticeLog.length - 300);
+  if (!toast) return;
+  // Collapse repeats: drop any unread toast with the same text so the newest one shows once.
+  s.notifications = s.notifications.filter((n) => n.text !== text);
+  s.notifications.push({ id: noticeSeq++ + s.day * 1000, day: s.day, text, kind });
+  if (s.notifications.length > 8) s.notifications.splice(0, s.notifications.length - 8);
 }
 export function pushNews(s: GameState, text: string, kind: NoticeKind = 'info'): void {
   s.news.push({ id: noticeSeq++ + s.day * 1000, day: s.day, text, kind });

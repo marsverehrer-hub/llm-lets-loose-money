@@ -1,6 +1,7 @@
 import type { ActionHandlers, GameAction, GameState, System } from './types';
 import { chaptersTick } from './systems/chapters';
 import { makeRng } from './rng';
+import { inTick } from './util';
 import { computeTick, handlers as computeHandlers } from './systems/compute';
 import { dataTick, handlers as dataHandlers } from './systems/data';
 import { dataOpsTick, handlers as dataOpsHandlers } from './systems/dataOps';
@@ -143,10 +144,12 @@ export function tick(s: GameState): void {
   const rng = makeRng(s);
   s.day += 1;
   s.finance.today = { revenue: {}, expenses: {} };
-  for (const sys of SYSTEMS) {
-    sys(s, rng);
-    if (s.gameOver) break;
-  }
+  inTick(() => {
+    for (const sys of SYSTEMS) {
+      sys(s, rng);
+      if (s.gameOver) break;
+    }
+  });
   // Runs after the rest so a bankruptcy set by financeTick this day still ends the match.
   if (s.mp) mpTick(s, rng);
 }

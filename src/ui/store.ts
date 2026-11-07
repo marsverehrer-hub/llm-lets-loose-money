@@ -279,10 +279,11 @@ function mayTick(s: GameState): boolean {
 
 // ---------------------------------------------------------------------------
 // Real-time loop. The speed setting (1 / 3 / 10, labelled 1× / 3× / 10×) maps to game days per real second.
-// GAME_DESIGN §18.2 slowed the pace, and §23.4 (v13) slowed it again: 10× is 3 days a second, so a 20-year game is
-// about 40 minutes at full speed instead of 24. Unlisted speeds fall back to speed × 0.33.
+// GAME_DESIGN §18.2 slowed the pace, §23.4 (v13) slowed it again, and §31 (v18) speeds it back up: 10× is 6 days a
+// second, so a 20-year game is about 20 minutes at full speed (1× takes about 3 hours). Unlisted speeds fall back to
+// speed × 0.33.
 // ---------------------------------------------------------------------------
-const DAYS_PER_SECOND: Partial<Record<Speed, number>> = { 1: 0.35, 3: 1, 10: 3 };
+const DAYS_PER_SECOND: Partial<Record<Speed, number>> = { 1: 0.6, 3: 2, 10: 6 };
 export function daysPerSecond(speed: number): number {
   return DAYS_PER_SECOND[speed as Speed] ?? speed * 0.33;
 }
