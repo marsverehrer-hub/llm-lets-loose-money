@@ -9,6 +9,7 @@ import { IncidentModal } from './shell/IncidentModal';
 import { EvalReveal } from './shell/EvalReveal';
 import { MomentTakeover } from './shell/MomentTakeover';
 import { GameOver } from './shell/GameOver';
+import { EndingModal } from './shell/EndingModal'; // v19 AGI endings: the conclusion page and the epilogue
 import { Toasts } from './shell/Toasts';
 import { NoticeLog } from './shell/NoticeLog';
 import { DoctrinePicker } from './shell/DoctrinePicker';
@@ -210,6 +211,7 @@ export function App() {
       <SavesSheet />
       {/* In a match, bankruptcy is reported by the match result modal (MpOverlays), so the single-player game-over window stays out. */}
       {!inMatch && <GameOver />}
+      <EndingModal />
       <MpOverlays />
       {lobbyOpen && <Lobby />}
       <Toasts />

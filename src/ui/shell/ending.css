@@ -1,0 +1,255 @@
+/* ==========================================================================
+   v19 AGI endings (end-). The final page of a paper: a full-window takeover
+   on the desk colour, the sheet as the paper, a double rule under the title,
+   booktabs rules on the endings list, and the red pen for locked endings.
+   Tokens only, so paper and night print both work.
+   ========================================================================== */
+
+.end-root {
+  position: fixed;
+  inset: 0;
+  z-index: 85;
+  display: flex;
+  box-sizing: border-box;
+  padding: 32px 16px;
+  overflow-y: auto;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font);
+}
+
+.end-paper {
+  width: min(760px, 100%);
+  margin: auto;
+  padding: clamp(20px, 4vw, 40px);
+  box-sizing: border-box;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
+/* ---------- head: kicker, title with a double rule --------------------------- */
+.end-head {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 12px;
+  border-bottom: 3px double var(--line-2);
+}
+.end-kicker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 16px;
+  margin: 0;
+  font-size: var(--fs-sm);
+  font-variant: all-small-caps;
+  color: var(--fg-3);
+}
+.end-label {
+  font-weight: 600;
+}
+.end-by {
+  color: var(--fg-2);
+}
+.end-date {
+  font-family: var(--figure);
+  font-variant-numeric: tabular-nums;
+  color: var(--fg-2);
+}
+.end-mark {
+  font-size: 1.4em;
+  line-height: 1;
+}
+.end-title {
+  margin: 0;
+  font-family: var(--display);
+  font-size: clamp(30px, 5.4vw, 52px);
+  font-weight: 700;
+  line-height: 1.05;
+  font-variant: small-caps;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- abstract --------------------------------------------------------- */
+.end-abstract {
+  margin: 0;
+  max-width: 64ch;
+  font-size: clamp(15px, 1.7vw, 17px);
+  line-height: 1.55;
+  color: var(--fg-2);
+}
+
+/* ---------- endings list: booktabs (heavy top and bottom, thin under the head) */
+.end-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 2px solid var(--fg);
+  border-bottom: 2px solid var(--fg);
+}
+.end-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 8px;
+  border-bottom: 1px solid var(--line);
+}
+.end-row:last-child {
+  border-bottom: none;
+}
+.end-row-head {
+  padding-top: 8px;
+  padding-bottom: 6px;
+  font-size: var(--fs-xs);
+  font-variant: all-small-caps;
+  font-weight: 600;
+  color: var(--fg-3);
+  border-bottom: 1px solid var(--fg-2);
+}
+.end-row:not(.end-row-head):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.end-row.is-locked .end-name-text {
+  color: var(--fg-3);
+}
+
+.end-name {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.end-name-text {
+  font-size: 17px;
+  font-weight: 700;
+  font-variant: small-caps;
+  overflow-wrap: anywhere;
+}
+.end-teaser {
+  font-size: var(--fs-sm);
+  line-height: 1.4;
+  color: var(--fg-2);
+}
+.end-status {
+  min-width: 0;
+  font-size: var(--fs-sm);
+}
+.end-pill {
+  display: inline-block;
+  padding: 0 8px;
+  font-size: var(--fs-xs);
+  font-variant: all-small-caps;
+  font-weight: 600;
+  color: var(--up);
+  border: 1px solid currentColor;
+  border-radius: var(--r-sm);
+}
+.end-status .pen {
+  font-size: 1.15em;
+  line-height: 1.15;
+}
+.end-score {
+  font-family: var(--figure);
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.end-choose {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ---------- actions ---------------------------------------------------------- */
+.end-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+.end-hint {
+  font-size: var(--fs-sm);
+  color: var(--fg-3);
+}
+
+/* ---------- epilogue stats: a small table of figures ------------------------- */
+.end-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  margin: 0;
+  border-top: 1px solid var(--line-2);
+}
+.end-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+  padding: 14px 12px;
+  border-bottom: 1px solid var(--line);
+}
+.end-stat dt {
+  font-size: var(--fs-xs);
+  font-variant: all-small-caps;
+  font-weight: 600;
+  color: var(--fg-3);
+}
+.end-stat dd {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.end-stat dd.num {
+  font-family: var(--figure);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- phone: the list stacks, one ending per block --------------------- */
+@media (max-width: 640px) {
+  .end-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'name name'
+      'status score'
+      'choose choose';
+  }
+  .end-row-head {
+    display: none;
+  }
+  .end-name {
+    grid-area: name;
+  }
+  .end-status {
+    grid-area: status;
+  }
+  .end-score {
+    grid-area: score;
+  }
+  .end-choose {
+    grid-area: choose;
+    justify-content: stretch;
+  }
+  .end-choose .btn {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .end-root {
+    animation: end-fade 120ms linear;
+  }
+}
+@keyframes end-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
