@@ -70,6 +70,7 @@ describe('run sheet options', () => {
 
   it('defaults pick the best unlocked options', () => {
     const s = fleet(3, ['transformers', 'bf16_training', 'wsd_schedule', 'adamw', 'tokenizer_100k', 'rope']);
+    s.compute.rented = { a100: 2000 }; // v18: bf16 is emulated (no speed) on a P100 fleet, so give it hardware that runs it
     const cfg = defaultConfig(s);
     expect(cfg.precision).toBe('bf16');
     expect(cfg.schedule).toBe('wsd');
@@ -331,7 +332,7 @@ describe('legacy saves', () => {
     expect(m.activeParamsB).toBe(m.paramsB);
     expect(m.quirks).toEqual([]);
     expect(m.inferenceMult).toBe(1);
-    expect(loaded!.saveVersion).toBe(4);
+    expect(loaded!.saveVersion).toBe(5);
   });
 
   it('backfillTraining gives an in-flight legacy run a legacy sheet and the v3 fields', () => {

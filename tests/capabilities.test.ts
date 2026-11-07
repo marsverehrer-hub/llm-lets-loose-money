@@ -267,7 +267,7 @@ describe('save migration', () => {
     expect(m.caps).toBeDefined();
     expect(m.lineage).toEqual([]);
     expect(Object.keys(m.benchmarks ?? {}).length).toBeGreaterThan(0);
-    expect(loaded!.saveVersion).toBe(4);
+    expect(loaded!.saveVersion).toBe(5);
   });
 });
 

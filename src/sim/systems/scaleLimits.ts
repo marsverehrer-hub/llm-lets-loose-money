@@ -3,12 +3,13 @@
 // parallelism splits a model over one 8-GPU box. Each parallelism node
 // lets the model be sharded over more GPUs. So a 3T model needs pipeline or 3D parallelism AND hundreds of big-memory
 // GPUs, which in 2021 nobody had.
-import type { GameState } from '../types';
+import type { GameState, TrainingConfig } from '../types';
 import { GPUS } from '../data/gpus';
+import { sheetMemoryMult } from '../data/memoryTerms';
+import { trainingFleet } from './hwFormats';
 import { yearOf } from '../util';
 import { isResearched } from './research';
 import { clusterEfficiency } from './compute';
-import { cloudGpusByType } from './cloudMarket';
 
 export const MEMORY_TUNING = {
   /** Off only in unit tests that predate the wall (tests/setup.ts) and use toy fleets with big models. */
@@ -44,28 +45,23 @@ export function shardDegree(s: GameState): number {
 export function fleetMemGB(s: GameState): number {
   let n = 0;
   let mem = 0;
-  const add = (gid: string, k: number) => {
-    const g = GPUS.find((x) => x.id === gid);
+  for (const { g, k } of trainingFleet(s)) {
     n += k;
     mem += k * (g?.memGB ?? MEMORY_TUNING.DEFAULT_MEM_GB);
-  };
-  for (const [gid, k] of Object.entries(cloudGpusByType(s))) if (k > 0) add(gid, k); // every cloud provider
-  const sold = s.neocloud?.dedicated ?? []; // halls dedicated to the neocloud do not train
-  for (const dc of s.compute.datacenters) {
-    if (dc.buildDaysLeft > 0 || sold.includes(dc.id)) continue;
-    for (const [gid, k] of Object.entries(dc.gpus)) if (k > 0) add(gid, k);
   }
   return n > 0 ? mem / n : (GPUS[0].memGB ?? MEMORY_TUNING.DEFAULT_MEM_GB);
 }
 
-/** Parameters (billions) one GPU of `memGB` can hold for training. */
-export function paramsPerGpuB(memGB: number): number {
-  return (memGB * MEMORY_TUNING.USABLE_SHARE) / MEMORY_TUNING.BYTES_PER_PARAM;
+export { fleetFormatSpeed, hwSpeed } from './hwFormats'; // v18 precision on real hardware
+
+/** Parameters (billions) one GPU of `memGB` can hold for training. `bytesMult` scales the bytes per parameter. */
+export function paramsPerGpuB(memGB: number, bytesMult = 1): number {
+  return (memGB * MEMORY_TUNING.USABLE_SHARE) / (MEMORY_TUNING.BYTES_PER_PARAM * bytesMult);
 }
 
 /** GPUs needed to hold a model of `paramsB` total parameters for training on this fleet's memory. */
-export function gpusToHold(s: GameState, paramsB: number): number {
-  return Math.max(1, Math.ceil(paramsB / paramsPerGpuB(fleetMemGB(s))));
+export function gpusToHold(s: GameState, paramsB: number, bytesMult = 1): number {
+  return Math.max(1, Math.ceil(paramsB / paramsPerGpuB(fleetMemGB(s), bytesMult)));
 }
 
 export interface MemoryWall {
@@ -75,31 +71,35 @@ export interface MemoryWall {
   shardDegree: number;
   trainingGpus: number;
   memGB: number;
+  /** The sheet's bytes-per-parameter multiplier (1 without a sheet). */
+  bytesMult: number;
   /** Which limit binds: research (shard degree) or GPUs (not enough of them). */
   limitedBy: 'research' | 'gpus';
 }
 
-/** The memory wall for the current fleet, priority and research. */
-export function memoryWall(s: GameState): MemoryWall {
+/** The memory wall for the current fleet, priority and research. With a run sheet, its optimizer and precision count. */
+export function memoryWall(s: GameState, cfg?: TrainingConfig): MemoryWall {
   const memGB = fleetMemGB(s);
   const degree = shardDegree(s);
   const trainingGpus = Math.max(1, Math.floor(clusterEfficiency(s).usedGpus));
   const shards = Math.min(degree, trainingGpus);
+  const bytesMult = cfg ? sheetMemoryMult(cfg) : 1;
   return {
-    maxParamsB: paramsPerGpuB(memGB) * shards,
+    maxParamsB: paramsPerGpuB(memGB, bytesMult) * shards,
     shardDegree: degree,
     trainingGpus,
     memGB,
+    bytesMult,
     limitedBy: degree <= trainingGpus ? 'research' : 'gpus',
   };
 }
 
 /** Why a model of `paramsB` cannot be trained on this cluster, or null. */
-export function memoryWallError(s: GameState, paramsB: number): string | null {
+export function memoryWallError(s: GameState, paramsB: number, cfg?: TrainingConfig): string | null {
   if (!MEMORY_TUNING.ENFORCE) return null;
-  const w = memoryWall(s);
+  const w = memoryWall(s, cfg);
   if (paramsB <= w.maxParamsB * (1 + 1e-9)) return null;
-  const need = gpusToHold(s, paramsB);
+  const need = gpusToHold(s, paramsB, w.bytesMult);
   const max = w.maxParamsB >= 1 ? `${w.maxParamsB.toFixed(w.maxParamsB < 10 ? 1 : 0)}B` : `${Math.round(w.maxParamsB * 1000)}M`;
   if (need > w.shardDegree) {
     return `Out of memory: ${paramsB}B parameters need ${need.toLocaleString('en-US')} GPUs of ${Math.round(w.memGB)} GB working as one, but your parallelism research can shard a model over ${w.shardDegree.toLocaleString('en-US')}. Max now ${max}. Research model parallelism or get bigger-memory GPUs.`;

@@ -6,7 +6,7 @@ import { DATASETS } from './data/datasets';
 import { OFFICE_TIERS } from './data/roles';
 import { COMPETITORS } from './data/competitors';
 
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 
 function role(count: number, skill = 1): RoleState {
   return { count, skill, salaryLevel: 1 };

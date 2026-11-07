@@ -82,6 +82,8 @@ const MIGRATIONS: Record<number, (saved: any) => any> = {
     saved.lab ??= { runsByArch, largestFlops, sweeps: {}, discoveries: {}, verifiedData: [], lrOffsets: {}, emergenceJitter: {}, forecastErrors: [] };
     return saved;
   },
+  // v4 -> v5: the option table gains memory, learning-rate and tokenizer fields, shape and top-k on sheets. All optional.
+  4: (saved) => saved,
 };
 
 // ---------------------------------------------------------------------------

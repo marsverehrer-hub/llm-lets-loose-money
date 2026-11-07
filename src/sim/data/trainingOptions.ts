@@ -6,14 +6,29 @@ import { RESEARCH } from './research';
 import { isResearched } from '../systems/research';
 import { allDatasets, datasetById } from '../systems/data';
 import { calendarYear } from '../util';
+import { PRECISION_SPEED, type HwFormat } from './gpus';
+import { fleetFormatSpeed } from '../systems/hwFormats';
+import { OPTION_MEMORY_MULT } from './memoryTerms';
 
-/** Options plus two fields that only the data pipeline reads (kept off the shared TrainingOptionDef). */
+/** Options plus fields the data pipeline and the memory wall read (kept off the shared TrainingOptionDef). */
 export type TrainingOption = TrainingOptionDef & {
   /** Added to the run's mix-weighted dataset quality (filters). */
   dataQualityAdd?: number;
   /** Multiplies the tokens the loss sees (quality classifiers throw tokens away). */
   tokenMult?: number;
+  /** × training bytes per parameter (memory wall). Default 1. */
+  memoryMult?: number;
+  /** × the learning-rate curve (how much a wrong LR hurts). Default 1. */
+  lrCurveMult?: number;
+  /** Precision only: the GPU format that makes its speedMult real. */
+  hwFormat?: HwFormat;
+  /** Tokenizer only: vocabulary size in thousands (embedding tax). */
+  vocabK?: number;
 };
+
+/** Sheet fields added in v18 (shape, MoE top-k). Read through this so the sheet type stays as the shared contract has it. */
+type SheetExtras = { shape?: number; moeTopK?: number };
+const sheetOf = (cfg: TrainingConfig) => cfg as TrainingConfig & SheetExtras;
 
 export const TRAINING_OPTION_GROUPS: TrainingOptionGroup[] = ['arch', 'tokenizer', 'context', 'optimizer', 'precision', 'schedule', 'filter', 'post', 'anneal'];
 
@@ -24,41 +39,41 @@ export const TRAINING_OPTIONS: TrainingOption[] = [
   { id: 'moe', group: 'arch', name: 'Mixture of Experts', description: 'Many specialists, one router, and a lot of shrugging.', requiresResearch: 'moe', instability: 0.4, capAdd: { knowledge: 5, reasoning: -3, chat: -1 } },
   { id: 'ssm_hybrid', group: 'arch', name: 'SSM Hybrid', description: 'State-space layers mixed with attention. Reads very long things cheaply.', requiresResearch: 'mamba_hybrid', inferenceMult: 1.6, qualityMult: 0.95, capAdd: { longContext: 15 } },
   { id: 'diffusion_lm', group: 'arch', name: 'Diffusion LM', description: 'Writes the whole answer at once and then argues with it. Fast to serve, odd at small talk.', requiresResearch: 'diffusion_lm', inferenceMult: 3, instability: 0.3, capAdd: { chat: -5, coding: 3 } },
-  { id: 'recurrent_depth', group: 'arch', name: 'Recurrent Depth', description: 'Thinks in loops. Slower to train, slightly smarter on the homework.', requiresResearch: 'recurrent_depth', flopsMult: 1.3, capAdd: { reasoning: 6, math: 6 } },
+  { id: 'recurrent_depth', group: 'arch', name: 'Recurrent Depth', description: 'Thinks in loops. Slower to train, slightly smarter on the homework.', requiresResearch: 'recurrent_depth', flopsMult: 1.3, capAdd: { reasoning: 6, math: 6 }, inferenceMult: 0.75 },
 
   // ---- tokenizer ----------------------------------------------------------------------------
-  { id: 'bpe_32k', group: 'tokenizer', name: 'BPE 32K', description: 'A small vocabulary that has seen a lot of emojis.' },
-  { id: 'bpe_100k', group: 'tokenizer', name: 'BPE 100K', description: 'A bigger vocabulary. Now it can spell "ChatGPT" in four scripts.', requiresResearch: 'tokenizer_100k', qualityMult: 1.03, capAdd: { multilingual: 4 } },
-  { id: 'bpe_256k_multi', group: 'tokenizer', name: 'Multilingual BPE 256K', description: 'Every alphabet, most of the emojis, and one cursed ligature.', requiresResearch: 'multilingual_tokenizer', qualityMult: 1.02, flopsMult: 1.05, capAdd: { multilingual: 12, coding: -2 } },
-  { id: 'byte_latent', group: 'tokenizer', name: 'Byte Latent', description: 'No tokenizer at all. Reads raw bytes and stares at them until they make sense.', requiresResearch: 'byte_latent', qualityMult: 1.05, flopsMult: 1.18, capAdd: { multilingual: 5, math: 2 } },
+  { id: 'bpe_32k', group: 'tokenizer', name: 'BPE 32K', description: 'A small vocabulary that has seen a lot of emojis.', vocabK: 32, tokenMult: 1, inferenceMult: 1 },
+  { id: 'bpe_100k', group: 'tokenizer', name: 'BPE 100K', description: 'A bigger vocabulary. Now it can spell "ChatGPT" in four scripts.', requiresResearch: 'tokenizer_100k', capAdd: { multilingual: 4 }, inferenceMult: 0.98, vocabK: 100, tokenMult: 1.06 },
+  { id: 'bpe_256k_multi', group: 'tokenizer', name: 'Multilingual BPE 256K', description: 'Every alphabet, most of the emojis, and one cursed ligature.', requiresResearch: 'multilingual_tokenizer', capAdd: { multilingual: 12, coding: -2 }, inferenceMult: 0.94, vocabK: 256, tokenMult: 1.09 },
+  { id: 'byte_latent', group: 'tokenizer', name: 'Byte Latent', description: 'No tokenizer at all. Reads raw bytes and stares at them until they make sense.', requiresResearch: 'byte_latent', flopsMult: 1.18, capAdd: { multilingual: 5, math: 2 }, inferenceMult: 0.85, vocabK: 8, tokenMult: 1.1 },
 
   // ---- context window -----------------------------------------------------------------------
-  { id: 'ctx_2k', group: 'context', name: '2K context', description: 'Remembers the last page. Roughly.', contextK: 2 },
-  { id: 'ctx_8k', group: 'context', name: '8K context', description: 'Remembers the last chapter.', requiresResearch: 'rope', contextK: 8, flopsMult: 1.05 },
-  { id: 'ctx_32k', group: 'context', name: '32K context', description: 'Remembers the whole short story, including the twist it spoiled.', requiresResearch: 'long_context', contextK: 32, flopsMult: 1.12 },
-  { id: 'ctx_128k', group: 'context', name: '128K context', description: 'Remembers the whole codebase and the meeting where you decided to rewrite it.', requiresResearch: 'yarn_scaling', contextK: 128, flopsMult: 1.2 },
-  { id: 'ctx_1m', group: 'context', name: '1M context', description: 'Remembers every email you have ever sent. Feels seen.', requiresResearch: 'million_token', contextK: 1000, flopsMult: 1.35 },
-  { id: 'ctx_10m', group: 'context', name: '10M context', description: 'Remembers your childhood. Starts quoting it back.', requiresResearch: 'infinite_context', contextK: 10000, flopsMult: 1.6 },
+  { id: 'ctx_2k', group: 'context', name: '2K context', description: 'Remembers the last page. Roughly.', contextK: 2, inferenceMult: 1 },
+  { id: 'ctx_8k', group: 'context', name: '8K context', description: 'Remembers the last chapter.', requiresResearch: 'rope', contextK: 8, flopsMult: 1.05, inferenceMult: 1 },
+  { id: 'ctx_32k', group: 'context', name: '32K context', description: 'Remembers the whole short story, including the twist it spoiled.', requiresResearch: 'long_context', contextK: 32, flopsMult: 1.12, inferenceMult: 0.96 },
+  { id: 'ctx_128k', group: 'context', name: '128K context', description: 'Remembers the whole codebase and the meeting where you decided to rewrite it.', requiresResearch: 'yarn_scaling', contextK: 128, flopsMult: 1.2, inferenceMult: 0.9 },
+  { id: 'ctx_1m', group: 'context', name: '1M context', description: 'Remembers every email you have ever sent. Feels seen.', requiresResearch: 'million_token', contextK: 1000, flopsMult: 1.35, inferenceMult: 0.8 },
+  { id: 'ctx_10m', group: 'context', name: '10M context', description: 'Remembers your childhood. Starts quoting it back.', requiresResearch: 'infinite_context', contextK: 10000, flopsMult: 1.6, inferenceMult: 0.7 },
 
   // ---- optimizer ----------------------------------------------------------------------------
-  { id: 'sgd', group: 'optimizer', name: 'SGD', description: 'Stochastic gradient descent. Stochastic, mostly descent.', qualityMult: 0.85 },
-  { id: 'adam', group: 'optimizer', name: 'Adam', description: 'The default. Everybody uses it, so nobody is blamed.' },
-  { id: 'adamw', group: 'optimizer', name: 'AdamW', description: 'Adam with the weight decay finally where it belongs.', requiresResearch: 'adamw', qualityMult: 1.04 },
-  { id: 'lion', group: 'optimizer', name: 'Lion', description: 'Found by a search algorithm. Fast, a little reckless.', requiresResearch: 'lion_optimizer', speedMult: 1.2, qualityMult: 0.98, instability: 0.3 },
-  { id: 'shampoo', group: 'optimizer', name: 'Shampoo', description: 'Preconditioned, and very sure of itself. Costs more per step.', requiresResearch: 'shampoo_soap', qualityMult: 1.07, speedMult: 0.82, instability: -0.05 },
-  { id: 'muon', group: 'optimizer', name: 'Muon', description: 'Orthogonalises the updates. Sounds like physics, behaves like a good coach.', requiresResearch: 'muon_optimizer', qualityMult: 1.09, speedMult: 0.93, instability: 0.2 },
+  { id: 'sgd', group: 'optimizer', name: 'SGD', description: 'Stochastic gradient descent. Stochastic, mostly descent.', qualityMult: 0.88, speedMult: 1.05, instability: -0.15, memoryMult: OPTION_MEMORY_MULT.sgd, lrCurveMult: 0.6 },
+  { id: 'adam', group: 'optimizer', name: 'Adam', description: 'The default. Everybody uses it, so nobody is blamed.', memoryMult: OPTION_MEMORY_MULT.adam, lrCurveMult: 1 },
+  { id: 'adamw', group: 'optimizer', name: 'AdamW', description: 'Adam with the weight decay finally where it belongs.', requiresResearch: 'adamw', qualityMult: 1.04, memoryMult: OPTION_MEMORY_MULT.adamw, lrCurveMult: 1.6 },
+  { id: 'lion', group: 'optimizer', name: 'Lion', description: 'Found by a search algorithm. Fast, a little reckless.', requiresResearch: 'lion_optimizer', speedMult: 1.15, qualityMult: 0.99, instability: 0.3, memoryMult: OPTION_MEMORY_MULT.lion, lrCurveMult: 1.7 },
+  { id: 'shampoo', group: 'optimizer', name: 'Shampoo', description: 'Preconditioned, and very sure of itself. Costs more per step.', requiresResearch: 'shampoo_soap', qualityMult: 1.07, speedMult: 0.82, instability: -0.05, memoryMult: OPTION_MEMORY_MULT.shampoo, lrCurveMult: 0.9 },
+  { id: 'muon', group: 'optimizer', name: 'Muon', description: 'Orthogonalises the updates. Sounds like physics, behaves like a good coach.', requiresResearch: 'muon_optimizer', qualityMult: 1.08, speedMult: 0.93, instability: 0.2, memoryMult: OPTION_MEMORY_MULT.muon, lrCurveMult: 1.25 },
 
   // ---- precision ----------------------------------------------------------------------------
-  { id: 'fp32', group: 'precision', name: 'FP32', description: 'Full precision. Slow, boring, and the numbers are all there.', instability: -0.1 },
-  { id: 'fp16', group: 'precision', name: 'FP16', description: 'Half precision with a loss scaler and a prayer.', requiresResearch: 'mixed_precision', speedMult: 1.7, instability: 0.3 },
-  { id: 'bf16', group: 'precision', name: 'BF16', description: 'Brain floats. Same range as FP32, half the bits, none of the drama.', requiresResearch: 'bf16_training', speedMult: 1.8 },
-  { id: 'fp8', group: 'precision', name: 'FP8', description: 'Eight bits per weight. Very fast, very opinionated about outliers.', requiresResearch: 'fp8_training', speedMult: 2.6, instability: 0.5, qualityMult: 0.985 },
-  { id: 'fp4', group: 'precision', name: 'FP4', description: 'Four bits. The weights are fine. The weights are fine.', requiresResearch: 'fp4_training', speedMult: 3.6, instability: 1.2, qualityMult: 0.95 },
+  { id: 'fp32', group: 'precision', name: 'FP32', description: 'Full precision. Slow, boring, and the numbers are all there.', instability: -0.1, memoryMult: OPTION_MEMORY_MULT.fp32, inferenceMult: 1 },
+  { id: 'fp16', group: 'precision', name: 'FP16', description: 'Half precision with a loss scaler and a prayer.', requiresResearch: 'mixed_precision', speedMult: PRECISION_SPEED.fp16, instability: 0.3, memoryMult: OPTION_MEMORY_MULT.fp16, inferenceMult: 1 },
+  { id: 'bf16', group: 'precision', name: 'BF16', description: 'Brain floats. Same range as FP32, half the bits, none of the drama.', requiresResearch: 'bf16_training', speedMult: PRECISION_SPEED.bf16, hwFormat: 'bf16', memoryMult: OPTION_MEMORY_MULT.bf16, inferenceMult: 1 },
+  { id: 'fp8', group: 'precision', name: 'FP8', description: 'Eight bits per weight. Very fast, very opinionated about outliers.', requiresResearch: 'fp8_training', speedMult: PRECISION_SPEED.fp8, instability: 0.5, qualityMult: 0.985, hwFormat: 'fp8', memoryMult: OPTION_MEMORY_MULT.fp8, inferenceMult: 1.15 },
+  { id: 'fp4', group: 'precision', name: 'FP4', description: 'Four bits. The weights are fine. The weights are fine.', requiresResearch: 'fp4_training', speedMult: PRECISION_SPEED.fp4, instability: 1.2, qualityMult: 0.95, hwFormat: 'fp4', memoryMult: OPTION_MEMORY_MULT.fp4, inferenceMult: 1.3 },
 
   // ---- schedule -----------------------------------------------------------------------------
   { id: 'cosine', group: 'schedule', name: 'Cosine', description: 'Decay the learning rate along a cosine. Best if you run to the end; stopping early wastes the tail.', qualityMult: 1.02 },
-  { id: 'constant', group: 'schedule', name: 'Constant', description: 'Keep the learning rate flat and hope. Stopping early is fine-ish.', qualityMult: 0.97 },
-  { id: 'wsd', group: 'schedule', name: 'Warmup-Stable-Decay', description: 'Flat in the middle, decay at the end. Stop anytime without much regret.', requiresResearch: 'wsd_schedule', qualityMult: 1 },
+  { id: 'constant', group: 'schedule', name: 'Constant', description: 'Keep the learning rate flat and hope. Stopping early is fine-ish.', qualityMult: 0.98 },
+  { id: 'wsd', group: 'schedule', name: 'Warmup-Stable-Decay', description: 'Flat in the middle, decay at the end. Stop anytime without much regret.', requiresResearch: 'wsd_schedule', qualityMult: 1.01 },
 
   // ---- data filters -------------------------------------------------------------------------
   { id: 'dedup', group: 'filter', name: 'MinHash Dedup', description: 'Removes the 40,000 copies of the same terms of service.', requiresResearch: 'minhash_dedup', dataQualityAdd: 0.06 },
@@ -142,9 +157,26 @@ export const RUN_TUNING = {
   /** Long context adds this much longContext per doubling above 2K. */
   CONTEXT_CAP_PER_DOUBLING: 0.8,
   /** Data mix: cap swing at the extreme of a mix (one kind gets everything). */
-  MIX_SWING: 10,
-  /** Chance of accidental benchmark contamination per run = webShare x this, unless decontam is on. */
+  MIX_SWING: 12,
+  /** Repetition: past OVER_REPEAT_EPOCHS passes, each extra pass costs OVER_REPEAT_PER_EPOCH x the kind's share. */
+  OVER_REPEAT_EPOCHS: 4,
+  OVER_REPEAT_PER_EPOCH: 0.03,
+  OVER_REPEAT_FLOOR: 0.85,
+  /** Benchmark contamination per run, by data kind (share x rate), unless decontam is on. */
+  CONTAM_RATE: { web: 0.25, science: 0.12, code: 0.1, synthetic: 0.3 } as Partial<Record<DataKind, number>>,
+  /** Old flat rate (web share x this). Superseded by CONTAM_RATE; kept for old callers. */
   ACCIDENTAL_CONTAMINATION_PER_WEB: 0.25,
+  /** MoE top-k: expert fraction step per extra expert chosen (MOE_TOPK_STEP x (k - 2) / experts). */
+  MOE_TOPK_STEP: 0.95,
+  /** MoE top-k: instability, capability and speed effects, relative to the default k = 2. */
+  MOE_TOPK: {
+    1: { instab: 0.25, speed: 1.05, capAdd: { knowledge: -2 } },
+    2: { instab: 0, speed: 1, capAdd: {} },
+    4: { instab: -0.1, speed: 0.95, capAdd: { reasoning: 2 } },
+    8: { instab: -0.15, speed: 0.9, capAdd: { reasoning: 3, chat: 1 } },
+  } as Record<number, { instab: number; speed: number; capAdd: Partial<Record<CapId, number>> }>,
+  /** Model shape (-1 wide and shallow .. +1 deep and narrow): effects per unit of shape. */
+  SHAPE: { reasoning: 4, math: 3, knowledge: -4, multilingual: -2, qualityPenalty: 0.03, speed: 0.1, instab: 0.3, serve: 0.1 },
   /** Uncertainty of predicted overall score (SD in points), before reductions. */
   UNCERTAINTY_BASE: 6,
   UNCERTAINTY_SCALING_LAWS: 0.6,
@@ -251,16 +283,44 @@ export function equalMixFor(s: GameState, datasetIds: readonly Id[]): Partial<Re
   return mix;
 }
 
-/** Best sensible unlocked defaults: what a competent researcher would pick today. */
-export function defaultConfig(s: GameState): TrainingConfig {
-  const contexts = ['ctx_10m', 'ctx_1m', 'ctx_128k', 'ctx_32k', 'ctx_8k', 'ctx_2k'];
+/** Active fraction of total parameters per token for an MoE with `experts` experts and top-k `k` (k = 2 is the base). */
+export function moeActiveFraction(experts: number, k = 2): number {
+  const base = RUN_TUNING.MOE_ACTIVE_FRACTION[experts] ?? RUN_TUNING.MOE_ACTIVE_FRACTION[RUN_TUNING.MOE_DEFAULT_EXPERTS];
+  return base + ((k - 2) / experts) * RUN_TUNING.MOE_TOPK_STEP;
+}
+
+/** The unlocked precision that trains fastest on this lab's fleet while staying stable (instability <= 0.5). */
+export function bestPrecision(s: GameState): Id {
+  let best: { id: Id; speed: number; instab: number } | null = null;
+  for (const o of TRAINING_OPTIONS) {
+    if (o.group !== 'precision' || !isOptionUnlocked(s, o.id)) continue;
+    const instab = o.instability ?? 0;
+    if (instab > 0.5) continue;
+    const speed = fleetFormatSpeed(s, o.id);
+    const better = !best || speed > best.speed + 1e-9 || (Math.abs(speed - best.speed) <= 1e-9 && instab < best.instab);
+    if (better) best = { id: o.id, speed, instab };
+  }
+  return best?.id ?? 'fp32';
+}
+
+/** Tokenizer for a model of `paramsB` billion parameters: big models get the largest vocabulary they can use. */
+export function tokenizerFor(s: GameState, paramsB: number): Id {
+  if (paramsB >= 8) {
+    return firstUnlocked(s, 'tokenizer', ['bpe_256k_multi', 'bpe_100k'], 'bpe_32k');
+  }
+  return 'bpe_32k';
+}
+
+/** Best sensible unlocked defaults: what a competent researcher would pick today, for a model of about `paramsB`. */
+export function defaultConfig(s: GameState, paramsB = 10): TrainingConfig {
+  const contexts = ['ctx_128k', 'ctx_32k', 'ctx_8k', 'ctx_2k'];
   const filters = TRAINING_OPTIONS.filter((o) => o.group === 'filter' && isOptionUnlocked(s, o.id)).map((o) => o.id);
   return {
     arch: isResearched(s, 'transformers') ? 'dense' : 'lstm',
-    tokenizer: firstUnlocked(s, 'tokenizer', ['bpe_256k_multi', 'bpe_100k'], 'bpe_32k'),
+    tokenizer: tokenizerFor(s, paramsB),
     context: firstUnlocked(s, 'context', contexts, 'ctx_2k'),
     optimizer: firstUnlocked(s, 'optimizer', ['adamw'], 'adam'),
-    precision: firstUnlocked(s, 'precision', ['bf16', 'fp16'], 'fp32'),
+    precision: bestPrecision(s),
     schedule: firstUnlocked(s, 'schedule', ['wsd'], 'cosine'),
     lr: 0.5,
     dataMix: equalMixForOwned(s),
@@ -298,6 +358,10 @@ export function configSignature(cfg: TrainingConfig): string {
   const experts = cfg.arch === 'moe' ? `:${cfg.moeExperts ?? RUN_TUNING.MOE_DEFAULT_EXPERTS}` : '';
   const filters = [...cfg.filters].sort().join(',');
   const parts = [`${cfg.arch}${experts}`, cfg.tokenizer, cfg.context, cfg.optimizer, cfg.precision, cfg.schedule, `lr${cfg.lr.toFixed(2)}`, filters || 'nofilter', cfg.checkpointing];
+  // v18: shape and top-k only when they differ from the default, so older sheets keep their keys.
+  const sheet = sheetOf(cfg);
+  if (sheet.shape) parts.push(`shape:${sheet.shape}`);
+  if (sheet.moeTopK !== undefined && sheet.moeTopK !== 2) parts.push(`k:${sheet.moeTopK}`);
   // v16: only sheets that use post-training or annealing get the extra parts, so older ablations keep their keys.
   if (cfg.post?.length) parts.push(`post:${[...cfg.post].sort().join(',')}`);
   if (cfg.anneal) parts.push(`anneal:${cfg.anneal}`);
@@ -311,19 +375,27 @@ export function describeConfig(cfg: TrainingConfig): string {
   const prec = optionById(cfg.precision)?.name ?? cfg.precision;
   const sched = optionById(cfg.schedule)?.name ?? cfg.schedule;
   const post = [...(cfg.post ?? []), ...(cfg.anneal ? [cfg.anneal] : [])].map((id) => optionById(id)?.name ?? id);
-  return `${arch}${experts} · ${prec} · ${sched} · lr ${cfg.lr.toFixed(2)}${post.length ? ` · ${post.join(' + ')}` : ''}`;
+  const sheet = sheetOf(cfg);
+  const head = [`${arch}${experts}`];
+  if (cfg.arch === 'moe' && sheet.moeTopK !== undefined) head.push(`top-k ${sheet.moeTopK}`);
+  if (sheet.shape) head.push(sheet.shape > 0 ? 'deep' : 'wide');
+  return `${head.join(' · ')} · ${prec} · ${sched} · lr ${cfg.lr.toFixed(2)}${post.length ? ` · ${post.join(' + ')}` : ''}`;
 }
 
 /**
- * Throughput multiplier from precision, optimizer and checkpointing (1 = baseline). MFU research (fused kernels,
- * flash attention 3) is NOT applied here: those nodes carry their own trainingSpeed bonus through getBonuses.
+ * Throughput multiplier (1 = baseline): precision (the fleet's real hardware formats, see fleetFormatSpeed), optimizer,
+ * checkpointing, model shape and MoE top-k. MFU research (fused kernels, flash attention 3) is NOT applied here: those
+ * nodes carry their own trainingSpeed bonus through getBonuses.
  */
 export function speedMultiplier(s: GameState, cfg: TrainingConfig): number {
-  const precision = optionById(cfg.precision)?.speedMult ?? 1;
+  const precision = fleetFormatSpeed(s, cfg.precision);
   const optimizer = optionById(cfg.optimizer)?.speedMult ?? 1;
   let checkpoint = RUN_TUNING.CHECKPOINT[cfg.checkpointing]?.speed ?? 1;
   if (cfg.checkpointing === 'often' && isResearched(s, 'async_checkpointing')) checkpoint = 1;
-  return precision * optimizer * checkpoint;
+  const sheet = sheetOf(cfg);
+  const shape = 1 - RUN_TUNING.SHAPE.speed * (sheet.shape ?? 0);
+  const topK = cfg.arch === 'moe' ? (RUN_TUNING.MOE_TOPK[sheet.moeTopK ?? 2]?.speed ?? 1) : 1;
+  return precision * optimizer * checkpoint * shape * topK;
 }
 
 /** Why a run sheet cannot be used, or null when it is valid. */
@@ -344,6 +416,14 @@ export function validateConfig(s: GameState, cfg: TrainingConfig): string | null
   }
   if (cfg.arch === 'moe' && cfg.moeExperts !== undefined && !(cfg.moeExperts in RUN_TUNING.MOE_ACTIVE_FRACTION)) {
     return 'Mixture of Experts comes in 8, 16, 64 or 256 experts.';
+  }
+  const sheet = sheetOf(cfg);
+  if (sheet.shape !== undefined && (!Number.isFinite(sheet.shape) || sheet.shape < -1 || sheet.shape > 1)) return 'Shape must be between -1 (wide) and 1 (deep).';
+  if (cfg.arch === 'lstm' && sheet.shape) return 'An LSTM has no shape to tune.';
+  if (sheet.moeTopK !== undefined) {
+    if (cfg.arch !== 'moe') return 'Top-k only applies to Mixture of Experts.';
+    if (![1, 2, 4, 8].includes(sheet.moeTopK)) return 'Top-k must be 1, 2, 4 or 8.';
+    if (sheet.moeTopK >= (cfg.moeExperts ?? RUN_TUNING.MOE_DEFAULT_EXPERTS)) return 'Top-k must be less than the expert count.';
   }
   if (!Number.isFinite(cfg.lr) || cfg.lr < 0 || cfg.lr > 1) return 'Learning rate must be between 0 and 1.';
   if (!(cfg.checkpointing in RUN_TUNING.CHECKPOINT)) return 'Unknown checkpointing setting.';

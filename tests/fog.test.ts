@@ -343,7 +343,7 @@ describe('determinism and saves', () => {
     };
     const loaded = loadGame();
     expect(loaded).not.toBeNull();
-    expect(loaded!.saveVersion).toBe(4);
+    expect(loaded!.saveVersion).toBe(5);
     expect(loaded!.lab).toBeDefined();
     expect(loaded!.lab!.runsByArch).toBeDefined();
     const m = loaded!.models[0];
