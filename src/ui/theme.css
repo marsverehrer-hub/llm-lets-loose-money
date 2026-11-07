@@ -128,6 +128,8 @@
   --tex-head: none;
   /* Any solid fill under this reads as a hatched bar, like a black-and-white figure. */
   --tex-hatch: repeating-linear-gradient(135deg, transparent 0 3px, rgba(18, 16, 12, 0.5) 3px 5px);
+  /* Mask for sideways-scrolling strips: the right edge fades to say there is more (mask alpha, not a colour). */
+  --mask-fade-end: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
   --tex-ruler: repeating-linear-gradient(90deg, var(--line-2) 0 1px, transparent 1px 10%);
   --tex-marker: linear-gradient(transparent 58%, var(--marker) 58%, var(--marker) 92%, transparent 92%);
   --tex-dash: repeating-linear-gradient(90deg, var(--line) 0 4px, transparent 4px 8px);

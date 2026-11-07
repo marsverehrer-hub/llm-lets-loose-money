@@ -143,7 +143,7 @@ export function FieldPanel() {
         actions={
           <>
             <Stat label="Active labs" value={active.length} size="sm" />
-            <Stat label="Open models this year" value={openThisYear} size="sm" hint={String(year)} />
+            <Stat label="Open models" value={openThisYear} size="sm" hint={`in ${year}`} />
             <Stat label="Arena leader" value={leader ? leader.name : '—'} hint={leader?.modelName} size="sm" />
           </>
         }

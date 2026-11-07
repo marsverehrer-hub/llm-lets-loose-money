@@ -49,7 +49,11 @@ export function Tabs<T extends string>({ tabs, value, onChange, variant = 'under
           aria-selected={t.id === value}
           class={`tab ${t.id === value ? 'active' : ''}`}
           disabled={t.disabled}
-          onClick={() => onChange(t.id)}
+          onClick={(e) => {
+            // A phone's strip scrolls sideways: bring the picked tab fully into view.
+            (e.currentTarget as HTMLElement).scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+            onChange(t.id);
+          }}
         >
           {t.icon && <span>{t.icon}</span>}
           {t.label}

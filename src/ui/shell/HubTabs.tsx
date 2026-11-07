@@ -1,4 +1,5 @@
 // The active hub's panels as tabs, pinned at the top of the main area. Hidden when the hub has only one panel.
+import { useEffect, useRef } from 'preact/hooks';
 import type { PanelId } from '../App';
 import { TAB_LABEL, hubOf, type Badge } from './hubs';
 import type { NavItemDef } from './SideNav';
@@ -15,9 +16,14 @@ export function HubTabs({ items, active, onSelect, badges = {}, highlight = null
   const hub = hubOf(active);
   const byId = new Map(items.map((i) => [i.id, i] as const));
   const tabs = hub.ids.map((id) => byId.get(id)).filter((x): x is NavItemDef => !!x);
+  const strip = useRef<HTMLDivElement>(null);
+  // On a phone the strip scrolls sideways: keep the active tab in view instead of cut off at the edge.
+  useEffect(() => {
+    strip.current?.querySelector<HTMLElement>('.hubtab.active')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }, [active]);
   if (tabs.length < 2) return null;
   return (
-    <div class={`hubtabs hub-${hub.id}`} role="tablist" aria-label={hub.label}>
+    <div class={`hubtabs hub-${hub.id}`} role="tablist" aria-label={hub.label} ref={strip}>
       {tabs.map((t) => {
         const badge = badges[t.id];
         return (

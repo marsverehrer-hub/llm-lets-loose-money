@@ -282,7 +282,7 @@ export function ReleaseWizard({ modelId, onClose }: { modelId: string; onClose: 
       parent={plain(m.name)}
       steps={[]}
       cur={0}
-      question={`Release ${plain(m.name)}?`}
+      question="Ready to ship?"
       blocker={blocker}
       nextDisabled
       info={
