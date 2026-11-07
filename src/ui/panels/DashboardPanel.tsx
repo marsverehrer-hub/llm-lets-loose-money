@@ -1,7 +1,8 @@
 // OWNER: ONBOARD. Headquarters: the first screen. It answers "what is going on and what should I do next":
 // the advisor (./hq/AdvisorCard), the live run and research, key numbers, money, products, rivals, the office, charts.
 import { useState } from 'preact/hooks';
-import { OfficeView } from '../../office/OfficeView';
+import { Suspense } from 'preact/compat';
+import { lazyNamed } from '../lazy';
 import { OFFICE_TIERS } from '../../sim/data/roles';
 import type { GameState } from '../../sim/types';
 import { dayToDate } from '../../sim/util';
@@ -19,6 +20,9 @@ import { TrainingCard } from './hq/TrainingCard';
 import './lab/lab.css';
 import './panels-a.css';
 import './hq/hq.css';
+
+// The office camera sits in a disclosure that is usually closed, so its code loads only when it opens.
+const OfficeView = lazyNamed(() => import('../../office/OfficeView'), 'OfficeView');
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 /** Remembers whether the office picture is open. */
@@ -61,7 +65,9 @@ function OfficeDisclosure({ s, subtitle }: { s: GameState; subtitle: string }) {
       </summary>
       {open && (
         <Card flush>
-          <OfficeView state={s} height={isPhone ? 190 : 260} />
+          <Suspense fallback={null}>
+            <OfficeView state={s} height={isPhone ? 190 : 260} />
+          </Suspense>
         </Card>
       )}
     </details>

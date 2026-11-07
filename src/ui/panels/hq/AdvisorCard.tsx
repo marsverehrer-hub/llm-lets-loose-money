@@ -8,7 +8,7 @@ import { navigate } from '../../nav';
 import { GoalsCard, ThesisCard } from '../GoalsCard';
 import { BoardCard } from '../lab/BoardCard';
 import { nextSteps, type Step } from './nextStep';
-import { tutorialTarget } from '../../tutorial/Tutorial';
+import { tutorialTarget } from '../../tutorial/steps';
 
 /** How many moves show before "Show more". */
 const SHOWN = 3;

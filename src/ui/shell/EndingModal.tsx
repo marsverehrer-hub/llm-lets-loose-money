@@ -9,8 +9,7 @@ import type { EndingId, GameState } from '../../sim/types';
 import { formatMoney } from '../../sim/util';
 import { Button, formatInt } from '../components';
 import { dispatch, useGame, useGameSelect } from '../store';
-import { openNewGame } from './NewGame';
-import { openSaves } from './SavesSheet';
+import { openNewGame, openSaves } from './sheetEvents';
 import { plain, tdate } from './fmt';
 import './ending.css';
 

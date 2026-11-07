@@ -1,5 +1,6 @@
 // OWNER: UI polish agent (shell + juice). Panel ids/paths are fixed so the panels drop in.
 import { useEffect, useRef, useState } from 'preact/hooks';
+import { Suspense, type ComponentType } from 'preact/compat';
 import { TopBar } from './shell/TopBar';
 import { SideNav } from './shell/SideNav';
 import { NewsTicker } from './shell/NewsTicker';
@@ -8,34 +9,14 @@ import { EventModal } from './shell/EventModal';
 import { IncidentModal } from './shell/IncidentModal';
 import { EvalReveal } from './shell/EvalReveal';
 import { MomentTakeover } from './shell/MomentTakeover';
-import { GameOver } from './shell/GameOver';
-import { EndingModal } from './shell/EndingModal'; // v19 AGI endings: the conclusion page and the epilogue
 import { Toasts } from './shell/Toasts';
 import { NoticeLog } from './shell/NoticeLog';
 import { DoctrinePicker } from './shell/DoctrinePicker';
-import { NewGame } from './shell/NewGame'; // v9 scenario: new-game setup screen
-import { SavesSheet } from './shell/SavesSheet'; // saves: every game in its own slot
 import { Shortcuts, SHORTCUTS_EVENT } from './shell/Shortcuts';
 import { DashboardPanel } from './panels/DashboardPanel';
-import { ModelsPanel } from './panels/ModelsPanel';
-import { ProductsPanel } from './panels/ProductsPanel';
-import { ComputePanel } from './panels/ComputePanel';
-import { DataPanel } from './panels/DataPanel';
-import { ResearchPanel } from './panels/ResearchPanel';
-import { BenchmarksPanel } from './panels/BenchmarksPanel';
-import { StaffPanel } from './panels/StaffPanel';
-import { MarketPanel } from './panels/MarketPanel';
-import { MarketingPanel } from './panels/MarketingPanel';
-import { FinancePanel } from './panels/FinancePanel';
-import { AchievementsPanel } from './panels/AchievementsPanel';
-import { ContractsPanel } from './panels/ContractsPanel';
-import { LabPanel } from './panels/LabPanel'; // v13 progression
-import { FieldPanel } from './panels/FieldPanel'; // v19 living field
-import { VsPanel } from './mp/VsPanel';
-import { Lobby } from './mp/Lobby';
-import { MpOverlays } from './mp/MpOverlays';
 import { useLobbyOpen } from './mp/lobbyState';
-import { Tutorial, tutorialTarget } from './tutorial/Tutorial';
+import { tutorialTarget } from './tutorial/steps';
+import { lazyNamed } from './lazy';
 import { FxDirector } from './fx/Director';
 import { initSound } from './fx/sound';
 import { onNavigate } from './nav';
@@ -58,7 +39,32 @@ applyTheme(readTheme());
 
 export type PanelId = 'dashboard' | 'lab' | 'models' | 'products' | 'compute' | 'data' | 'research' | 'benchmarks' | 'staff' | 'market' | 'contracts' | 'finance' | 'vs' | 'achievements' | 'marketing' | 'field';
 
-export const PANELS: { id: PanelId; label: string; Component: () => any }[] = [
+// Everything below the first paint is loaded on demand (Vite splits each import() into its own chunk). The HQ panel,
+// the shell and the advisor stay eager. Overlays that open from window events are mounted up front, so they hear the event.
+const ModelsPanel = lazyNamed(() => import('./panels/ModelsPanel'), 'ModelsPanel');
+const ProductsPanel = lazyNamed(() => import('./panels/ProductsPanel'), 'ProductsPanel');
+const ComputePanel = lazyNamed(() => import('./panels/ComputePanel'), 'ComputePanel');
+const DataPanel = lazyNamed(() => import('./panels/DataPanel'), 'DataPanel');
+const ResearchPanel = lazyNamed(() => import('./panels/ResearchPanel'), 'ResearchPanel');
+const BenchmarksPanel = lazyNamed(() => import('./panels/BenchmarksPanel'), 'BenchmarksPanel');
+const StaffPanel = lazyNamed(() => import('./panels/StaffPanel'), 'StaffPanel');
+const MarketPanel = lazyNamed(() => import('./panels/MarketPanel'), 'MarketPanel');
+const MarketingPanel = lazyNamed(() => import('./panels/MarketingPanel'), 'MarketingPanel');
+const FinancePanel = lazyNamed(() => import('./panels/FinancePanel'), 'FinancePanel');
+const AchievementsPanel = lazyNamed(() => import('./panels/AchievementsPanel'), 'AchievementsPanel');
+const ContractsPanel = lazyNamed(() => import('./panels/ContractsPanel'), 'ContractsPanel');
+const LabPanel = lazyNamed(() => import('./panels/LabPanel'), 'LabPanel');
+const FieldPanel = lazyNamed(() => import('./panels/FieldPanel'), 'FieldPanel');
+const VsPanel = lazyNamed(() => import('./mp/VsPanel'), 'VsPanel');
+const Lobby = lazyNamed(() => import('./mp/Lobby'), 'Lobby');
+const MpOverlays = lazyNamed(() => import('./mp/MpOverlays'), 'MpOverlays');
+const Tutorial = lazyNamed(() => import('./tutorial/Tutorial'), 'Tutorial');
+const GameOver = lazyNamed(() => import('./shell/GameOver'), 'GameOver');
+const EndingModal = lazyNamed(() => import('./shell/EndingModal'), 'EndingModal');
+const NewGame = lazyNamed(() => import('./shell/NewGame'), 'NewGame'); // v9 scenario: new-game setup screen
+const SavesSheet = lazyNamed(() => import('./shell/SavesSheet'), 'SavesSheet'); // saves: every game in its own slot
+
+export const PANELS: { id: PanelId; label: string; Component: ComponentType<any> }[] = [
   { id: 'dashboard', label: 'Headquarters', Component: DashboardPanel },
   { id: 'lab', label: 'Level & perks', Component: LabPanel }, // v13 progression
   { id: 'models', label: 'Models', Component: ModelsPanel },
@@ -195,7 +201,9 @@ export function App() {
           {/* keyed so each tab change remounts the panel (resets panel-local state) */}
           <HubContext.Provider value={hub}>
             <div key={tab} class="panel-host">
-              <Active />
+              <Suspense fallback={null}>
+                <Active />
+              </Suspense>
             </div>
           </HubContext.Provider>
         </main>
@@ -207,16 +215,16 @@ export function App() {
       <EvalReveal />
       <MomentTakeover />
       <DoctrinePicker />
-      <NewGame />
-      <SavesSheet />
+      <Suspense fallback={null}><NewGame /></Suspense>
+      <Suspense fallback={null}><SavesSheet /></Suspense>
       {/* In a match, bankruptcy is reported by the match result modal (MpOverlays), so the single-player game-over window stays out. */}
-      {!inMatch && <GameOver />}
-      <EndingModal />
-      <MpOverlays />
-      {lobbyOpen && <Lobby />}
+      {!inMatch && <Suspense fallback={null}><GameOver /></Suspense>}
+      <Suspense fallback={null}><EndingModal /></Suspense>
+      <Suspense fallback={null}><MpOverlays /></Suspense>
+      {lobbyOpen && <Suspense fallback={null}><Lobby /></Suspense>}
       <Toasts />
       <NoticeLog />
-      <Tutorial />
+      <Suspense fallback={null}><Tutorial /></Suspense>
       <FxDirector />
       <Shortcuts open={helpOpen} onClose={() => setHelpOpen(false)} />
     </div>

@@ -9,14 +9,9 @@ import { Button, Pill, Sheet } from '../components';
 import { Banner } from '../panels/panelKit';
 import { loadSlotIntoGame, renameSlot, saveAsNew } from '../store';
 import { saveMessage } from '../saveText';
+import { SAVES_EVENT } from './sheetEvents';
 import './saves.css';
 
-/** Window event that opens the saves sheet. */
-export const SAVES_EVENT = 'llm:saves';
-
-export function openSaves(): void {
-  window.dispatchEvent(new Event(SAVES_EVENT));
-}
 
 const MB = 1024 * 1024;
 /** Above this, the sheet warns before the next save fails. */

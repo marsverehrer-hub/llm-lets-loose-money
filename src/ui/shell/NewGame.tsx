@@ -11,15 +11,8 @@ import { FIRST_RUN, newGame } from '../store';
 import { listSlots } from '../../sim/save';
 import { saveMessage } from '../saveText';
 import { Banner } from '../panels/panelKit';
-import { openSaves } from './SavesSheet';
+import { NEW_GAME_EVENT, openSaves } from './sheetEvents';
 import './newgame.css';
-
-/** Window event that opens the setup screen. The menu fires it after its confirm. */
-export const NEW_GAME_EVENT = 'llm:newgame';
-
-export function openNewGame(): void {
-  window.dispatchEvent(new Event(NEW_GAME_EVENT));
-}
 
 const BOARD_EVENT_LABEL: Record<string, string> = { board_coup: 'Board reviews often' };
 

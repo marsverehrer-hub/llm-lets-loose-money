@@ -6,8 +6,7 @@ import { Button, formatInt } from '../components';
 import { Banner } from '../panels/panelKit';
 import { newGame, useGame, useGameSelect } from '../store';
 import { saveMessage } from '../saveText';
-import { openNewGame } from './NewGame';
-import { openSaves } from './SavesSheet';
+import { openNewGame, openSaves } from './sheetEvents';
 import { plain, tdate } from './fmt';
 
 function Row({ k, v }: { k: string; v: ComponentChildren }) {

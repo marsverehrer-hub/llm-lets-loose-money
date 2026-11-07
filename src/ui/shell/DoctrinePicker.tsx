@@ -6,7 +6,7 @@ import { DOCTRINES, DOCTRINE_CHANGE_COST, DOCTRINE_COOLDOWN, doctrineById } from
 import { doctrineCooldownLeft } from '../../sim/systems/doctrine';
 import { Button, Modal } from '../components';
 import { useLobbyOpen } from '../mp/lobbyState';
-import { TUTORIAL_STEPS } from '../tutorial/Tutorial';
+import { TUTORIAL_STEPS } from '../tutorial/steps';
 import { dispatch, useGame } from '../store';
 import './doctrine.css';
 

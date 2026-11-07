@@ -18,8 +18,7 @@ import { requestMatchSpeed, useSession, type NetStatus } from '../../net/session
 import { openLobby } from '../mp/lobbyState';
 import { AUTOPAUSE_TRIGGERS, setAutoPause, useAutoPause } from '../autopause';
 import { toggleNoticeLog, unreadCount, useNoticeLogOpen } from './NoticeLog';
-import { openNewGame } from './NewGame'; // v9 scenario
-import { openSaves } from './SavesSheet';
+import { openNewGame, openSaves } from './sheetEvents'; // v9 scenario
 
 const SPEEDS: { speed: Speed; label: string; key: string }[] = [
   { speed: 1, label: '1×', key: '1' },
