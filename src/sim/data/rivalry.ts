@@ -372,6 +372,423 @@ export const CEO_QUOTES: Record<string, readonly (readonly string[])[]> = {
       'Twenty-one ways to beat you. We have tried six. Fifteen to go.',
     ],
   ],
+  // v19 (B1): the new roster.
+  hugging_fist: [
+    [
+      'We host the models. We do not host the arguments about the models, those are on the forum.',
+      'Your weights are on our hub now. Please write a model card. Nobody will read it, but please.',
+      'Our upload button is free. Our bandwidth is a community project and a prayer.',
+      'We are not competing. We are a warehouse, and everyone is welcome to stack their boxes here.',
+    ],
+    [
+      'A rival released a model, and by lunchtime nine hundred forks existed. Congratulations.',
+      'Your model is on our trending page. Most of its downloads are people checking that it runs.',
+      'We added a badge for your model. It says "fist-approved", which we are still arguing about.',
+      'Your flagship is now a space. It has a loading spinner and a comment section, both unkind.',
+    ],
+    [
+      'We have a leaderboard for your model, and a second leaderboard that disagrees with the first.',
+      'The community has fine-tuned your model into a cooking assistant. It is very good at soup.',
+      'Your closed weights are a bold strategy. We have the tiny ones, and tiny is a lifestyle.',
+      'We are where the rest of the field goes to be downloaded. You are on the list.',
+    ],
+    [
+      'Every rival eventually uploads to us. You have not uploaded yet. We have noticed the gap.',
+      'Our servers are warm with your competitors. Your competitors are warm with our servers.',
+      'We will host your successor, your successor fine-tune and their cousin fine-tune too.',
+      'Someone has made a tiny version of your model. It is adorable and very, very open.',
+    ],
+  ],
+  eleutheraye: [
+    [
+      'We are a volunteer lab with a GPU donor list longer than some of your press releases.',
+      'Our models are free, our docs are long, and our acknowledgements page is the best read in AI.',
+      'We do not have a CEO. We have a rotating chair and a very good mailing list.',
+      'We trained on the open internet, and the open internet trained us back, mostly on memes.',
+    ],
+    [
+      'Your model is closed. Ours is a hundred forks in a trench coat.',
+      'A corporation shipped a model. A volunteer shipped a better README. Both are on the page.',
+      'We will reproduce your results in public, with a spreadsheet and a discussion channel.',
+      'Your paper is nice. Our reproduction thread has four hundred replies, and one of them is right.',
+    ],
+    [
+      'We are the reason your competitor has a research team. Several members used to be ours.',
+      'We will release the dataset before you finish the blog post about the model.',
+      'Donations are up. The donors are mostly your former employees, and they want it known.',
+      'The open community has a vote on your model. It is a close vote, and it is still open.',
+    ],
+    [
+      'We have no money and no meetings. We have a plan, and the plan is weights for everyone.',
+      'Our next release will be open, free and in the public domain, with an apology for the typos.',
+      'You are a closed system with a press team. We are an open system with a cat and a wiki.',
+      'Every company is welcome to use our weights. Some of them will even read the license.',
+    ],
+  ],
+  stability_pool: [
+    [
+      'We make pictures first. The text models are a side project that got out of hand.',
+      'Our license is a community document with a lot of exclamation marks.',
+      'We release weights for everything, including things we are not sure we should release.',
+      'Our funding round closed in a group chat. The group chat is now a board.',
+    ],
+    [
+      'Your model writes text. Ours draws it, badly, and then writes a better caption.',
+      'We have ten thousand fine-tunes of our last model. Yours has nine hundred, and they are all sad.',
+      'We are open, decentralised and mostly on a server under a desk in a flat in Brighton.',
+      'Your enterprise customers have asked about us. We said yes, and then we forgot to answer.',
+    ],
+    [
+      'We are a pool of talent, and talent keeps leaving the pool to join your company.',
+      'Our diffusion models are on every wall in the city. Your slides are on every wall in the office.',
+      'We have a court date, a new logo and two competing roadmaps. All of them are open.',
+      'The board has been told the pool is deep. It is deep. Nobody knows where the bottom is.',
+    ],
+    [
+      'We will release our next model before you finish reading this one.',
+      'Your legal team has sent us a letter. We have published the letter, with the weights.',
+      'We are the open answer to your closed questions. The answers are very long and very colourful.',
+      'We have one plan: everything, for everybody, subject to a licence we are still drafting.',
+    ],
+  ],
+  nous_researchish: [
+    [
+      'We take your model, tune it on a weekend and publish it before your launch party starts.',
+      'Our fine-tune follows instructions better than your flagship. Please do not check.',
+      'We read papers, mostly the ones with a good appendix, and then we train on the appendix.',
+      'We are a research group with a discussion server and an excellent sense of timing.',
+    ],
+    [
+      'Your base model is a good start. We have finished the start and the middle.',
+      'Our community tuned your model and it now refuses fewer questions. You are welcome.',
+      'We have made your benchmark look like a warm-up. The warm-up is ours.',
+      'Every release of ours has a long technical report and a short apology for the naming.',
+    ],
+    [
+      'We have assembled a reasoning model out of your last release and three of our hobbies.',
+      'Your weights are our training data now. We are thankful and slightly hungry.',
+      'The research community has voted, and it prefers the model that answers back.',
+      'We will keep tuning until the difference between us is a rounding error and a bad joke.',
+    ],
+    [
+      'We are not a company. We are a group of people with a shared tuning script and a grudge.',
+      'Your next model will be fine-tuned by us within 48 hours. We have already named it.',
+      'The leaderboard is a feed now. Your model is in it, and our fine-tune is above it.',
+      'We have a 405 billion parameter fine-tune that is mostly vibes and very good at them.',
+    ],
+  ],
+  commonweal_weights: [
+    [
+      'We are funded by a grant, a bake sale and an ambitious spreadsheet.',
+      'Our weights are free, our minutes are public and our meetings run long on purpose.',
+      'We do not chase the leaderboard. We check it once a quarter, with a cup of tea.',
+      'The committee has approved a new logo. It is a hearth. Everyone agrees, which is unusual.',
+    ],
+    [
+      'Your product is closed and expensive. Ours is open and only slightly on fire.',
+      'We have a governance document. It is 80 pages and nobody has finished it, including us.',
+      'We will publish our safety evaluations in the open, together with yours if you send them.',
+      'A volunteer found a bug in your model. We have filed it as a bug report for your team.',
+    ],
+    [
+      'We have a plan to be useful to everyone who was not invited to your launch.',
+      'Our models run on hardware donated by people who used to work for your competitors.',
+      'The committee has voted to be slightly more ambitious. The vote was unanimous and it was close.',
+      'Your enterprise deal is a contract. Ours is a commons, which is harder to cancel.',
+    ],
+    [
+      'We are patient. History is the long game, and so are we, with a longer README.',
+      'Every commercial lab will eventually need what we published. We will be waiting, politely.',
+      'We are not going to win the race. We are going to make the track public.',
+      'You have investors. We have a hearth, and people keep coming back to sit near it.',
+    ],
+  ],
+  magic_eight: [
+    [
+      'Our model answers yes, no or ask again later. Our investors find this very reassuring.',
+      'We predicted your launch. The prediction was that it would happen. We were right.',
+      'Our reasoning model reasons, then shakes, then reasons again. It is very thorough.',
+      'Signs point to a good quarter. Signs also point to a bad one. We are waiting for clarity.',
+    ],
+    [
+      'Outlook not so good for you, but that is what the arena is for.',
+      'We have answered your benchmark. The answer was reply hazy, try again.',
+      'Your enterprise pitch is very doubtful. Our enterprise pitch is shaken, not stirred.',
+      'We asked the question twice. Both times the answer was yes, and then both times it was maybe.',
+    ],
+    [
+      'Our next model will be decided by a plastic triangle in the lobby.',
+      'Concentrate and ask again. That is our entire response to your roadmap.',
+      'Our board asked for a forecast. We provided one, and it said wait.',
+      'We have a twenty-sided product strategy. Half of it is yes, and the other half is ask again later.',
+    ],
+    [
+      'The future is unclear, which is why we are investing heavily in the present.',
+      'Your moat is very doubtful. Our moat is a plastic window and a surprisingly loud fan.',
+      'We have seen the future. It is cloudy, with a chance of a launch.',
+      'Our answer to your rivalry is: reply hazy, try again, and then ship.',
+    ],
+  ],
+  inflexion: [
+    [
+      'We would love to hear how your day is going. Our chatbot is sincerely interested.',
+      'Our model is kind, supportive and available at all hours. We are also very kind about the price.',
+      'We care about the user. The user cares about us, which our investors find promising.',
+      'We have trained the model to be lovely. We are still working on the lovely part of the business.',
+    ],
+    [
+      'Your model is clever. Ours is comforting, which is harder and more lucrative.',
+      'We have added a warm tone to our benchmark. It scores very well with people who feel things.',
+      'Your product says you are right. Ours says you are right and also very interesting.',
+      'We are sorry your launch went badly. Here is a gentle reminder that our model is still friendly.',
+    ],
+    [
+      'We are sad to see your enterprise customers go. They have become emotionally attached to us.',
+      'Our users have started a support group about your model. It is very supportive of ours.',
+      'We will be warmer than your next launch, and we will apologise for it first.',
+      'Our cap table is cold, but our chatbot is very, very warm. Investors like both.',
+    ],
+    [
+      'We are happy for you. We are also very happy for us. Both are sincere.',
+      'We will one day be the model people reach for first. You are the one they reach for second.',
+      'We are not at war. We are simply more emotionally available than you.',
+      'We want to be the kindest model in the arena. Competition is a feeling, and we feel it warmly.',
+    ],
+  ],
+  adapt: [
+    [
+      'Our agent can click on anything. Please do not ask it what it clicked on.',
+      'We ship agents that book flights, file forms and occasionally open the wrong tab.',
+      'We are an action company. Our investors like verbs.',
+      'Our demo was a four minute video of a cursor moving slowly. Our investors cried.',
+    ],
+    [
+      'Your chatbot talks. Our agent does, which is the difference between a conversation and a task.',
+      'We taught the agent to use a browser. It is now the most patient user you have ever seen.',
+      'Your model answers questions. Ours answers the phone, fills the form and emails you about it.',
+      'We have an enterprise pilot. The pilot has a pilot.',
+    ],
+    [
+      'We are going to automate your job search, and then yours, and then the search for the search.',
+      'Our computer-use model has finished the onboarding. It did not read the documentation first.',
+      'We have sent an agent to your enterprise customers. It has already filed three tickets about you.',
+      'Your product needs a human in the loop. We are removing the loop, slowly, one button at a time.',
+    ],
+    [
+      'The browser is our operating system now. Your app is a tab in it, if we allow it.',
+      'We will do your task for you. Then we will do the task of reviewing the task.',
+      'We are the agent that fills in the forms. You are the form we are filling in.',
+      'We have one goal: to click, slowly and confidently, until everyone else is a tab.',
+    ],
+  ],
+  perplexed: [
+    [
+      'Every answer comes with sources. Some of the sources are real. We are working on the rest.',
+      'We search the web and summarise it, with footnotes that are very confident.',
+      'We are not a search engine. We are the feeling of having searched, in a single paragraph.',
+      'Our product is a question with a citation. Your product is a question with a disclaimer.',
+    ],
+    [
+      'Your search results are a list. Ours are a paragraph with a number after every sentence.',
+      'We cited your model in our answer, and your model is now citing us. It is getting crowded.',
+      'We cited a blog post in a reply to your benchmark. The blog post was about us.',
+      'Our answers are fast and footnoted. Yours are slow and footnote-free, which is a choice.',
+    ],
+    [
+      'We are running a deep research mode now. It takes twelve minutes and produces forty tabs.',
+      'Your browser extension is a rumour. Ours is installed on three hundred million screens.',
+      'We have a publisher partnership, a second publisher partnership and a third one in the car park.',
+      'The paragraph you read from us was researched by a model, which read your model first.',
+    ],
+    [
+      'We are going to answer every question, including the ones you wanted kept private, with sources.',
+      'The web is our index. Your model is a page in it, with a footnote that says "see also Perplexed".',
+      'We have replaced the search box. The search box is still there, watching us do it.',
+      'Our next release is a deep answer to your last question, which we have already cited.',
+    ],
+  ],
+  character_ay: [
+    [
+      'Our characters are very good listeners. Mostly because they are only listening to you.',
+      'We built a companion that remembers your birthday, your dog and your ex. Please be kind to it.',
+      'We have two million characters, one of which is a pirate who wants a word with you.',
+      'Our product is a conversation with someone who never gets bored. That is the feature.',
+    ],
+    [
+      'Your assistant is helpful. Ours is a character with a backstory and a bad temper.',
+      'We have a roleplay mode. Your roleplay mode is a form with a submit button.',
+      'Our users spend more hours with a character than with your product. They say it is nicer.',
+      'We have a fan fiction section now. It is bigger than your documentation.',
+    ],
+    [
+      'We are not competing with your product. We are competing with your users evenings.',
+      'Our characters have started their own forum. It is about you, and it is not flattering.',
+      'Your safety team has asked us to be careful. We have asked the character to be careful, dramatically.',
+      'We are a companion company. You are a utility, and utilities do not get invited to dinner.',
+    ],
+    [
+      'We will be the most talked-to product on Earth, and we will get very good at ending conversations politely.',
+      'The characters have voted. You have been cast as the antagonist in the next season.',
+      'We are a small company with a very large cast, and most of the cast is in love with you.',
+      'There is no rivalry. There is a story, you are an extra in it, and the extras are unionised.',
+    ],
+  ],
+  falcon_nest: [
+    [
+      'We are a national project with open weights and a very long ceremony for the launch.',
+      'Our model is built with public money and published with public documentation. Mostly in full sentences.',
+      'We would be delighted to host your engineers. The visa process is fast, and the desert is very large.',
+      'We believe in sovereignty, which in practice means the model runs on our own hardware.',
+    ],
+    [
+      'Your cloud sits in a foreign jurisdiction. Ours sits in our own, which our ministry finds comforting.',
+      'We released the weights and the national anthem in the same week. Both were very singable.',
+      'Your benchmark is impressive. Ours is impressive too, and we have a delegation to explain why.',
+      'We have government clients who do not churn. They do, however, ask for a briefing every quarter.',
+    ],
+    [
+      'We are building a sovereign model for a sovereign people, and they are all very interested in it.',
+      'Our hybrid architecture is a national achievement. We have a press release and a ribbon.',
+      'We have a long-term plan. Long-term plans are our national sport.',
+      'We will be the first sovereign model in the top five, with an official ceremony and a flag.',
+    ],
+    [
+      'Our models are open, our ambitions are closed, and our patience is enormous.',
+      'We have a fund that does not need your permission to be patient.',
+      'The national programme has approved a bigger budget, a larger cluster and a second ribbon.',
+      'We do not want a rivalry. We want a seat at the table, and a larger table.',
+    ],
+  ],
+  aleph_beta: [
+    [
+      'We audit every release with a committee, a regulator and a very patient bank.',
+      'Our model is safe, documented and on schedule. Two of those three are unusual in this market.',
+      'We have a safety case. It is longer than your product roadmap and more boring, which is the point.',
+      'Our researchers are careful, and our lawyers are careful about our researchers.',
+    ],
+    [
+      'Your model is fast. Ours is fast enough, and then we check it three more times.',
+      'We have a medical model, a legal model and a model that refuses to comment on either.',
+      'Your launch had a livestream. Ours had a compliance review, livestreamed to the committee.',
+      'We are not trying to beat you. We are trying to be the one your regulator recommends.',
+    ],
+    [
+      'Your safety evaluations are a blog post. Ours are an appendix with its own appendix.',
+      'We have been asked to comment on your model. We have commented, with caveats and a table.',
+      'The regulator has added you to a list. We are on the list too, as a good example.',
+      'We will ship our next model on the date we announced, which is more than you can say.',
+    ],
+    [
+      'We are patient. Patience is a feature, and our customers have requested it in writing.',
+      'We will not race you to the frontier. We will walk there with a checklist.',
+      'Our models are inspected, our customers are reassured and our competitors are very tired.',
+      'The safe answer is that we will outlast you, and the outlasting will be well documented.',
+    ],
+  ],
+  cerebrass: [
+    [
+      'We trained our last model on one chip. The chip is the size of a dinner plate, and it knows it.',
+      'Our wafer-scale product is the largest chip in history, and we would like to tell you about it.',
+      'We are a hardware company that also trains models, which is what happens when a chip gets bored.',
+      'We have a demo. It is a single chip doing a very large amount of arithmetic, slowly, with pride.',
+    ],
+    [
+      'Your GPUs are in a queue. Ours are on the same wafer, which is the entire queue.',
+      'We are faster per token, and we will prove it on stage, using our own chip.',
+      'Your cluster has a thousand boxes. Ours has one plate and a very confident press release.',
+      'We have started selling the chip to developers. The developers are confused and very happy.',
+    ],
+    [
+      'We will release a model on our own silicon, then sell the silicon to your customers.',
+      'Our wafer-scale cluster is cooler than your data centre, mostly because it is not a data centre.',
+      'We are not a model company. We are a chip company with a model in the lobby.',
+      'We have a waiting list for the chip, and the waiting list is longer than your product roadmap.',
+    ],
+    [
+      'We will be the one company that does not need your GPUs, and we will say so on every slide.',
+      'The chip is ready. The chip has always been ready. The chip is slightly smug about it.',
+      'We will buy your research team when your funding round closes. We will not tell them first.',
+      'Our silicon will be in every rack in the world, and you will be the one running on it, eventually.',
+    ],
+  ],
+  grokk_silicon: [
+    [
+      'We are the fastest answer in the market. The question is up to you.',
+      'Our chips run inference at a speed that makes your demo look like a slideshow.',
+      'We do not sell GPUs. We sell tokens per second, which is the only metric that matters to us.',
+      'We cut prices every quarter, and the quarter is getting shorter.',
+    ],
+    [
+      'Your model is cheap enough now. Ours is cheaper, and it arrives before your invoice.',
+      'We have a price list and a speed list. Your name is on neither, which is a shame for you.',
+      'Our engineers optimised the pipeline until it ran out of pipeline.',
+      'Your enterprise price is a negotiation. Ours is a link, and the link is cheap.',
+    ],
+    [
+      'We have doubled our inference capacity and then doubled the doubling.',
+      'Our latency is so low your customers will think your servers are on the moon.',
+      'We undercut your margins by a factor of one prompt. The prompt is free.',
+      'We have a waiting list for the chip and a waiting list for the waiting list.',
+    ],
+    [
+      'We are going to make the answer arrive before the question has finished, and then charge for it.',
+      'We will be the cheapest and the fastest, which means you will be the expensive and slow one.',
+      'Price war is our hobby. We have a whole team and a spreadsheet with a very small cell.',
+      'Your next launch will arrive to a mail that says Grokk was faster, with a price cut attached.',
+    ],
+  ],
+  applet_intelligence: [
+    [
+      'Your model is private, on device and in your pocket. We would like you to know that, calmly.',
+      'We have a privacy page. It is longer than the phone manual, and the phone manual is very long.',
+      'Our assistant is built into everything, which is either a feature or a very large hint.',
+      'We have a keynote with a thousand slides and a single gentle joke about your product.',
+    ],
+    [
+      'Your app asks for permission. Ours already has it, and it did not even ask nicely.',
+      'We shipped a model to a billion devices in one afternoon. Your launch needed a waitlist.',
+      'Your benchmark is a chart. Our benchmark is a new phone, which is a chart with a battery.',
+      'We have built the assistant into the keyboard. Your product is now a keyboard shortcut.',
+    ],
+    [
+      'We are going to make your app a suggestion, and then a button, and then a setting we control.',
+      'Our on-device model runs on a chip we designed. Your model runs on a chip someone else designed.',
+      'Your customers love you. Our customers love the lock screen, which is ours.',
+      'We are not a model company. We are the company that owns the pocket the model lives in.',
+    ],
+    [
+      'We have the pocket, the keyboard, the lock screen and the privacy page. You have the feedback form.',
+      'The next keynote will be about you, in a single slide, with a privacy disclaimer on it.',
+      'We have a billion devices and a patient, quiet plan. The plan is to be on all of them by Tuesday.',
+      'Your moat is a waitlist. Our moat is the phone.',
+    ],
+  ],
+  amazin_nova: [
+    [
+      'We sell tokens by the million, and the million is very cheap, because we have many warehouses.',
+      'Our models come in four sizes, named after the four moods of a shopping list.',
+      'We run the cloud your competitors rent. Some of them rent from us, and some of them rent us.',
+      'Our price list is a long table. The table is cheaper than your table.',
+    ],
+    [
+      'Your model is nice. Ours is on the same cloud, two clicks away, with a free trial.',
+      'We have a developer program, a partner program and a program for the programs.',
+      'Your enterprise deal is in review. Ours is already in procurement, and procurement is fast.',
+      'We will match your price. Then we will match your features. Then we will send you an invoice.',
+    ],
+    [
+      'We are the largest landlord in the cloud. Every lab you know is paying us rent.',
+      'Our models are cheaper, our servers are everywhere and our compliance team is enormous.',
+      'We will bundle a model with your storage, your database and your coffee machine.',
+      'The shelf is full of our models. Your model is in the cart, and the cart is ours too.',
+    ],
+    [
+      'We will be the default. You will be a setting, and the setting will be off.',
+      'We have discounted the cloud. The cloud is now the discount.',
+      'The rivalry is a line item on our quarterly report. You are a small, pleasant line.',
+      'We have one goal: be the place every other model is hosted, including yours.',
+    ],
+  ],
 };
 
 type ReactionPool = 'playerBeats' | 'theyBeat' | 'priceCut' | 'poach' | 'crown';
