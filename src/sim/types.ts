@@ -1273,6 +1273,10 @@ export interface GameState {
   pendingEnding?: { day: number; by: 'player' | Id } | null;
   /** v19: the ending the player chose, with its score. The game can continue as a sandbox afterwards. */
   ending?: { id: EndingId; day: number; score: number; by: 'player' | Id } | null;
+  /** v20: thesis goals met (goal id -> day met). The goals come from the lab focus (data/theses.ts, systems/thesis.ts). */
+  thesis?: { done: Record<Id, number> };
+  /** v20: the open ecosystem built on the player's open weights: rival derivatives, by lab (systems/hub.ts). */
+  ecosystem?: { derivatives: number; byLab: Record<Id, number>; lastDay: number };
 
   /** v4: present only in an online 1v1 match. */
   mp?: MpState;
