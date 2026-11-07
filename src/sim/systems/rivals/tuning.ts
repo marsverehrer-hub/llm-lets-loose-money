@@ -2,8 +2,9 @@
 export const RIVAL_TUNING = {
   /** The brain acts once every this many days. */
   BRAIN_EVERY_DAYS: 7,
-  /** Most labs active at once; later foundings wait for a slot (marquee labs not yet founded hold theirs). */
+  /** Most labs active at once in a hot market (aiHype 100); a cold one (aiHype 0) allows MIN_ACTIVE. Later foundings wait for a slot (marquee labs not yet founded hold theirs). */
   MAX_ACTIVE: 16,
+  MIN_ACTIVE: 10,
   /** Days in a row below zero cash before a lab goes bankrupt. */
   BANKRUPT_DAYS: 60,
   /**

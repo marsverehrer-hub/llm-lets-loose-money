@@ -4,7 +4,7 @@ import { createInitialState } from '../src/sim/state';
 import { makeRng } from '../src/sim/rng';
 import { COMPETITORS } from '../src/sim/data/competitors';
 import { rivalLabs, rivalDef } from '../src/sim/systems/rivals';
-import { canActivate, foundingCash, foundingGpus, lifecycleDay } from '../src/sim/systems/rivals/lifecycle';
+import { activeCap, canActivate, foundingCash, foundingGpus, lifecycleDay } from '../src/sim/systems/rivals/lifecycle';
 import { RIVAL_TUNING } from '../src/sim/systems/rivals/tuning';
 import type { CompetitorDef, GameState, Rng, RivalModel, RivalLab, Competitor } from '../src/sim/types';
 import { calendarYear } from '../src/sim/util';
@@ -53,13 +53,22 @@ function fakeModel(id: string): RivalModel {
 }
 
 describe('canActivate and the active cap', () => {
-  it('allows a lab only while fewer than MAX_ACTIVE labs are active', () => {
+  it('follows the funding climate between MIN_ACTIVE and MAX_ACTIVE', () => {
+    const s = quiet();
+    s.market.aiHype = 0;
+    expect(activeCap(s)).toBe(RIVAL_TUNING.MIN_ACTIVE);
+    s.market.aiHype = 100;
+    expect(activeCap(s)).toBe(RIVAL_TUNING.MAX_ACTIVE);
+  });
+
+  it('allows a lab only while fewer than the cap labs are active', () => {
     const s = quiet();
     const core = COMPETITORS.filter((d) => d.core);
     for (const d of core) lab(s, d).status = 'acquired'; // no seats held for marquee labs still to come
     const fresh = COMPETITORS.filter((d) => !d.core); // marquee labs bypass the cap
-    const next = fresh[RIVAL_TUNING.MAX_ACTIVE - 1];
-    for (const d of fresh.slice(0, RIVAL_TUNING.MAX_ACTIVE - 1)) activate(s, d);
+    const cap = activeCap(s);
+    const next = fresh[cap - 1];
+    for (const d of fresh.slice(0, cap - 1)) activate(s, d);
     expect(canActivate(s, next)).toBe(true);
     comp(s, core[0]).active = true;
     expect(canActivate(s, next)).toBe(false);
@@ -67,6 +76,7 @@ describe('canActivate and the active cap', () => {
 
   it('holds a seat for every marquee lab not yet founded', () => {
     const s = quiet();
+    s.market.aiHype = 100; // the full cap: MAX_ACTIVE minus the marquee seats
     const fresh = COMPETITORS.filter((d) => !d.core);
     const held = COMPETITORS.filter((d) => d.core).length;
     for (const d of fresh.slice(0, RIVAL_TUNING.MAX_ACTIVE - held - 1)) activate(s, d);

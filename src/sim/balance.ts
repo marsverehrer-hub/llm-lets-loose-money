@@ -1,7 +1,8 @@
 // Global tunables. Per-item numbers live in src/sim/data/*.
 export const BALANCE = {
   START_YEAR: 2017,
-  START_CASH: 2_000_000,
+  // 2.1M: an idle lab goes bankrupt at 2.0 years, on the edge of the 2-3 year check; 2.2M+ pulls the frontier $1T and IPO windows early.
+  START_CASH: 2_100_000,
   START_FOUNDER_EQUITY: 1,
 
   // Bankruptcy

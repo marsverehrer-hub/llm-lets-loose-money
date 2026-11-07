@@ -3,7 +3,7 @@ import type { ActionHandlers, Competitor, CompetitorDef, GameState, GpuDef, Id, 
 import { COMPETITORS } from '../../data/competitors';
 import { GPUS } from '../../data/gpus';
 import { datasetById } from '../data';
-import { addExpense, calendarYear, formatMoney, pushNews, notify } from '../../util';
+import { addExpense, calendarYear, clamp, formatMoney, pushNews, notify } from '../../util';
 import { headcount, officeCapacity } from '../staff';
 import { RIVAL_TUNING } from './tuning';
 
@@ -65,6 +65,12 @@ function isActive(s: GameState, def: CompetitorDef): boolean {
   return !!lab && !!c && !c.human && lab.status === 'active' && c.active;
 }
 
+/** The active-lab cap for this market: the funding climate (aiHype) moves it between MIN_ACTIVE and MAX_ACTIVE. */
+export function activeCap(s: GameState): number {
+  const { MIN_ACTIVE, MAX_ACTIVE } = RIVAL_TUNING;
+  return Math.round(MIN_ACTIVE + (MAX_ACTIVE - MIN_ACTIVE) * clamp(s.market.aiHype, 0, 100) / 100);
+}
+
 /** Whether a founded-by-year lab may open now (the active cap). */
 export function canActivate(s: GameState, def: CompetitorDef): boolean {
   const status = labOf(s, def.id)?.status;
@@ -72,7 +78,7 @@ export function canActivate(s: GameState, def: CompetitorDef): boolean {
   if (def.core) return true; // marquee labs open on schedule; the cap gates newcomers so churn is what lets them in
   const active = s.competitors.filter((c) => c.active && !c.human).length;
   const coreToCome = COMPETITORS.filter((d) => d.core && labOf(s, d.id)?.status === 'unfounded').length; // seats held for them
-  return active + coreToCome < RIVAL_TUNING.MAX_ACTIVE;
+  return active + coreToCome < activeCap(s);
 }
 
 /** A fresh lab record for a definition (B3 sets starting cash, GPUs and staff from the def and the year). */
