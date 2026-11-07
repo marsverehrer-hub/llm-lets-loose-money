@@ -341,13 +341,13 @@ describe('internal arena', () => {
     model.overall = 0;
     model.arena = { doneDay: s.day };
     const hype = s.company.hype;
-    const newsBefore = s.news.length;
+    const lastNewsId = s.news[s.news.length - 1]?.id; // the news list is capped, so look for a new entry, not a longer list
     const seen: number[] = [];
     vaultTick(s, rigRng((p) => (seen.push(p), p === VAULT_TUNING.ARENA_SCREENSHOT_CHANCE)));
     expect(model.arena?.elo).toBe(Math.round(model.elo));
     expect(seen).toContain(VAULT_TUNING.ARENA_SCREENSHOT_CHANCE);
     expect(s.company.hype).toBe(Math.min(100, hype + VAULT_TUNING.ARENA_SCREENSHOT_HYPE));
-    expect(s.news.length).toBeGreaterThan(newsBefore);
+    expect(s.news[s.news.length - 1]?.id).not.toBe(lastNewsId);
     expect(model.leakedDay).toBeUndefined();
   });
 });

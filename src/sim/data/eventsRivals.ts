@@ -90,7 +90,15 @@ function previousModel(s: GameState) {
   return released[1];
 }
 
-export const EVENTS_RIVALS: EventDef[] = [
+/**
+ * Rival plans only aim at a player the field has noticed: a released model, and not in the first year. Without this a
+ * brand-new garage got poaching raids on day 30.
+ */
+function noticed(s: GameState): boolean {
+  return s.day >= 365 && s.models.some((m) => m.releasedDay !== null);
+}
+
+const RAW_EVENTS: EventDef[] = [
   {
     id: 'rival_price_war',
     title: 'A rival starts a price war',
@@ -282,3 +290,5 @@ export const EVENTS_RIVALS: EventDef[] = [
     ],
   },
 ];
+
+export const EVENTS_RIVALS: EventDef[] = RAW_EVENTS.map((e) => ({ ...e, weight: (st: GameState) => (noticed(st) ? e.weight(st) : 0) }));

@@ -377,6 +377,7 @@ describe('moments: bot run', () => {
       expect(s.day).toBe(before + 1);
     }
     const seen = Object.keys(s.flags).filter((k) => k.startsWith('moment.'));
-    expect(seen.length).toBeGreaterThanOrEqual(4);
+    // v19: rival labs now compete for real, so a 3-year bot reaches 3 to 5 beats depending on the field.
+    expect(seen.length).toBeGreaterThanOrEqual(3);
   }, 180_000);
 });
