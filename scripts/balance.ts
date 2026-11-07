@@ -5,6 +5,8 @@
 //   npx tsx scripts/balance.ts --all [--years=20] [--seeds=7,11,23,31,42,57]
 //   npx tsx scripts/balance.ts --strategy=small|frontier|specialist|open|enterprise|idle [--years=N] [--seeds=...]
 //   npx tsx scripts/balance.ts [years] [seeds] [--idle]        (legacy positional form: frontier, or idle with --idle)
+import os from 'node:os';
+import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
 import { createInitialState } from '../src/sim/state';
 import { tick } from '../src/sim/engine';
 import type { GameState, WeightClass } from '../src/sim/types';
@@ -533,17 +535,56 @@ function parseArgs(argv: string[]) {
   return { years, seeds, strategies, all: flags.has('all') };
 }
 
-function main(): void {
+/**
+ * One worker per (strategy, seed), at most os.cpus().length at a time. Runs are independent and deterministic, so the
+ * results are the same as a sequential loop; they come back in job order.
+ */
+function runInWorkers(jobs: { strategy: Strategy; seed: number }[], years: number): Promise<Run[]> {
+  const limit = Math.max(1, os.cpus().length);
+  const results: Run[] = new Array(jobs.length);
+  return new Promise((resolve, reject) => {
+    let next = 0;
+    let done = 0;
+    let failed = false;
+    const launch = () => {
+      if (failed) return;
+      if (done === jobs.length) return resolve(results);
+      if (next >= jobs.length) return;
+      const idx = next++;
+      const { strategy, seed } = jobs[idx];
+      // Workers inherit execArgv, so the tsx loader that runs this script also loads it in each worker.
+      const worker = new Worker(new URL(import.meta.url), { workerData: { strategy, seed, years } });
+      let got = false;
+      worker.once('message', (run: Run) => {
+        got = true;
+        results[idx] = run;
+        done += 1;
+        launch();
+      });
+      worker.once('error', (err) => {
+        failed = true;
+        reject(err);
+      });
+      worker.once('exit', (code) => {
+        if (!got && !failed) {
+          failed = true;
+          reject(new Error(`worker for ${strategy} seed ${seed} exited with code ${code}`));
+        }
+      });
+    };
+    for (let i = 0; i < Math.min(limit, jobs.length); i++) launch();
+  });
+}
+
+async function main(): Promise<void> {
   const { years, seeds, strategies, all } = parseArgs(process.argv.slice(2));
-  const byStrategy = new Map<Strategy, Run[]>();
   const t0 = Date.now();
-  for (const strategy of strategies) {
-    const t1 = Date.now();
-    const runs = seeds.map((seed) => runOne(strategy, seed, years));
-    byStrategy.set(strategy, runs);
-    console.log(`${strategy}: ${seeds.length} seeds x ${years}y in ${((Date.now() - t1) / 1000).toFixed(1)}s`);
-  }
-  console.log(`total ${((Date.now() - t0) / 1000).toFixed(1)}s`);
+  const jobs = strategies.flatMap((strategy) => seeds.map((seed) => ({ strategy, seed })));
+  const runs = await runInWorkers(jobs, years);
+  const byStrategy = new Map<Strategy, Run[]>();
+  strategies.forEach((strategy, i) => byStrategy.set(strategy, runs.slice(i * seeds.length, (i + 1) * seeds.length)));
+  for (const strategy of strategies) console.log(`${strategy}: ${seeds.length} seeds x ${years}y`);
+  console.log(`total ${((Date.now() - t0) / 1000).toFixed(1)}s wall, ${os.cpus().length} workers at most`);
   if (!all && strategies.length === 1) printPerSeed(strategies[0], byStrategy.get(strategies[0])!);
   printComparison(byStrategy, years);
   if (all) {
@@ -557,4 +598,12 @@ function main(): void {
   }
 }
 
-main();
+// A worker runs one job and reports its Run; the main thread builds the report.
+if (isMainThread) {
+  main().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+} else {
+  parentPort!.postMessage(runOne(workerData.strategy, workerData.seed, workerData.years));
+}
