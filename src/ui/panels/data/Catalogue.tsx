@@ -5,8 +5,11 @@ import type { GameState, Id } from '../../../sim/types';
 import type { DatasetRow } from '../../../sim/systems/data';
 import { believedQuality, isVerified } from '../../../sim/systems/lab';
 import { labName } from '../../../sim/systems/labs';
+import { dispatch } from '../../store';
 import { Card, Pill, Select, Tooltip } from '../../components';
 import { ACQ, DOMAIN_LABEL, KIND_KEYS, KIND_LABEL, DOMAIN_KEYS, ACQ_KEYS, STATUS, acqOf, fmtTok, isLicence, lostTo, pct, usd } from './labels';
+import { LicensePill } from '../model/HubTab';
+import { hubDatasets } from '../model/hubList';
 import {
   DEFAULT_VIEW,
   SORT_KEYS,
@@ -38,6 +41,7 @@ export function Catalogue({ s, rows, view, patch, selId, onOpen }: CatalogueProp
   const inFlight = s.data.pending ?? [];
 
   return (
+    <>
     <Card
       flush
       title="Catalogue"
@@ -129,6 +133,63 @@ export function Catalogue({ s, rows, view, patch, selId, onOpen }: CatalogueProp
         </table>
       </div>
 
+    </Card>
+    <HubSets s={s} />
+    </>
+  );
+}
+
+/** v19: sets rival labs have published on the open hub, each with a Download (dispatches downloadHubDataset). */
+function HubSets({ s }: { s: GameState }) {
+  const rows = hubDatasets(s);
+  if (rows.length === 0) return null;
+  return (
+    <Card flush title="From the hub" subtitle={`${rows.length} published`}>
+      <div class="table-wrap table-scroll">
+        <table class="table hub-table table-stack">
+          <thead>
+            <tr>
+              <th>Lab</th>
+              <th>Set</th>
+              <th class="num">Tokens</th>
+              <th class="num">Quality</th>
+              <th>Kind</th>
+              <th>License</th>
+              <th aria-label="Action" />
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => {
+              const owned = s.data.owned.includes(r.data.id);
+              return (
+                <tr key={`${r.labId}:${r.data.id}`}>
+                  <td data-label="Lab">{r.lab}</td>
+                  <td data-label="Set">{r.data.name}</td>
+                  <td class="num" data-label="Tokens">
+                    {fmtTok(r.data.tokensB)}
+                  </td>
+                  <td class="num" data-label="Quality">
+                    {pct(r.data.quality)}
+                  </td>
+                  <td data-label="Kind">{KIND_LABEL[r.data.kind]}</td>
+                  <td data-label="License">
+                    <LicensePill license={r.data.license} />
+                  </td>
+                  <td data-label="">
+                    {owned ? (
+                      <Pill tone="info">In your lab</Pill>
+                    ) : (
+                      <button type="button" class="btn btn-sm" onClick={() => dispatch({ type: 'downloadHubDataset', labId: r.labId, datasetId: r.data.id })}>
+                        Download
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </Card>
   );
 }

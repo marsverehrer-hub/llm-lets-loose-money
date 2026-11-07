@@ -12,6 +12,7 @@ import type { BuyerTier, GameState, Id, Model, Product, ProductKind } from '../.
 import { Select, Sheet } from '../../components';
 import { Banner, Empty, fmtCount, fmtPct, fmtPrice, logToValue, Range, sig2, valueToLog } from '../panelKit';
 import { navigate } from '../../nav';
+import { modelAllows } from '../../../sim/systems/hub';
 import { KINDS, TIER_HINT, TIER_LABEL, modelOption, priceRange, releasedModels } from './productsKit';
 
 const LINE_PAIR = (name: string) => (/\blite\b/i.test(name) ? 'Pro' : 'Lite');
@@ -71,6 +72,9 @@ function LaunchForm({ s, kind, first, onDone }: { s: GameState; kind: ProductKin
   const aboveOwn = !!preview && capacity > 0 && preview.mtokPerDay > capacity;
   const cannotAfford = s.finance.cash < fee;
 
+  // v19: hub weights carry a license, and a noncommercial or research model cannot be sold.
+  const licenceBlocked = !!model && !modelAllows(model, 'product');
+
   let blocker = '';
   if (models.length === 0) blocker = 'Release a model first in Models.';
   else if (!name.trim()) blocker = 'Name the product.';
@@ -79,7 +83,7 @@ function LaunchForm({ s, kind, first, onDone }: { s: GameState; kind: ProductKin
   if (models.length === 0) return <Empty title="No released model">Products need a live model to serve.</Empty>;
 
   const launch = () => {
-    if (blocker || !model) return;
+    if (blocker || licenceBlocked || !model) return;
     dispatch({ type: 'launchProduct', kind, name: name.trim().slice(0, 40), modelId: model.id, price });
     onDone();
   };
@@ -152,11 +156,23 @@ function LaunchForm({ s, kind, first, onDone }: { s: GameState; kind: ProductKin
         </p>
       )}
 
+      {licenceBlocked && model?.origin && (
+        <Banner tone="bad">
+          {`${model.origin.license} weights can't be sold. Fine-tune and release your own, or pick a permissive model.`}
+        </Banner>
+      )}
       {blocker && <Banner tone="warn">{blocker}</Banner>}
 
       <div class="pr-sheet-foot">
         <span class="pr-note">Launch fee {formatMoney(fee)}</span>
-        <button type="button" class="btn btn-primary" data-tut="launch" disabled={!!blocker} title={blocker || `Pay the ${formatMoney(fee)} launch fee and go live`} onClick={launch}>
+        <button
+          type="button"
+          class="btn btn-primary"
+          data-tut="launch"
+          disabled={!!blocker || licenceBlocked}
+          title={licenceBlocked ? 'This license does not allow products' : blocker || `Pay the ${formatMoney(fee)} launch fee and go live`}
+          onClick={launch}
+        >
           Launch
         </button>
       </div>

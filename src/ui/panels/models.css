@@ -431,3 +431,10 @@
 /* Image and video arenas sit side by side; the rank column stays narrow. */
 .md-arenas { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 16px; }
 .md-rank { width: 2.5em; }
+
+/* v19 open hub: an Abstract line, the filter row and the booktabs table (the table itself is the shared .table). */
+.hub { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.hub-abstract { margin: 0; font-size: var(--fs-sm); color: var(--fg-2); max-width: 70ch; }
+.hub-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.hub-model-name { font-weight: 600; }
+.hub-table td:last-child { text-align: right; white-space: nowrap; }

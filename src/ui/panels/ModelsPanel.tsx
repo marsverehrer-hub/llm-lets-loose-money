@@ -3,7 +3,8 @@
 // run.hidden, lab.lrOffsets, lab.emergenceJitter or model.vibes. Use the lab.ts API only.
 // Body: header, then one of: the pre-training wizard, the fine-tune wizard, or the release, distill and merge wizards
 // (all full width, replacing the body), or the sub-tabs: Language models (the live run strip, the training queue, the
-// model list and, on desktop, the model page beside it), Image & video (the media studio) and Notebook (the lab notebook).
+// model list and, on desktop, the model page beside it), Image & video (the media studio), Notebook (the lab notebook)
+// and Open hub (rival labs' open weights to download).
 import { NetView, netSpecOfText } from '../components';
 import { useEffect, useState } from 'preact/hooks';
 import { dispatch, getState, useGame } from '../store';
@@ -36,6 +37,7 @@ import type { TreeRow } from './train/model';
 import { ModelPage } from './model/ModelPage';
 import { OFF_SALE_TIP, statusPills } from './model/status';
 import { MediaStudio } from './model/MediaStudio'; // v16 image and video models
+import { HubTab } from './model/HubTab'; // v19 the open hub
 import './models.css';
 import { ConfirmButton } from './panelKit';
 import './models-rows.css';
@@ -65,11 +67,12 @@ function useWide(): boolean {
   return wide;
 }
 
-type PanelTab = 'lm' | 'media' | 'notebook';
+type PanelTab = 'lm' | 'media' | 'notebook' | 'hub';
 const PANEL_TABS: TabDef<PanelTab>[] = [
   { id: 'lm', label: 'Language models' },
   { id: 'media', label: 'Image & video' },
   { id: 'notebook', label: 'Notebook' },
+  { id: 'hub', label: 'Open hub' },
 ];
 
 export function ModelsPanel() {
@@ -206,6 +209,7 @@ export function ModelsPanel() {
         </div>
       )}
       {tab === 'notebook' && <LabNotebook s={s} />}
+      {tab === 'hub' && <HubTab s={s} />}
     </div>
   );
 }
@@ -516,6 +520,7 @@ function ModelRow({
             </Pill>
           ))}
           {elo.provisional && <Pill tone="muted">Provisional</Pill>}
+          {m.origin && <Pill tone="info" title="Downloaded from the open hub">hub</Pill>}
         </span>
         <span class="md-row-stat num" title="Overall">
           {Math.round(m.overall)}
