@@ -15,6 +15,7 @@ import { productFitFor, rivalFlagshipActiveB, sycophancyAttraction } from './cap
 import { playerCrownCounts, rivalLines } from './classes';
 import { labInfo, labName } from './labs';
 import { masteryAppeal, productActiveB, routedQuality, routerModelOf } from './modelLife'; // v15
+import { traitAppeal } from './traits'; // v18
 
 export interface ShareRow { id: string; name: string; color: string; isPlayer: boolean; users: number; share: number; quality: number; price: number }
 
@@ -362,7 +363,7 @@ function tierEntrants(s: GameState, ctx: TierCtx, seg: Segment, tier: BuyerTier,
       const small = routerModelOf(s, p);
       const quality = routedQuality(seg, segQuality(seg, m.scores, m.overall), small ? segQuality(seg, small.scores, small.overall) : null, small ? p.router!.share : 0);
       // A specialisation can fit a product kind better or worse (productFit), e.g. a Coder model for the API.
-      const extra = playerExtra(s, seg, m.scores, p.satisfaction, ctx.bonuses, ctx.crown[seg]) * productFitFor(m, p.kind) * sycophancyAttraction(m, p.kind) * masteryAppeal(m);
+      const extra = playerExtra(s, seg, m.scores, p.satisfaction, ctx.bonuses, ctx.crown[seg]) * productFitFor(m, p.kind) * sycophancyAttraction(m, p.kind) * traitAppeal(m, seg) * masteryAppeal(m);
       const a = tierAttractiveness(
         tier,
         { quality, price: p.price, refPrice: st.refPrice, brand: s.company.brand, hype: s.company.hype, extra, activeB: productActiveB(s, p, m), budgetAppeal: ctx.bonuses.budgetAppeal ?? 1 },
@@ -475,7 +476,7 @@ export function previewDemand(
   const st = s.market.segments[seg];
   const ctx = tierContext(s);
   const quality = segQuality(seg, model.scores, model.overall);
-  const extra = playerExtra(s, seg, model.scores, 70, ctx.bonuses, ctx.crown[seg]) * productFitFor(model, kind) * sycophancyAttraction(model, kind);
+  const extra = playerExtra(s, seg, model.scores, 70, ctx.bonuses, ctx.crown[seg]) * productFitFor(model, kind) * sycophancyAttraction(model, kind) * traitAppeal(model, seg);
   const activeB = model.activeParamsB ?? model.paramsB;
   const tiers = emptyTierPreview();
   let users = 0;

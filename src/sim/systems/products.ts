@@ -93,7 +93,7 @@ export function productsTick(s: GameState, _rng: Rng): void {
 
     if (!model) continue;
     // Sycophantic chat models slowly eat reputation (GAME_DESIGN 13.2).
-    const sycophancy = p.kind === 'chat' ? model.persona?.sycophancy ?? 0 : 0;
+    const sycophancy = p.kind === 'chat' ? (model.persona?.sycophancy ?? 0) + (model.traits?.sycophancy ?? 0) : 0;
     if (sycophancy > 0) s.company.reputation = clamp(s.company.reputation - RUN_TUNING.PERSONA_SYCOPHANCY_REP_PER_DAY * sycophancy, 0, 100);
     const unserved = demand > 0 && servedFraction < OUTAGE_THRESHOLD;
     if (unserved) {
