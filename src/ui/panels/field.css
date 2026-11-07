@@ -1,0 +1,48 @@
+/* v19 Field screen (Preprint look): booktabs table, small-caps labels, highlighter on the selected row. */
+.field-lab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 4px;
+  margin: -2px -4px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.field-lab:hover .bold,
+.field-lab:focus-visible .bold {
+  text-decoration: underline;
+}
+.field-table tr.sel td {
+  background: var(--marker);
+}
+.field-h {
+  margin: 0 0 6px;
+}
+.field-sheet section {
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.field-sheet section:first-of-type {
+  border-top: 0;
+  padding-top: 0;
+}
+.field-plan {
+  margin: 0 0 6px;
+}
+.field-timeline,
+.field-log,
+.field-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: var(--fs-sm);
+}
+.field-timeline li,
+.field-log li,
+.field-list li {
+  margin: 2px 0;
+}
