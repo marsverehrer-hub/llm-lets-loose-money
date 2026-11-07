@@ -21,7 +21,7 @@
   background: var(--hl);
   color: var(--on-hl);
 }
-.lab-level-k { font-size: var(--fs-xs); font-weight: 600; font-variant: all-small-caps; }
+.lab-level-k { font-size: var(--fs-xs); font-weight: 600; font-family: var(--label); text-transform: uppercase; }
 .lab-level-n { font-family: var(--display); font-size: 28px; font-weight: 600; line-height: 1; }
 .lab-level-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
 .lab-level-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; color: var(--fg-2); }

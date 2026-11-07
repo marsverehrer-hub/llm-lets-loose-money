@@ -1,4 +1,4 @@
-// Paper (light) / night print (dark) switch. v18: paper is the default. The choice lives on <html data-theme>
+// Dark / light switch. v22: dark is the default. The choice lives on <html data-theme>
 // (theme.css reads it) and persists to localStorage. index.html applies it before paint.
 
 export type Theme = 'dark' | 'light';
@@ -7,9 +7,9 @@ export const THEME_KEY = 'llm-lets-loose-money/theme';
 
 export function readTheme(): Theme {
   try {
-    return localStorage.getItem(THEME_KEY) === 'dark' ? 'dark' : 'light';
+    return localStorage.getItem(THEME_KEY) === 'light' ? 'light' : 'dark';
   } catch {
-    return 'light';
+    return 'dark';
   }
 }
 

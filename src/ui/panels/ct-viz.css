@@ -1,5 +1,5 @@
-/* Contracts (CON), Preprint look: deadline bars for offers, bids and active deals. Tokens only. A bar is the hatch
-   laid over its colour: ink for time left, warn ochre when close, red pen for a breach. */
+/* Contracts (CON): deadline bars for offers, bids and active deals. Tokens only. A bar is a flat fill
+   in its colour: brass for time left, amber when close, red for a breach. */
 
 .ct-dl { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .ct-dl-track { display: block; height: 6px; background: var(--bg-3); }

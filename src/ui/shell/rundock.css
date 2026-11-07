@@ -6,8 +6,8 @@
   min-width: 0;
   height: 52px;
   padding: 0 16px;
-  background: var(--bg);
-  border-bottom: 1px solid var(--line);
+  background: var(--tex-leather), var(--leather-2);
+  border-bottom: 1px solid var(--frame-line);
   overflow: hidden;
 }
 .dock-cell {
@@ -17,24 +17,27 @@
   min-width: 0;
   height: 38px;
   padding: 0 14px;
-  background: var(--bg-1);
-  border: 1px solid var(--line);
+  background: var(--tex-glass);
+  border: 1px solid var(--glass-line);
   border-radius: var(--r-sm);
-  color: var(--fg);
+  box-shadow: var(--shadow-glass);
+  color: var(--vfd);
   font: inherit;
-  font-size: var(--fs-sm);
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
   white-space: nowrap;
   cursor: pointer;
   transition: background var(--t-fast) linear, border-color var(--t-fast) linear;
 }
 button.dock-cell:hover,
-.dock-link:hover { background: var(--bg-2); }
+.dock-link:hover { background: var(--tex-glass); box-shadow: inset 0 0 0 1px var(--vfd-dim); }
 .dock-train {
   flex: 1 1 auto;
   padding: 0 6px 0 0;
   cursor: default;
   overflow: hidden;
 }
+
 .dock-link {
   display: flex;
   align-items: center;
@@ -52,9 +55,11 @@ button.dock-cell:hover,
 }
 .dock-res { flex: 0 1 320px; }
 .dock-k {
-  color: var(--fg-3);
-  font-size: 12px;
-  font-weight: 700;
+  color: var(--vfd-dim);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 .dock-name {
   min-width: 0;
@@ -62,22 +67,27 @@ button.dock-cell:hover,
   text-overflow: ellipsis;
   font-weight: 700;
 }
-.dock-v { flex-shrink: 0; font-weight: 600; }
+.dock-v { flex-shrink: 0; font-weight: 500; text-shadow: var(--vfd-glow); }
+.dock-name { text-shadow: var(--vfd-glow); }
+.dock-v.muted { color: var(--vfd-dim); text-shadow: none; }
+.dock-k { text-shadow: none; }
 .dock-bar {
   position: relative;
   flex: 1 1 60px;
   min-width: 40px;
   max-width: 240px;
-  height: 8px;
-  border-radius: var(--r-pill);
-  background: var(--bg-3);
+  height: 6px;
+  border-radius: 1px;
+  background: var(--lamp-off);
   overflow: hidden;
 }
 .dock-bar-fill {
   position: absolute;
   inset: 0 auto 0 0;
-  border-radius: var(--r-pill);
-  background: var(--accent);
+  border-radius: 1px;
+  background: var(--vfd);
+  mask-image: var(--tex-led);
+  -webkit-mask-image: var(--tex-led);
   transition: width var(--t-med) var(--ease);
 }
 .dock-bar.info .dock-bar-fill { background: var(--blue); }
@@ -98,10 +108,10 @@ button.dock-cell:hover,
 /* An idle slot reads calmly: secondary text, no accent fill. */
 .dock-idle {
   flex: 1 1 auto;
-  color: var(--fg-2);
+  color: var(--vfd-dim);
 }
-.dock-idle .dock-k { color: var(--fg-3); }
-.dock-go { margin-left: auto; color: var(--fg-3); font-weight: 800; }
+.dock-idle .dock-v { text-shadow: none; }
+.dock-go { margin-left: auto; color: var(--vfd-dim); }
 .dock-train .tempo { flex-shrink: 0; }
 
 /* Lab: one cell, a popover with the level, the Arena Cup and the board quarter. */
@@ -110,17 +120,19 @@ button.dock-cell:hover,
   gap: 10px;
   height: 38px;
   padding: 0 14px;
-  background: var(--bg-1);
-  border: 1px solid var(--line);
+  background: var(--tex-glass);
+  border: 1px solid var(--glass-line);
   border-radius: var(--r-sm);
-  color: var(--fg);
-  font-size: var(--fs-sm);
+  box-shadow: var(--shadow-glass);
+  color: var(--vfd);
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
   white-space: nowrap;
 }
-.rundock .dock-lab .popover-trigger:hover { background: var(--bg-2); }
-.dock-lab.has-points .popover-trigger { border-color: var(--line-2); }
+.rundock .dock-lab .popover-trigger:hover { background: var(--tex-glass); box-shadow: inset 0 0 0 1px var(--vfd-dim); }
+.dock-lab .popover-caret { color: var(--vfd-dim); }
 .dock-lab .dock-bar { flex: 0 0 64px; min-width: 64px; }
-.dock-lvl { font-weight: 800; }
+.dock-lvl { font-weight: 600; }
 .dock-dot {
   width: 8px;
   height: 8px;
@@ -182,3 +194,41 @@ button.dock-cell:hover,
   .dock-res .dock-bar { min-width: 0; }
   .dock-idle .dock-v { overflow: hidden; text-overflow: ellipsis; }
 }
+
+/* v22 desktop: the dock is the sidebar's foot, one compact card per line (label + name, then a thin bar). */
+.sn-foot .rundock {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  height: auto;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  overflow: visible;
+}
+.sn-foot .rundock > * { flex: none; }
+.sn-foot .dock-cell,
+.sn-foot .dock-lab .popover-trigger {
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  padding: 8px 10px;
+  border-radius: var(--r-md);
+  font-size: var(--fs-xs);
+}
+.sn-foot .dock-train { flex-direction: column; align-items: stretch; padding: 0; gap: 0; }
+.sn-foot .dock-link { flex-wrap: wrap; gap: 4px 8px; padding: 8px 10px; height: auto; }
+.sn-foot .dock-name { flex: 1 1 0; font-weight: 500; }
+.sn-foot .dock-v { font-weight: 500; }
+.sn-foot .dock-bar { order: 9; flex: 1 1 100%; max-width: none; height: 4px; }
+.sn-foot .dock-idle .dock-v { flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sn-foot .dock-train .tempo { margin: 0 8px 8px; }
+.sn-foot .dock-lab { display: block; }
+.sn-foot .dock-lab .popover-trigger { justify-content: flex-start; }
+.sn-foot .dock-lab .dock-bar { flex: 1 1 100%; min-width: 0; }
+.sn-foot .dock-link > .dock-v[title] { display: none; }
+.sn-foot .tempo { display: flex; }
+.sn-foot .tempo .seg { flex: 1 1 0; justify-content: center; padding: 0 4px; }

@@ -269,7 +269,7 @@
   color: var(--fg-2);
   font-size: var(--fs-xs);
   line-height: 14px;
-  font-variant: all-small-caps;
+  font-family: var(--label); text-transform: uppercase;
   white-space: nowrap;
   border-radius: var(--r-md);
 }
@@ -288,7 +288,7 @@
   color: var(--fg-3);
   font-size: var(--fs-xs);
   line-height: 14px;
-  font-variant: all-small-caps;
+  font-family: var(--label); text-transform: uppercase;
   white-space: nowrap;
   border-radius: var(--r-md);
 }

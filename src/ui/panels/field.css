@@ -1,4 +1,4 @@
-/* v19 Field screen (Preprint look): booktabs table, small-caps labels, highlighter on the selected row. */
+/* v19 Field screen: the shared table, engraved labels, a tint on the selected row. */
 .field-lab {
   display: inline-flex;
   align-items: center;

@@ -1971,3 +1971,15 @@ Each is scored. Afterwards the game continues as a sandbox.
 
 **Tech.** Panels, scenes, overlays and the tutorial are lazy-loaded (first paint ~375 kB gzip, was ~610 kB). A crash
 box offers a copyable report and the last save. `scripts/balance.ts` runs strategies and seeds in worker threads.
+
+## 34. v22: Executive Suite UI and a flatter frame
+
+The v18 Preprint look is gone; `DESIGN.md` has the new rules.
+- **Navigation:** the desktop sidebar lists every visible screen under its area, so any screen is one click away.
+  The hub row and the hub tabs are gone on desktop; phones keep the bottom tab bar and hub tabs.
+- **Run dock:** training, research and lab level live at the foot of the sidebar (a strip under the top bar on phones).
+- **Look:** stitched leather frame, bevelled panels, raised keys with one brass primary, amber glass displays for cash,
+  valuation, the run dock and the news ticker, LED-segment meters and a fuel gauge for runway (E = broke, F = two
+  years or profitable). Geist, Geist Mono and Barlow Semi Condensed. Dark is the default theme.
+- **Less chrome:** no section marks, numbered cards or "Abstract" lines; a screen tip shows on the first visit only;
+  HQ leads with the key numbers, then the advisor beside the live run.

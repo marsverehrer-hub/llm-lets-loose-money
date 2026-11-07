@@ -99,7 +99,7 @@ export function niceScale(min: number, max: number, target = 4): { lo: number; h
 }
 
 /**
- * Chart series colours as theme tokens, so they follow paper and night print. LineChart resolves var() at draw time.
+ * Chart series colours as theme tokens, so they follow the dark and light themes. LineChart resolves var() at draw time.
  * v18: figures use the matplotlib default cycle (--mpl-1..6), like every paper; the old names map onto it.
  */
 export const SERIES = {

@@ -199,12 +199,16 @@ export function App() {
   return (
     <div class={`app hub-${hub.id}`}>
       <TopBar />
-      {/* v17 Pit Wall: the hubs are the main nav bar across the top, like a team principal's menu. */}
-      {!isPhone && <SideNav items={navItems} active={tab} onHub={openHub} badges={navBadges} highlight={highlight} />}
-      <RunDock />
+      {/* v22: desktop lists every screen in the sidebar (run status at its foot); phones keep hub tabs and the dock strip. */}
+      {isPhone && <RunDock />}
       <div class="app-body">
+        {!isPhone && (
+          <SideNav items={navItems} active={tab} onSelect={select} badges={navBadges} highlight={highlight}>
+            <RunDock />
+          </SideNav>
+        )}
         <main class="app-main" ref={mainRef}>
-          <HubTabs items={navItems} active={tab} onSelect={select} badges={navBadges} highlight={highlight} />
+          {isPhone && <HubTabs items={navItems} active={tab} onSelect={select} badges={navBadges} highlight={highlight} />}
           {/* keyed so each tab change remounts the panel (resets panel-local state) */}
           <HubContext.Provider value={hub}>
             <div key={tab} class="panel-host">

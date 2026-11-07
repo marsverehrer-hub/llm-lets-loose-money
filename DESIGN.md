@@ -1,114 +1,126 @@
-# LLM: Lets Loose Money: UI design rules ("Preprint", v18)
+# LLM: Lets Loose Money: UI design rules ("Executive Suite", v22)
 
-The lab's screens are typeset like the papers the lab keeps publishing. Warm paper, a LaTeX-ish serif (STIX Two),
-§ sections with a double rule, numbered subsections, booktabs tables, figures in the matplotlib colours, hatched
-monochrome bars, a **red pen** for what needs attention and a **highlighter** for what is selected. The tutorial is a
-sticky note, the HUD is the paper's running header ("Lets Loose Labs et al."), and the screen tip is the Abstract.
-Night print (dark) is the same paper under a desk lamp. Paper is the default.
+The lab is run from a 1970s executive suite: a hi-fi console set into a leather desk. The frame (top bar and sidebar) is
+stitched oxblood leather. Readouts that move (cash, runway, valuation, the run dock, the news ticker) sit behind dark
+glass in amber display digits. Panels are bevelled, buttons are physical keys, the one main action is a brass key,
+meters are LED segments and runway is a fuel gauge. Labels are engraved in a condensed face. Light is saddle-tan
+leather around an ivory desk; the glass displays stay dark, like real hardware. Dark is the default.
 
-The satire lives in the **content** (names, news, events, descriptions, advisor copy) and in the paper conventions.
-The chrome is played straight, like a carefully typeset preprint about a deeply unserious company.
+The satire lives in the **content** (names, news, events, advisor copy). The chrome is played straight: expensive,
+analogue and slightly too serious, like the furniture of a company that has not shipped yet.
 
-`scripts/lint-style.mjs` enforces the hard rules. `node scripts/lint-style.mjs --strict` must print `style lint: OK`.
+Layout and sizing follow shadcn/ui v4 (34px controls, 8px grid). Status colours start from Radix Colors (step 9/11 for
+ink, step 3 for tints). The chart series order is Tremor's. 21st.dev was looked at for component patterns, but its
+pages ship no usable source, so nothing is copied from it.
+
+`scripts/lint-style.mjs` enforces the hard rules. `node scripts/lint-style.mjs` must print `style lint: OK`.
 
 ## Hard rules (lint-enforced)
-1. **No emoji** anywhere in UI source (`src/ui`, `src/office`, `src/scenes`). Simple glyphs such as `▲ ▼ ● › × § ✓`
-   are fine. Icons are inline SVG line drawings. The sim's `icon` fields are never rendered.
-2. **Colours, gradients and textures are tokens.** No raw hex in CSS outside `src/ui/theme.css` and no `gradient()`
-   outside it. Every `box-shadow` references a token or a `var()` colour. Data-driven colours come in through `--c`.
-3. **No glow or glass:** no `text-shadow`, `backdrop-filter`, blur or `drop-shadow`.
-4. **Paper is square:** radii are `--r-sm` (2) or `--r-lg` (3), plus `--r-pill` for dots and switches. No slanted
+1. **No emoji** anywhere in UI source (`src/ui`, `src/office`, `src/scenes`). Simple glyphs such as `▲ ▼ ● › ×` are
+   fine. Icons are inline SVG line drawings. The sim's `icon` fields are never rendered.
+2. **Colours, gradients, textures and depth are tokens.** No raw hex and no `gradient()` outside `src/ui/theme.css`.
+   Every `box-shadow` and `text-shadow` references a token or a `var()` colour (`--shadow-*`, `--bevel`, `--emboss`,
+   `--deboss`, `--vfd-glow`). Data-driven colours come in through `--c`.
+3. **No blur or frosted glass:** no `backdrop-filter`, `filter: blur` or `drop-shadow`. Glass here is dark and solid.
+4. **Radii are tokens** above 16px (`--r-sm` 5, `--r-md` 7, `--r-lg` 9, `--r-xl` 12, `--r-pill`). No slanted
    `clip-path` shapes.
-5. **No uppercase.** Labels, tabs and tags use small caps (`font-variant: all-small-caps`, the `.caps` / `.smallcaps`
-   classes). `text-transform: uppercase` is allowed only on pills, eyebrows, keys and chips, and even there small caps
-   are preferred.
-6. **House controls only:** checkboxes and switches are `components/Check` (a hand-drawn red tick), dropdowns are
-   `components/Select`. Never a raw `<input type="checkbox">` or `<select>` outside `components/`.
-7. **Motion** is short and functional. `prefers-reduced-motion` switches it off.
-8. Inline styles in TSX follow the same rules.
+5. **House controls only:** checkboxes and switches are `components/Check` (a lamp key and a metal toggle), dropdowns
+   are `components/Select`. Never a raw `<input type="checkbox">` or `<select>` outside `components/`.
+6. **Motion** is short and mechanical (a key presses 1px, a needle swings). `prefers-reduced-motion` switches it off.
+7. Inline styles in TSX follow the same rules.
+
+## Materials
+| material | where | tokens |
+|---|---|---|
+| **Leather** with a dashed cream stitch | top bar, sidebar, phone dock strip, dialog headers | `--tex-leather`, `--leather`, `--leather-2`, `--stitch`, `--frame-fg*` |
+| **Desk** with a faint grain | the page behind the panels | `--tex-app`, `--bg` |
+| **Panel**: matte, bevelled, dark edge | cards, KPI tiles, rows | `--bg-1..3`, `--edge`, `--shadow-1`, `--bevel` |
+| **Key**: raised, presses 1px | `.btn`, segmented options, speed keys | `--tex-key`, `--shadow-key`, `--shadow-key-down` |
+| **Brass**: the one main action | `.btn-primary`, the brand mark, ticked checkboxes, the ticker label | `--tex-brass`, `--brass-edge` |
+| **Glass**: recessed, amber digits | cash, runway, valuation, run dock, news ticker | `--tex-glass`, `--shadow-glass`, `--vfd`, `--vfd-dim`, `--vfd-glow` |
+| **Well**: recessed track | progress bars, meters, inputs, switch tracks | `--tex-well`, `--shadow-well` |
+| **LED segments** | every progress bar and dock bar | `--tex-led` (a mask) |
+| **Lamps** | sidebar row indicators, speed keys, badges | `--vfd`, `--lamp-off`, `--shadow-lamp-off` |
 
 ## Emphasis
-- **One inked button per view.** The primary button (`btn-primary`) is solid ink with paper text: the single thing to
-  do here. Secondary buttons are boxed like hyperref links. Ghost buttons read as blue links.
-- **Red pen** (`--pen`, `.pen` in the hand font) is for what needs the reader: urgent advisor items, the § mark, bad
-  news, armed destructive buttons. Never decorative.
-- **Highlighter** (`--tex-marker`, `.marker`) marks what is selected: the current tab, hub, your row in a table.
-- **Status colours mean something:** green ink for good or money in, red pen for bad or money out, ochre for caution,
-  plum and **bold** for best in the world (as in a results table), steel blue for info.
-- **Depth** is a sheet on a desk: cards are flat paper with a hairline. Only dialogs and toasts lift with a shadow.
-- **Destructive actions** are a dashed red-pen box until armed (`ConfirmButton`). Never repeat a red button down a
-  list; put it in a row's overflow menu.
+- **One brass key per view.** `btn-primary` is the single thing to do here. Other buttons are plain keys; ghost
+  buttons are flat text.
+- **Indicators are brass** (`--accent`): the active tab's underline, the current row's left edge, focus rings, links.
+- **Status colours mean something:** green for good or money in, red for bad or money out, amber for caution, violet
+  for best in the world, blue for info. On glass they are lit display colours (`--vfd-good`, `--vfd-bad`).
+- **Labels are engraved:** Barlow Semi Condensed, 12px, tracked uppercase, `--fg-3`, `--emboss`. Headings and buttons
+  stay sentence case. Card titles are engraved plates (uppercase, 15px).
+- **Destructive actions** are a red-edged key and confirm with `ConfirmButton`. Never repeat a red button down a list;
+  put it in a row's overflow menu.
 
 ## Tokens (`src/ui/theme.css`)
-| token | paper (default) | night print | use |
+Token names are stable: the canvas scenes (office, finance, models) and charts read `--bg*`, `--line*`, `--fg*`,
+`--hl`, `--accent`, `--up`, `--down`, `--warn`, `--sota`, `--blue` and `--mpl-1..6` at draw time.
+
+| token | dark (default) | light | use |
 |---|---|---|---|
-| `--bg` / `--bg-1..3` | desk #f1ece1, sheet #fffdf7 | #12100c up to #2d281f | page, cards, raised rows |
-| `--fg` / `--hl` / `--on-hl` | ink #1c1915 / ink / paper | cream / cream / ink | text, primary button, bar fill |
-| `--accent` | fountain-pen blue #1f47a0 | #93b2ff | links, focus, accent text |
-| `--pen` | red pen #c0261c | #ff8a78 | attention, the § mark, urgent |
-| `--marker`, `--tex-marker` | highlighter yellow | dim yellow | selection |
-| `--note` | sticky-note yellow | dark yellow | tutorial card |
-| `--mpl-1..6` | matplotlib tab10 | brightened | chart series (`SERIES_ORDER`) and hub tints |
-| `--tex-hatch` | diagonal hatch | | laid over any solid bar fill |
-| `--amber`, `--yellow` | legacy aliases | | resolve to the accent / warn; do not use in new code |
+| `--bg` / `--bg-1..3` | espresso #14100d up to #342b24 | ivory #e8e1d5, panels #f7f2e9 | desk, panels, raised rows |
+| `--fg..--fg-4` | cream #f0e7d8 down to #66594b | ink #261d16 down to #a59684 | text |
+| `--accent` | brass #e9b453 | dark brass #9a6416 | links, indicators, focus |
+| `--hl` / `--on-hl` | brass #e3a940 / dark | same | fills: the primary key, meters |
+| `--vfd` | amber #ffb84d | same (glass stays dark) | display digits |
+| `--leather` / `--leather-2` | oxblood #4a271b / #3b1f16 | saddle #8a5a35 / #6e4426 | the frame |
+| `--up` `--down` `--warn` `--sota` `--blue` | lit LED colours | darker inks | status |
+| `--mpl-1..6` | blue, amber, green, red, violet, teal | same hues, darker | chart series (`SERIES_ORDER`) |
+| `--tex-hatch`, `--tex-marker` | flat (legacy names) | | kept so older panel CSS still resolves |
 
 **Type:**
-- `STIX Two Text` (`--font`, `--display`, `--figure`) for everything, with lining tabular figures.
-- `Caveat` (`--hand`) for the red pen and the sticky note.
-- `JetBrains Mono` (`--code`) for code and prompts.
-- Base 15.5px, minimum 12.5px.
-
-## Paper conventions
-- **Screen title:** `§ Title`, italic subtitle on the same line, a double rule under it.
-- **Subsections:** card titles are numbered 1, 2, 3 per screen (a CSS counter), like 3.1, 3.2 in a paper.
-- **Abstract:** the one-time screen tip (`PanelIntro`) starts with a small-caps "Abstract.".
-- **Tables:** booktabs (heavy top and bottom rules, a thin rule under the head, no zebra, no verticals).
-- **Figures:** charts use the matplotlib cycle; camera scenes are framed plates.
-- **Table of contents:** the hub nav is numbered 1–5.
+- `Geist` (`--font`) for reading, 14px base, 12px minimum.
+- `Barlow Semi Condensed` (`--display`, `--label`) for screen titles, card titles, tabs and engraved labels.
+- `Geist Mono` (`--mono`, `--figure`, `--code`) for figures (tabular), display digits, code and prompts.
 
 ## Navigation (information architecture)
-About 15 panels are grouped into five **hubs** (`src/ui/shell/hubs.tsx`). `PanelId` values never change, and
-`navigate(id, intent)` still opens any panel directly.
+About 15 screens are grouped into five areas (`src/ui/shell/hubs.tsx`). `PanelId` values never change, and
+`navigate(id, intent)` still opens any screen directly.
 
-| Hub | Panels (tabs) |
+| Area | Screens |
 |---|---|
 | Headquarters | Overview (`dashboard`), Versus (`vs`, only during a match) |
 | Lab | Models, Products, Research, Data, Benchmarks |
 | Infrastructure | Compute, Staff |
-| Business | Market, Marketing, Contracts, Finance |
+| Business | Market, The field, Marketing, Contracts, Finance |
 | Company | Level & perks (`lab`), Trophies (`achievements`) |
 
-- **Desktop:** the hubs run across the top under the HUD as a numbered table of contents; the active one is
-  highlighted. The hub's panels are small-caps tabs at the top of the main area.
-- **Phones (≤ 760px):** a bottom tab bar.
-- Locked panels (`ui/unlocks.ts`) are absent until they open. A batch of unlocks is one notice.
+- **Desktop:** the sidebar lists **every visible screen** under its area heading, so any screen is one click away.
+  Each row has an indicator lamp; the current screen's is lit. There are no hub tabs on desktop.
+- **Phones (≤ 760px):** a bottom tab bar with one tab per area, and the area's screens as tabs at the top of the main
+  area (`HubTabs`).
+- Locked screens (`ui/unlocks.ts`) are absent until they open. A batch of unlocks is one notice.
 
 ## The frame
-- **HUD (running header):** company mark and "Name et al.", date in italics, status pill, then Cash (with today's net), Runway and Valuation, a "More"
-  popover, the speed control, Inbox and Menu.
-- **Run dock:** three chips: Training, Research and Lab (level, Cup and board quarter in a popover).
-- **News ticker:** a quiet strip at the bottom.
-- **Toasts:** at most two, solid, bottom-left, never over the main column's controls. Background news goes to the Inbox
-  instead of a toast.
+- **Top bar (leather):** brass mark, company name and date, status tag; then three glass displays: Cash (with today's
+  net), Runway (a fuel gauge, E = broke, F = two years or profitable) and Valuation (opens its breakdown); a "More"
+  popover, the speed keys (a lamp lights on the pressed one), Inbox and Menu.
+- **Sidebar (leather):** the screen list, then the **run dock** at its foot: Training (with tempo), Research and Lab
+  (level, Cup and board quarter in a popover) as glass displays with LED bars. On phones the dock is a strip under the
+  top bar.
+- **News ticker:** an amber glass strip at the bottom.
+- **Toasts:** bottom-right, at most two (one on phones), two lines of text at most; the Inbox has the rest.
 
 ## Headquarters
-It answers "what is going on, and what should I do next" with **one voice**:
-1. **Advisor** (`panels/hq/nextStep.ts`): the current chapter goal and its progress at the top, then the top moves
-   ranked Urgent, Next and Idea, each with a plain reason and one button. Nothing else on the screen gives orders.
-2. The live strip: training run and research.
-3. Key numbers with trends.
-4. Money, products and the rival race.
-5. The office camera, collapsible.
+It answers "how are we doing, and what should I do next" with **one voice**:
+1. Key numbers with trends (on phones they come after the advisor).
+2. **Advisor** (`panels/hq/nextStep.ts`) beside the live column: the chapter goal and its progress, then the top moves
+   ranked Urgent, Next and Idea, each with a plain reason and one button. Nothing else on the screen gives orders. The
+   live column is the training run (with tempo) over research.
+3. Money, products and the rival race.
+4. The office camera, collapsible.
 
 ## Screens
-- **Compact header:** `§ Title` with an italic line of context on the same row, actions on the right, a double rule under it.
-- **Actions first:** the card or list the player acts on comes first. Camera scenes go into a collapsible "View" card.
+- **Header:** the title in Barlow Semi Condensed with one line of context under it, readouts or actions on the right.
+- **Actions first:** the card or list the player acts on comes first. Camera scenes go into a collapsible "Camera"
+  card.
 - **Short screens:** secondary sections go behind tabs or disclosures. Targets at 1440×900: HQ ≤ 1,400px, Research
-  and Data ≤ 1,800px, everything else ≤ 1,500px.
+  and Data ≤ 1,800px, everything else ≤ 1,500px (`npm run screens` checks them).
 - **Master-detail for collections:** Models shows its list on the left and the selected model on the right (a sheet
   on phones).
-- **Tips:** `PanelIntro` is the Abstract: one italic line, shown on the first visit only.
-- **Alerts:** `Banner` from `panels/panelKit.tsx` (a margin annotation: tinted strip with a coloured rule on the left).
+- **Tips:** `PanelIntro` shows one line on the first visit to a screen and then is gone (Menu brings them back).
+- **Alerts:** `Banner` from `panels/panelKit.tsx` (a tinted strip with a coloured rule on the left).
 
 ## Copy
 - Plain and friendly: "Runway 3.1 years", "Start training", "Your next moves".

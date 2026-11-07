@@ -4,12 +4,12 @@
    ========================================================================== */
 
 .app {
-  --top-h: 64px;
-  --ticker-h: 34px;
-  --nav-w: 236px;
+  --top-h: 56px;
+  --ticker-h: 32px;
+  --nav-w: 224px;
 }
 @media (max-width: 1100px) {
-  .app { --nav-w: 84px; }
+  .app { --nav-w: 196px; }
 }
 
 /* The current hub's colour, for eyebrows, the active nav chip and the hub tabs. */
@@ -28,32 +28,47 @@
   gap: 12px;
   height: var(--top-h);
   min-width: 0;
-  padding: 0 16px 0 14px;
-  background: var(--bg-1);
-  border-bottom: 1px solid var(--line);
+  padding: 0 14px 0 16px;
+  background: var(--tex-leather), var(--leather);
+  border-bottom: 1px solid var(--frame-line);
+  box-shadow: var(--shadow-frame);
+  color: var(--frame-fg);
   white-space: nowrap;
 }
+/* Stitched seam along the bottom of the leather. */
+.topbar::after {
+  content: '';
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  bottom: 4px;
+  border-bottom: 1.5px dashed var(--stitch);
+  pointer-events: none;
+}
+.topbar .topbar-label { color: var(--frame-fg-3); }
 .brand {
   display: flex;
   align-items: center;
   gap: 12px;
   flex-shrink: 0;
   /* Grows when a long status tag ("Decision pending") would otherwise run into the cash readout. */
-  min-width: calc(var(--nav-w) - 26px);
+  min-width: calc(var(--nav-w) - 28px);
 }
 .brand-mark {
   display: grid;
   place-items: center;
   flex-shrink: 0;
-  width: 40px;
-  height: 40px;
+  width: 30px;
+  height: 30px;
   border-radius: var(--r-md);
-  background: var(--accent);
-  color: var(--on-accent);
+  background: var(--tex-brass);
+  border: 1px solid var(--brass-edge);
+  box-shadow: var(--shadow-key);
+  color: var(--on-hl);
   font-family: var(--display);
-  font-size: 16px;
-  font-weight: 800;
-  box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 35%, transparent);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 .brand-text {
   display: flex;
@@ -64,11 +79,13 @@
   background: transparent;
   border: 0;
   padding: 0;
-  color: var(--fg);
+  color: var(--frame-fg);
   font-family: var(--display);
   font-size: 17px;
-  font-weight: 700;
-  line-height: 1.2;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+  text-shadow: var(--deboss);
   text-align: left;
   cursor: pointer;
   max-width: 200px;
@@ -76,7 +93,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.brand-company:hover { color: var(--accent); }
+.brand-company:hover { color: var(--accent-2); }
 .brand-company-input {
   width: 180px;
   height: 28px;
@@ -85,18 +102,18 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--fg-3);
-  font-size: var(--fs-sm);
+  color: var(--frame-fg-3);
+  font-size: var(--fs-xs);
   white-space: nowrap;
 }
 .pause-tag {
-  padding: 0 8px;
+  padding: 0 7px;
   border-radius: var(--r-pill);
   background: var(--warn-3);
   color: var(--warn);
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 18px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 17px;
 }
 .pause-tag.bad { background: var(--down-3); color: var(--down); }
 
@@ -113,27 +130,26 @@
   flex-direction: column;
   justify-content: center;
   min-width: 0;
-  height: 46px;
-  padding: 0 14px;
-  border-radius: var(--r-md);
-  background: var(--bg-2);
+  height: 40px;
+  padding: 0 12px;
+  border-radius: var(--r-sm);
+  background: var(--tex-glass);
+  border: 1px solid var(--glass-line);
+  box-shadow: var(--shadow-glass);
   white-space: nowrap;
   flex-shrink: 0;
   transition: background var(--t-fast) linear;
 }
-.topbar-label {
-  color: var(--fg-3);
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1.2;
-}
+.topbar .topbar-stat .topbar-label { color: var(--vfd-dim); text-shadow: none; font-size: 10.5px; line-height: 1.2; }
+.topbar-label { line-height: 1.3; }
 .topbar-value {
-  color: var(--fg);
+  color: var(--vfd);
   font-family: var(--mono);
   font-variant-numeric: tabular-nums;
-  font-weight: 700;
-  font-size: 16px;
+  font-weight: 500;
+  font-size: 15px;
   line-height: 1.3;
+  text-shadow: var(--vfd-glow);
 }
 .topbar-stat.ts-cash {
   display: grid;
@@ -143,23 +159,36 @@
   padding-right: 16px;
 }
 .topbar-stat.ts-cash .topbar-label { grid-column: 1 / -1; }
-.topbar-stat.ts-cash .topbar-value { font-size: 19px; line-height: 1.2; }
+.topbar-stat.ts-cash .topbar-value { font-size: 17px; font-weight: 600; line-height: 1.2; }
 .topbar-delta {
   align-self: center;
   font-family: var(--mono);
-  font-size: 12.5px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 500;
   color: var(--fg-3);
 }
 .topbar-delta.good { color: var(--up); }
 .topbar-delta.bad { color: var(--down); }
-.topbar-stat.ts-runway.good .topbar-value { color: var(--up); }
-.topbar-stat.ts-runway.warn .topbar-value { color: var(--warn); }
-.topbar-stat.ts-runway.bad { background: var(--down-3); }
-.topbar-stat.ts-runway.bad .topbar-value { color: var(--down); }
-.topbar-stat.ts-runway.muted .topbar-value { color: var(--fg-2); }
+/* Runway: the fuel gauge beside its readout. */
+.topbar-stat.ts-runway { display: grid; grid-template-columns: auto auto; column-gap: 10px; align-content: center; padding-left: 8px; }
+.ts-runway .gauge { grid-row: 1 / 3; align-self: center; }
+.ts-runway.good .topbar-value { color: var(--vfd-good); text-shadow: var(--vfd-good-glow); }
+.ts-runway.warn .topbar-value { color: var(--vfd); }
+.ts-runway.bad .topbar-value { color: var(--vfd-bad); text-shadow: var(--vfd-bad-glow); }
+.ts-runway.muted .topbar-value { color: var(--vfd-dim); text-shadow: none; }
+.gauge { overflow: visible; }
+.gauge-arc { fill: none; stroke: var(--vfd-dim); stroke-width: 1; opacity: 0.6; }
+.gauge-tick { stroke: var(--vfd-dim); stroke-width: 1.4; }
+.gauge-tick.warn { stroke: var(--tick-warn); }
+.gauge-tick.bad { stroke: var(--tick-bad); }
+.gauge-ef { fill: var(--vfd-dim); font-family: var(--label); font-size: 7px; font-weight: 700; }
+.gauge-needle { transform-origin: 22px 22px; transform-box: view-box; transition: transform 600ms var(--ease); }
+.gauge-needle line { stroke: var(--needle); stroke-width: 1.6; stroke-linecap: round; }
+.gauge-needle.is-parked line { stroke: var(--vfd-dim); }
+.gauge-hub { fill: var(--metal); stroke: var(--glass-line); stroke-width: 0.6; }
 .topbar-more { align-self: center; }
-.topbar-more .popover-trigger { height: 40px; border-radius: var(--r-md); }
+.topbar-more .popover-trigger { height: 30px; background: transparent; border-color: rgba(255, 236, 205, 0.18); box-shadow: none; color: var(--frame-fg-2); }
+.topbar-more .popover-trigger:hover { background: var(--frame-hover); color: var(--frame-fg); }
 .topbar-more-list { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .topbar-more-row {
   display: flex;
@@ -170,13 +199,15 @@
   color: var(--fg-2);
   font-size: var(--fs-sm);
 }
-.topbar-more-row .num { color: var(--fg); font-weight: 700; }
+.topbar-more-row .num { color: var(--fg); font-weight: 500; }
 /* Lower-priority readouts drop out as the window narrows. Revenue, users and hype live behind More. */
 @media (max-width: 1220px) { .topbar-stats .topbar-stat.ts-val, .topbar-stats .topbar-val { display: none; } }
-/* The valuation is a stat that opens its breakdown: the trigger keeps the stat's look (paper overrides in theme.css). */
-.topbar-val .popover-trigger { flex-direction: column; align-items: flex-start; justify-content: center; gap: 0; height: 46px; padding: 0 22px 0 14px; background: var(--bg-2); border: 0; border-radius: var(--r-md); }
+/* The valuation is a stat that opens its breakdown: the trigger keeps the stat's look. */
+.topbar-val .popover-trigger { flex-direction: column; align-items: flex-start; justify-content: center; gap: 0; height: 40px; padding: 0 24px 0 12px; background: var(--tex-glass); border: 1px solid var(--glass-line); border-radius: var(--r-sm); box-shadow: var(--shadow-glass); }
+.topbar-val .popover-trigger:hover { background: var(--tex-glass); border-color: var(--vfd-dim); }
+.topbar-val .topbar-label { color: var(--vfd-dim); text-shadow: none; font-size: 10.5px; line-height: 1.2; }
+.topbar-val .popover-caret { color: var(--vfd-dim); }
 .topbar-val .popover-caret { position: absolute; right: 8px; top: 50%; translate: 0 -50%; }
-:root .topbar-val .popover-trigger { background: transparent; border-radius: 0; border-left: 1px solid var(--line); padding: 0 22px 0 16px; height: 42px; }
 @media (max-width: 1100px) { .brand { min-width: 0; } }
 @media (max-width: 900px) { .topbar-stats .topbar-stat.ts-runway { display: none; } }
 @media (max-width: 1000px) { .topbar .tb-text { display: none; } }
@@ -184,11 +215,11 @@
 
 /* Briefly lights the cash readout after a milestone (fx/banner.ts). */
 .topbar-stat.fx-flash {
-  background: var(--accent);
+  background: var(--tex-brass);
 }
 .topbar-stat.fx-flash .topbar-value,
 .topbar-stat.fx-flash .topbar-delta,
-.topbar-stat.fx-flash .topbar-label { color: var(--on-accent); }
+.topbar-stat.fx-flash .topbar-label { color: var(--on-hl); }
 
 .topbar-end {
   display: flex;
@@ -203,33 +234,53 @@
   gap: 2px;
   padding: 3px;
   border-radius: var(--r-md);
-  background: var(--bg-2);
-  border: 1px solid var(--line);
+  background: var(--press-bg);
+  box-shadow: var(--shadow-glass);
 }
+/* Hi-fi push keys: a lamp above the label lights on the pressed one. */
 .speed-group .btn {
-  min-width: 38px;
+  position: relative;
+  min-width: 40px;
   height: 32px;
-  border-color: transparent;
-  background: transparent;
+  padding-top: 5px;
+  background: var(--tex-key);
+  border-color: var(--edge);
+  box-shadow: var(--shadow-key);
+  color: var(--fg-2);
   font-family: var(--mono);
-  font-size: var(--fs-sm);
+  font-size: var(--fs-xs);
 }
-.speed-group .btn:hover:not(:disabled) { background: var(--bg-3); border-color: transparent; }
+.speed-group .btn::before {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  width: 12px;
+  height: 3px;
+  margin-left: -6px;
+  border-radius: 2px;
+  background: var(--glass);
+}
+.speed-group .btn:hover:not(:disabled) { background: var(--tex-key-hover); }
 .speed-group .btn.on,
 .speed-group .btn.on:hover:not(:disabled) {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--on-accent);
+  background: var(--tex-key);
+  border-color: var(--edge);
+  box-shadow: var(--shadow-key-down);
+  color: var(--fg);
+  transform: translateY(1px);
 }
-.topbar-end > .btn-sm { height: 38px; padding: 0 12px; border-radius: var(--r-md); }
+.speed-group .btn.on::before { background: var(--vfd); box-shadow: var(--vfd-glow); }
+.topbar-end > .btn-sm { height: 32px; padding: 0 10px; background: transparent; border-color: transparent; box-shadow: none; color: var(--frame-fg-2); }
+.topbar-end > .btn-sm:hover:not(:disabled) { background: var(--frame-hover); color: var(--frame-fg); border-color: transparent; }
 .nl-badge {
   min-width: 20px;
   padding: 0 6px;
   border-radius: var(--r-pill);
   background: var(--down);
   color: var(--bg);
-  font-size: 12px;
-  font-weight: 800;
+  font-size: 11px;
+  font-weight: 600;
   line-height: 18px;
   text-align: center;
 }
@@ -334,89 +385,92 @@
   font-size: var(--fs-sm);
 }
 
-/* ---------- hub sidebar ----------------------------------------------------- */
+/* ---------- sidebar: every screen, grouped by area; live status at the foot ---------- */
 .sidenav {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
   min-height: 0;
   min-width: 0;
   overflow-x: hidden;
   overflow-y: auto;
-  padding: 18px 14px 14px;
-  background: var(--bg);
+  position: relative;
+  padding: 16px 12px 12px;
+  background: var(--tex-leather), var(--leather-2);
+  border-right: 1px solid var(--frame-line);
+  box-shadow: var(--shadow-frame-side);
+  color: var(--frame-fg);
 }
-.sn-brand {
+/* Stitched seam down the inside edge. */
+.sidenav::after {
+  content: '';
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  right: 5px;
+  border-right: 1.5px dashed var(--stitch);
+  pointer-events: none;
+}
+.sn-hubs { display: flex; flex-direction: column; gap: 14px; }
+.sn-group { display: flex; flex-direction: column; gap: 1px; }
+.sn-group-head {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 0 6px 14px;
-}
-.sn-logo {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  background: var(--fg);
-  color: var(--bg);
-  font-family: var(--display);
+  gap: 7px;
+  padding: 0 8px 5px;
+  color: var(--frame-fg-3);
+  font-family: var(--label);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-shadow: var(--deboss);
 }
-.sn-brand-text { display: flex; flex-direction: column; min-width: 0; }
-.sn-brand-name { font-family: var(--display); font-size: 15px; font-weight: 700; line-height: 1.2; }
-.sn-brand-tag { color: var(--fg-3); font-size: 12px; }
-.sn-hubs { display: flex; flex-direction: column; gap: 6px; }
+.sn-group-head .hub-icon { color: var(--frame-fg-3); }
 .hub-item {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   width: 100%;
-  min-height: 58px;
-  padding: 8px 10px;
+  height: 30px;
+  padding: 0 10px 0 28px;
   background: transparent;
-  border: 1px solid transparent;
-  border-radius: var(--r-md);
-  color: var(--fg-2);
+  border: 0;
+  border-radius: var(--r-sm);
+  color: var(--frame-fg-2);
+  font-size: var(--fs-sm);
+  font-weight: 500;
   text-align: left;
   cursor: pointer;
-  transition: background var(--t-fast) linear, color var(--t-fast) linear, border-color var(--t-fast) linear;
-}
-.hub-item:hover { background: var(--bg-1); color: var(--fg); }
-.hub-item.active {
-  background: var(--bg-1);
-  border-color: var(--line);
-  color: var(--fg);
-  box-shadow: var(--shadow-1);
-}
-.hub-chip {
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  width: 38px;
-  height: 38px;
-  border-radius: 11px;
-  background: color-mix(in srgb, var(--hub) 14%, transparent);
-  color: var(--hub);
   transition: background var(--t-fast) linear, color var(--t-fast) linear;
 }
-.hub-item.active .hub-chip {
-  background: var(--hub);
-  color: var(--bg);
+/* Each row has an indicator lamp; the current screen's is lit. */
+.hub-item::before {
+  content: '';
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  margin-top: -3px;
+  border-radius: var(--r-pill);
+  background: var(--lamp-off);
+  box-shadow: var(--shadow-lamp-off);
 }
-.hub-text { display: flex; flex-direction: column; min-width: 0; }
-.hub-label { font-size: 15px; font-weight: 700; line-height: 1.25; }
-.hub-blurb { color: var(--fg-3); font-size: 12.5px; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hub-item:hover { background: var(--frame-hover); color: var(--frame-fg); }
+.hub-item.active { background: var(--press-bg); color: var(--frame-fg); box-shadow: var(--shadow-press); }
+.hub-item.active::before { background: var(--vfd); box-shadow: var(--vfd-glow); }
+.hub-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .hub-badge {
   flex-shrink: 0;
-  width: 9px;
-  height: 9px;
+  width: 7px;
+  height: 7px;
   margin-left: auto;
   border-radius: var(--r-pill);
   background: var(--accent);
 }
+.hub-badge.dot { width: 6px; height: 6px; background: var(--frame-fg-3); opacity: 0.7; }
 .hub-badge.warn { background: var(--down); }
 /* Tutorial target: an accent ring that breathes (its opacity eases, the element itself stays put). */
 .tut-pulse { position: relative; }
@@ -432,26 +486,7 @@
 @keyframes tut-ring {
   50% { opacity: 0.45; }
 }
-.sn-foot {
-  margin-top: auto;
-  padding: 12px 6px 0;
-  color: var(--fg-3);
-  font-size: 12px;
-  line-height: 2;
-}
-.sn-foot .kbd { margin: 0 1px; }
-
-/* Folded rail: icons over short labels. */
-@media (max-width: 1100px) {
-  .sidenav { padding: 14px 8px; }
-  .sn-brand { justify-content: center; padding: 0 0 10px; }
-  .sn-brand-text,
-  .hub-blurb,
-  .sn-foot { display: none; }
-  .hub-item { flex-direction: column; gap: 4px; padding: 8px 2px; min-height: 0; }
-  .hub-label { font-size: 11.5px; font-weight: 600; text-align: center; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
-  .hub-badge { position: absolute; top: 6px; right: 10px; margin: 0; }
-}
+.sn-foot { margin-top: auto; padding-top: 10px; }
 
 /* ---------- hub tabs (top of the main area) ------------------------------ */
 .hubtabs {
@@ -490,13 +525,13 @@
 }
 .hubtab:hover { background: var(--bg-2); color: var(--fg); }
 .hubtab.active {
-  background: color-mix(in srgb, var(--hub) 16%, var(--bg-1));
+  background: var(--bg-2);
   color: var(--fg);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--hub) 45%, transparent);
+  box-shadow: inset 0 0 0 1px var(--line-2);
 }
 .hubtab .hub-badge { margin-left: 0; width: 8px; height: 8px; }
 /* Without tabs the panel still needs breathing room at the top. */
-.app-main > .panel-host:first-child { padding-top: 22px; }
+.app-main > .panel-host:first-child { padding-top: 24px; }
 .hubtabs + .panel-host { padding-top: 10px; }
 
 /* ---------- news ticker ---------------------------------------------------- */
@@ -508,21 +543,26 @@
   min-width: 0;
   padding: 0 12px;
   overflow: hidden;
-  background: var(--bg-1);
-  border-top: 1px solid var(--line);
-  font-size: var(--fs-sm);
+  background: var(--tex-glass);
+  border-top: 1px solid var(--glass-line);
+  box-shadow: var(--shadow-glass);
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
 }
 .ticker-label {
   display: flex;
   align-items: center;
   flex-shrink: 0;
-  height: 22px;
-  padding: 0 10px;
-  border-radius: var(--r-pill);
-  background: var(--accent-3);
-  color: var(--accent);
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 3px;
+  background: var(--tex-brass);
+  color: var(--on-hl);
+  font-family: var(--label);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 .ticker-viewport {
   position: relative;
@@ -554,11 +594,11 @@
   white-space: nowrap;
 }
 .ticker-day {
-  color: var(--fg-3);
-  font-size: 12.5px;
-  font-weight: 600;
+  color: var(--vfd-dim);
+  font-family: var(--mono);
+  font-size: 11.5px;
 }
-.ticker-text { color: var(--fg-2); }
+.ticker-text { color: var(--vfd); text-shadow: var(--vfd-glow); }
 .ticker-link {
   background: none;
   border: 0;
@@ -587,13 +627,13 @@
 }
 
 /* ---------- toasts --------------------------------------------------------- */
-/* Bottom-left, over the empty gutter: the right side holds most row actions. Phones: mobile.css. */
+/* Bottom-right, stacked like notifications; the sidebar's live status stays clear on the left. Phones: mobile.css. */
 .toasts {
   position: fixed;
-  left: 16px;
+  right: 16px;
   bottom: calc(var(--ticker-h) + 16px);
   z-index: 45;
-  width: 340px;
+  width: 320px;
   max-width: calc(100vw / var(--ui-zoom, 1) - 32px);
   display: flex;
   flex-direction: column;
@@ -602,11 +642,11 @@
 .toast {
   --tone: var(--fg-3);
   position: relative;
-  padding: 10px 34px 12px 16px;
+  padding: 10px 34px 11px 14px;
   background: var(--bg-2);
   border: 1px solid var(--line-2);
-  border-radius: var(--r-md);
-  box-shadow: var(--shadow-2), inset 4px 0 0 var(--tone);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-2), inset 3px 0 0 var(--tone);
   animation: toast-in var(--t-med) var(--ease);
 }
 .toast:hover { background: var(--bg-3); }
@@ -616,14 +656,21 @@
 .toast-milestone { --tone: var(--warn); }
 .toast-title {
   color: var(--tone);
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 .toast-text {
   margin-top: 3px;
   color: var(--fg);
   font-size: var(--fs-sm);
   line-height: 1.5;
+  /* Two lines at most; the Inbox keeps the full text. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 .toast-close {
   position: absolute;
@@ -642,7 +689,7 @@
 }
 .toast-close:hover { color: var(--fg); background: var(--bg-3); }
 @keyframes toast-in {
-  from { transform: translateX(-16px); }
+  from { transform: translateY(8px); opacity: 0; }
 }
 
 /* ---------- event modal and game over ------------------------------------- */

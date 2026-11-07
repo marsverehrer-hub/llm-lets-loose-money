@@ -11,7 +11,7 @@ import { openShortcuts } from './Shortcuts';
 import { readTheme, setTheme, type Theme } from './theme';
 import { CAMERA_MODE_LABEL, NEXT_CAMERA_MODE, setCameraMode, useCameraMode } from '../cameraPref'; // v13
 import { InterfaceSizeRow } from './InterfaceSize';
-import { runwayLabel, runwayTone, tdate } from './fmt';
+import { RUNWAY_WARMUP_DAYS, runwayLabel, runwayTone, tdate } from './fmt';
 import { daysIntoGame } from '../../sim/systems/scenario';
 import { annualRevenue, runwayDays, valuationBreakdown } from '../../sim/systems/finance';
 import { formatMoney } from '../../sim/util';
@@ -97,6 +97,30 @@ function LearnItems({ tutorialOn, onStart }: { tutorialOn: boolean; onStart: (m:
       ))}
       {tutorialOn && <div class="menu-note">Available after the tutorial.</div>}
     </>
+  );
+}
+
+/** A fuel gauge for the runway: E is broke, F is two years or profitable. The needle rests on E until the runway is known. */
+function RunwayGauge({ days, known }: { days: number; known: boolean }) {
+  const frac = known ? Math.max(0, Math.min(1, isFinite(days) ? days / 730 : 1)) : 0;
+  // Ticks every 1/8 of the arc; the first two (under 6 months) are red, the next four (under 18) amber.
+  const ticks = Array.from({ length: 9 }, (_, i) => {
+    const a = Math.PI * (1 - i / 8);
+    return { i, x1: 22 + Math.cos(a) * 17, y1: 22 - Math.sin(a) * 17, x2: 22 + Math.cos(a) * 20, y2: 22 - Math.sin(a) * 20 };
+  });
+  return (
+    <svg class="gauge" width="44" height="31" viewBox="0 0 44 31" aria-hidden="true">
+      <path class="gauge-arc" d="M2 22 A20 20 0 0 1 42 22" />
+      {ticks.map((t) => (
+        <line key={t.i} class={t.i < 2 ? 'gauge-tick bad' : t.i < 6 ? 'gauge-tick warn' : 'gauge-tick'} x1={t.x1} y1={t.y1} x2={t.x2} y2={t.y2} />
+      ))}
+      <text class="gauge-ef" x="1" y="30">E</text>
+      <text class="gauge-ef" x="38.5" y="30">F</text>
+      <g class={`gauge-needle ${known ? '' : 'is-parked'}`} style={{ transform: `rotate(${-90 + frac * 180}deg)` }}>
+        <line x1="22" y1="22" x2="22" y2="6" />
+      </g>
+      <circle class="gauge-hub" cx="22" cy="22" r="2.5" />
+    </svg>
   );
 }
 
@@ -324,6 +348,7 @@ export function TopBar() {
           class={`topbar-stat ts-runway ${runwayTone(runway, daysIntoGame(s))}`}
           title={broke ? `${s.finance.negativeCashDays} days in the red. Bankruptcy at 30.` : 'How long the cash lasts at today\'s burn'}
         >
+          <RunwayGauge days={broke ? 0 : runway} known={daysIntoGame(s) >= RUNWAY_WARMUP_DAYS} />
           <span class="topbar-label">Runway</span>
           <span class="topbar-value">{broke ? `${s.finance.negativeCashDays}d in the red` : runwayLabel(runway, daysIntoGame(s))}</span>
         </div>

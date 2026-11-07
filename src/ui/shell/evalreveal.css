@@ -29,7 +29,7 @@
 .ev-label {
   color: var(--fg-3);
   font-size: var(--fs-xs);
-  font-variant: all-small-caps;
+  font-family: var(--label); text-transform: uppercase;
 }
 .ev-none {
   color: var(--fg-3);
@@ -277,7 +277,7 @@
 }
 .ev-foot-title {
   color: var(--fg-3);
-  font-variant: all-small-caps;
+  font-family: var(--label); text-transform: uppercase;
 }
 .ev-foot-row {
   display: flex;

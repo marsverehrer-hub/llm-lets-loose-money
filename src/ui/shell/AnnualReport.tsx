@@ -1,4 +1,4 @@
-// v21 Annual Report: one filed year as a one-page paper (a Sheet, a booktabs table and one chart). Opened from the
+// v21 Annual Report: one filed year on one page (a Sheet, a table and one chart). Opened from the
 // Inbox notice or the Finance panel. Read-only: the game keeps running behind it.
 import type { ComponentChildren } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
@@ -64,7 +64,7 @@ function ReportSheet({ year }: { year: number }) {
       open
       title={
         <>
-          <span class="pen">§</span> Annual Report, {r.year}
+          Annual Report, {r.year}
         </>
       }
       subtitle={`Covering ${tdate(r.from)} to ${tdate(r.to)}`}

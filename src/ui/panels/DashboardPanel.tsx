@@ -90,15 +90,16 @@ export function DashboardPanel() {
         subtitle={`${dateTag(s.day)} · ${office?.name ?? 'Unknown office'}${mods.length ? ` · ${mods.join(', ')}` : ''}`}
       />
 
-      <AdvisorCard s={s} />
-
-      {/* The loop on one row: the live run (with its tempo) and the research topic. */}
-      <div class="hq-live">
-        <TrainingCard s={s} />
-        <ResearchLine s={s} />
-      </div>
-
+      {/* v22: the numbers lead; then what to do next beside what is running. */}
       <KpiStrip s={s} />
+
+      <div class="hq-main">
+        <AdvisorCard s={s} />
+        <div class="hq-live">
+          <TrainingCard s={s} />
+          <ResearchLine s={s} />
+        </div>
+      </div>
 
       <div class="grid-3 hq-numbers">
         <MoneyCard s={s} />

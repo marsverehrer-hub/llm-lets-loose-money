@@ -1,8 +1,8 @@
 /* ==========================================================================
    v19 AGI endings (end-). The final page of a paper: a full-window takeover
-   on the desk colour, the sheet as the paper, a double rule under the title,
-   booktabs rules on the endings list, and the red pen for locked endings.
-   Tokens only, so paper and night print both work.
+   on the desk colour, the sheet as a panel, a rule under the title,
+   rules on the endings list, and red for locked endings.
+   Tokens only, so the dark and light themes both work.
    ========================================================================== */
 
 .end-root {
@@ -31,13 +31,13 @@
   min-width: 0;
 }
 
-/* ---------- head: kicker, title with a double rule --------------------------- */
+/* ---------- head: kicker, title with a rule --------------------------- */
 .end-head {
   display: flex;
   flex-direction: column;
   gap: 8px;
   padding-bottom: 12px;
-  border-bottom: 3px double var(--line-2);
+  border-bottom: 1px solid var(--line-2);
 }
 .end-kicker {
   display: flex;
@@ -46,7 +46,7 @@
   gap: 8px 16px;
   margin: 0;
   font-size: var(--fs-sm);
-  font-variant: all-small-caps;
+  font-family: var(--label); text-transform: uppercase;
   color: var(--fg-3);
 }
 .end-label {
@@ -59,10 +59,6 @@
   font-family: var(--figure);
   font-variant-numeric: tabular-nums;
   color: var(--fg-2);
-}
-.end-mark {
-  font-size: 1.4em;
-  line-height: 1;
 }
 .end-title {
   margin: 0;
@@ -83,7 +79,7 @@
   color: var(--fg-2);
 }
 
-/* ---------- endings list: booktabs (heavy top and bottom, thin under the head) */
+/* ---------- endings list: rules (heavy top and bottom, thin under the head) */
 .end-list {
   list-style: none;
   margin: 0;
@@ -106,7 +102,7 @@
   padding-top: 8px;
   padding-bottom: 6px;
   font-size: var(--fs-xs);
-  font-variant: all-small-caps;
+  font-family: var(--label); text-transform: uppercase;
   font-weight: 600;
   color: var(--fg-3);
   border-bottom: 1px solid var(--fg-2);
@@ -144,7 +140,7 @@
   display: inline-block;
   padding: 0 8px;
   font-size: var(--fs-xs);
-  font-variant: all-small-caps;
+  font-family: var(--label); text-transform: uppercase;
   font-weight: 600;
   color: var(--up);
   border: 1px solid currentColor;
@@ -195,7 +191,7 @@
 }
 .end-stat dt {
   font-size: var(--fs-xs);
-  font-variant: all-small-caps;
+  font-family: var(--label); text-transform: uppercase;
   font-weight: 600;
   color: var(--fg-3);
 }

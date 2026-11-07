@@ -1,6 +1,6 @@
 /* ==========================================================================
    Aha moment takeover (mo-). A full-window beat over the whole app, set like
-   a preprint's opening page: serif, small caps for labels, hairline rules,
+   an announcement panel: condensed engraved labels, hairline rules,
    square corners. Colours and type come from tokens only, so dark and light
    both work. Drama comes from size, contrast and whitespace, with a short
    fade on appear.
@@ -50,7 +50,7 @@
   padding-bottom: 12px;
   border-bottom: 1px solid var(--line-2);
   font-size: var(--fs-sm);
-  font-variant: all-small-caps;
+  font-family: var(--label); text-transform: uppercase;
   color: var(--fg-3);
 }
 .mo-kicker .mo-num {
@@ -125,7 +125,7 @@
 .mo-stat-label {
   margin: 0;
   font-size: var(--fs-xs);
-  font-variant: all-small-caps;
+  font-family: var(--label); text-transform: uppercase;
   font-weight: 600;
   letter-spacing: 0.04em;
   color: var(--fg-3);
@@ -175,7 +175,7 @@
 }
 .mo-delta-unit {
   font-size: var(--fs-sm);
-  font-variant: all-small-caps;
+  font-family: var(--label); text-transform: uppercase;
   color: var(--fg-3);
 }
 .mo-delta-model {

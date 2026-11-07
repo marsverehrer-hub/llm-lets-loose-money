@@ -48,7 +48,7 @@ export function HubTab({ s }: { s: GameState }) {
   return (
     <div class="hub">
       <p class="hub-abstract">
-        <span class="smallcaps">Abstract.</span> Rival labs publish some of their models as open weights. Permissive weights can go into products and
+        Rival labs publish some of their models as open weights. Permissive weights can go into products and
         contracts. Noncommercial weights can be fine-tuned and released as open weights, but not sold. Research weights are for study only.
       </p>
       <div class="hub-tools">

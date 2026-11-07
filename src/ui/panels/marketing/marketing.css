@@ -1,4 +1,4 @@
-/* v10 Marketing screen (GAME_DESIGN §21.5), Preprint look: tokens only, flat paper, square corners (var(--r-sm)).
+/* v10 Marketing screen (GAME_DESIGN §21.5): tokens only, radii from var(--r-*).
    Phones switch at 760px (MOBILE.md). The DOM order is the reading order on every width. */
 
 /* Campaign timeline. Columns: name, then the track. */

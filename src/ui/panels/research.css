@@ -27,7 +27,7 @@
 .rs-kpi-label {
   color: var(--fg-3);
   font-size: var(--fs-xs);
-  font-variant: all-small-caps;
+  font-family: var(--label); text-transform: uppercase;
 }
 .rs-kpi-value {
   color: var(--fg);
@@ -426,7 +426,7 @@
   color: var(--fg-3);
   font-size: var(--fs-xs);
   font-weight: 500;
-  font-variant: all-small-caps;
+  font-family: var(--label); text-transform: uppercase;
 }
 .rs-table .num {
   text-align: right;
@@ -586,7 +586,7 @@
 .rs-needs-label {
   color: var(--fg-3);
   font-size: var(--fs-xs);
-  font-variant: all-small-caps;
+  font-family: var(--label); text-transform: uppercase;
 }
 .rs-chips-list {
   display: flex;
@@ -641,7 +641,7 @@
 .rs-sec-title {
   color: var(--fg-3);
   font-size: var(--fs-xs);
-  font-variant: all-small-caps;
+  font-family: var(--label); text-transform: uppercase;
 }
 .rs-list {
   display: flex;
@@ -959,7 +959,7 @@
   font-family: var(--font);
   font-size: 15px;
   font-weight: 700;
-  font-variant: all-small-caps;
+  font-family: var(--label); text-transform: uppercase;
   color: var(--fg);
 }
 .rs-td-act {
@@ -1061,7 +1061,7 @@
   font-family: var(--font);
   font-size: 11px;
   font-weight: 700;
-  font-variant: all-small-caps;
+  font-family: var(--label); text-transform: uppercase;
   color: var(--fg-3);
 }
 .rs-adopting-item {
@@ -1141,7 +1141,7 @@
   font-family: var(--font);
   font-size: 13px;
   font-weight: 700;
-  font-variant: all-small-caps;
+  font-family: var(--label); text-transform: uppercase;
   color: var(--fg);
 }
 .rs-track-count { color: var(--fg-3); }
@@ -1190,7 +1190,7 @@
   font-family: var(--font);
   font-size: 11px;
   font-weight: 700;
-  font-variant: all-small-caps;
+  font-family: var(--label); text-transform: uppercase;
   color: var(--accent);
 }
 .rs-track-why { flex: 1; color: var(--fg-2); font-size: 13px; line-height: 1.45; }

@@ -1,4 +1,4 @@
-/* Benchmarks (BMK) v10: score bars against the frontier and the class arena. Tokens only. Preprint: bars are hatched,
+/* Benchmarks (BMK) v10: score bars against the frontier and the class arena. Tokens only. Bars are flat fills,
    the selected row is highlighted (the marker), never an amber fill. */
 
 .bmk-name { color: var(--fg); font-weight: 600; overflow: hidden; text-overflow: ellipsis; }

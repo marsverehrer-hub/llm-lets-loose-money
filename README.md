@@ -60,7 +60,7 @@ Saves live in the browser, so each device and address has its own game.
 - **Research and the Inbox:** an idle lab banks research points for its next topic, and background news goes to the Inbox instead of popping up as toasts.
 - **Model careers:** patch released models from user feedback, watch them gain mastery as they serve users, enter them in the Arena Cup every two months, route easy queries to a small model, and retire your best into a Hall of Fame that keeps paying.
 - **Clouds and neoclouds:** seven parody cloud providers with quotas, reserved terms, spot capacity and crunches; or dedicate your own halls and sell capacity to rival labs, startups and enterprises.
-- **Look:** the game is typeset as a research preprint (paper, small caps, booktabs tables, red pen for what needs you). Night print is the same paper under a desk lamp.
+- **Look:** "Executive Suite": a 1970s hi-fi console in a leather desk. Stitched leather frame, amber glass displays for cash, runway (a fuel gauge) and valuation, raised keys with one brass main action, LED meters. Dark by default, saddle-tan light theme in the Menu. Every screen is one click away in the sidebar.
 - **A living field (v19):** about 30 rival labs run real companies. They raise money, buy GPUs from the same scarce
   allocation as you, research, train, release closed or open weights, publish datasets, announce yearly plans, go
   bankrupt and buy each other. See them all on The Field.

@@ -247,7 +247,7 @@
   border-color: var(--accent);
   outline: none;
 }
-/* The current priority is the highlighted one (selection = highlighter), not a coloured edge. */
+/* The current priority is the tinted one, not a coloured edge. */
 .cc-opt.is-current {
   background: var(--tex-marker);
 }

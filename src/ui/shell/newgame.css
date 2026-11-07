@@ -19,20 +19,36 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  padding: 14px 16px;
-  background: var(--bg-1);
-  border-bottom: 1px solid var(--line);
+  padding: 16px 20px 18px;
+  background: var(--tex-leather), var(--leather);
+  border-bottom: 1px solid var(--frame-line);
+  box-shadow: var(--shadow-frame);
+  color: var(--frame-fg);
 }
+/* Stitched seam along the leather. */
+.ng-head::after {
+  content: '';
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  bottom: 5px;
+  border-bottom: 1.5px dashed var(--stitch);
+  pointer-events: none;
+}
+.ng-head .muted,
+.ng-head .faint,
+.ng-sub { color: var(--frame-fg-2); }
 .ng-head-text {
   min-width: 0;
 }
 .ng-title {
   margin: 0;
-  font-family: var(--font);
-  font-size: 26px;
-  font-weight: 700;
+  font-family: var(--display);
+  font-size: 30px;
+  font-weight: 600;
   line-height: 1.1;
-  color: var(--fg);
+  color: var(--frame-fg);
+  text-shadow: var(--deboss);
 }
 .ng-sub {
   margin: 4px 0 0;
@@ -43,8 +59,8 @@
   min-width: 40px;
   min-height: 40px;
   background: transparent;
-  border: 1px solid var(--line-2);
-  color: var(--fg);
+  border: 1px solid var(--frame-line);
+  color: var(--frame-fg);
   font: inherit;
   font-size: 20px;
   line-height: 1;
@@ -52,8 +68,8 @@
   border-radius: var(--r-sm);
 }
 .ng-close:hover {
-  border-color: var(--accent);
-  color: var(--accent);
+  background: var(--frame-hover);
+  color: var(--frame-fg);
 }
 
 .ng-wrap {
@@ -76,7 +92,7 @@
   font-family: var(--font);
   font-size: 15px;
   font-weight: 700;
-  font-variant: all-small-caps;
+  font-family: var(--label); text-transform: uppercase;
   color: var(--fg);
 }
 .ng-h2 {
@@ -129,7 +145,7 @@
 .ng-tile {
   transition: border-color var(--t-fast) linear, background var(--t-fast) linear;
 }
-/* Selection is the highlighter. */
+/* Selection is a brass tint. */
 .ng-tile.is-on {
   border-color: var(--fg);
   background: var(--tex-marker);

@@ -21,7 +21,7 @@
 .md-group + .md-group { border-top: 1px solid var(--line-2); }
 .md-group-h {
   margin: 0; padding: 10px 12px 4px; font-size: var(--fs-xs); font-weight: 600; color: var(--fg-3);
-  font-variant: all-small-caps; letter-spacing: 0.02em;
+  font-family: var(--label); text-transform: uppercase; letter-spacing: 0.02em;
 }
 
 .md-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }

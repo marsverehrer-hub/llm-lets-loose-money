@@ -1,4 +1,4 @@
-/* Finance (FIN), Preprint look. The money readouts sit in the panel header; the funding timeline and the
+/* Finance (FIN). The money readouts sit in the panel header; the funding timeline and the
    revenue-to-profit waterfall are the body. Tokens only. The DOM order is the reading order on every width. */
 
 /* Funding rounds as a timeline: a rule with one node per round. */

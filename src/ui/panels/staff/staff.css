@@ -40,7 +40,7 @@
   border: 1px solid var(--line-2);
   border-radius: var(--r-md);
 }
-/* Bars are hatched over their colour, like every chart in the paper. */
+/* Bars are a flat fill in their colour. */
 .sf .sf-skill .progress-bar {
   background: var(--tex-hatch), var(--info);
 }

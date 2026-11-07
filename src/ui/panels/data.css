@@ -68,7 +68,7 @@
 .dt-head-k {
   color: var(--fg-3);
   font-size: var(--fs-xs);
-  font-variant: all-small-caps;
+  font-family: var(--label); text-transform: uppercase;
 }
 .dt-head-v {
   color: var(--fg);

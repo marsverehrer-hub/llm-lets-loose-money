@@ -1,4 +1,4 @@
-// v19 endings UI (Preprint look). Two takeovers: "§ Conclusion" while s.pendingEnding waits for a choice, and
+// v19 endings UI. Two takeovers: "Conclusion" while s.pendingEnding waits for a choice, and
 // "§ Epilogue" once s.ending is set. The sim is blocked while the first one shows.
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { ACHIEVEMENTS } from '../../sim/data/achievements';
@@ -96,7 +96,7 @@ function ChooseBody() {
             <span class="end-by">{by}</span>
           </p>
           <h1 class="end-title" id="end-title">
-            <span class="pen end-mark">§</span> Conclusion
+            Conclusion
           </h1>
         </header>
 
@@ -174,7 +174,7 @@ function EpilogueBody() {
       <article class="end-paper">
         <header class="end-head">
           <p class="end-kicker">
-            <span class="pen end-mark">§</span> Epilogue
+            Epilogue
             <span class="end-date">{tdate(end.day)}</span>
           </p>
           <h1 class="end-title" id="end-epi-title">

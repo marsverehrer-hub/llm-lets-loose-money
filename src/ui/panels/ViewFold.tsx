@@ -1,4 +1,4 @@
-// The fold around a panel's camera scene: a "plate" in the paper. Closed under 1200px wide and open above by default;
+// The fold around a panel's camera scene. Closed under 1200px wide and open above by default;
 // the choice is remembered per panel in localStorage. The scene only mounts while open, so a closed plate costs nothing.
 import type { ComponentChildren } from 'preact';
 import { useState } from 'preact/hooks';
@@ -6,7 +6,7 @@ import { useState } from 'preact/hooks';
 const wide = (): boolean => (globalThis.innerWidth ?? 1440) >= 1200;
 
 /** defaultOpen applies only when nothing is stored for the panel yet; undefined keeps the width rule. */
-export function ViewFold({ panel, class: cls, label = 'Camera plate', defaultOpen, children }: { panel: string; class?: string; label?: string; defaultOpen?: boolean; children: ComponentChildren }) {
+export function ViewFold({ panel, class: cls, label = 'Camera', defaultOpen, children }: { panel: string; class?: string; label?: string; defaultOpen?: boolean; children: ComponentChildren }) {
   const key = `llm-lets-loose-money/view-${panel}`;
   const [open, setOpen] = useState<boolean>(() => {
     try {
