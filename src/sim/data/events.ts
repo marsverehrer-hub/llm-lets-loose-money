@@ -8,7 +8,7 @@ import { arenaLeaderboard } from '../systems/competitors';
 import { DATA_EVENTS } from './dataEvents';
 import { EVENTS_V2 } from './eventsV2';
 import { EVENTS_RIVALS } from './eventsRivals';
-import { ENDINGS, endgameOpen, reachAgi } from '../systems/endings';
+import { ENDINGS, endgameOpen, takeEnding } from '../systems/endings';
 import {
   GARAGE_ERA_END_DAY,
   acquireOffer,
@@ -871,9 +871,9 @@ export const EVENTS: EventDef[] = [
     choices: [
       {
         label: 'Take the call',
-        hint: 'Opens the endgame: the offer, the score and the ending',
+        hint: 'Sells the company: the game ends on the Acquired ending',
         effect: (s) => {
-          reachAgi(s, 'player');
+          takeEnding(s, 'acquired', 'player');
           return 'The call runs long. The terms are short, and the lawyers are already on the line.';
         },
       },

@@ -4,6 +4,8 @@ import { createInitialState } from '../src/sim/state';
 import { dispatch } from '../src/sim/engine';
 import { COMPETITORS } from '../src/sim/data/competitors';
 import { ENDINGS } from '../src/sim/systems/endings';
+import { EVENTS } from '../src/sim/data/events';
+import { makeRng } from '../src/sim/rng';
 import { rivalLabs } from '../src/sim/systems/rivals';
 import { acquireBlock, labPrice } from '../src/sim/systems/rivals/lifecycle';
 import { OFFICE_TIERS } from '../src/sim/data/roles';
@@ -90,5 +92,24 @@ describe('The Acquired ending', () => {
     s.finance.valuation = 5e9;
     s.company.isPublic = true;
     expect(DEF('acquired').available(s).ok).toBe(false);
+  });
+});
+
+describe('the buyout offer', () => {
+  it('settles on Acquired directly and never opens the AGI Conclusion', () => {
+    const s = createInitialState(43, 'Sold');
+    s.finance.valuation = 5e9;
+    const ev = EVENTS.find((e) => e.id === 'big_tech_buyout')!;
+    ev.choices[0].effect(s, makeRng(s));
+    expect(s.ending?.id).toBe('acquired');
+    expect(s.pendingEnding ?? null).toBeNull();
+  });
+
+  it('cannot be picked at the AGI Conclusion, which offers only the AGI endings', () => {
+    const s = createInitialState(44, 'Not Sold');
+    s.finance.valuation = 5e9;
+    s.pendingEnding = { day: s.day, by: 'player' };
+    dispatch(s, { type: 'chooseEnding', id: 'acquired' });
+    expect(s.ending ?? null).toBeNull();
   });
 });

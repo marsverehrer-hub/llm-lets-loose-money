@@ -14,7 +14,9 @@ import { openSaves } from './SavesSheet';
 import { plain, tdate } from './fmt';
 import './ending.css';
 
+// The Acquired ending is settled by the buyout offer, never chosen at the Conclusion.
 const defs = (): EndingDef[] => ENDINGS;
+const choosable = (): EndingDef[] => ENDINGS.filter((d) => d.id !== 'acquired');
 
 /** The first sentence of an ending's text, for the list. */
 export const teaser = (text: string): string => plain(text).split(/(?<=[.!?])\s/)[0] ?? '';
@@ -59,10 +61,6 @@ function labelOf(s: GameState, by: 'player' | string): string {
 }
 
 function abstractOf(s: GameState, day: number, by: 'player' | string): string {
-  // A buyout offer opens the endgame without AGI (data/events.ts big_tech_buyout), so the AGI text would be false.
-  if (by === 'player' && !s.research.completed.includes('agi')) {
-    return `On ${tdate(day)} a much larger company made an offer for the whole business. The board read the term sheet twice, and the second reading was shorter. The endings below are the ones the record currently allows, each with the reasons it is or is not on the table.`;
-  }
   if (by === 'player') {
     return `On ${tdate(day)} our internal evaluation reached its final, longest and least-read number, and we are obliged to report that the number is AGI. The team is delighted, the board learned of it from a single line in an email, and the regulators have asked for a meeting on a date that has not yet been set. The endings below are the ones the record currently allows, each with the reasons it is or is not on the table.`;
   }
@@ -77,7 +75,7 @@ function ChooseBody() {
   useEffect(() => focusPrimary(root.current), []);
   if (!pe) return null;
 
-  const rows = defs().map((def) => ({ def, avail: def.available(s), score: endingScore(s, def.id) }));
+  const rows = choosable().map((def) => ({ def, avail: def.available(s), score: endingScore(s, def.id) }));
   // The inked button goes to the highest-scoring available ending only.
   let best: (typeof rows)[number] | undefined;
   for (const r of rows) if (r.avail.ok && (!best || r.score > best.score)) best = r;

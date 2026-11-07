@@ -200,23 +200,29 @@ export function endingScore(s: GameState, id: EndingId): number {
   return Math.round((base + worth + goals) * difficulty(s).scoreMult * pace);
 }
 
+/** Settles the game on an ending. The AGI Conclusion goes through chooseEnding; the buyout offer calls this directly. */
+export function takeEnding(s: GameState, id: EndingId, by: 'player' | Id): void {
+  const def = ENDINGS.find((e) => e.id === id);
+  if (!def) return;
+  const check = def.available(s);
+  if (!check.ok) {
+    notify(s, `${def.name} is not on the table. ${check.why}`, 'bad');
+    return;
+  }
+  const score = endingScore(s, def.id);
+  s.ending = { id: def.id, day: s.day, score, by };
+  s.pendingEnding = null;
+  s.flags[`ending.${def.id}`] = 1;
+  if (def.id === 'race' && raceTwist(s) < 0) pushNews(s, 'The race ends in an incident. The press release calls it "a learning moment".', 'bad');
+  pushNews(s, `${s.company.name} takes the ending: ${def.name}.`, 'milestone');
+  notify(s, `Ending: ${def.name}. Score ${score}.`, 'milestone');
+}
+
 export const handlers: ActionHandlers = {
   chooseEnding: (s, a) => {
-    const pending = s.pendingEnding;
-    const def = ENDINGS.find((e) => e.id === a.id);
-    if (!pending || !def) return;
-    const check = def.available(s);
-    if (!check.ok) {
-      notify(s, `${def.name} is not on the table. ${check.why}`, 'bad');
-      return;
-    }
-    const score = endingScore(s, def.id);
-    s.ending = { id: def.id, day: s.day, score, by: pending.by };
-    s.pendingEnding = null;
-    s.flags[`ending.${def.id}`] = 1;
-    if (def.id === 'race' && raceTwist(s) < 0) pushNews(s, 'The race ends in an incident. The press release calls it "a learning moment".', 'bad');
-    pushNews(s, `${s.company.name} takes the ending: ${def.name}.`, 'milestone');
-    notify(s, `Ending: ${def.name}. Score ${score}.`, 'milestone');
+    // The buyout is settled by its own offer, never from the AGI Conclusion.
+    if (!s.pendingEnding || a.id === 'acquired') return;
+    takeEnding(s, a.id, s.pendingEnding.by);
   },
   continueAfterEnding: (s) => {
     if (s.pendingEnding) {

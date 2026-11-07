@@ -23,7 +23,8 @@ const MILLION = 1e6;
 const ARENA_SINCE = 'moments.arena1Since';
 const ARENA_YEAR_DAYS = 365;
 
-const agiReached = (s: GameState) => isResearched(s, 'agi') || s.ending?.by === 'player' || s.pendingEnding?.by === 'player';
+// A buyout ends the game with by 'player' but is not AGI.
+const agiReached = (s: GameState) => isResearched(s, 'agi') || (s.ending?.by === 'player' && s.ending.id !== 'acquired') || s.pendingEnding?.by === 'player';
 const playerCrowns = (s: GameState, pred: (cls: string) => boolean) =>
   (s.classes?.crowns ?? []).filter((c) => c.holder === 'player' && pred(c.weightClass)).length;
 const openReleases = (s: GameState) => s.models.filter((m) => m.releasedDay !== null && m.releaseMode === 'open').length;
