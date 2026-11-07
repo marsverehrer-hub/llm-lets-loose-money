@@ -65,8 +65,10 @@ describe('ending gates', () => {
 
   it('safe_launch needs a safe model, reputation 60, and four safety nodes', () => {
     const s = fresh();
-    const safetyNodes = RESEARCH.filter((n) => n.branch === 'safety').slice(0, 4).map((n) => n.id);
-    s.models = [model('m1', 80, 85)];
+    // A strong safety case (systems/safetyCase.ts): a safe model, the safety branch researched, red-teamed and evaluated.
+    const safetyNodes = RESEARCH.filter((n) => n.branch === 'safety').map((n) => n.id);
+    const safeModel = () => Object.assign(model('m1', 80, 85), { redTeam: true, arena: { doneDay: 0, elo: 1500 } });
+    s.models = [safeModel()];
     s.company.reputation = 70;
     s.research.completed = safetyNodes;
     s.pendingEnding = { day: s.day, by: 'player' };
@@ -77,7 +79,7 @@ describe('ending gates', () => {
     s.research.completed = safetyNodes.slice(0, 3);
     expect(DEF('safe_launch').available(s).ok).toBe(false);
     s.research.completed = safetyNodes;
-    s.models = [model('m1', 80, 60)];
+    s.models = [model('m1', 80, 60)]; // not red-teamed, never evaluated: the case is thin
     expect(DEF('safe_launch').available(s).ok).toBe(false);
   });
 

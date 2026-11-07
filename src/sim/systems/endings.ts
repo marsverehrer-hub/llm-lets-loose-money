@@ -46,8 +46,7 @@ export const ENDINGS: EndingDef[] = [
       'The model ships with a forty-page safety case, a red team report, and a sincere blog post about humility. Regulators read the first page and send a thank-you card. The press calls it responsible, and your comms team frames the word and hangs it in the lobby. Nobody mentions that the safety case was written by the people who built the model, in the same building, on the same Thursday. Revenue is steady, and the board stops asking hard questions because the answers were all in the appendix. Somewhere a benchmark quietly learns to ignore your name.',
     available: (s) => {
       const best = releasedModels(s).sort((a, b) => b.overall - a.overall)[0];
-      // shortcut: safetyCase is a constant until C5 lands, so this reads the model's safety score, upgrade to safetyCase >= 70 when it does
-      const caseOk = !!best && (safetyCase(s, best) >= 70 || best.scores.safety >= 80);
+      const caseOk = !!best && safetyCase(s, best) >= 70;
       const ok = !rivalFirst(s) && caseOk && s.company.reputation >= 60 && safetyNodesDone(s) >= 4;
       return { ok, why: 'The safety case is thin and everybody knows it.' };
     },

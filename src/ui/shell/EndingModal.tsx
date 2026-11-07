@@ -14,27 +14,7 @@ import { openSaves } from './SavesSheet';
 import { plain, tdate } from './fmt';
 import './ending.css';
 
-/** Base builds without E1's ENDINGS: the six ids and names, no copy, and only the rival-only rule for second place. */
-const FALLBACK: EndingDef[] = (
-  [
-    ['safe_launch', 'Safe launch'],
-    ['race', 'The race'],
-    ['nationalised', 'Nationalised'],
-    ['merger', 'Merger'],
-    ['open_singularity', 'Open singularity'],
-    ['second_place', 'Second place'],
-  ] as [EndingId, string][]
-).map(([id, name]) => ({
-  id,
-  name,
-  text: '',
-  available: (s) =>
-    id === 'second_place' && s.pendingEnding?.by === 'player'
-      ? { ok: false, why: 'Nobody got there first, so nobody is in second place.' }
-      : { ok: true, why: '' },
-}));
-
-const defs = (): EndingDef[] => (ENDINGS.length ? ENDINGS : FALLBACK);
+const defs = (): EndingDef[] => ENDINGS;
 
 /** The first sentence of an ending's text, for the list. */
 export const teaser = (text: string): string => plain(text).split(/(?<=[.!?])\s/)[0] ?? '';
