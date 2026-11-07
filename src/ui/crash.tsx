@@ -51,7 +51,7 @@ export function reportCrash(error: unknown, source: string): void {
 /** Messages that browsers raise as errors but that break nothing. They are logged, not shown. */
 const BENIGN = /ResizeObserver loop/;
 
-/** Errors that happen outside rendering: event handlers, timers, the game loop, promises nobody awaits. */
+/** Errors that happen outside rendering: event handlers, timers, the game loop. */
 export function installCrashHandlers(): void {
   window.addEventListener('error', (e) => {
     if (BENIGN.test(e.message)) {
@@ -60,7 +60,8 @@ export function installCrashHandlers(): void {
     }
     reportCrash(e.error ?? e.message, 'error');
   });
-  window.addEventListener('unhandledrejection', (e) => reportCrash(e.reason, 'unhandledrejection'));
+  // Logged, not shown: rejections here are mostly network (multiplayer) failures, and the game is still playable.
+  window.addEventListener('unhandledrejection', (e) => console.error('Unhandled rejection:', e.reason));
 }
 
 function useCrashReport(): CrashReport | null {
