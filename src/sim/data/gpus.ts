@@ -32,14 +32,21 @@ export const GPUS: GpuSpec[] = [
   { id: 'v1000', memGB: 32, name: 'Volta V-1000', unlockYear: 2018, pflops: 0.03, buyPrice: 16_500, rentPerDay: 55, powerKw: 0.3, flavor: '40% more tensor cores, 0% more fan noise.', formats: [] },
   { id: 't4', memGB: 16, name: 'Turing T-4ish', unlockYear: 2019, pflops: 0.02, buyPrice: 9_000, rentPerDay: 30, powerKw: 0.07, flavor: 'Sips seventy watts and apologises for it. Built for serving, not for heroics.', formats: [] },
   { id: 'a100', memGB: 80, name: 'Ampere A-1OO', unlockYear: 2020, pflops: 0.09, buyPrice: 27_000, rentPerDay: 90, powerKw: 0.4, flavor: 'The one everyone quietly rented in 2020.', formats: ['bf16'] },
+  { id: 'rtx30', memGB: 24, name: 'RTX 30-ish 24GB', unlockYear: 2020, pflops: 0.012, buyPrice: 3_900, rentPerDay: 13, powerKw: 0.45, flavor: 'Runs every game and one small model, very slowly, with fans you can hear from the next building.', formats: [], class: 'consumer' },
   { id: 'mi250', memGB: 128, name: 'AMDeez MI-250X', unlockYear: 2021, pflops: 0.07, buyPrice: 18_000, rentPerDay: 60, powerKw: 0.5, flavor: 'Twice the memory, half the software. The drivers are a choose-your-own-adventure.', formats: ['bf16'] },
+  { id: 'a6000', memGB: 48, name: 'A6000-ish 48GB', unlockYear: 2021, pflops: 0.035, buyPrice: 10_500, rentPerDay: 35, powerKw: 0.3, flavor: 'Quiet and dependable, and sold to everyone who was told the datacenter card was sold out.', formats: ['bf16'], class: 'workstation' },
   { id: 'h100', memGB: 80, name: 'Hopper H-1OO', unlockYear: 2022, pflops: 0.3, buyPrice: 60_000, rentPerDay: 200, powerKw: 0.7, flavor: 'Sold out until 2027. Also sold out in 2026.', formats: ['bf16', 'fp8'] },
+  { id: 'rtx40', memGB: 24, name: 'RTX 40-ish 24GB', unlockYear: 2022, pflops: 0.02, buyPrice: 4_500, rentPerDay: 15, powerKw: 0.45, flavor: 'Frame generation is now a training technique. Nobody has checked.', formats: ['bf16'], class: 'consumer' },
   { id: 'ascend', memGB: 64, name: 'Ascend-ish 910B', unlockYear: 2023, pflops: 0.2, buyPrice: 33_000, rentPerDay: 110, powerKw: 0.4, flavor: 'Made at home. Available exactly where the other one is not.', formats: ['bf16'] },
   { id: 'mi300', memGB: 192, name: 'AMDeez MI-300X', unlockYear: 2023, pflops: 0.28, buyPrice: 51_000, rentPerDay: 170, powerKw: 0.75, flavor: 'More memory than anything else on sale, for less. You will write some kernels yourself.', formats: ['bf16', 'fp8'] },
   { id: 'h200', memGB: 141, name: 'Hopper H-2OO', unlockYear: 2023, pflops: 0.33, buyPrice: 72_000, rentPerDay: 240, powerKw: 0.7, flavor: 'An H-1OO that went to the memory gym.', formats: ['bf16', 'fp8'] },
+  { id: 'mi210i', memGB: 64, name: 'AMDeez MI-210 Inference', unlockYear: 2023, pflops: 0.12, buyPrice: 21_000, rentPerDay: 70, powerKw: 0.4, flavor: 'Cheap per FLOP. The FLOPs arrive with a driver that needs its own driver.', formats: ['bf16'], class: 'datacenter' },
   { id: 'b200', memGB: 192, name: 'Blackwell B-2OO', unlockYear: 2024, pflops: 0.7, buyPrice: 105_000, rentPerDay: 350, powerKw: 1.0, flavor: 'Heats the office. Doubles as a space heater.', formats: ['bf16', 'fp8', 'fp4'] },
   { id: 'gaudy3', memGB: 128, name: 'Gaudy 3', unlockYear: 2024, pflops: 0.4, buyPrice: 60_000, rentPerDay: 200, powerKw: 0.9, flavor: 'Great price per FLOP, if you can find the FLOPs.', formats: ['bf16', 'fp8'] },
   { id: 'b300', memGB: 288, name: 'Blackwell Ultra B-3OO', unlockYear: 2025, pflops: 1.0, buyPrice: 135_000, rentPerDay: 450, powerKw: 1.2, flavor: 'A B-2OO with more of everything, including the electricity bill.', formats: ['bf16', 'fp8', 'fp4'] },
+  { id: 'rtx50', memGB: 32, name: 'RTX 50-ish 32GB', unlockYear: 2025, pflops: 0.035, buyPrice: 6_000, rentPerDay: 20, powerKw: 0.575, flavor: 'Thirty-two gigabytes: enough for the model, not for the spreadsheet about the model.', formats: ['bf16', 'fp8'], class: 'consumer' },
+  { id: 'gaudy_lite', memGB: 96, name: 'Gaudy Lite 2', unlockYear: 2025, pflops: 0.22, buyPrice: 33_000, rentPerDay: 110, powerKw: 0.6, flavor: 'The budget Gaudy. Budget in the sense that the invoice is shorter.', formats: ['bf16'], class: 'datacenter' },
+  { id: 'rtx6000', memGB: 96, name: 'RTX 6000-ish 96GB', unlockYear: 2025, pflops: 0.09, buyPrice: 18_000, rentPerDay: 60, powerKw: 0.6, flavor: 'For people who own a workstation, a deadline, and a second deadline.', formats: ['bf16', 'fp8'], class: 'workstation' },
   { id: 'mi400', memGB: 432, name: 'AMDeez MI-400', unlockYear: 2026, pflops: 1.4, buyPrice: 144_000, rentPerDay: 480, powerKw: 1.4, flavor: 'Finally, a software stack. It is mostly a compatibility layer for the other one.', formats: ['bf16', 'fp8', 'fp4'] },
   { id: 'r300', memGB: 288, name: 'Rubin R-3OO', unlockYear: 2026, pflops: 1.6, buyPrice: 180_000, rentPerDay: 600, powerKw: 1.4, flavor: 'Comes with a 4-page liquid cooling manual.', formats: ['bf16', 'fp8', 'fp4'] },
   { id: 'r300u', memGB: 576, name: 'Rubin Ultra R-3OO-U', unlockYear: 2027, pflops: 2.6, buyPrice: 255_000, rentPerDay: 850, powerKw: 1.8, flavor: 'Four dies, one rack, and a cooling loop with its own maintenance team.', formats: ['bf16', 'fp8', 'fp4'] },
@@ -49,6 +56,11 @@ export const GPUS: GpuSpec[] = [
 ];
 // v19: your own silicon joins the list (class 'custom', unlockYear far away; compute.ts gates it on the programme).
 GPUS.push(...CUSTOM_CHIPS);
+
+/** v19 D2: consumer and workstation cards sell over the counter, outside the vendor's datacenter allocation. */
+export function allocationExempt(g: GpuSpec): boolean {
+  return g.class === 'consumer' || g.class === 'workstation';
+}
 
 // Datacenter tiers. Power is billed per GPU kW; upkeep is a fixed daily cost once the building is online.
 export const DATACENTER_TIERS: DatacenterTier[] = [

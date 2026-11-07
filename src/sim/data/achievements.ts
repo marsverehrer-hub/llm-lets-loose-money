@@ -4,6 +4,7 @@ import { calendarYear } from '../util';
 import { arenaLeaderboard } from '../systems/competitors';
 import { DATA_ACHIEVEMENTS } from './dataAchievements';
 import { activeBenchmarks, playerBest, sotaCount } from '../systems/capabilities';
+import { garageProdigy, STUDIO_TUNING } from '../systems/studio';
 // OWNER: Agent C.
 
 const headcount = (s: GameState) => ROLE_IDS.reduce((sum, id) => sum + s.staff.roles[id].count, 0);
@@ -396,6 +397,32 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     icon: '🔢',
     description: 'Finish a model trained in FP4. The weights are fine. The weights are fine.',
     check: (s) => s.models.some((m) => m.config?.precision === 'fp4'),
+  },
+
+  // ---- tiny studios (v19 D2) -----------------------------------------------------------
+  {
+    id: 'garage_prodigy',
+    name: 'Garage Prodigy',
+    icon: '🛠️',
+    hidden: false,
+    description: 'Release a model that scores within reach of the best on every benchmark it has, on sixteen GPUs or fewer. The garage has a fan now.',
+    check: (s) => garageProdigy(s),
+  },
+  {
+    id: 'indie_darling',
+    name: 'Indie Darling',
+    icon: '🎸',
+    description: 'Get a product to ten thousand users while never owning more than thirty-two GPUs. The press calls it scrappy. Your landlord calls it rent.',
+    check: (s) =>
+      (s.flags.peakGpusEver ?? 0) <= STUDIO_TUNING.INDIE_GPUS &&
+      s.products.some((p) => p.active && p.users >= STUDIO_TUNING.INDIE_USERS),
+  },
+  {
+    id: 'consumer_grade',
+    name: 'Consumer Grade',
+    icon: '🎮',
+    description: 'Train a model on consumer cards only. The gaming cards were not designed for this, and they have said so in the fan noise.',
+    check: (s) => s.flags.consumerGrade === 1,
   },
 ];
 
