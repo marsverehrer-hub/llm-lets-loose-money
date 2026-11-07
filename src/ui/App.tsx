@@ -16,6 +16,7 @@ import { Shortcuts, SHORTCUTS_EVENT } from './shell/Shortcuts';
 import { DashboardPanel } from './panels/DashboardPanel';
 import { useLobbyOpen } from './mp/lobbyState';
 import { tutorialTarget } from './tutorial/steps';
+import { useMissionRun } from './missions/missions';
 import { lazyNamed } from './lazy';
 import { FxDirector } from './fx/Director';
 import { initSound } from './fx/sound';
@@ -59,6 +60,7 @@ const VsPanel = lazyNamed(() => import('./mp/VsPanel'), 'VsPanel');
 const Lobby = lazyNamed(() => import('./mp/Lobby'), 'Lobby');
 const MpOverlays = lazyNamed(() => import('./mp/MpOverlays'), 'MpOverlays');
 const Tutorial = lazyNamed(() => import('./tutorial/Tutorial'), 'Tutorial');
+const MissionCoach = lazyNamed(() => import('./missions/MissionCoach'), 'MissionCoach');
 const GameOver = lazyNamed(() => import('./shell/GameOver'), 'GameOver');
 const AnnualReport = lazyNamed(() => import('./shell/AnnualReport'), 'AnnualReport'); // v21 the year's filed report
 const EndingModal = lazyNamed(() => import('./shell/EndingModal'), 'EndingModal');
@@ -108,6 +110,7 @@ export function App() {
   const inMatch = useGameSelect((s) => !!s.mp);
   const badges = useGameSelect(computeBadges, sameRecord);
   const tutStep = useGameSelect((s) => s.tutorialStep);
+  const mission = useMissionRun();
   const isPhone = useIsMobile();
   const lobbyOpen = useLobbyOpen();
   const mainRef = useRef<HTMLElement>(null);
@@ -227,6 +230,7 @@ export function App() {
       <Toasts />
       <NoticeLog />
       <Suspense fallback={null}><Tutorial /></Suspense>
+      {mission && <Suspense fallback={null}><MissionCoach /></Suspense>}
       <FxDirector />
       <Shortcuts open={helpOpen} onClose={() => setHelpOpen(false)} />
     </div>

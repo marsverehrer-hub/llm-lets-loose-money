@@ -20,6 +20,8 @@ import { openLobby } from '../mp/lobbyState';
 import { AUTOPAUSE_TRIGGERS, setAutoPause, useAutoPause } from '../autopause';
 import { toggleNoticeLog, unreadCount, useNoticeLogOpen } from './NoticeLog';
 import { openNewGame, openSaves } from './sheetEvents'; // v9 scenario
+import { MISSIONS, readDone, startMission, type Mission } from '../missions/missions';
+import { TUTORIAL_STEPS } from '../tutorial/steps';
 
 const SPEEDS: { speed: Speed; label: string; key: string }[] = [
   { speed: 1, label: '1×', key: '1' },
@@ -79,6 +81,24 @@ function SoundGlyph({ muted }: { muted: boolean }) {
     </svg>
   );
 }
+/** The MENU's Learn list: each mission replays one screen, marked once done. Missions wait for the first-run tutorial to end. */
+function LearnItems({ tutorialOn, onStart }: { tutorialOn: boolean; onStart: (m: Mission) => void }) {
+  const done = readDone();
+  return (
+    <>
+      <div class="menu-sep" />
+      <div class="menu-head">Learn</div>
+      {MISSIONS.map((m) => (
+        <button key={m.id} type="button" class="menu-item" role="menuitem" disabled={tutorialOn} onClick={() => onStart(m)}>
+          <span>{m.title}</span>
+          {done.has(m.id) && <span title="Done">✓</span>}
+        </button>
+      ))}
+      {tutorialOn && <div class="menu-note">Available after the tutorial.</div>}
+    </>
+  );
+}
+
 function MenuGlyph() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
@@ -228,6 +248,7 @@ export function TopBar() {
     openNewGame();
   };
 
+  const tutorialOn = s.tutorialStep >= 0 && s.tutorialStep <= TUTORIAL_STEPS;
   const net = s.finance.dailyRevenue - s.finance.dailyExpenses;
   const paused = s.speed === 0;
   const shownSpeed = s.speed > 0 ? s.speed : lastPlayed;
@@ -545,6 +566,13 @@ export function TopBar() {
               >
                 <span>Multiplayer…</span>
               </button>
+              <LearnItems
+                tutorialOn={tutorialOn}
+                onStart={(m) => {
+                  setMenuOpen(false);
+                  startMission(m, s);
+                }}
+              />
               <div class="menu-sep" />
               <div class="menu-head">Pause when…</div>
               {AUTOPAUSE_TRIGGERS.map((t) => (

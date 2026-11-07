@@ -428,14 +428,16 @@ export function FinancePanel() {
             <Kv k="Expires" v={dateTag(offer.expiresDay)} />
           </div>
           <div class="row-wrap">
-            <ConfirmButton
-              class="fin-accept"
-              tone="primary"
-              label="Accept"
-              confirmLabel={`Take ${money(offer.amount)}, stake ${formatPct(founder, 1)} → ${formatPct(founderAfter, 1)}`}
-              title="Take the cash and the dilution"
-              onConfirm={accept}
-            />
+            <span data-tut="accept-offer">
+              <ConfirmButton
+                class="fin-accept"
+                tone="primary"
+                label="Accept"
+                confirmLabel={`Take ${money(offer.amount)}, stake ${formatPct(founder, 1)} → ${formatPct(founderAfter, 1)}`}
+                title="Take the cash and the dilution"
+                onConfirm={accept}
+              />
+            </span>
             <ConfirmButton label="Decline" confirmLabel="Turn it down?" title="Keep your equity and see who calls next" onConfirm={decline} />
           </div>
         </div>
@@ -461,9 +463,11 @@ export function FinancePanel() {
           </div>
           <div class={`small ${pitch.ok ? '' : 'muted'}`}>{pitch.reason}</div>
           <div class="row-wrap">
-            <Button variant={offer ? 'default' : 'primary'} disabled={!pitch.ok} title={pitch.reason} onClick={() => dispatch({ type: 'pitchInvestors' })}>
-              Pitch investors
-            </Button>
+            <span data-tut="pitch-investors">
+              <Button variant={offer ? 'default' : 'primary'} disabled={!pitch.ok} title={pitch.reason} onClick={() => dispatch({ type: 'pitchInvestors' })}>
+                Pitch investors
+              </Button>
+            </span>
           </div>
         </div>
       </Card>

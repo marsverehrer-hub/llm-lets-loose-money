@@ -173,9 +173,11 @@ function OfferCard({ offer, primary }: { offer: ContractOffer; primary: boolean 
             )}
           </div>
           <div class="ct-actions">
-            <Button variant={primary ? 'primary' : 'default'} size="sm" disabled={!pickOk} onClick={() => dispatch({ type: 'bidContract', offerId: offer.id, modelId: pickId })}>
-              Bid
-            </Button>
+            <span data-tut={primary ? 'bid' : undefined}>
+              <Button variant={primary ? 'primary' : 'default'} size="sm" disabled={!pickOk} onClick={() => dispatch({ type: 'bidContract', offerId: offer.id, modelId: pickId })}>
+                Bid
+              </Button>
+            </span>
             <Button size="sm" onClick={() => dispatch({ type: 'declineContract', offerId: offer.id })}>
               Decline
             </Button>

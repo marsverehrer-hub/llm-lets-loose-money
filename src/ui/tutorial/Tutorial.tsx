@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
+import type { ComponentChildren } from 'preact';
 import { navigate } from '../nav';
 import { Button, Modal, useIsMobile } from '../components';
 import { dispatch, useGame } from '../store';
 import { unlockPanel } from '../unlocks';
-import { STEPS, TUTORIAL_STEPS } from './steps';
+import { STEPS, TUTORIAL_STEPS, type StepDef } from './steps';
 
 /** Veterans with a save past this day skip the tutorial. */
 const VETERAN_DAY = 30;
@@ -234,8 +235,9 @@ function sameLayout(a: Layout | null, b: Layout | null): boolean {
   return a.pos === b.pos || (!!a.pos && !!b.pos && a.pos.top === b.pos.top && a.pos.left === b.pos.left);
 }
 
-function Coach({ step, onSkip }: { step: number; onSkip: () => void }) {
-  const def = STEPS[step];
+/** The sticky note: strip, text and whatever buttons the caller passes. Missions (missions/) reuse it. */
+export type CardDef = Pick<StepDef, 'title' | 'body' | 'phoneBody' | 'target'>;
+export function CoachCard({ def, label, actions }: { def: CardDef | undefined; label: string; actions: ComponentChildren }) {
   const isPhone = useIsMobile();
   const [minimised, setMinimised] = useState(readMinimised);
   const cardRef = useRef<HTMLElement>(null);
@@ -257,10 +259,9 @@ function Coach({ step, onSkip }: { step: number; onSkip: () => void }) {
       ro?.disconnect();
       root.style.removeProperty('--tut-h');
     };
-  }, [isPhone, step, folded]);
+  }, [isPhone, label, folded]);
 
   if (!def) return null;
-  const finale = step === TUTORIAL_STEPS;
   const body = isPhone && def.phoneBody ? def.phoneBody : def.body;
 
   const toggle = () => {
@@ -283,17 +284,15 @@ function Coach({ step, onSkip }: { step: number; onSkip: () => void }) {
       class={`tut-card ${folded ? 'is-min' : ''} ${layout?.pos ? 'is-placed' : ''}`}
       style={layout?.pos ? { top: layout.pos.top, left: layout.pos.left, bottom: 'auto' } : undefined}
       role="region"
-      aria-label={`Tutorial, step ${step} of ${TUTORIAL_STEPS}`}
+      aria-label={label}
     >
       <div class="tut-strip">
         {folded ? (
           <span class="tut-strip-text">
-            Tutorial {step} of {TUTORIAL_STEPS} · {def.title}
+            {label} · {def.title}
           </span>
         ) : (
-          <span>
-            Tutorial {step} of {TUTORIAL_STEPS}
-          </span>
+          <span>{label}</span>
         )}
         {isPhone && (
           <button type="button" class="tut-toggle" aria-expanded={!minimised} onClick={toggle}>
@@ -306,29 +305,44 @@ function Coach({ step, onSkip }: { step: number; onSkip: () => void }) {
           <div class="tut-title">{def.title}</div>
           <p class="tut-body">{body}</p>
           <div class="tut-actions">
-            {finale ? (
-              <>
-                <Button variant="primary" size="sm" onClick={() => dispatch({ type: 'setTutorialStep', step: -1 })}>
-                  Let's go
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => navigate(def.go)}>
-                  Finance ›
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button variant="primary" size="sm" onClick={() => navigate(def.go, def.intent)}>
-                  Go ›
-                </Button>
-                <Button variant="ghost" size="sm" class="tut-skip" onClick={onSkip}>
-                  Skip
-                </Button>
-              </>
-            )}
+            {actions}
           </div>
         </div>
       )}
     </aside>
     </>
+  );
+}
+
+function Coach({ step, onSkip }: { step: number; onSkip: () => void }) {
+  const def = STEPS[step];
+  if (!def) return null;
+  const finale = step === TUTORIAL_STEPS;
+  return (
+    <CoachCard
+      def={def}
+      label={`Tutorial ${step} of ${TUTORIAL_STEPS}`}
+      actions={
+        finale ? (
+          <>
+            <Button variant="primary" size="sm" onClick={() => dispatch({ type: 'setTutorialStep', step: -1 })}>
+              Let's go
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => navigate(def.go)}>
+              Finance ›
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button variant="primary" size="sm" onClick={() => navigate(def.go, def.intent)}>
+              Go ›
+            </Button>
+            <Button variant="ghost" size="sm" class="tut-skip" onClick={onSkip}>
+              Skip
+            </Button>
+          </>
+        )
+      }
+    />
   );
 }
