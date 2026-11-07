@@ -5,6 +5,7 @@ import { capAtCash, scaledCost, spreadCost } from './eventKit';
 import { trainingRatePerDay } from '../systems/capabilities';
 import { clusterEfficiency } from '../systems/compute';
 import { runConfig, runPhysics } from '../systems/trainingMath';
+import { RUN_CALLS } from './runCalls';
 // OWNER: training agent. Things that go wrong (or right) mid-run (GAME_DESIGN 13.2). Each has 2-3 choices with
 // real trade-offs: stalls, quality, capability changes, money, morale. Choice 0 is always the conservative one.
 // Hints are tangible only (money, days, progress, models). Results are narrative: no stat numbers, no percent signs.
@@ -707,7 +708,8 @@ export const RUN_INCIDENTS: RunIncidentDef[] = [
   },
 ];
 
-const INCIDENT_BY_ID = new Map(RUN_INCIDENTS.map((d) => [d.id, d] as const));
+// v18: planned decision calls (runCalls.ts) share the pendingIncident machinery, so they resolve by the same lookup.
+const INCIDENT_BY_ID = new Map<Id, RunIncidentDef>([...RUN_INCIDENTS, ...RUN_CALLS].map((d) => [d.id, d] as const));
 
 export function runIncidentById(id: Id): RunIncidentDef | undefined {
   return INCIDENT_BY_ID.get(id);

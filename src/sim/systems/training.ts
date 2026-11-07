@@ -6,6 +6,8 @@ import { RESEARCH } from '../data/research';
 import { DATASETS } from '../data/datasets';
 import { RUN_TUNING, configSignature, defaultConfig, describeConfig, legacyConfig, validateConfig, optionById } from '../data/trainingOptions';
 import { RUN_INCIDENTS, runIncidentById } from '../data/runIncidents';
+import { RUN_CALLS } from '../data/runCalls';
+import { rollTraits } from './traits';
 import { quirkById, rollQuirks } from '../data/quirks';
 import { getBonuses } from '../bonuses';
 import { calendarYear, clamp, formatMoney, newId, notify, pushNews, trySpend } from '../util';
@@ -37,11 +39,14 @@ import {
 import {
   activeParamsFor,
   ablationFlag,
+  configInferenceMult,
+  extendRun,
   mixRows,
   resolveRun,
   runConfig,
   runPhysics,
   runSynergies,
+  truncateRun,
   uniqueTokensOf,
   type RunPhysics,
 } from './trainingMath';
@@ -285,10 +290,11 @@ function finishPretrain(s: GameState, run: TrainingRun, rng: Rng): void {
     activeParamsB: activeParamsFor(run.paramsB, cfg),
     quirks,
     latentQuirks: latent,
-    inferenceMult: optionById(cfg.arch)?.inferenceMult ?? 1,
+    inferenceMult: configInferenceMult(cfg),
     vibes: hidden.vibes ?? 0,
     emergences: [...(run.emerged ?? [])],
     forecast,
+    ...(hidden.traits ? { traits: { ...hidden.traits } } : {}),
   };
   evaluateModel(s, model);
   s.models.push(model);
@@ -331,6 +337,7 @@ function finishPretrain(s: GameState, run: TrainingRun, rng: Rng): void {
     dataSurprises,
     benchmarks: suite,
     ...(notes.length ? { notes } : {}),
+    ...(hidden.traits ? { traits: { ...hidden.traits } } : {}),
   };
   for (const n of notes) run.log = [...(run.log ?? []), { day: s.day, text: n, kind: 'info' }];
   pushNews(s, verdictNews(s, rng, verdict, run.name, overall, forecast.mid), VERDICT_KIND[verdict]);
@@ -443,6 +450,7 @@ function finishFinetune(s: GameState, run: TrainingRun, rng: Rng): void {
     vibes,
     forecast,
     ...(run.persona ? { persona: { ...run.persona } } : {}),
+    ...(parent.traits ? { traits: { ...parent.traits } } : {}),
   };
   evaluateModel(s, model);
   s.models.push(model);
@@ -502,11 +510,51 @@ function fireIncident(s: GameState, run: TrainingRun, rng: Rng): void {
       break;
     }
   }
-  run.pendingIncident = { defId: pick.id, day: s.day };
   run.incidents = [...(run.incidents ?? []), pick.id];
+  // v18: a standing spike policy answers loss spikes without pausing the run (if its choice is possible).
+  const policy = pick.id === 'loss_spike' && run.spikePolicy !== undefined ? pick.choices[run.spikePolicy] : undefined;
+  if (policy && (!policy.available || policy.available(s, run))) {
+    const result = policy.effect(s, run, rng);
+    recomputeTrueOverall(s, run);
+    run.log = [...(run.log ?? []), { day: s.day, text: `${pick.title}: ${result}`, kind: 'info' }];
+    s.flags['incidentsSurvived'] = (s.flags['incidentsSurvived'] ?? 0) + 1;
+    notify(s, `${run.name}: ${result}`, 'info', { toast: true });
+    return;
+  }
+  run.pendingIncident = { defId: pick.id, day: s.day };
   const kind = pick.good ? 'good' : 'bad';
   notify(s, `${run.name}: ${pick.title}. The run is paused until you decide.`, kind);
   pushNews(s, `${run.name} hits a snag: ${pick.title}.`, pick.good ? 'good' : 'bad');
+}
+
+/**
+ * v18: plan a run's decision calls at launch. No rng draws: eligibility, priority and the jitter all come from hashUniform.
+ * Runs under 12 days get none, then one call under 40, two under 100 and three after that.
+ */
+export function planRunCalls(s: GameState, run: TrainingRun, days: number): { id: Id; at: number }[] {
+  const n = !Number.isFinite(days) || days < 12 ? 0 : days < 40 ? 1 : days < 100 ? 2 : 3;
+  if (n === 0) return [];
+  const keyed = RUN_CALLS.filter((c) => c.weight(s, run) > 0).map((c) => ({ c, u: hashUniform(s.seed, run.id + c.id) }));
+  keyed.sort((a, b) => a.c.priority - b.c.priority || a.u - b.u);
+  return keyed
+    .slice(0, n)
+    .map(({ c, u }) => ({ id: c.id, at: c.at + (u * 2 - 1) * 0.05 }))
+    .sort((a, b) => a.at - b.at);
+}
+
+/** Raise the next planned call once its progress point has come. Returns true when the run is now paused on it. */
+function raiseDueCall(s: GameState, run: TrainingRun, progress: number): boolean {
+  while (run.calls && run.calls.length > 0 && progress >= run.calls[0].at) {
+    const [next, ...rest] = run.calls;
+    run.calls = rest;
+    const def = runIncidentById(next.id);
+    if (!def || def.weight(s, run) <= 0) continue;
+    run.pendingIncident = { defId: def.id, day: s.day, call: true };
+    s.flags['callsRaised'] = (s.flags['callsRaised'] ?? 0) + 1;
+    notify(s, `${run.name}: ${def.title}. The run is paused until you decide.`, 'info', { toast: true });
+    return true;
+  }
+  return false;
 }
 
 /** Ablations finish on their day and reveal the instability and incident rate for their run sheet. */
@@ -557,6 +605,7 @@ export function trainingTick(s: GameState, rng: Rng): void {
   if (run.kind !== 'finetune') watchRun(s, run, rng);
   run.lossHistory.push(lossCurve(run.predictedLoss, plateauProgress(run, progress)) + rng.normal(0, TRAINING_TUNING.LOSS_NOISE_SD));
   if (!run.pendingIncident) {
+    if (raiseDueCall(s, run, progress)) return;
     const phys: RunPhysics = runPhysics(s, run);
     if (rng.chance(phys.incidentRate * tempoRisk(s, tempoOf(run)))) fireIncident(s, run, rng);
   }
@@ -584,7 +633,7 @@ function validateSpec(
     return `Parameters must be between ${MIN_PARAMS_B * 1000}M and ${(MAX_PARAMS_B / 1000).toFixed(0)}T.`;
   }
   if (!Number.isFinite(tokensB) || tokensB < MIN_TOKENS_B) return `Train on at least ${MIN_TOKENS_B}B tokens.`;
-  const oom = memoryWallError(s, paramsB); // v16: the model has to fit in the cluster
+  const oom = memoryWallError(s, paramsB, cfg); // v16: the model has to fit in the cluster (v18: at this run's bytes per parameter)
   if (oom) return oom;
   const ids = [...new Set(datasetIds)];
   if (ids.length === 0) return 'Pick at least one dataset.';
@@ -686,6 +735,8 @@ export const handlers: ActionHandlers = {
           capAdd = { ...capAdd, [k]: (capAdd[k as keyof Capabilities] ?? 0) + (take - 1) * (v ?? 0) };
         }
       }
+      // v18: hidden side effects of the stages, scaled by how well each one took.
+      hidden.traits = rollTraits(rng, cfg, mixRows(s, datasetIds, cfg, 'true'), hidden.postTake);
     }
     s.training = {
       id: newId(s, 'run'),
@@ -718,6 +769,7 @@ export const handlers: ActionHandlers = {
       incidents: [],
       overheadLeft: phys.overheadDays,
     };
+    s.training.calls = planRunCalls(s, s.training, phys.days);
     recomputeTrueOverall(s, s.training);
     const days = Number.isFinite(phys.days) ? Math.ceil(phys.days) : 0;
     notify(
@@ -847,7 +899,7 @@ export const handlers: ActionHandlers = {
     pending.result = result;
     pending.deltas = deltas;
     run.log = [...(run.log ?? []), { day: s.day, text: `${def.title}: ${result}`, kind: def.good ? 'good' : 'info' }];
-    s.flags['incidentsSurvived'] = (s.flags['incidentsSurvived'] ?? 0) + 1;
+    if (!pending.call) s.flags['incidentsSurvived'] = (s.flags['incidentsSurvived'] ?? 0) + 1;
     notify(s, result, def.good ? 'good' : 'info');
   },
 
@@ -876,17 +928,9 @@ export const handlers: ActionHandlers = {
       notify(s, `${run.name} has not trained anything yet. Cancel it instead.`, 'bad');
       return;
     }
-    const cfg = runConfig(s, run);
-    const keep = RUN_TUNING.KEEP[cfg.schedule] ?? RUN_TUNING.KEEP.cosine;
-    const keepFactor = keep.base + keep.slope * progress;
-    const tokensB = run.tokensB * progress;
-    const phys = resolveRun(s, run.paramsB, tokensB, run.datasetIds, run.techniques, cfg, 'true');
-    run.tokensB = tokensB;
-    run.predictedLoss = phys.loss;
-    run.dataQuality = phys.dataQuality;
-    run.qualityMult = (run.qualityMult ?? 1) * keepFactor;
-    run.totalFlops = run.doneFlops;
-    if (cfg.schedule === 'wsd') s.flags['earlyStopWsd'] = 1;
+    const schedule = runConfig(s, run).schedule;
+    const keepFactor = truncateRun(s, run);
+    if (schedule === 'wsd') s.flags['earlyStopWsd'] = 1;
     notify(s, `Stopped ${run.name} at ${(progress * 100).toFixed(0)}%. It keeps ${(keepFactor * 100).toFixed(0)}% of the full-run quality.`, 'info');
     finishRun(s, rng);
   },
@@ -901,22 +945,11 @@ export const handlers: ActionHandlers = {
       notify(s, 'Only pretraining runs can be extended.', 'bad');
       return;
     }
-    if (!Number.isFinite(a.fraction) || a.fraction < RUN_TUNING.EXTEND_MIN || a.fraction > RUN_TUNING.EXTEND_MAX) {
-      notify(s, `Extend by between ${RUN_TUNING.EXTEND_MIN * 100}% and ${RUN_TUNING.EXTEND_MAX * 100}%.`, 'bad');
+    const err = extendRun(s, run, a.fraction);
+    if (err) {
+      notify(s, err, 'bad');
       return;
     }
-    const tokensB = run.tokensB * (1 + a.fraction);
-    const unique = uniqueTokensOf(s, run.datasetIds);
-    if (tokensB > unique * RUN_TUNING.MAX_EPOCHS + 1e-9) {
-      notify(s, 'Not enough data headroom for that. Buy more data or extend less.', 'bad');
-      return;
-    }
-    const cfg = runConfig(s, run);
-    const phys = resolveRun(s, run.paramsB, tokensB, run.datasetIds, run.techniques, cfg, 'true');
-    run.tokensB = tokensB;
-    run.totalFlops = phys.totalFlops;
-    run.predictedLoss = phys.loss;
-    run.dataQuality = phys.dataQuality;
     notify(s, `Extended ${run.name} by ${(a.fraction * 100).toFixed(0)}%. It will take longer and know more.`, 'info');
   },
 

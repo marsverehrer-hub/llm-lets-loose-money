@@ -5,6 +5,7 @@ import { dispatch, tick } from '../src/sim/engine';
 import { EVENTS } from '../src/sim/data/events';
 import { EVENTS_V2 } from '../src/sim/data/eventsV2';
 import { RUN_INCIDENTS } from '../src/sim/data/runIncidents';
+import { RUN_CALLS } from '../src/sim/data/runCalls';
 import { HEADLINES } from '../src/sim/data/headlines';
 import { eventHint, incidentHint, snapshotTangible, diffTangible } from '../src/sim/systems/eventDeltas';
 import { backfillTraining } from '../src/sim/systems/training';
@@ -15,6 +16,9 @@ const STAT_NUMBER = /[+-]\d+\s*(hype|brand|reputation|rep|morale|safety)/i;
 const PERCENT = /\d+%/;
 // Hints additionally avoid naming the hidden stats at all.
 const STAT_WORD = /\b(hype|brand|reputation|morale|aihype|rep)\b/i;
+
+// v18: planned decision calls use the same choice machinery, so every run-decision loop covers them too.
+const RUN_DECISIONS = [...RUN_INCIDENTS, ...RUN_CALLS];
 
 const DAYS = [40, 400, 1200, 2400];
 const SEEDS = [1, 2, 3];
@@ -75,7 +79,7 @@ describe('no stat numbers in choice hints', () => {
   });
 
   it('run incident hints show tangible things only', () => {
-    for (const def of RUN_INCIDENTS) {
+    for (const def of RUN_DECISIONS) {
       const s = sample(4, 900);
       const run = sampleRun(s);
       def.choices.forEach((c, i) => {
@@ -107,7 +111,7 @@ describe('no stat numbers in choice results', () => {
   });
 
   it('run incident results never print stat numbers', () => {
-    for (const def of RUN_INCIDENTS) {
+    for (const def of RUN_DECISIONS) {
       def.choices.forEach((c, i) => {
         for (const seed of SEEDS) {
           const s = sample(seed, 1200);
@@ -178,7 +182,7 @@ describe('tangible deltas', () => {
 
   it('run incident choices record their deltas', () => {
     let recorded = 0;
-    for (const def of RUN_INCIDENTS) {
+    for (const def of RUN_DECISIONS) {
       def.choices.forEach((c, i) => {
         const s = sample(31, 1200, 50_000_000);
         const run = sampleRun(s);
@@ -210,7 +214,7 @@ describe('variance and safety', () => {
   });
 
   it('the first choice of every run incident costs at most a quarter of cash', () => {
-    for (const def of RUN_INCIDENTS) {
+    for (const def of RUN_DECISIONS) {
       for (const cash of [50_000, 2_000_000, 3_000_000_000]) {
         const s = sample(6, 1200, cash);
         const run = sampleRun(s);
