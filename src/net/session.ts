@@ -1,7 +1,7 @@
 // OWNER: Agent MP-NET. Public API of the multiplayer session (UI codes against this; keep signatures stable).
 // One MpClient per match. This module wires it to the store (loop gate, speed, hooks) and runs the lobby flows.
 import { useEffect, useState } from 'preact/hooks';
-import type { MpRole, Speed } from '../sim/types';
+import type { MpRole, MpSettings, Speed } from '../sim/types';
 import { createInitialState } from '../sim/state';
 import { loadGame, saveGame } from '../sim/save';
 import { dispatch, getState, onAfterDispatch, onAfterTick, replaceState, setEffectiveSpeed, setTickGate } from '../ui/store';
@@ -28,12 +28,15 @@ export interface SessionInfo {
   rivalSpeed?: number;
   /** v12: speed request or resume countdown in progress. */
   speedVote?: SpeedVote | null;
+  /** Month by month: the clock is held at a new month until both press Ready. */
+  monthHeld?: boolean;
 }
 
 export interface HostOptions {
   companyName: string;
   color: string;
   lengthYears: number | null;
+  monthly?: boolean;
   /** Optional ws:// or wss:// URL of server/relay.mjs; default = PeerJS cloud (WebRTC). */
   relayUrl?: string;
   /** v12: name of the multiplayer save this match is written to. */
@@ -64,6 +67,7 @@ const FRESH: Partial<SessionInfo> = {
   rivalColor: undefined,
   rivalSpeed: undefined,
   waitingForRival: false,
+  monthHeld: undefined,
 };
 
 let info: SessionInfo = { status: 'idle', role: null, room: null, waitingForRival: false };
@@ -113,7 +117,7 @@ function makeClient(o: {
   room: string;
   companyName: string;
   color: string;
-  settings?: { lengthYears: number | null };
+  settings?: MpSettings;
   resume?: { seed: number; rivalName?: string; rivalColor?: string };
 }): MpClient {
   const c: MpClient = new MpClient({
@@ -141,7 +145,7 @@ function onEvent(e: MpEvent): void {
       return;
     case 'disconnected':
       stopPing();
-      set({ status: 'disconnected', detail: e.detail, waitingForRival: false, pingMs: undefined, rivalSpeed: undefined });
+      set({ status: 'disconnected', detail: e.detail, waitingForRival: false, pingMs: undefined, rivalSpeed: undefined, monthHeld: undefined });
       return;
     case 'error':
       stopPing();
@@ -155,6 +159,9 @@ function onEvent(e: MpEvent): void {
       return;
     case 'waiting':
       set({ waitingForRival: e.waiting });
+      return;
+    case 'month':
+      set({ monthHeld: e.held });
       return;
   }
 }
@@ -256,7 +263,7 @@ export async function hostGame(o: HostOptions): Promise<string> {
     room,
     companyName: cleanName(o.companyName),
     color: cleanColor(o.color),
-    settings: { lengthYears: o.lengthYears },
+    settings: { lengthYears: o.lengthYears, monthly: o.monthly },
   });
   client = c;
   set({ ...FRESH, status: 'waiting', role: 'host', room });

@@ -2,7 +2,7 @@
 // Right: every saved match, to resume or delete. While a match is in play, its room code and the head-to-head plate
 // sit on top. Mounted by App while lobbyState says open.
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { Button, Pill, Tabs } from '../components';
+import { Button, Check, Pill, Tabs } from '../components';
 import { useGame } from '../store';
 import { MP_COLORS, hostGame, joinGame, leaveGame, reconnect, resumeMatch, saveMatchNow, useSession } from '../../net/session';
 import type { SessionInfo } from '../../net/session';
@@ -274,6 +274,7 @@ function NewMatch({ joinCode }: { joinCode: string }) {
   const [name, setName] = useState(() => s.company.name);
   const [color, setColor] = useState<string>(MP_COLORS[0]);
   const [length, setLength] = useState<LengthId>('10');
+  const [monthly, setMonthly] = useState(false);
   const [code, setCode] = useState(joinCode);
   const [relay, setRelay] = useState('');
   const [pending, setPending] = useState(false);
@@ -291,7 +292,7 @@ function NewMatch({ joinCode }: { joinCode: string }) {
     setErr('');
     setPending(true);
     try {
-      if (tab === 'host') await hostGame({ companyName, color, lengthYears: years, relayUrl: relay.trim() || undefined, saveName: cleanSave });
+      if (tab === 'host') await hostGame({ companyName, color, lengthYears: years, monthly, relayUrl: relay.trim() || undefined, saveName: cleanSave });
       else await joinGame({ room: cleanRoomCode(code), companyName, color, relayUrl: relay.trim() || undefined, saveName: cleanSave });
     } catch (e) {
       setErr(errorText(e));
@@ -393,6 +394,12 @@ function NewMatch({ joinCode }: { joinCode: string }) {
                 </span>
                 <Tabs variant="segmented" class="mp-length" tabs={LENGTHS.map((l) => ({ id: l.id, label: l.label }))} value={length} onChange={setLength} />
                 <span class="field-hint">You get a 6-letter code to send to your rival.</span>
+                <Check
+                  checked={monthly}
+                  onChange={setMonthly}
+                  label="Month by month"
+                  hint="The clock stops at each new month until you both press Ready."
+                />
               </div>
             ) : (
               <div class="field">

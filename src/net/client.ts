@@ -2,6 +2,7 @@
 // so the same class runs in the app (session.ts) and in tests (two clients over LoopbackTransport).
 import type { GameAction, GameState, MpRole, MpSettings } from '../sim/types';
 import { createInitialState } from '../sim/state';
+import { monthHeld } from '../sim/monthly';
 import {
   applyRivalAttack,
   applyRivalSnapshot,
@@ -42,7 +43,9 @@ export type MpEvent =
   | { kind: 'error'; detail: string }
   | { kind: 'ping'; ms: number }
   | { kind: 'rivalSpeed'; speed: number }
-  | { kind: 'waiting'; waiting: boolean };
+  | { kind: 'waiting'; waiting: boolean }
+  /** Month by month: the clock is held for Ready. */
+  | { kind: 'month'; held: boolean };
 
 /** v12: a speed vote in progress, as the UI shows it. */
 export type SpeedVote =
@@ -98,6 +101,7 @@ export class MpClient {
   private lastSentSpeed: number | null = null;
   private lastSnapDay = -Infinity;
   private waiting = false;
+  private held = false;
   private readonly applySpeedFn: (speed: number) => void;
   /** Speed-up request in flight. */
   private ask: { from: 'me' | 'rival'; speed: number; until: number } | null = null;
@@ -145,16 +149,20 @@ export class MpClient {
 
   /**
    * Gate for the store's frame loop. False while the lobby is open, while disconnected, while the match has a result,
-   * and while we are LOCKSTEP_DAYS ahead of the rival.
+   * while we are LOCKSTEP_DAYS ahead of the rival, and while a month-by-month match waits for Ready.
    */
   canTick(s: GameState): boolean {
     if (!this.started || !this.peerConnected || !s.mp || s.mp.result) {
       this.setWaiting(false);
+      this.setHeld(false);
       return false;
     }
     const ok = this.rivalDone || s.day < s.mp.rivalDay + LOCKSTEP_DAYS;
     this.setWaiting(!ok);
-    return ok;
+    // A rival that has finished never presses Ready, so it cannot hold us.
+    const held = !this.rivalDone && monthHeld(s);
+    this.setHeld(held);
+    return ok && !held;
   }
 
   /** min(our selected speed, rival's selected speed); 0 (paused) if either side is paused or unknown. */
@@ -343,7 +351,7 @@ export class MpClient {
   afterDispatch(s: GameState, action: Pick<GameAction, 'type'>): void {
     if (!s.mp || !this.peerConnected) return;
     if (SNAP_ACTIONS.has(action.type)) this.sendSnap(s);
-    if (s.speed !== this.lastSentSpeed) this.sendDay(s);
+    if (action.type === 'mpMonthReady' || s.speed !== this.lastSentSpeed) this.sendDay(s);
     this.drainOutbox(s);
   }
 
@@ -421,7 +429,7 @@ export class MpClient {
         applyRivalSnapshot(s, m.snap);
         return;
       case 'day':
-        return this.onRivalDay(s, m.day, m.speed, !!m.done);
+        return this.onRivalDay(s, m.day, m.speed, !!m.done, m.ready);
       case 'attack':
         applyRivalAttack(s, m.attack);
         return;
@@ -506,8 +514,9 @@ export class MpClient {
     if (this.role === 'guest') this.dropLink();
   }
 
-  private onRivalDay(s: GameState, day: number, speed: number, done: boolean): void {
+  private onRivalDay(s: GameState, day: number, speed: number, done: boolean, ready?: number): void {
     if (s.mp) s.mp.rivalDay = Math.max(s.mp.rivalDay, day);
+    if (s.mp && ready !== undefined) s.mp.rivalMonthReady = Math.max(s.mp.rivalMonthReady ?? 0, ready);
     this.rivalDone = done;
     if (speed !== this.rivalSpeed) {
       this.rivalSpeed = speed;
@@ -555,6 +564,12 @@ export class MpClient {
     this.emit({ kind: 'waiting', waiting: w });
   }
 
+  private setHeld(h: boolean): void {
+    if (h === this.held) return;
+    this.held = h;
+    this.emit({ kind: 'month', held: h });
+  }
+
   // -------------------------------------------------------------------------
   // Outgoing messages
   // -------------------------------------------------------------------------
@@ -570,7 +585,8 @@ export class MpClient {
 
   private sendDay(s: GameState): void {
     this.lastSentSpeed = s.speed;
-    this.send(s.mp?.result ? { t: 'day', day: s.day, speed: s.speed, done: true } : { t: 'day', day: s.day, speed: s.speed });
+    const msg: NetMsg = { t: 'day', day: s.day, speed: s.speed, ready: s.mp?.monthReady };
+    this.send(s.mp?.result ? { ...msg, done: true } : msg);
   }
 
   /** Queued sim messages (attacks, chat) go out only while a peer is present; otherwise they wait in the outbox. */

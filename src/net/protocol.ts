@@ -13,8 +13,11 @@ export type NetMsg =
   | { t: 'hello'; name: string; color: string; version: number }
   | { t: 'welcome'; seed: number; settings: MpSettings; hostName: string; hostColor: string; protocol: number }
   | { t: 'snap'; snap: RivalSnapshot }
-  /** `done` is set once the sender's match has a result: the receiver stops waiting on lockstep for it. */
-  | { t: 'day'; day: number; speed: number; done?: boolean }
+  /**
+   * `done` is set once the sender's match has a result: the receiver stops waiting on lockstep for it.
+   * `ready` is the month-by-month day the sender pressed Ready on (sim/monthly.ts).
+   */
+  | { t: 'day'; day: number; speed: number; done?: boolean; ready?: number }
   | { t: 'attack'; attack: RivalAttack }
   | { t: 'chat'; text: string }
   /**
@@ -81,7 +84,7 @@ export function parseNetMsg(v: unknown): NetMsg | null {
     case 'snap':
       return isObj(v.snap) ? (v as NetMsg) : null;
     case 'day':
-      return isNum(v.day) && isNum(v.speed) ? (v as NetMsg) : null;
+      return isNum(v.day) && isNum(v.speed) && (v.ready === undefined || isNum(v.ready)) ? (v as NetMsg) : null;
     case 'attack':
       return isObj(v.attack) ? (v as NetMsg) : null;
     case 'chat':

@@ -1,12 +1,12 @@
 // Multiplayer chrome that sits over the game: the waiting bar, the disconnect modal and the match result.
 import { useState } from 'preact/hooks';
 import { Button, Modal } from '../components';
-import { useGame } from '../store';
+import { dispatch, useGame } from '../store';
 import { answerSpeedAsk, holdResume, leaveGame, readyToResume, reconnect, useSession } from '../../net/session';
 import { MP_RIVAL_ID } from '../../sim/types';
 import { crownTable } from '../../sim/systems/multiplayer';
 import { labInfo } from '../../sim/systems/labs';
-import { formatMoney } from '../../sim/util';
+import { formatDate, formatMoney } from '../../sim/util';
 import { plain } from '../shell/fmt';
 import './mp.css';
 
@@ -113,6 +113,43 @@ function SpeedVoteBar() {
         <span class="faint">Both ready starts it now.</span>
       </div>
       {drain}
+    </div>
+  );
+}
+
+/**
+ * Month by month: the clock holds at the start of a new month until both players press Ready (sim/monthly.ts).
+ * Same look as the resume countdown, so both players see who is ready.
+ */
+function MonthBar() {
+  const s = useGame();
+  const session = useSession();
+  if (!session.monthHeld || !s.mp) return null;
+  const rival = s.mp.rival?.companyName ?? session.rivalName ?? 'Your rival';
+  const rivalColor = s.mp.rival?.color ?? session.rivalColor ?? 'var(--line-2)';
+  const myReady = (s.mp.monthReady ?? 0) >= s.day;
+  const rivalReady = (s.mp.rivalMonthReady ?? 0) >= s.day;
+  return (
+    <div class="mp-vote is-count" role="alertdialog" aria-label={`${formatDate(s.day)}: press Ready to continue`}>
+      <div class="mp-vote-row">
+        <span class="mp-vote-text">{formatDate(s.day)}: a new month. Review the last one, then press Ready.</span>
+        <span class="mp-vote-acts">
+          {!myReady && (
+            <Button size="sm" variant="primary" onClick={() => dispatch({ type: 'mpMonthReady' })}>
+              Ready
+            </Button>
+          )}
+        </span>
+      </div>
+      <div class="mp-vote-ready">
+        <span class={`mp-ready-chip${myReady ? ' is-on' : ''}`} style={{ '--c': s.mp.myColor } as any}>
+          You {myReady ? 'ready' : 'not ready'}
+        </span>
+        <span class={`mp-ready-chip${rivalReady ? ' is-on' : ''}`} style={{ '--c': rivalColor } as any}>
+          {rival} {rivalReady ? 'ready' : 'not ready'}
+        </span>
+        <span class="faint">Play resumes when both are ready.</span>
+      </div>
     </div>
   );
 }
@@ -226,10 +263,12 @@ function ResultModal() {
 }
 
 export function MpOverlays() {
+  const session = useSession();
   return (
     <>
       <WaitingBar />
       <SpeedVoteBar />
+      {!session.speedVote && <MonthBar />}
       <DisconnectModal />
       <ResultModal />
     </>

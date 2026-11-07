@@ -23,6 +23,7 @@ import { datasetById } from './data';
 import { labName } from './labs';
 import { PLAYER_COLOR, bestPlayerModel, primaryProduct } from './market';
 import { addExpense, calendarYear, clamp, formatMoney, notify, pushNews, trySpend } from '../util';
+import { isMonthStart } from '../monthly';
 
 export interface AttackDef {
   kind: RivalAttackKind;
@@ -501,6 +502,12 @@ export const handlers: ActionHandlers = {
     }
     mp.outbox.push({ t: 'chat', text });
     addLog(s, 'chat', `${s.company.name}: ${text}`);
+  },
+  // The rival learns of it from the next day message (client.afterDispatch sends one).
+  mpMonthReady: (s) => {
+    const mp = s.mp;
+    if (!mp || mp.result || !mp.settings.monthly || !isMonthStart(s.day)) return;
+    mp.monthReady = s.day;
   },
   mpConcede: (s) => {
     const mp = s.mp;

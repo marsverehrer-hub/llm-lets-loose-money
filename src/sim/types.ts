@@ -1060,6 +1060,8 @@ export type MpOutgoing =
 export interface MpSettings {
   /** Match ends at 1 Jan of (2017 + lengthYears); null = until bankruptcy / concede. */
   lengthYears: number | null;
+  /** Month by month: the clock holds on each new month until both players press Ready (sim/monthly.ts). */
+  monthly?: boolean;
 }
 
 export interface MpState {
@@ -1069,6 +1071,9 @@ export interface MpState {
   myColor: string;
   rival: RivalSnapshot | null;           // latest received
   rivalDay: number;                      // latest day the rival reported (lockstep)
+  /** Month by month: the latest day we pressed Ready on, and the rival's (sent with its day messages). */
+  monthReady?: number;
+  rivalMonthReady?: number;
   connected: boolean;
   /** Messages produced by sim handlers; the net layer drains & sends them. */
   outbox: MpOutgoing[];
@@ -1470,6 +1475,7 @@ export type GameAction =
   | { type: 'mpAttack'; kind: RivalAttackKind }
   | { type: 'mpChat'; text: string }
   | { type: 'mpConcede' }
+  | { type: 'mpMonthReady' }
   // v9 data operations (systems/dataOps.ts, GAME_DESIGN §20.2)
   | { type: 'buildCrawler'; tier: CrawlerTierId }
   | { type: 'setCrawlerPolicy'; policy: CrawlPolicy }
