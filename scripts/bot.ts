@@ -37,6 +37,7 @@ import { benchTuneQuote, classBenchRows, weightClassOf } from '../src/sim/system
 import { bestModelFor } from '../src/sim/systems/contracts';
 import { distillQuote } from '../src/sim/systems/derive';
 import { calendarYear, yearOf } from '../src/sim/util';
+import { ENDINGS } from '../src/sim/systems/endings';
 
 export type BotStrategy = 'frontier' | 'small' | 'specialist' | 'open';
 export const BOT_STRATEGIES: BotStrategy[] = ['frontier', 'small', 'specialist', 'open'];
@@ -729,6 +730,12 @@ export function botDay(st: GameState, idle = false, strategy: BotStrategy = 'fro
   if (st.pendingReveal) dispatch(st, { type: 'dismissReveal' });
   // Aha moments are full-window beats that pause the sim. The bot reads them and moves on.
   if (st.pendingMoment) dispatch(st, { type: 'dismissMoment' });
+  // AGI endings pause the sim. The bot takes the first one on the table, then keeps playing so long runs finish.
+  if (st.pendingEnding) {
+    const end = ENDINGS.find((e) => e.available(st).ok);
+    if (end) dispatch(st, { type: 'chooseEnding', id: end.id });
+    dispatch(st, { type: 'continueAfterEnding' });
+  }
   // Events: the bot never takes an option whose worst case leaves cash below zero (idle keeps the old first-available rule).
   answerEvent(st, idle);
   // Run incidents pause the sim, so they are answered even when the bot is idle.

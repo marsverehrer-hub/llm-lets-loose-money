@@ -55,11 +55,24 @@ function fakeModel(id: string): RivalModel {
 describe('canActivate and the active cap', () => {
   it('allows a lab only while fewer than MAX_ACTIVE labs are active', () => {
     const s = quiet();
-    const defs = COMPETITORS.filter((d) => !d.core).slice(0, RIVAL_TUNING.MAX_ACTIVE + 1); // marquee labs bypass the cap
-    for (const d of defs.slice(0, RIVAL_TUNING.MAX_ACTIVE - 1)) activate(s, d);
-    expect(canActivate(s, defs[RIVAL_TUNING.MAX_ACTIVE])).toBe(true);
-    activate(s, defs[RIVAL_TUNING.MAX_ACTIVE - 1]);
-    expect(canActivate(s, defs[RIVAL_TUNING.MAX_ACTIVE])).toBe(false);
+    const core = COMPETITORS.filter((d) => d.core);
+    for (const d of core) lab(s, d).status = 'acquired'; // no seats held for marquee labs still to come
+    const fresh = COMPETITORS.filter((d) => !d.core); // marquee labs bypass the cap
+    const next = fresh[RIVAL_TUNING.MAX_ACTIVE - 1];
+    for (const d of fresh.slice(0, RIVAL_TUNING.MAX_ACTIVE - 1)) activate(s, d);
+    expect(canActivate(s, next)).toBe(true);
+    comp(s, core[0]).active = true;
+    expect(canActivate(s, next)).toBe(false);
+  });
+
+  it('holds a seat for every marquee lab not yet founded', () => {
+    const s = quiet();
+    const fresh = COMPETITORS.filter((d) => !d.core);
+    const held = COMPETITORS.filter((d) => d.core).length;
+    for (const d of fresh.slice(0, RIVAL_TUNING.MAX_ACTIVE - held - 1)) activate(s, d);
+    expect(canActivate(s, fresh[fresh.length - 1])).toBe(true);
+    activate(s, fresh[RIVAL_TUNING.MAX_ACTIVE - held - 1]);
+    expect(canActivate(s, fresh[fresh.length - 1])).toBe(false);
   });
 
   it('never counts the human rival against the cap', () => {
@@ -192,7 +205,18 @@ describe('acquisitions', () => {
     expect(canActivate(s, tgt)).toBe(false);
   });
 
-  it('does not buy a lab the buyer cannot pay for', () => {
+  it('does not buy a lab the buyer can pay for neither in cash nor in stock', () => {
+    const s = quiet(12, 30);
+    const { acq, tgt } = pair(s);
+    activate(s, acq, 1);
+    activate(s, tgt, 1e6);
+    comp(s, acq).valuation = 1e9;
+    comp(s, tgt).valuation = 1e9; // a merger of equals: no cash, and the buyer's stock is not worth enough
+    lifecycleDay(s, FORCED);
+    expect(lab(s, tgt).status).toBe('active');
+  });
+
+  it('pays in stock when a much bigger buyer is short of cash', () => {
     const s = quiet(12, 30);
     const { acq, tgt } = pair(s);
     activate(s, acq, 1);
@@ -200,7 +224,8 @@ describe('acquisitions', () => {
     comp(s, acq).valuation = 1e9;
     comp(s, tgt).valuation = 1e6;
     lifecycleDay(s, FORCED);
-    expect(lab(s, tgt).status).toBe('active');
+    expect(lab(s, tgt).status).toBe('acquired');
+    expect(lab(s, acq).cash).toBe(1); // stock, not cash
   });
 
   it('does not run on days that are not a 30-day multiple', () => {

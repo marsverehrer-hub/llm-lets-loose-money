@@ -19,6 +19,8 @@ const ACQUIRE_ROLL = 0.12;
 const ACQUIRE_PREMIUM = 1.3;
 /** A lab worth under this share of an active acquirer is a takeover candidate even without fate 'target'. */
 const TARGET_VALUATION_SHARE = 0.1;
+/** An acquirer worth this many times the target pays in stock when its cash falls short. */
+const STOCK_DEAL_MULT = 1.5;
 const STAFF_KEYS = ['research', 'engineering', 'safety', 'sales'] as const;
 
 /** Founding cash for a kind in a calendar year (used when the def does not give startCash). */
@@ -64,7 +66,9 @@ export function canActivate(s: GameState, def: CompetitorDef): boolean {
   const status = labOf(s, def.id)?.status;
   if (status === 'acquired' || status === 'bankrupt') return false;
   if (def.core) return true; // marquee labs open on schedule; the cap gates newcomers so churn is what lets them in
-  return s.competitors.filter((c) => c.active && !c.human).length < RIVAL_TUNING.MAX_ACTIVE;
+  const active = s.competitors.filter((c) => c.active && !c.human).length;
+  const coreToCome = COMPETITORS.filter((d) => d.core && labOf(s, d.id)?.status === 'unfounded').length; // seats held for them
+  return active + coreToCome < RIVAL_TUNING.MAX_ACTIVE;
 }
 
 /** A fresh lab record for a definition (B3 sets starting cash, GPUs and staff from the def and the year). */
@@ -156,7 +160,7 @@ function acquisitions(s: GameState, rng: Rng): void {
     if (!candidate || !rng.chance(ACQUIRE_ROLL)) continue;
     const price = v * ACQUIRE_PREMIUM;
     const buyer = acquirers
-      .filter((a) => a.id !== def.id && labOf(s, a.id)!.cash >= price && isActive(s, a))
+      .filter((a) => a.id !== def.id && isActive(s, a) && (labOf(s, a.id)!.cash >= price || valOf(a.id) >= STOCK_DEAL_MULT * v))
       .sort((a, b) => valOf(b.id) - valOf(a.id))[0];
     if (buyer) acquire(s, buyer, def, price);
   }
@@ -180,7 +184,7 @@ function acquire(s: GameState, buyer: CompetitorDef, target: CompetitorDef, pric
   a.datasets = [...new Set([...a.datasets, ...t.datasets])];
   a.models.push(...t.models);
   t.models = [];
-  a.cash -= price;
+  if (a.cash >= price) a.cash -= price; // else an all-stock deal: the buyer's cash is untouched
   t.status = 'acquired';
   t.acquiredBy = buyer.id;
   t.endedDay = s.day;

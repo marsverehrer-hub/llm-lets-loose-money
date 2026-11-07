@@ -147,19 +147,23 @@ describe('rival lines', () => {
     const s = clone();
     const lines = rivalLines(s);
     const keys = Object.keys(s.classes?.rivalLines ?? {});
-    expect(keys).toContain('metaverse_llama:small');
-    expect(keys).toContain('mistrial:small');
-    expect(keys).toContain('mistrial:medium');
-    expect(keys).toContain('openaye:small');
-    expect(keys).toContain('deepseekers:small');
+    // Labs can be acquired in a living field (v19), so only labs still trading must carry their lines.
+    const live = (id: string) => s.competitors.some((c) => c.id === id && c.active);
+    const expected: [string, RegExp][] = [
+      ['metaverse_llama:small', /^Llamaish \d+(\.\d+)? \d+B$/],
+      ['mistrial:small', /^Mistrial Small \d/],
+      ['mistrial:medium', /./],
+      ['openaye:small', / mini$/],
+      ['deepseekers:small', /-Lite$/],
+    ];
+    for (const [k, name] of expected) {
+      if (!live(k.split(':')[0])) continue;
+      expect(keys).toContain(k);
+      expect(s.classes!.rivalLines[k].name).toMatch(name);
+    }
     expect(keys.every((k) => /^[a-z_]+:(nano|small|medium)$/.test(k))).toBe(true);
+    expect(keys.every((k) => live(k.split(':')[0]))).toBe(true);
     expect(lines.length).toBeGreaterThanOrEqual(5);
-
-    const byKey = (k: string) => s.classes!.rivalLines[k];
-    expect(byKey('metaverse_llama:small').name).toMatch(/^Llamaish \d+(\.\d+)? \d+B$/);
-    expect(byKey('mistrial:small').name).toMatch(/^Mistrial Small \d/);
-    expect(byKey('openaye:small').name).toMatch(/ mini$/);
-    expect(byKey('deepseekers:small').name).toMatch(/-Lite$/);
 
     for (const line of lines) {
       const flagship = s.competitors.find((c) => c.id === line.labId)?.model;

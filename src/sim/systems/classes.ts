@@ -359,6 +359,7 @@ function refreshRivalLines(s: GameState, rng: Rng): void {
   const year = calendarYear(s.day);
   for (const c of s.competitors) {
     const schedule = LINE_SCHEDULE[c.id];
+    if (schedule && !c.active && !c.human) for (const cls of LINE_CLASSES) delete cs.rivalLines[`${c.id}:${cls}`]; // acquired or bankrupt: off the market
     if (!schedule || !c.active || c.human || !c.model) continue;
     const info = labInfo(s, c.id);
     if (!info) continue;
