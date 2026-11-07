@@ -14,7 +14,7 @@
   line-height: 1.4;
 }
 
-/* Tier colours: premium blue, mainstream neutral, budget amber. */
+/* Tier colours: premium blue, mainstream neutral, budget orange (the chart palette). */
 .nt-key {
   display: inline-block;
   width: 8px;
@@ -24,9 +24,9 @@
   vertical-align: middle;
   background: var(--fg-3);
 }
-.nt-key-premium { background: var(--blue); }
+.nt-key-premium { background: var(--mpl-1); }
 .nt-key-mainstream { background: var(--fg-3); }
-.nt-key-budget { background: var(--amber); }
+.nt-key-budget { background: var(--mpl-2); }
 
 .nt-tierbar-wrap {
   display: flex;
@@ -51,9 +51,9 @@
   height: 100%;
   min-width: 0;
 }
-.nt-tierbar-premium { background: var(--blue); }
-.nt-tierbar-mainstream { background: var(--fg-3); }
-.nt-tierbar-budget { background: var(--amber); }
+.nt-tierbar-premium { background: var(--tex-hatch), var(--mpl-1); }
+.nt-tierbar-mainstream { background: var(--tex-hatch), var(--fg-3); }
+.nt-tierbar-budget { background: var(--tex-hatch), var(--mpl-2); }
 .nt-tierbar-legend {
   display: flex;
   flex-wrap: wrap;
@@ -63,7 +63,6 @@
 }
 .nt-tierbar-item b {
   color: var(--fg-2);
-  font-family: var(--mono);
   font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
@@ -91,7 +90,6 @@
 }
 .nt-tier-cell b {
   color: var(--fg);
-  font-family: var(--mono);
   font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
@@ -111,14 +109,14 @@
 /* Segment share bars: one bar per segment in lab colours. */
 .mk-share { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .mk-share-bar { display: flex; width: 100%; height: 18px; background: var(--bg-3); overflow: hidden; }
-.mk-share-seg { position: relative; height: 100%; min-width: 0; background: var(--c); border-right: 1px solid var(--bg-1); }
+.mk-share-seg { position: relative; height: 100%; min-width: 0; background: var(--tex-hatch), var(--c); border-right: 1px solid var(--bg-1); }
 .mk-share-seg.dim { opacity: 0.3; }
 .mk-share-seg .mk-share-tip { display: block; width: 100%; height: 100%; }
 .mk-share-btn {
   display: block; width: 100%; height: 100%; margin: 0; padding: 0;
   background: none; border: 0; cursor: pointer;
 }
-.mk-share-btn[aria-pressed='true'] { outline: 2px solid var(--amber); outline-offset: -2px; }
+.mk-share-btn[aria-pressed='true'] { background: var(--tex-marker); }
 .mk-share-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; min-width: 0; }
 .mk-key {
   display: inline-flex; align-items: center; gap: 6px; min-height: 28px; max-width: 100%;
@@ -127,16 +125,16 @@
   border-radius: var(--r-md);
 }
 .mk-key:hover { background: var(--bg-2); }
-.mk-key.on { border-color: var(--amber); color: var(--fg); }
+.mk-key.on { background: var(--tex-marker); color: var(--fg); }
 .mk-key .num { color: var(--fg); }
 .mk-key-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px; }
 .mk-key-more { color: var(--fg-3); font-size: var(--fs-xs); }
-.mk-share-btn:focus-visible, .mk-key:focus-visible, .nt-heat-cell:focus-visible { outline: 1px solid var(--amber); outline-offset: 1px; }
+.mk-share-btn:focus-visible, .mk-key:focus-visible, .nt-heat-cell:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; }
 
 /* The selected lab, across every bar and the arena. */
 .nt-sel-note {
   display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 12px 0;
-  padding: 8px 10px; border: 1px solid var(--amber); color: var(--fg-2); font-size: var(--fs-sm);
+  padding: 8px 10px; border: 1px solid var(--line-2); background: var(--tex-marker); color: var(--fg-2); font-size: var(--fs-sm);
   border-radius: var(--r-md);
 }
 .nt-sel-note .swatch { flex: 0 0 auto; }
@@ -151,10 +149,10 @@
 .nt-heat-tip { display: flex; width: 100%; }
 .nt-heat-cell {
   display: flex; align-items: center; justify-content: center; width: 100%; min-height: 48px;
-  /* Capped at 50% amber so the cell text keeps about 4.3:1 contrast on the dark theme. */
-  background: color-mix(in srgb, var(--amber) calc(var(--s) * 50%), var(--bg-1));
+  /* Shade is your share, capped at 50% accent so the cell text keeps about 4.3:1 contrast on the dark theme. */
+  background: color-mix(in srgb, var(--accent) calc(var(--s) * 50%), var(--bg-1));
   border: 1px solid var(--line);
-  color: var(--fg); font-family: var(--mono); font-size: 16px; font-variant-numeric: tabular-nums;
+  color: var(--fg); font-size: 16px; font-variant-numeric: tabular-nums;
   border-radius: var(--r-md);
 }
 .nt-heat-tiptext { display: block; max-width: 260px; white-space: normal; }
@@ -163,7 +161,7 @@
 /* .barlist.nt-arena (not .nt-arena alone) so these beat the shared BarList rules in components/viz.css. */
 .barlist.nt-arena .barlist-row { grid-template-columns: minmax(130px, 2fr) minmax(90px, 3fr) auto auto; }
 .barlist.nt-arena .barlist-track { height: 10px; }
-.barlist.nt-arena .barlist-extra { min-width: 36px; text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.barlist.nt-arena .barlist-extra { min-width: 36px; text-align: right; font-variant-numeric: tabular-nums; }
 .barlist.nt-arena .barlist-extra .good { color: var(--up); }
 .barlist.nt-arena .barlist-extra .bad { color: var(--down); }
 .barlist.nt-arena .barlist-extra .muted { color: var(--fg-3); }

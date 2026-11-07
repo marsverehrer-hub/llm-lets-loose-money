@@ -6,7 +6,7 @@ import { gpuById } from '../../../sim/systems/compute';
 import { NEOCLOUD_TUNING, demandIndex, freeForDeal, marketGpuPrice, neocloudDay } from '../../../sim/systems/neocloud';
 import type { CapacityContract, CapacityOffer, Datacenter, GameState } from '../../../sim/types';
 import { Button, DataTable, HelpTip, LineChart, Pill, SERIES, Slider, Stat } from '../../components';
-import { Empty } from '../panelKit';
+import { ConfirmButton, Empty } from '../panelKit';
 
 function num(v: number): string {
   return Math.round(v).toLocaleString('en-US');
@@ -79,7 +79,7 @@ export function NeocloudTab() {
               cell: (d) => (
                 <Button
                   size="sm"
-                  variant={dedicated.has(d.id) ? 'default' : 'primary'}
+                  variant="default"
                   onClick={() => dispatch({ type: 'setNeocloudHall', datacenterId: d.id, dedicated: !dedicated.has(d.id) })}
                 >
                   {dedicated.has(d.id) ? 'Take back' : 'Dedicate'}
@@ -186,7 +186,6 @@ function Offers({ s, offers }: { s: GameState; offers: CapacityOffer[] }) {
                 <span class="row-wrap">
                   <Button
                     size="sm"
-                    variant="primary"
                     disabled={free < o.count}
                     title={free < o.count ? `Only ${num(free)} free in ${o.needsInfiniband ? 'InfiniBand ' : ''}dedicated halls` : `Expires ${formatDate(o.expiresDay)}`}
                     onClick={() => dispatch({ type: 'acceptCapacityDeal', offerId: o.id })}
@@ -233,14 +232,14 @@ function Deals({ s, contracts, delivered }: { s: GameState; contracts: CapacityC
             key: 'a',
             label: '',
             cell: (c) => (
-              <Button
-                size="sm"
-                variant="danger"
+              <ConfirmButton
+                class="btn-sm"
+                tone="default"
+                label="Cancel"
+                confirmLabel="Cancel deal?"
                 title={`Refund ${formatMoney(NEOCLOUD_TUNING.CANCEL_DAYS * c.count * c.price)} and lose ${NEOCLOUD_TUNING.REP_CANCEL} reputation`}
-                onClick={() => dispatch({ type: 'cancelCapacityDeal', contractId: c.id })}
-              >
-                Cancel
-              </Button>
+                onConfirm={() => dispatch({ type: 'cancelCapacityDeal', contractId: c.id })}
+              />
             ),
           },
         ]}

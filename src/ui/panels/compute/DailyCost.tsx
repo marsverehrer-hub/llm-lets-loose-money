@@ -11,14 +11,14 @@ export function DailyCost({ s, burstCost }: { s: GameState; burstCost: number })
       id: 'rent',
       label: 'Cloud rent',
       value: cost.rent,
-      color: 'var(--amber-2)',
+      color: 'var(--mpl-2)',
       help: 'GPUs you rent in the cloud. No upfront cost, billed every day.',
     },
     {
       id: 'power',
       label: 'Power',
       value: cost.power,
-      color: 'var(--yellow)',
+      color: 'var(--warn)',
       help: 'Electricity for the GPUs installed in your datacenters, plus cooling (PUE 1.1 to 1.6, better in bigger buildings).',
     },
     {
@@ -39,7 +39,7 @@ export function DailyCost({ s, burstCost }: { s: GameState; burstCost: number })
       id: 'burst',
       label: 'Cloud burst',
       value: burstCost,
-      color: 'var(--blue)',
+      color: 'var(--mpl-1)',
       help: 'Serving that your own GPUs cannot cover, bought from the cloud per PF/s-day. Zero when your GPUs cover every product.',
     },
   ];

@@ -5,6 +5,7 @@ import { dailyPayroll, headcount, moraleFactor, officeCapacity, officeTier } fro
 import { OFFICE_TIERS } from '../../sim/data/roles';
 import type { RoleId } from '../../sim/types';
 import { Button, Card, HelpTip, PanelHeader, PanelIntro, ProgressBar } from '../components';
+import { Banner } from './panelKit';
 import { TeamCard } from './staff/TeamCard';
 import { HireSheet, type HireTab } from './staff/HireSheet';
 import { useIntent } from '../nav';
@@ -12,6 +13,8 @@ import { NextOfficeButton } from './staff/OfficeSheet';
 import { SceneView } from '../../scenes/SceneView';
 import { createScene as createDepartments, CAM as DEPT_CAM } from '../../scenes/staff';
 import { moraleTone, peoplePerGlyph, retention, teamStats } from './staff/model';
+import { ViewSection } from './compute/ViewSection';
+import './panels.css';
 import './staff/staff.css';
 
 type SheetState = { kind: 'hire'; role: RoleId; tab: HireTab } | null;
@@ -120,37 +123,39 @@ export function StaffPanel() {
           </div>
           <ProgressBar value={morale} max={100} tone={moraleTone(morale)} height={6} />
           {risk.chance > 0 && (
-            <div class="sf-banner bad">
+            <Banner tone="bad">
               {risk.lowMorale && risk.underpaid
                 ? 'Morale is low and pay is below market.'
                 : risk.lowMorale
                   ? 'Morale is below 40.'
                   : 'Average pay is below 95% of market.'}{' '}
               A rival may poach someone about every {risk.everyDays} days.
-            </div>
+            </Banner>
           )}
         </div>
 
         {full && (
-          <div class="sf-banner bad">
+          <Banner tone="bad">
             The office is full. Hiring is blocked until you move.
             {nextOffice && <> Next office: {nextOffice.name}.</>}
-          </div>
+          </Banner>
         )}
       </Card>
 
       <Card title="The office floor" class="sf-floor-card">
-        <SceneView
-          state={s}
-          make={createDepartments}
-          cam={DEPT_CAM}
-          camId="CAM-11"
-          height={340}
-          label="Your departments: every team at its desks, empty seats in the office, stars highlighted"
-          onSelect={(hit) => {
-            if (hit.id.startsWith('team:')) toggle(hit.id.slice(5) as RoleId);
-          }}
-        />
+        <ViewSection panel="staff">
+          <SceneView
+            state={s}
+            make={createDepartments}
+            cam={DEPT_CAM}
+            camId="CAM-11"
+            height={340}
+            label="Your departments: every team at its desks, empty seats in the office, stars highlighted"
+            onSelect={(hit) => {
+              if (hit.id.startsWith('team:')) toggle(hit.id.slice(5) as RoleId);
+            }}
+          />
+        </ViewSection>
 
         <div class="sf-readout" aria-live="polite">
           {activeTeam ? (

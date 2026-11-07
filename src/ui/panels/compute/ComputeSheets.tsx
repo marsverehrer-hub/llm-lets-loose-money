@@ -7,7 +7,7 @@ import { COMPUTE_TUNING, datacenterPue, datacenterTierById, annualFailureRate, a
 import { DATACENTER_TIERS } from '../../../sim/data/gpus';
 import { RESEARCH } from '../../../sim/data/research';
 import type { GameState, Id } from '../../../sim/types';
-import { HelpTip, Sheet, FlowBar } from '../../components';
+import { HelpTip, Select, Sheet, FlowBar } from '../../components';
 import { ConfirmButton, Empty, fmtDays, fmtRate } from '../panelKit';
 import type { RoomBlock, ServerRoom } from './roomModel';
 
@@ -222,12 +222,12 @@ function HallOptions({ s, dcId }: { s: GameState; dcId: Id }) {
 /** The fleet's job mix, shared across blocks in proportion (the sim has no per-datacenter split yet). */
 function JobSplit({ b }: { b: RoomBlock }) {
   const segments = [
-    { id: 'training', label: 'Training', value: b.training, color: 'var(--amber)' },
+    { id: 'training', label: 'Training', value: b.training, color: 'var(--mpl-2)' },
     ...b.servingBy.map((sh, i) => ({
       id: `serving-${i}`,
       label: sh.name,
       value: sh.gpus,
-      color: `var(--blue)`,
+      color: 'var(--mpl-1)',
     })),
     { id: 'idle', label: 'Idle', value: b.idle, color: 'var(--fg-3)' },
   ].filter((x) => x.value > 0);
@@ -255,13 +255,12 @@ function BuyGpus({ s, b }: { s: GameState; b: RoomBlock }) {
     <div class="cc-section">
       <h4 class="cc-h">Install GPUs</h4>
       <div class="cc-buy">
-        <select class="select" value={gpu.id} onChange={(e) => setPick((e.currentTarget as HTMLSelectElement).value)}>
-          {gpus.map((g) => (
-            <option key={g.id} value={g.id}>
-              {g.name} · {formatMoney(g.buyPrice)} each
-            </option>
-          ))}
-        </select>
+        <Select
+          value={gpu.id}
+          ariaLabel="GPU to install"
+          onChange={(v) => setPick(v)}
+          options={gpus.map((g) => ({ value: g.id, label: `${g.name} · ${formatMoney(g.buyPrice)} each` }))}
+        />
         <StepButtons
           signs="+"
           disabled={(n) => n > free || s.finance.cash < gpu.buyPrice * n}

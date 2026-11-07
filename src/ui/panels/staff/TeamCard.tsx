@@ -104,7 +104,7 @@ export function TeamCard({ s, team, selected, onToggle, onHire }: TeamCardProps)
               onChange={(v) => dispatch({ type: 'setSalaryLevel', role: team.id, level: v / 100 })}
             />
             <div class="sf-actions">
-              <Button size="sm" variant="primary" onClick={() => onHire(team.id)}>
+              <Button size="sm" onClick={() => onHire(team.id)}>
                 Hire into {team.role.plural}
               </Button>
               <ConfirmButton

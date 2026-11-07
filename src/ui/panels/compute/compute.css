@@ -38,7 +38,7 @@
 }
 .cc-block:hover,
 .cc-block:focus-visible {
-  border-color: var(--amber);
+  border-color: var(--accent);
   outline: none;
 }
 .cc-block-burst {
@@ -47,7 +47,7 @@
 }
 .cc-block-burst:hover,
 .cc-block-burst:focus-visible {
-  border-color: var(--amber);
+  border-color: var(--accent);
 }
 .cc-block-head {
   display: flex;
@@ -84,10 +84,10 @@
   height: auto;
 }
 .cc-cell.cc-training {
-  fill: var(--amber);
+  fill: var(--mpl-2);
 }
 .cc-cell.cc-serving {
-  fill: var(--blue);
+  fill: var(--mpl-1);
 }
 .cc-cell.cc-idle {
   fill: none;
@@ -113,7 +113,7 @@
 .cc-build i {
   display: block;
   height: 100%;
-  background: var(--amber);
+  background: var(--tex-hatch), var(--mpl-2);
 }
 
 .cc-legend {
@@ -138,10 +138,10 @@
   background: var(--c, var(--fg-3));
 }
 .cc-swatch.cc-training {
-  background: var(--amber);
+  background: var(--mpl-2);
 }
 .cc-swatch.cc-serving {
-  background: var(--blue);
+  background: var(--mpl-1);
 }
 .cc-swatch.cc-idle {
   background: none;
@@ -206,7 +206,7 @@
 }
 .cc-get-btn:hover,
 .cc-get-btn:focus-visible {
-  border-color: var(--amber);
+  border-color: var(--accent);
   outline: none;
 }
 .cc-get-btn span {
@@ -244,11 +244,12 @@
 .cc-opt:hover,
 .cc-opt:focus-visible,
 .cc-opt.is-focus {
-  border-color: var(--amber);
+  border-color: var(--accent);
   outline: none;
 }
+/* The current priority is the highlighted one (selection = highlighter), not a coloured edge. */
 .cc-opt.is-current {
-  border-left: 3px solid var(--up);
+  background: var(--tex-marker);
 }
 .cc-opt-head {
   display: flex;
@@ -340,7 +341,7 @@
   font-variant-numeric: tabular-nums;
 }
 .cc-fact-v.warn {
-  color: var(--amber);
+  color: var(--warn);
 }
 .cc-section {
   display: flex;
@@ -466,8 +467,8 @@
     width: 100%;
   }
 
-  /* Phone order, top to bottom: title, the rent or build card (the main action), the server-room camera and its
-     legend, the fleet and cost cards, then the intro. */
+  /* Phone order, top to bottom: title, the rent or build card (the main action), the server-room camera (folded
+     under "View" on phones), the fleet and cost cards, then the intro. */
   .pn-compute > .panel-header { order: 0; }
   /* The rent or build switch takes its own line under the card title, so the title is never cut off. */
   .pn-compute > .card > .card-header { flex-wrap: wrap; height: auto; padding-top: 8px; padding-bottom: 8px; }
@@ -475,13 +476,13 @@
   .pn-compute > .card > .card-header > .card-actions .segmented { display: flex; width: 100%; }
   .pn-compute > .card > .card-header > .card-actions .seg { flex: 1 1 0; min-width: 0; }
   .pn-compute > .card { order: 1; }
-  .pn-compute > .scene-view,
-  .pn-compute > .office-toggle { order: 2; }
-  .pn-compute > .cc-summary-under { order: 3; margin: 0 0 4px; }
-  .pn-compute > .cc-two { order: 4; }
-  .pn-compute > .panel-intro { order: 5; }
+  .pn-compute > .cc-view { order: 2; }
+  .pn-compute > .cc-two { order: 3; }
+  .pn-compute > .panel-intro { order: 4; }
 }
 .cc-summary-under { margin: 8px 0 12px; }
+.cc-view { margin: 4px 0 12px; }
+.cc-view > .cc-summary-under { margin-bottom: 0; }
 .cc-legend-inline { color: var(--fg-3); }
 .cc-legend-inline .cc-swatch { display: inline-block; vertical-align: middle; margin: 0 3px 0 6px; }
 

@@ -48,7 +48,6 @@ export function StarCard({ s, star, canHire = true, blockedReason }: StarCardPro
           <span class="sf-star-state">
             <span class="sf-faint">{left > 0 ? `Leaves in ${left} day${left === 1 ? '' : 's'}` : 'Leaving soon'}</span>
             <Button
-              variant="primary"
               size="sm"
               disabled={!canHire}
               title={canHire ? `Hire for ${formatMoney(fee, 1)} recruiting fee` : blockedReason}

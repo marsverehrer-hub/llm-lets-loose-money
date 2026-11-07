@@ -11,6 +11,7 @@ import { BlockSheet, BuildBody, RentBody } from './compute/ComputeSheets';
 import { CloudMarket } from './compute/CloudMarket'; // v16 cloud providers
 import { NeocloudTab } from './compute/NeocloudTab'; // v16 neocloud
 import { HallList } from './compute/HallList';
+import { ViewSection } from './compute/ViewSection';
 import { useIntent } from '../nav';
 import './panels.css';
 import './compute/compute.css';
@@ -82,23 +83,25 @@ export function ComputePanel() {
         )}
       </Card>
 
-      <SceneView
-        state={s}
-        make={createDatacenter}
-        cam={DC_CAM}
-        camId="CAM-03"
-        height={360}
-        label="Your datacenters: rack lights are yellow for training, green for serving and dim when idle; the cloud floats to the side"
-        onSelect={(hit) => {
-          const key = hit.id.startsWith('dc:') ? hit.id.slice(3) : hit.id === 'cloud:rented' ? 'rental' : hit.id === 'cloud:burst' ? 'burst' : null;
-          if (key) setSheet({ kind: 'block', key });
-        }}
-      />
-      <p class="cc-summary cc-summary-under">
-        <span class="cc-legend-inline">
-          <i class="cc-swatch cc-training" /> training <i class="cc-swatch cc-serving" /> serving <i class="cc-swatch cc-idle" /> idle · click a hall to manage it
-        </span>
-      </p>
+      <ViewSection panel="compute">
+        <SceneView
+          state={s}
+          make={createDatacenter}
+          cam={DC_CAM}
+          camId="CAM-03"
+          height={360}
+          label="Your datacenters: rack lights are yellow for training, green for serving and dim when idle; the cloud floats to the side"
+          onSelect={(hit) => {
+            const key = hit.id.startsWith('dc:') ? hit.id.slice(3) : hit.id === 'cloud:rented' ? 'rental' : hit.id === 'cloud:burst' ? 'burst' : null;
+            if (key) setSheet({ kind: 'block', key });
+          }}
+        />
+        <p class="cc-summary cc-summary-under">
+          <span class="cc-legend-inline">
+            <i class="cc-swatch cc-training" /> training <i class="cc-swatch cc-serving" /> serving <i class="cc-swatch cc-idle" /> idle · click a hall to manage it
+          </span>
+        </p>
+      </ViewSection>
 
       <div class="cc-two">
         <FleetPicker s={s} />

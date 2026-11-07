@@ -87,7 +87,7 @@ export function FleetPicker({ s }: { s: GameState }) {
             {picked === focus && (
               <button
                 type="button"
-                class="btn btn-primary btn-sm"
+                class="btn btn-sm"
                 onClick={() => {
                   dispatch({ type: 'setFleetPriority', priority: focus });
                   setPicked(null);

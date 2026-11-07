@@ -23,8 +23,8 @@ import {
   stocks,
 } from '../../../sim/systems/cloudMarket';
 import type { CloudTerm, GameState, GpuDef, Id } from '../../../sim/types';
-import { Button, DataTable, HelpTip, Pill } from '../../components';
-import { Empty } from '../panelKit';
+import { Button, DataTable, HelpTip, Pill, Select } from '../../components';
+import { ConfirmButton, Empty } from '../panelKit';
 
 function num(v: number): string {
   return Math.round(v).toLocaleString('en-US');
@@ -67,13 +67,12 @@ export function CloudMarket() {
   return (
     <div class="cc-sheet">
       <div class="cc-buy">
-        <select class="select" value={gpu.id} aria-label="GPU" onChange={(e) => setGpuId((e.currentTarget as HTMLSelectElement).value)}>
-          {gpus.map((g) => (
-            <option key={g.id} value={g.id}>
-              {g.name} · list {formatMoney(g.rentPerDay)}/day
-            </option>
-          ))}
-        </select>
+        <Select
+          value={gpu.id}
+          ariaLabel="GPU"
+          onChange={(v) => setGpuId(v)}
+          options={gpus.map((g) => ({ value: g.id, label: `${g.name} · list ${formatMoney(g.rentPerDay)}/day` }))}
+        />
         <HelpTip>
           Prices are per GPU per day. Quotas grow every year and halve in a crunch. A new generation is scarce for its first year. Spot is
           cheap but can be preempted; reserved terms are cheap but billed whether you use them or not.
@@ -93,7 +92,7 @@ export function CloudMarket() {
             primary: true,
             cell: (r) => (
               <span class="row-wrap">
-                <Button size="sm" variant={r.p.id === sel.id ? 'primary' : 'ghost'} onClick={() => setPid(r.p.id)} title={r.p.flavor}>
+                <Button size="sm" variant={r.p.id === sel.id ? 'default' : 'ghost'} onClick={() => setPid(r.p.id)} title={r.p.flavor}>
                   {r.p.name}
                 </Button>
                 <Pill tone="muted">{r.p.kind}</Pill>
@@ -285,15 +284,15 @@ function Leases({ s }: { s: GameState }) {
             label: '',
             cell: (r) =>
               r.leaseId ? (
-                <Button
-                  size="sm"
-                  variant="danger"
+                <ConfirmButton
+                  class="btn-sm"
+                  tone="default"
+                  label="End early"
+                  confirmLabel={`Pay ${formatMoney(r.penalty)}?`}
                   disabled={s.finance.cash < r.penalty}
                   title={`Ending early costs ${formatMoney(r.penalty)} (half of what is left)`}
-                  onClick={() => dispatch({ type: 'endCloudCommit', leaseId: r.leaseId! })}
-                >
-                  End early
-                </Button>
+                  onConfirm={() => dispatch({ type: 'endCloudCommit', leaseId: r.leaseId! })}
+                />
               ) : null,
           },
         ]}

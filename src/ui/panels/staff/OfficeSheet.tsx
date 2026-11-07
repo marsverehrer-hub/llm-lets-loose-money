@@ -13,6 +13,7 @@ export function NextOfficeButton({ s }: { s: GameState }) {
   return (
     <ConfirmButton
       class="btn-sm"
+      tone="default"
       label={`Move to ${next.name} (${next.capacity.toLocaleString('en-US')} seats, ${formatMoney(next.cost, 1)})`}
       confirmLabel={`Pay ${formatMoney(next.cost, 1)} and move?`}
       disabled={!affordable}

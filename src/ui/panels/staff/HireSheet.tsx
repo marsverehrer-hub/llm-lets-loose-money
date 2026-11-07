@@ -5,6 +5,7 @@ import { formatMoney } from '../../../sim/util';
 import { headcount, marketSalary, officeCapacity, officeTier } from '../../../sim/systems/staff';
 import { Button, HelpTip, Sheet, Slider, Tabs, signedMoney } from '../../components';
 import { dispatch } from '../../store';
+import { Banner } from '../panelKit';
 import { hirePreview, teamEffect } from './model';
 import { StarCard } from './StarCard';
 
@@ -130,7 +131,7 @@ export function HireSheet({ s, initialRole, initialTab, onClose }: HireSheetProp
                   {free} of {cap} seats free
                 </span>
               </div>
-              {pv.blocked && <div class="sf-banner bad">{pv.blocked}</div>}
+              {pv.blocked && <Banner tone="bad">{pv.blocked}</Banner>}
             </section>
 
             <section class="sf-block">

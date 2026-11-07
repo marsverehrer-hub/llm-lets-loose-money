@@ -27,7 +27,7 @@ export function HallList({ room, onManage }: { room: ServerRoom; onManage: (key:
               />
             </div>
             <div class="cc-row-actions">
-              <button type="button" class={`btn btn-sm ${!b.building && b.installed < b.capacity ? 'btn-primary' : ''}`} onClick={() => onManage(b.key)}>
+              <button type="button" class="btn btn-sm" onClick={() => onManage(b.key)}>
                 Manage
               </button>
             </div>
