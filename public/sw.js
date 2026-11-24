@@ -3,7 +3,7 @@
 // - Documents (index.html and navigations): network-first, falling back to the cached shell when offline.
 // Bump CACHE when the shell changes shape; old caches are deleted on activate.
 // Every path is relative to the worker's scope, so the game works at a domain root and in a sub-folder (GitHub Pages).
-const CACHE = 'loose-money-v2';
+const CACHE = 'loose-money-v3';
 const BASE = new URL(self.registration.scope).pathname; // "/" or "/llm-lets-loose-money/"
 const INDEX = BASE + 'index.html';
 const SHELL = [BASE, INDEX, BASE + 'manifest.webmanifest', BASE + 'icon-192.png', BASE + 'icon-512.png', BASE + 'apple-touch-icon.png'];

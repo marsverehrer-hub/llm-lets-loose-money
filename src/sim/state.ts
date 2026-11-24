@@ -1,127 +1,59 @@
-import type { Competitor, GameSetup, GameState, RoleId, RoleState } from './types';
-import { BALANCE } from './balance';
-import { applyScenarioStart } from './systems/scenario'; // v9 scenario
-import { GPUS } from './data/gpus';
-import { DATASETS } from './data/datasets';
-import { OFFICE_TIERS } from './data/roles';
-import { COMPETITORS } from './data/competitors';
+import type { Company, GameState, LabState } from './types';
+import { aiBlueprint } from './ai';
+import { computePrice, fairValue } from './books';
+import { demandTick, fitOf } from './demand';
+import { launch, startRun } from './run';
+import { SEGMENTS } from './content/modalities';
+import { RIVAL_LABS } from './content/flavor';
 
-export const SAVE_VERSION = 5;
+export const SAVE_VERSION = 1;
+export const SAVE_KEY = 'llm-lets-loose-money/v2/save';
+const SHARES = 100e6;
 
-function role(count: number, skill = 1): RoleState {
-  return { count, skill, salaryLevel: 1 };
-}
+const lab = (brand: number): LabState => ({ techniques: [], data: {}, talent: 1, brand, hype: 0.1, lastLaunch: -99, history: [], maxCompute: 0, raceWins: 0 });
+const company = (c: Partial<Company> & Pick<Company, 'id' | 'name' | 'tagline' | 'color' | 'ceo' | 'cash'>): Company => ({
+  layer: 'lab', shares: SHARES, price: 1, hist: [], debt: 0, rev: 0, cost: 0, rev8: 0, ni8: 0, revGrowth: 0, negWeeks: 0, raisedAt: -99, ...c,
+});
 
-/**
- * A new game. With no setup this is today's game (garage, founder, 2017). A setup (v9, GAME_DESIGN §20.1) applies a
- * scenario, difficulty, sandbox and skip-tutorial choice; mid-era starts fast-forward the world (systems/scenario.ts).
- */
-export function createInitialState(
-  seed = Math.floor(Math.random() * 2 ** 31),
-  companyName = 'Lets Loose Labs',
-  setup?: GameSetup,
-): GameState {
-  const s = baseState(seed, companyName);
-  if (setup) applyScenarioStart(s, setup); // v9 scenario
+export function newGame(seed: number, name = 'Loose Money Labs'): GameState {
+  const s: GameState = {
+    v: SAVE_VERSION, seed, week: 0, playerId: 'you', labId: 'lab',
+    actors: { you: { id: 'you', name: 'You', cash: 0, isPlayer: true } },
+    companies: {}, holdings: [{ owner: 'you', company: 'lab', shares: SHARES * 0.6 }],
+    models: {}, runs: {}, segments: {},
+    market: { sentiment: 0, ...computeStart() },
+    known: {}, standing: {}, callCount: {}, moments: [], log: [], tutorial: 0, over: false, nextId: 1,
+  };
+  s.companies.lab = company({ id: 'lab', name, tagline: "IPO'd on a pitch deck.", color: '#ff5d73', cash: 20e6,
+    ceo: { name: 'You', style: 'hype', skill: 0.5, ego: 0.5 }, lab: { ...lab(0.1), hype: 0.3 } });
+  for (const d of RIVAL_LABS) s.companies[d.id] = company({ id: d.id, name: d.name, tagline: d.tagline, color: d.color, cash: d.cash, ceo: d.ceo, lab: lab(0.25) });
+  for (const d of Object.values(SEGMENTS)) s.segments[d.id] = { id: d.id, size: d.size, fit0: 40, share: {}, accounts: d.accounts.map(() => null) };
+
+  // Rivals open the game with one shipped model each, built by the same engine.
+  for (const d of RIVAL_LABS) {
+    const run = startRun(s, d.id, aiBlueprint(s, s.companies[d.id], d.modality, d.start), 'internal', false);
+    run.weeksDone = run.weeksPlanned;
+    launch(s, run);
+    s.companies[d.id].lab!.lastLaunch = -Math.floor(seed % 5) - RIVAL_LABS.indexOf(d);
+  }
+  for (const seg of Object.values(s.segments)) {
+    const def = SEGMENTS[seg.id];
+    seg.fit0 = Math.max(...Object.values(s.models).filter((m) => m.modality === def.modality).map((m) => fitOf(def, m.cap)));
+  }
+  let flow = demandTick(s);
+  for (let i = 0; i < 12; i++) flow = demandTick(s);
+  for (const co of Object.values(s.companies)) {
+    co.rev = co.rev8 = flow[co.id]?.rev ?? 0;
+    co.ni8 = co.rev - (flow[co.id]?.cogs ?? 0) - 100_000 - 0.12 * co.rev;
+    co.cost = co.rev - co.ni8;
+    co.price = Math.max(0.2, fairValue(s, co) / co.shares);
+    co.hist = [co.price];
+  }
+  s.log = [{ week: 0, tone: 'info', text: `${name} lists on the stock exchange with no product, no revenue and a very good slide deck.` }];
   return s;
 }
 
-function baseState(seed: number, companyName: string): GameState {
-  const starterGpu = GPUS.find((g) => g.unlockYear <= BALANCE.START_YEAR);
-  const competitors: Competitor[] = COMPETITORS.map((c) => ({
-    id: c.id,
-    active: false,
-    model: null,
-    prices: { chat: 20, api: 30, enterprise: 60 },
-    users: { consumer: 0, developer: 0, enterprise: 0 },
-    brand: c.brand,
-    valuation: 0,
-    nextReleaseDay: 0,
-    modelsReleased: 0,
-  }));
-
-  const roles: Record<RoleId, RoleState> = {
-    researcher: role(2, 1.1), // the founders
-    engineer: role(1),
-    safety: role(0),
-    sales: role(0),
-    marketing: role(0),
-  };
-
-  return {
-    saveVersion: SAVE_VERSION,
-    seed,
-    rngState: seed,
-    day: 0,
-    speed: 0,
-    idCounter: 0,
-    company: {
-      name: companyName,
-      brand: 2,
-      hype: 5,
-      reputation: 60,
-      founderEquity: BALANCE.START_FOUNDER_EQUITY,
-      isPublic: false,
-      sharesOutstanding: 0,
-      stockPrice: 0,
-      officeTierId: OFFICE_TIERS[0]?.id ?? 'garage',
-      safetyIncidents: 0,
-    },
-    finance: {
-      cash: BALANCE.START_CASH,
-      debt: 0,
-      loanRatePerYear: BALANCE.LOAN_RATE_PER_YEAR,
-      today: { revenue: {}, expenses: {} },
-      dailyRevenue: 0,
-      dailyExpenses: 0,
-      revenueBreakdown: {},
-      expenseBreakdown: {},
-      valuation: 8_000_000,
-      lastPostMoney: 8_000_000,
-      roundsRaised: ['Pre-seed'],
-      totalRaised: BALANCE.START_CASH,
-      pendingOffer: null,
-      nextOfferDay: 60,
-      negativeCashDays: 0,
-      history: [],
-    },
-    compute: {
-      rented: starterGpu ? { [starterGpu.id]: 8 } : {},
-      datacenters: [],
-      trainingShare: 1, // v10: a derived mirror of the fleet split; no products yet, so every GPU is free for training
-      priority: 'serving', // v10: fleet priority
-      totalPflops: 0,
-      trainingPflops: 0,
-      inferencePflops: 0,
-      inferenceUtilization: 0,
-    },
-    data: {
-      owned: DATASETS.filter((d) => d.cost === 0 && d.unlockYear <= BALANCE.START_YEAR && !d.requiresResearch).map((d) => d.id),
-    },
-    research: { completed: [], current: null, progress: 0, pointsPerDay: 0 },
-    staff: { roles, stars: [], morale: 80, nextStarDay: 60 },
-    models: [],
-    training: null,
-    products: [],
-    market: {
-      aiHype: 10,
-      segments: {
-        // v17.2: seeded at the 2017 adoption the market drifts toward (market.ts ADOPTION_CEILING x hype x quality), so
-        // early revenue no longer starts high and decays all year.
-        consumer: { tam: 50_000_000, adoption: 0.000002, refPrice: 20, playerUsers: 0 },
-        developer: { tam: 200_000, adoption: 0.01, refPrice: 30, playerUsers: 0 },
-        enterprise: { tam: 500_000, adoption: 0.0003, refPrice: 60, playerUsers: 0 },
-      },
-      campaigns: [],
-    },
-    competitors,
-    events: { pending: null, lastFired: {}, fired: [] },
-    news: [],
-    notifications: [],
-    achievements: {},
-    flags: {},
-    stats: { totalRevenue: 0, peakValuation: 0, modelsTrained: 0, modelsReleased: 0, outageDays: 0, lawsuits: 0, bestElo: 0 },
-    tutorialStep: 0,
-    gameOver: null,
-  };
+function computeStart(): { computePrice: number; scarcity: number } {
+  const p = computePrice(0, 420);
+  return { computePrice: p.price, scarcity: p.scarcity };
 }
