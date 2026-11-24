@@ -10,10 +10,12 @@ export function computePrice(week: number, demandCu: number): { price: number; s
   return { price: base * scarcity, scarcity };
 }
 
-export const opex = (s: GameState, co: Company): number => 100_000 * (1 + s.week / 96) + 0.12 * co.rev;
+/** Fixed costs plus sales and support. A lab digesting an acquisition runs a quarter less efficiently. */
+export const opex = (s: GameState, co: Company): number => (100_000 * (1 + s.week / 96) + 0.12 * co.rev) * (s.week < co.integrationUntil ? 1.25 : 1);
+export const interest = (co: Company): number => (co.debt * (0.06 + 0.03 * Math.max(0, co.debt / Math.max(1, 48 * Math.max(1, co.ni8)) - 2))) / 48;
 export const marketCap = (co: Company): number => co.price * co.shares;
 export const stakeOf = (s: GameState, owner: Id, coId: Id): number =>
-  (s.holdings.find((h) => h.owner === owner && h.company === coId)?.shares ?? 0) / s.companies[coId].shares;
+  s.companies[coId] ? (s.holdings.find((h) => h.owner === owner && h.company === coId)?.shares ?? 0) / s.companies[coId].shares : 0;
 
 /** Weeks of cash left at the current burn, counting the hands-on run's bill. Infinity when profitable. */
 export function runway(s: GameState, co: Company): number {
@@ -26,7 +28,7 @@ export function booksTick(s: GameState, flow: Record<Id, { rev: number; cogs: nu
     const f = flow[co.id] ?? { rev: 0, cogs: 0, cu: 0 };
     const prev = co.rev8;
     co.rev = f.rev;
-    const ox = opex(s, co);
+    const ox = opex(s, co) + interest(co);
     co.cash += f.rev - f.cogs - ox;
     co.cost = f.cogs + ox + (trainSpend[co.id] ?? 0);
     co.rev8 += 0.25 * (f.rev - co.rev8);

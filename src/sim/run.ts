@@ -256,7 +256,7 @@ export function runTick(s: GameState, run: Run): void {
 
 export function launch(s: GameState, run: Run): Model {
   const co = s.companies[run.lab], lab = co.lab!;
-  const mine = run.lab === s.labId;
+  const mine = run.lab === s.labId && run.handsOn;
   const segs = segmentsOf(run.bp.modality);
   const before = band(run);
   run.revealed = 1;
@@ -277,7 +277,7 @@ export function launch(s: GameState, run: Run): Model {
   const def = RIVAL_LABS.find((r) => r.id === run.lab);
   const count = Object.values(s.models).filter((m) => m.lab === run.lab).length;
   const model: Model = {
-    id: 'm' + s.nextId++, lab: run.lab, name: mine || !def ? run.name : `${def.series} ${count + 1}`, modality: run.bp.modality,
+    id: 'm' + s.nextId++, lab: run.lab, name: run.handsOn ? run.name : `${def?.series ?? co.name.split(' ')[0]} ${count + 1}`, modality: run.bp.modality,
     cap, attrs, price: 1, shipped: s.week, quirks, retired: false, arch: run.bp.arch, techniques: run.bp.techniques,
     params: Math.sqrt(run.flops / 120) * Math.pow(4, run.bp.sizeBias), verdict,
   };

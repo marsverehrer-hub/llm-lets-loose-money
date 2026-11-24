@@ -9,7 +9,11 @@ export type Style = 'hype' | 'research' | 'safety' | 'follower' | 'pricewar';
 /** Product attributes. cost = compute units per unit of demand served, speed = relative, trust = 0..1.2. */
 export interface Attrs { cost: number; speed: number; trust: number }
 
-export interface Actor { id: Id; name: string; cash: number; isPlayer: boolean }
+export interface Actor {
+  id: Id; name: string; cash: number; isPlayer: boolean;
+  /** Rival tycoons only: how they trade and when they raid. All 0..1. */
+  persona?: { greed: number; risk: number; ego: number; blurb: string };
+}
 
 export interface Ceo { name: string; style: Style; skill: number; ego: number }
 
@@ -36,10 +40,21 @@ export interface Company {
   rev: number; cost: number; // last week
   rev8: number; ni8: number; revGrowth: number; // moving averages
   negWeeks: number; raisedAt: Week;
+  /** Share of weekly profit paid out to all shareholders. */
+  payout: number;
+  pill: boolean; integrationUntil: Week;
   lab?: LabState;
 }
 
 export interface Holding { owner: Id; company: Id; shares: number }
+/** A trade in a company you control. It fills next week, at next week's price. */
+export interface Order { owner: Id; company: Id; shares: number }
+export interface Deal {
+  id: Id; bidder: Id; merge: boolean; // merge: a company absorbs the target; otherwise a person buys control
+  target: Id; offer: number; premium: number; opened: Week; closes: Week;
+  /** What the player does with their own shares in the target: null until answered. */
+  playerTenders: boolean | null;
+}
 
 export interface Blueprint {
   modality: Modality;
@@ -115,7 +130,9 @@ export type Moment =
       quirks: Id[]; flips: { account: string; seg: Id; from: Id | null }[]; rev: number; profit: number;
       move: number; rivalMoves: { co: Id; pct: number }[]; promise: 'hit' | 'miss' | null; scandal: boolean }
   | { kind: 'race'; race: Id; year: number; standings: { co: Id; score: number }[]; prize: number }
-  | { kind: 'end'; standings: { co: Id; cap: number; crowns: number; wins: number }[] }
+  | { kind: 'end'; standings: { id: Id; name: string; worth: number }[] }
+  | { kind: 'deal'; bidder: Id; bidderName: string; target: Id; targetName: string; merge: boolean; got: number; outcome: 'won' | 'short' | 'blocked'; paid: number; mine: boolean }
+  | { kind: 'ousted'; by: string; lab: string }
   | { kind: 'over'; reason: string };
 
 export interface News { week: Week; text: string; tone: 'good' | 'bad' | 'info'; co?: Id }
@@ -123,9 +140,15 @@ export interface News { week: Week; text: string; tone: 'good' | 'bad' | 'info';
 export interface GameState {
   v: number; seed: number; week: Week;
   playerId: Id; labId: Id; // the lab the player runs hands-on
+  /** False after a hostile takeover of your lab: you are a shareholder, not the boss, until you control a lab again. */
+  helm: boolean;
   actors: Record<Id, Actor>;
   companies: Record<Id, Company>;
   holdings: Holding[];
+  orders: Order[];
+  deals: Deal[];
+  /** Shares traded this week per owner and company, for the weekly limit. */
+  traded: Record<string, number>;
   models: Record<Id, Model>;
   runs: Record<Id, Run>;
   segments: Record<Id, Segment>;
@@ -151,4 +174,11 @@ export type Action =
   | { t: 'retire'; model: Id }
   | { t: 'buyData'; kind: string }
   | { t: 'raise' }
+  | { t: 'trade'; company: Id; shares: number } // signed: positive buys
+  | { t: 'buyback' }
+  | { t: 'borrow'; amount: number } // negative repays
+  | { t: 'payout'; rate: number }
+  | { t: 'tender'; target: Id; premium: number; as: 'me' | 'lab' }
+  | { t: 'defend'; deal: Id; choice: 'tender' | 'refuse' | 'pill' }
+  | { t: 'helm'; company: Id }
   | { t: 'tutorial'; step: number };

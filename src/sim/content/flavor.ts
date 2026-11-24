@@ -23,6 +23,15 @@ export const RIVAL_LABS: LabDef[] = [
     ceo: { name: 'Lucian Fresco', style: 'hype', skill: 0.7, ego: 0.6 }, cash: 22e6, start: 320 },
 ];
 
+/** The other names on the rich list. They trade every week; the bold ones raid. */
+export const TYCOONS = [
+  { id: 'stockwell', name: 'Barnaby Stockwell', blurb: 'Buys what is cheap and waits. Has been waiting since 1987.', cash: 150e6, greed: 0.2, risk: 0.3, ego: 0.3 },
+  { id: 'voss', name: 'Vivienne Voss', blurb: 'Corporate raider. Sends flowers the morning after.', cash: 120e6, greed: 0.6, risk: 0.9, ego: 0.8 },
+  { id: 'moon', name: 'Tobias Moonshot', blurb: 'Buys whatever went up last week, loudly.', cash: 80e6, greed: 0.9, risk: 0.7, ego: 0.6 },
+  { id: 'hale', name: 'Greta Hale', blurb: 'Activist. Writes open letters to boards for fun.', cash: 100e6, greed: 0.4, risk: 0.6, ego: 0.5 },
+  { id: 'sterling', name: 'Omar Sterling', blurb: 'Runs a sovereign fund the size of a small sea.', cash: 300e6, greed: 0.3, risk: 0.4, ego: 0.4 },
+];
+
 export const CODENAMES = [
   'Strawberry', 'Blueberry Muffin', 'Kumquat', 'Durian (Do Not Open)', 'Lingonberry', 'Omicron', 'Zeta Potential', 'Betelgeuse',
   'Sirius B', 'Mojave', 'Arrakis', 'Europa Clipper', 'Pluto Was Downgraded', 'Q-Star-ish', 'Tuesday Afternoon', 'Sourdough',

@@ -1,7 +1,10 @@
 // Balance assertions. Usage: npm run balance [-- --seeds=8]
 // Each check prints PASS or FAIL with the numbers behind it; the process exits 1 if any fail.
 import { play, randomBlueprint, type Policy } from './bot';
+import { apply } from '../src/sim/apply';
+import { endWeek } from '../src/sim/endWeek';
 import { rand } from '../src/sim/rand';
+import { netWorth } from '../src/sim/stock';
 import { band, startRun, trueCap } from '../src/sim/run';
 import { newGame } from '../src/sim/state';
 import { forecast, meanCap } from '../src/sim/view';
@@ -109,6 +112,21 @@ const median = (xs: number[]): number => [...xs].sort((a, b) => a - b)[Math.floo
   }
   console.log('      call picks (lookahead): ' + Object.entries(picks).map(([d, ns]) => `${d} ${ns.join('/')}`).join('  '));
   check('no call has an obvious answer', lopsided.length <= 3, lopsided.length ? 'lopsided: ' + lopsided.join(', ') : 'every drawn call splits its picks');
+}
+
+// 4. Financial engineering is not a money printer: issuing shares and buying them back leaves the founder poorer.
+{
+  let worse = 0;
+  for (let seed = 1; seed <= SEEDS; seed++) {
+    const base = play(seed, 'greedy', 60).s;
+    let a = structuredClone(base), b = structuredClone(base);
+    for (let i = 0; i < 4; i++) {
+      a = apply(a, { t: 'raise' });
+      for (let w = 0; w < 6; w++) { a.moments = []; b.moments = []; if (w === 1) a = apply(a, { t: 'buyback' }); a = endWeek(a); b = endWeek(b); }
+    }
+    if (netWorth(a, a.playerId) <= netWorth(b, b.playerId) * 1.02) worse++;
+  }
+  check('issue-and-buyback loops do not print money', worse >= SEEDS - 1, `${worse} of ${SEEDS} seeds end no richer than doing nothing`);
 }
 
 process.exit(failed ? 1 : 0);

@@ -15,10 +15,11 @@ const row = (): void => {
   console.log('w' + s.week + ' cu$' + Math.round(s.market.computePrice) + ' sc' + s.market.scarcity.toFixed(2) + ' ' + cells.join(' | '));
 };
 row();
-for (let i = 0; i < 144; i++) {
+for (let i = 0; i < Number(process.argv[3] ?? 144); i++) {
   s = endWeek(s);
-  s = { ...s, moments: [] };
-  if (s.week % 12 === 0) row();
+  s = { ...s, moments: [], over: false };
+  s.companies.lab.negWeeks = 0;
+  if (s.week % 48 === 0) row();
 }
 for (const seg of Object.values(s.segments)) {
   const def = SEGMENTS[seg.id];

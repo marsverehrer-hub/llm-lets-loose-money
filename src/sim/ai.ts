@@ -41,7 +41,7 @@ export function aiBlueprint(s: GameState, co: Company, m: Modality, compute: num
 
 export function aiTick(s: GameState, co: Company): void {
   const def = RIVAL_LABS.find((r) => r.id === co.id);
-  if (!def || !co.lab) return;
+  if (!co.lab) return;
   const st = STYLES[co.ceo.style];
   const burn = co.cost - co.rev;
   if (canRaise(s, co) && (co.cash < 0 || (burn > 0 && co.cash < 6 * burn))) {
@@ -52,7 +52,7 @@ export function aiTick(s: GameState, co: Company): void {
   if (!running && s.week - co.lab.lastLaunch >= st.gap && co.cash > 3e6) {
     const price = s.market.computePrice * RUSH[st.weeks];
     const compute = Math.max(40, (st.budget * co.cash * (0.8 + 0.4 * rand(s.seed, s.week, co.id, 'budget'))) / price);
-    startRun(s, co.id, aiBlueprint(s, co, def.modality, compute), 'internal', false);
+    startRun(s, co.id, aiBlueprint(s, co, def?.modality ?? 'lang', compute), 'internal', false);
   }
   // Reprice every four weeks; keep the two newest models on sale.
   if ((s.week + co.id.length) % 4 === 0) {

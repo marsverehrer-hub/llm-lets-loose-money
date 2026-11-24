@@ -87,6 +87,20 @@ for (const vp of VIEWPORTS) {
     await page.click(`.tabs button:has-text("${tab}")`);
     await shot(`5-${tab.toLowerCase()}`);
   }
+  await page.click('.tabs button:has-text("Street")');
+  await page.click('button:has-text("Rich list")');
+  await shot('6-richlist');
+  await page.click('button:has-text("Companies")');
+  await page.click('button[aria-label="Open Mistrial"]');
+  await shot('6-dossier');
+  if (await page.locator('#buy:not([disabled])').count()) await page.click('#buy');
+  await page.locator('.sheet-body').evaluate((el) => el.scrollTo(0, el.scrollHeight));
+  await shot('6-dossier-bid');
+  await page.click('.sheet .x');
+  await page.click('.tabs button:has-text("Empire")');
+  await page.evaluate(() => window.scrollTo(0, 500));
+  await shot('6-empire-finance');
+  await page.click('.tabs button:has-text("Desk")');
   await page.click('#skip');
   await shot('6-after-skip');
   // Drive the sim directly to the end of the year to see the race moment.

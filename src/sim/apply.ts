@@ -1,18 +1,25 @@
 // Every player action goes through here. Invalid actions return the same state object.
 import type { Action, GameState } from './types';
-import { raise } from './books';
+import { canRaise, raise } from './books';
+import { debtRoom, openTender, tenderCheck } from './deals';
 import { PRICE_STEPS } from './demand';
 import { RUSH, validate } from './resolve';
 import { answerCall, money, startRun } from './run';
+import { floatOf, quote, stake, trade, tradeCheck } from './stock';
 import { MODALITIES } from './content/modalities';
 
 export const dataCost = (s: GameState, base: number, level: number): number => base * (level + 1) * Math.pow(1.5, Math.floor(s.week / 48));
 export const handsOnRun = (s: GameState) => Object.values(s.runs).find((r) => r.lab === s.labId && r.status === 'running' && r.handsOn);
+export const BUYBACK = 0.03; // of shares outstanding
+export const PAYOUTS = [0, 0.1, 0.25, 0.5];
+/** Actions that need you to be running the lab, not just owning shares in it. */
+const HELM = new Set<Action['t']>(['startRun', 'answerCall', 'setPrice', 'retire', 'buyData', 'raise', 'buyback', 'borrow', 'payout']);
 
 /** Why an action is not allowed, or null. The UI uses this to disable buttons with a reason. */
 export function check(s: GameState, a: Action): string | null {
   const co = s.companies[s.labId];
   if (s.over && a.t !== 'dismissMoment') return 'The game is over.';
+  if (HELM.has(a.t) && !s.helm) return 'You no longer run a lab. Buy control of one on the Street.';
   if (a.t === 'startRun') {
     if (handsOnRun(s)) return 'You can only train one model hands-on at a time.';
     if (!a.name.trim()) return 'Give the model a codename.';
@@ -30,6 +37,34 @@ export function check(s: GameState, a: Action): string | null {
     if (!def) return 'Unknown data.';
     if (level >= 3) return 'You already license all of it.';
     if (co.cash < dataCost(s, def.cost, level)) return 'Not enough cash.';
+  }
+  if (a.t === 'raise' && !canRaise(s, co)) return 'The bankers need a few more weeks.';
+  if (a.t === 'trade') return tradeCheck(s, s.playerId, a.company, a.shares);
+  if (a.t === 'buyback') {
+    const n = BUYBACK * co.shares;
+    if (s.orders.some((o) => o.owner === co.id)) return 'A buyback is already filed.';
+    if (floatOf(s, co.id) < n) return 'Not enough shares on the market.';
+    if (co.cash < quote(s, co.id, n)) return 'The lab cannot afford it.';
+  }
+  if (a.t === 'borrow') {
+    if (!a.amount) return 'Nothing to borrow.';
+    if (a.amount > debtRoom(co) + 1) return `Lenders will go to ${money(debtRoom(co))} more.`;
+    if (a.amount < 0 && (-a.amount > co.debt + 1 || -a.amount > co.cash)) return 'Cannot repay that much.';
+  }
+  if (a.t === 'payout' && !PAYOUTS.includes(a.rate)) return 'Pick a payout rate.';
+  if (a.t === 'tender') {
+    if (a.as === 'lab' && !s.helm) return 'You no longer run a lab.';
+    return tenderCheck(s, a.as === 'lab' ? s.labId : s.playerId, a.as === 'lab', a.target, a.premium);
+  }
+  if (a.t === 'defend') {
+    const d = s.deals.find((x) => x.id === a.deal);
+    if (!d || d.playerTenders !== null) return 'Nothing to answer.';
+    if (a.choice === 'pill' && (!s.helm || d.target !== s.labId || s.companies[d.target].pill)) return 'No pill available.';
+  }
+  if (a.t === 'helm') {
+    if (!s.companies[a.company]?.lab || stake(s, s.playerId, a.company) < 0.5) return 'You need half the shares to take the helm.';
+    if (s.helm && s.labId === a.company) return 'You already run it.';
+    if (handsOnRun(s)) return 'Finish your current run first.';
   }
   if (a.t === 'dismissMoment' && !s.moments.length) return 'Nothing to dismiss.';
   return null;
@@ -63,6 +98,31 @@ export function apply(s0: GameState, a: Action): GameState {
     case 'raise': {
       const got = raise(s, co);
       s.log.push({ week: s.week, co: co.id, tone: 'info', text: `You sold new shares for ${money(got)}. Everyone owns a little less.` });
+      break;
+    }
+    case 'trade': trade(s, s.playerId, a.company, a.shares); break;
+    case 'buyback': trade(s, co.id, co.id, BUYBACK * co.shares); break;
+    case 'borrow': co.cash += a.amount; co.debt += a.amount; break;
+    case 'payout': co.payout = a.rate; break;
+    case 'tender': openTender(s, a.as === 'lab' ? s.labId : s.playerId, a.as === 'lab', a.target, a.premium); break;
+    case 'defend': {
+      const d = s.deals.find((x) => x.id === a.deal)!;
+      d.playerTenders = a.choice === 'tender';
+      if (a.choice === 'pill') {
+        const t = s.companies[d.target];
+        t.pill = true;
+        t.lab!.brand = Math.max(0, t.lab!.brand - 0.05);
+        s.log.push({ week: s.week, co: t.id, tone: 'info', text: `${t.name} adopts a poison pill. Governance experts tut.` });
+      }
+      break;
+    }
+    case 'helm': {
+      const old = s.companies[s.labId];
+      if (old && s.helm) old.ceo = { name: 'Interim CEO', style: 'follower', skill: 0.5, ego: 0.3 };
+      s.labId = a.company;
+      s.helm = true;
+      s.companies[a.company].ceo = { name: 'You', style: 'hype', skill: 0.5, ego: 0.5 };
+      s.log.push({ week: s.week, co: a.company, tone: 'good', text: `You take the helm at ${s.companies[a.company].name}.` });
       break;
     }
     case 'tutorial': s.tutorial = a.step; break;

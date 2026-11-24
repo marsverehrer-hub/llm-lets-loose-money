@@ -3,9 +3,11 @@ import type { GameState, Id } from './types';
 import { pick, rand } from './rand';
 import { aiTick } from './ai';
 import { booksTick, BUST_WEEKS, computePrice, priceTick } from './books';
+import { dealsTick, raidTick } from './deals';
 import { demandTick } from './demand';
 import { yearEnd, YEAR } from './goals';
 import { runTick } from './run';
+import { dividends, ordersTick, tycoonTick } from './stock';
 import { TECHS } from './content/tech';
 import { FILLER_NEWS } from './content/flavor';
 
@@ -13,6 +15,7 @@ import { FILLER_NEWS } from './content/flavor';
 export function blocker(s: GameState): string | null {
   if (s.over) return 'The game is over.';
   if (s.moments.length) return 'Something is waiting for you.';
+  if (s.deals.some((d) => d.target === s.labId && d.playerTenders === null)) return 'Someone is bidding for your lab. Answer them.';
   const run = Object.values(s.runs).find((r) => r.status === 'running' && r.handsOn && r.call);
   return run ? `${run.name} needs a decision.` : null;
 }
@@ -20,11 +23,12 @@ export function blocker(s: GameState): string | null {
 export function endWeek(s0: GameState): GameState {
   if (blocker(s0)) return s0; // 1 gate
   const s = structuredClone(s0);
-  const player = s.companies[s.labId];
 
   // 2 AI intents: every rival CEO acts on start-of-week state.
-  for (const co of Object.values(s.companies)) if (co.id !== s.labId) aiTick(s, co);
-  // 3 orders (M2)
+  for (const co of Object.values(s.companies)) if (co.id !== s.labId || !s.helm) aiTick(s, co);
+  // 3 orders: last week's filed orders fill first, then the tycoons trade on what they knew at the start of the week.
+  ordersTick(s);
+  for (const a of Object.values(s.actors)) if (a.persona) tycoonTick(s, a);
   // 5 runs: pay, progress, report, call. Launches happen here for delegated runs.
   const trainSpend: Record<Id, number> = {};
   let trainCu = 0;
@@ -43,7 +47,10 @@ export function endWeek(s0: GameState): GameState {
   s.market.scarcity = p.scarcity;
   // 8 books
   booksTick(s, flow, trainSpend);
-  // 9 deals (M2)
+  dividends(s);
+  // 9 deals: bids that are due close; a weak, diluted player may get raided.
+  dealsTick(s);
+  raidTick(s);
   // 10 prices
   s.market.sentiment = 0.5 * Math.sin((2 * Math.PI * s.week) / 130 + (s.seed % 7)) + 0.1 * (rand(s.seed, s.week, 'mkt', 'sent') - 0.5);
   priceTick(s);
@@ -55,7 +62,8 @@ export function endWeek(s0: GameState): GameState {
   for (const t of TECHS) if (t.week === s.week && t.week > 0) s.log.push({ week: s.week - 1, tone: 'info', text: `${t.name} is now public knowledge. Every lab can use it.` });
   if (rand(s.seed, s.week, 'news', 'filler') < 0.35) s.log.push({ week: s.week - 1, tone: 'info', text: pick(FILLER_NEWS, rand(s.seed, s.week, 'news', 'which')) });
   if (s.week % YEAR === 0) yearEnd(s);
-  if (player.negWeeks >= BUST_WEEKS) {
+  const player = s.companies[s.labId];
+  if (s.helm && player && player.negWeeks >= BUST_WEEKS) {
     s.over = true;
     s.moments.push({ kind: 'over', reason: `${player.name} ran out of money for eight weeks straight. The servers were repossessed mid-epoch.` });
   }
@@ -73,7 +81,7 @@ export function fastForward(s0: GameState, max = 12): { s: GameState; weeks: num
     const co = s.companies[s.labId];
     const burn = co.cost - co.rev;
     const rivalShip = s.log.some((n) => n.week === s.week - 1 && n.co && n.co !== s.labId && n.text.includes('ships'));
-    if (blocker(s) || rivalShip || (burn > 0 && co.cash < 8 * burn)) break;
+    if (blocker(s) || rivalShip || (s.helm && burn > 0 && co.cash < 8 * burn) || s.deals.some((d) => d.target === s.labId || d.bidder === s.labId || d.bidder === s.playerId)) break;
   }
   return { s, weeks };
 }

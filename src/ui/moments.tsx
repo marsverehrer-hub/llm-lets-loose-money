@@ -101,18 +101,42 @@ function RaceMoment({ s, m }: { s: GameState; m: Extract<Moment, { kind: 'race' 
 }
 
 function EndMoment({ s, m }: { s: GameState; m: Extract<Moment, { kind: 'end' }> }): JSX.Element {
-  const rank = m.standings.findIndex((x) => x.co === s.labId) + 1;
+  const rank = m.standings.findIndex((x) => x.id === s.playerId) + 1;
   return (
     <div class="moment">
       {rank === 1 && <Confetti />}
       <p class="eyebrow">Final standings</p>
-      <h1>{rank === 1 ? 'You run the biggest lab on Earth' : rank <= 3 ? `You finished #${rank}` : `You finished #${rank}. The Street is unmoved.`}</h1>
+      <h1>{rank === 1 ? 'Richest person in AI' : rank <= 3 ? `You finished #${rank} on the rich list` : `You finished #${rank}. The Street is unmoved.`}</h1>
       <ol class="standings big">
         {m.standings.map((x, i) => (
-          <li class={`in ${x.co === s.labId ? 'me' : ''}`}><span class="rank">{i + 1}</span><Logo co={s.companies[x.co]} size={28} /><span class="grow">{s.companies[x.co].name}<br /><span class="muted small">{x.crowns} crowns · {x.wins} race wins</span></span><b>{money(x.cap)}</b></li>
+          <li class={`in ${x.id === s.playerId ? 'me' : ''}`}><span class="rank">{i + 1}</span><Portrait name={x.id === s.playerId ? 'you' : x.name} style="follower" mood={i === 0 ? 'smug' : 'neutral'} size={36} /><span class="grow">{x.name}</span><b>{money(x.worth)}</b></li>
         ))}
       </ol>
       <div class="moment-foot row"><Btn kind="ghost" onClick={() => quit()}>New game</Btn><Btn kind="primary" id="moment-ok" onClick={() => act({ t: 'dismissMoment' })}>Keep playing</Btn></div>
+    </div>
+  );
+}
+
+function DealMoment({ m }: { m: Extract<Moment, { kind: 'deal' }> }): JSX.Element {
+  const [step] = useSteps(2, 900);
+  const got = Math.min(1, m.got);
+  const won = m.outcome === 'won';
+  const good = won === m.mine;
+  return (
+    <div class="moment">
+      {step >= 2 && won && m.mine && <Confetti />}
+      <p class="eyebrow">The shares are in</p>
+      <h1>{m.bidderName} {m.merge ? 'bids for all of' : 'bids for control of'} {m.targetName}</h1>
+      <div class="tender" role="img" aria-label={`${Math.round(got * 100)}% of the shares, against the 50% needed`}>
+        <span class="tender-fill" style={{ width: `${step >= 1 ? got * 100 : 0}%` }} /><span class="tender-line" /><span class="tender-label">50% to win</span>
+      </div>
+      {step >= 2 && (
+        <div class={`stamp ${good ? 'banger' : 'dud'}`}>
+          <strong>{m.outcome === 'won' ? (m.merge ? 'Merged' : 'Control taken') : m.outcome === 'blocked' ? 'Blocked' : 'Fell short'}</strong>
+          <span>{m.outcome === 'won' ? `${Math.round(got * 100)}% came in. The bill: ${money(m.paid)}.` : m.outcome === 'blocked' ? 'The shares came in, then the regulators did.' : `Only ${Math.round(got * 100)}% came in. The bidder pays a break fee and goes home.`}</span>
+        </div>
+      )}
+      <div class="moment-foot"><Btn kind="primary" id="moment-ok" onClick={() => act({ t: 'dismissMoment' })}>{good ? 'Excellent' : 'Noted'}</Btn></div>
     </div>
   );
 }
@@ -124,6 +148,16 @@ export function MomentView({ s }: { s: GameState }): JSX.Element | null {
   if (m.kind === 'launch') return <LaunchReveal key={key} s={s} m={m} />;
   if (m.kind === 'race') return <RaceMoment key={key} s={s} m={m} />;
   if (m.kind === 'end') return <EndMoment key={key} s={s} m={m} />;
+  if (m.kind === 'deal') return <DealMoment key={key} m={m} />;
+  if (m.kind === 'ousted') return (
+    <div class="moment">
+      <p class="eyebrow">Boardroom coup</p><h1>You have been shown the door</h1>
+      <Portrait name="you" mood="panic" size={96} />
+      <p>{m.by} now controls {m.lab}. Security was polite about it.</p>
+      <p class="muted">You keep your shares and your cash. Buy half of any lab on the Street and you can take its helm.</p>
+      <div class="moment-foot"><Btn kind="primary" id="moment-ok" onClick={() => act({ t: 'dismissMoment' })}>Plot a comeback</Btn></div>
+    </div>
+  );
   return (
     <div class="moment">
       <p class="eyebrow">Game over</p><h1>Bankrupt</h1>

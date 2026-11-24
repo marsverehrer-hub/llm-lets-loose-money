@@ -4,28 +4,28 @@ import { computePrice, fairValue } from './books';
 import { demandTick, fitOf } from './demand';
 import { launch, startRun } from './run';
 import { SEGMENTS } from './content/modalities';
-import { RIVAL_LABS } from './content/flavor';
+import { RIVAL_LABS, TYCOONS } from './content/flavor';
 
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 export const SAVE_KEY = 'llm-lets-loose-money/v2/save';
 const SHARES = 100e6;
 
 const lab = (brand: number): LabState => ({ techniques: [], data: {}, talent: 1, brand, hype: 0.1, lastLaunch: -99, history: [], maxCompute: 0, raceWins: 0 });
 const company = (c: Partial<Company> & Pick<Company, 'id' | 'name' | 'tagline' | 'color' | 'ceo' | 'cash'>): Company => ({
-  layer: 'lab', shares: SHARES, price: 1, hist: [], debt: 0, rev: 0, cost: 0, rev8: 0, ni8: 0, revGrowth: 0, negWeeks: 0, raisedAt: -99, ...c,
+  layer: 'lab', shares: SHARES, price: 1, hist: [], debt: 0, rev: 0, cost: 0, rev8: 0, ni8: 0, revGrowth: 0, negWeeks: 0, raisedAt: -99, payout: 0.05, pill: false, integrationUntil: 0, ...c,
 });
 
 export function newGame(seed: number, name = 'Loose Money Labs'): GameState {
   const s: GameState = {
-    v: SAVE_VERSION, seed, week: 0, playerId: 'you', labId: 'lab',
-    actors: { you: { id: 'you', name: 'You', cash: 0, isPlayer: true } },
-    companies: {}, holdings: [{ owner: 'you', company: 'lab', shares: SHARES * 0.6 }],
+    v: SAVE_VERSION, seed, week: 0, playerId: 'you', labId: 'lab', helm: true,
+    actors: { you: { id: 'you', name: 'You', cash: 5e6, isPlayer: true } },
+    companies: {}, holdings: [{ owner: 'you', company: 'lab', shares: SHARES * 0.6 }], orders: [], deals: [], traded: {},
     models: {}, runs: {}, segments: {},
     market: { sentiment: 0, ...computeStart() },
     known: {}, standing: {}, callCount: {}, moments: [], log: [], tutorial: 0, over: false, nextId: 1,
   };
   s.companies.lab = company({ id: 'lab', name, tagline: "IPO'd on a pitch deck.", color: '#ff5d73', cash: 20e6,
-    ceo: { name: 'You', style: 'hype', skill: 0.5, ego: 0.5 }, lab: { ...lab(0.1), hype: 0.3 } });
+    ceo: { name: 'You', style: 'hype', skill: 0.5, ego: 0.5 }, lab: { ...lab(0.1), hype: 0.3 }, payout: 0 });
   for (const d of RIVAL_LABS) s.companies[d.id] = company({ id: d.id, name: d.name, tagline: d.tagline, color: d.color, cash: d.cash, ceo: d.ceo, lab: lab(0.25) });
   for (const d of Object.values(SEGMENTS)) s.segments[d.id] = { id: d.id, size: d.size, fit0: 40, share: {}, accounts: d.accounts.map(() => null) };
 
@@ -49,6 +49,14 @@ export function newGame(seed: number, name = 'Loose Money Labs'): GameState {
     co.price = Math.max(0.2, fairValue(s, co) / co.shares);
     co.hist = [co.price];
   }
+  // Rival tycoons open with stakes in two labs each, bought from the float at the opening price.
+  TYCOONS.forEach((t, i) => {
+    s.actors[t.id] = { id: t.id, name: t.name, cash: t.cash, isPlayer: false, persona: { greed: t.greed, risk: t.risk, ego: t.ego, blurb: t.blurb } };
+    for (const k of [i, i + 3]) {
+      const co = s.companies[RIVAL_LABS[k % RIVAL_LABS.length].id];
+      s.holdings.push({ owner: t.id, company: co.id, shares: co.shares * (0.06 + 0.02 * (k % 3)) });
+    }
+  });
   s.log = [{ week: 0, tone: 'info', text: `${name} lists on the stock exchange with no product, no revenue and a very good slide deck.` }];
   return s;
 }

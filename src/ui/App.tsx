@@ -24,10 +24,10 @@ function NewGame(): JSX.Element {
     <main class="newgame">
       <div class="faces">{['Chet Vantage', 'Prudence Lindqvist', 'Dr. Ada Brackett'].map((n, i) => <Portrait name={n} style={['hype', 'safety', 'research'][i]} mood={(['smug', 'neutral', 'happy'] as const)[i]} size={64} />)}</div>
       <h1>LLM: Lets Loose Money</h1>
-      <p class="lead">You just took an AI lab public on the strength of a slide deck. Build models, steal customers, and out-raise, out-ship and outlast the other labs.</p>
+      <p class="lead">You just took an AI lab public on the strength of a slide deck. Build models, steal customers, then buy the competition before it buys you.</p>
       <label class="field"><span>Name your lab</span><input value={name} maxLength={24} onInput={(e) => setName((e.target as HTMLInputElement).value)} /></label>
       <Btn kind="primary" id="start" disabled={!name.trim()} onClick={() => start(seed, name.trim())}>Ring the bell</Btn>
-      <p class="muted small">Weekly turns. Three game years. Your game saves itself in this browser.</p>
+      <p class="muted small">Weekly turns, ten game years, ranked on the rich list at the end. Your game saves itself in this browser.</p>
     </main>
   );
 }
