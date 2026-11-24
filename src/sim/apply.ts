@@ -7,6 +7,7 @@ import { RUSH, validate } from './resolve';
 import { answerCall, money, startRun } from './run';
 import { floatOf, quote, stake, trade, tradeCheck } from './stock';
 import { CONTRACT_WEEKS, contractCheck, contractPrice, labPrice, playerControls } from './supply';
+import { answerOffer, projectCheck, startProject, upfront } from './offers';
 import { MODALITIES } from './content/modalities';
 
 export const dataCost = (s: GameState, base: number, level: number): number => base * (level + 1) * Math.pow(1.5, Math.floor(s.week / 48));
@@ -14,7 +15,7 @@ export const handsOnRun = (s: GameState) => Object.values(s.runs).find((r) => r.
 export const BUYBACK = 0.03; // of shares outstanding
 export const PAYOUTS = [0, 0.1, 0.25, 0.5];
 /** Actions that need you to be running the lab, not just owning shares in it. */
-const HELM = new Set<Action['t']>(['startRun', 'answerCall', 'setPrice', 'retire', 'buyData', 'raise', 'buyback', 'borrow', 'payout', 'contract']);
+const HELM = new Set<Action['t']>(['startRun', 'answerCall', 'setPrice', 'retire', 'buyData', 'raise', 'buyback', 'borrow', 'payout', 'contract', 'answerOffer', 'project']);
 
 /** Why an action is not allowed, or null. The UI uses this to disable buttons with a reason. */
 export function check(s: GameState, a: Action): string | null {
@@ -74,6 +75,12 @@ export function check(s: GameState, a: Action): string | null {
     if (a.block && (a.block === s.labId || !s.companies[a.block]?.lab)) return 'Pick a rival lab.';
     if (a.block && s.week < c.plant.decreeUntil) return 'Regulators forbid it for now.';
   }
+  if (a.t === 'answerOffer') {
+    const opt = s.offers.find((o) => o.id === a.offer)?.call.options[a.option];
+    if (!opt) return 'No such offer.';
+    if (upfront(opt.fx) > Math.max(0, co.cash)) return `The lab cannot pay ${money(upfront(opt.fx))} right now.`;
+  }
+  if (a.t === 'project') return projectCheck(s, a.model, a.kind, a.seg);
   if (a.t === 'dismissMoment' && !s.moments.length) return 'Nothing to dismiss.';
   return null;
 }
@@ -144,6 +151,8 @@ export function apply(s0: GameState, a: Action): GameState {
       if (a.block) p.blocked = p.blocked.includes(a.block) ? p.blocked.filter((x) => x !== a.block) : [...p.blocked, a.block];
       break;
     }
+    case 'answerOffer': answerOffer(s, a.offer, a.option); break;
+    case 'project': startProject(s, a.model, a.kind, a.seg); break;
     case 'tutorial': s.tutorial = a.step; break;
   }
   return s;

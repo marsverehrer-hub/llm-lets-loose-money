@@ -40,7 +40,7 @@ export function forecast(s: GameState, bp: Blueprint): Forecast {
   const weekly = (bp.compute / bp.weeks) * labPrice(s, s.labId) * RUSH[bp.weeks];
   const hyp = (c: Vec, price = 1) => ({
     id: 'hyp:new', lab: s.labId, name: '', modality: bp.modality, cap: c, attrs: b.attrs, price, shipped: s.week, quirks: [], retired: false,
-    arch: bp.arch, techniques: bp.techniques, params: b.N, verdict: 'as expected' as const,
+    arch: bp.arch, techniques: bp.techniques, params: b.N, verdict: 'as expected' as const, compute: bp.compute,
   });
   const base = projectRevenue(s, s.labId).profit;
   const price = autoPrice(s, hyp(cap));

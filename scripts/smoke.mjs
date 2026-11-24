@@ -70,7 +70,9 @@ for (const vp of VIEWPORTS) {
   let sawCall = false;
   for (let i = 0; i < 40; i++) {
     if (await page.locator('.moment').count()) break;
-    const option = page.locator('.option').first();
+    const offer = page.locator('.offer .option:not([disabled])').last();
+    if (await offer.count()) { await offer.click(); continue; }
+    const option = page.locator('.call .option').first();
     if (await option.count()) {
       if (!sawCall) { await shot('3-call'); sawCall = true; }
       await option.click();
@@ -82,6 +84,22 @@ for (const vp of VIEWPORTS) {
   if (!(await page.locator('.moment').count())) problems.push(`${vp.name}: never reached a launch moment`);
   await page.waitForSelector('#moment-ok');
   await shot('4-launch');
+  await page.click('#moment-ok');
+  // A side project: raise some cash, fine-tune the new model, then end weeks until it ships.
+  await page.click('.tabs button:has-text("Empire")');
+  await page.click('#raise');
+  await page.click('.tabs button:has-text("Lab")');
+  await page.click('details.side summary');
+  await page.click('details.side button:has-text("Fine-tune")');
+  await page.click('.tabs button:has-text("Desk")');
+  for (let i = 0; i < 12 && !(await page.locator('.moment').count()); i++) {
+    const offer = page.locator('.offer .option:not([disabled])').last();
+    const call = page.locator('.call .option').first();
+    if (await offer.count()) { await shot('4-offer'); await offer.click(); }
+    else if (await call.count()) await call.click();
+    else await page.click('#end-week');
+  }
+  await shot('4-variant');
   await page.click('#moment-ok');
   for (const tab of ['Lab', 'Market', 'Street', 'Empire', 'Desk']) {
     await page.click(`.tabs button:has-text("${tab}")`);

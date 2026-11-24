@@ -9,6 +9,7 @@ import { yearEnd, YEAR } from './goals';
 import { runTick } from './run';
 import { dividends, ordersTick, tycoonTick } from './stock';
 import { supplyTick } from './supply';
+import { agreementsTick, appsTick, offersTick, projectsTick } from './offers';
 import { MODALITIES } from './content/modalities';
 import { TECHS } from './content/tech';
 import { FILLER_NEWS } from './content/flavor';
@@ -41,12 +42,15 @@ export function endWeek(s0: GameState): GameState {
     trainSpend[run.lab] = (trainSpend[run.lab] ?? 0) + run.spent - before;
     use[run.lab] = (use[run.lab] ?? 0) + run.cuPerWeek;
   }
-  // 7 demand: shares drift to targets, accounts switch.
+  projectsTick(s);
+  // 7 demand: apps pick partners, shares drift to targets, accounts switch.
+  appsTick(s);
   const flow = demandTick(s);
   // 4 supply: next week's compute price follows this week's total appetite.
   for (const [lab, f] of Object.entries(flow)) use[lab] = (use[lab] ?? 0) + f.cu;
   Object.assign(flow, supplyTick(s, use));
   // 8 books
+  agreementsTick(s, flow);
   booksTick(s, flow, trainSpend);
   dividends(s);
   // 9 deals: bids that are due close; a weak, diluted player may get raided.
@@ -59,11 +63,13 @@ export function endWeek(s0: GameState): GameState {
 
   // 11 world
   for (const seg of Object.values(s.segments)) seg.size *= 1.012;
-  for (const co of Object.values(s.companies)) if (co.lab) co.lab.hype *= 0.93;
+  // Hype fades fast; star hires drift away slowly.
+  for (const co of Object.values(s.companies)) if (co.lab) { co.lab.hype *= 0.93; co.lab.talent += 0.01 * (1 - co.lab.talent); }
   s.week++;
   for (const t of TECHS) if (t.week === s.week && t.week > 0) s.log.push({ week: s.week - 1, tone: 'info', text: `${t.name} is now public knowledge. Every lab can use it.` });
   for (const m of Object.values(MODALITIES)) if (m.unlockWeek === s.week && s.week > 0) s.log.push({ week: s.week - 1, tone: 'good', text: `${m.name} models are now possible. A new market opens with nobody in it.` });
   if (rand(s.seed, s.week, 'news', 'filler') < 0.35) s.log.push({ week: s.week - 1, tone: 'info', text: pick(FILLER_NEWS, rand(s.seed, s.week, 'news', 'which')) });
+  offersTick(s);
   if (s.week % YEAR === 0) yearEnd(s);
   const player = s.companies[s.labId];
   if (s.helm && player && player.negWeeks >= BUST_WEEKS) {
@@ -84,7 +90,8 @@ export function fastForward(s0: GameState, max = 12): { s: GameState; weeks: num
     const co = s.companies[s.labId];
     const burn = co.cost - co.rev;
     const rivalShip = s.log.some((n) => n.week === s.week - 1 && n.co && n.co !== s.labId && n.text.includes('ships'));
-    if (blocker(s) || rivalShip || (s.helm && burn > 0 && co.cash < 8 * burn) || s.deals.some((d) => d.target === s.labId || d.bidder === s.labId || d.bidder === s.playerId)) break;
+    if (blocker(s) || rivalShip || (s.helm && burn > 0 && co.cash < 8 * burn) || s.deals.some((d) => d.target === s.labId || d.bidder === s.labId || d.bidder === s.playerId)
+      || s.offers.some((o) => o.big && o.expires === s.week + 2)) break;
   }
   return { s, weeks };
 }

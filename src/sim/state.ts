@@ -5,9 +5,10 @@ import { basePrice, supplyTick } from './supply';
 import { demandTick, fitOf } from './demand';
 import { launch, startRun } from './run';
 import { SEGMENTS } from './content/modalities';
-import { RIVAL_LABS, SUPPLIERS, TYCOONS } from './content/flavor';
+import { APPS, RIVAL_LABS, SUPPLIERS, TYCOONS } from './content/flavor';
+import { appsTick } from './offers';
 
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 export const SAVE_KEY = 'llm-lets-loose-money/v2/save';
 const SHARES = 100e6;
 
@@ -22,7 +23,7 @@ export function newGame(seed: number, name = 'Loose Money Labs'): GameState {
     actors: { you: { id: 'you', name: 'You', cash: 5e6, isPlayer: true } },
     companies: {}, holdings: [{ owner: 'you', company: 'lab', shares: SHARES * 0.6 }], orders: [], deals: [], traded: {},
     models: {}, runs: {}, segments: {},
-    market: { sentiment: 0, computePrice: basePrice(0), scarcity: 1, base: basePrice(0), binding: 'cloud', capacity: {}, demand: 0 }, contracts: [],
+    market: { sentiment: 0, computePrice: basePrice(0), scarcity: 1, base: basePrice(0), binding: 'cloud', capacity: {}, demand: 0 }, contracts: [], offers: [], agreements: [], projects: [],
     known: {}, standing: {}, callCount: {}, moments: [], log: [], tutorial: 0, over: false, nextId: 1,
   };
   s.companies.lab = company({ id: 'lab', name, tagline: "IPO'd on a pitch deck.", color: '#ff5d73', cash: 20e6,
@@ -43,6 +44,9 @@ export function newGame(seed: number, name = 'Loose Money Labs'): GameState {
   }
   for (const d of SUPPLIERS) s.companies[d.id] = company({ id: d.id, name: d.name, tagline: d.tagline, color: d.color, cash: d.cash, ceo: d.ceo, layer: d.layer,
     plant: { capacity: d.capacity, queue: [], posture: 0, capex: 1, blocked: [], decreeUntil: 0 } });
+  for (const d of APPS) s.companies[d.id] = company({ id: d.id, name: d.name, tagline: d.tagline, color: d.color, cash: d.cash, ceo: d.ceo, layer: 'app',
+    app: { reach: d.reach, base: d.base, partner: null, exclusive: false, cut: 0.2, until: 0 } });
+  appsTick(s); // each app picks a default lab
   let flow = demandTick(s);
   for (let i = 0; i < 12; i++) flow = demandTick(s);
   // One dry run of the chain gives suppliers their opening revenue and sets the opening price; then undo its side effects.

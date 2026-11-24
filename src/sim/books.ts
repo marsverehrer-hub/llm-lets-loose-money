@@ -32,7 +32,7 @@ export function booksTick(s: GameState, flow: Record<Id, { rev: number; cogs: nu
 }
 
 /** Revenue multiple by layer: the market pays most for labs and chip designers. */
-const MULTIPLE: Record<string, number> = { lab: 8, cloud: 5, chips: 7, fab: 4, power: 2 };
+const MULTIPLE: Record<string, number> = { lab: 8, cloud: 5, chips: 7, fab: 4, power: 2, app: 5 };
 
 export function fairValue(s: GameState, co: Company): number {
   const margin = co.rev8 > 1 ? clamp(co.ni8 / co.rev8, -0.5, 0.6) : 0;

@@ -35,7 +35,7 @@ export const weeklyCost = (_s: GameState, run: Run): number => run.cuPerWeek * r
 export function hypModel(s: GameState, run: Run, cap: Vec, price = 1): Model {
   const m: Model = {
     id: 'hyp:' + run.id, lab: run.lab, name: run.name, modality: run.bp.modality, cap, attrs: runAttrs(run), price,
-    shipped: s.week, quirks: [], retired: false, arch: run.bp.arch, techniques: run.bp.techniques, params: 0, verdict: 'as expected',
+    shipped: s.week, quirks: [], retired: false, arch: run.bp.arch, techniques: run.bp.techniques, params: 0, verdict: 'as expected', compute: run.bp.compute,
   };
   return m;
 }
@@ -123,6 +123,17 @@ export function fxChips(fx: Fx[], axes: string[]): Chip[] {
       out.push({ text: `${Math.round(f.p * 100)}% chance: ${bad || 'nothing'}`, tone: 'bad' });
       if (good) out.push({ text: `otherwise: ${good}`, tone: 'good' });
     }
+    else if (f.k === 'agree') {
+      const a = f.a;
+      if (a.kind === 'supply') out.push({ text: `${money(a.pay)}/wk for a year once you hit ${a.target}`, tone: 'good' }, { text: `${money(4 * a.pay)} penalty if late`, tone: 'bad' });
+      else if (a.kind === 'data') out.push({ text: 'Rivals lose most of this data for a year', tone: 'good' });
+      else if (a.kind === 'royalty') out.push({ text: `${Math.round(a.pay * 100)}% of their revenue for a year`, tone: 'good' });
+    }
+    else if (f.k === 'partner') out.push({ text: f.exclusive ? 'All their users default to you' : 'Half their users default to you', tone: 'good' }, { text: `They keep ${Math.round(f.cut * 100)}% of that revenue`, tone: 'bad' });
+    else if (f.k === 'dataLevel') out.push({ text: 'More of this data', tone: 'good' });
+    else if (f.k === 'contract') out.push({ text: `${Math.round(f.units)} compute-weeks a week at ${money(f.price)}`, tone: 'good' }, { text: 'Pay even if unused', tone: 'bad' });
+    else if (f.k === 'license') out.push({ text: 'They get a copy of your model', tone: 'bad' });
+    else if (f.k === 'rival') out.push({ text: `Their talent ${f.talent < 0 ? 'down' : 'up'}`, tone: f.talent < 0 ? 'good' : 'bad' });
   }
   return out;
 }
@@ -280,7 +291,7 @@ export function launch(s: GameState, run: Run): Model {
   const model: Model = {
     id: 'm' + s.nextId++, lab: run.lab, name: run.handsOn ? run.name : `${def?.series ?? co.name.split(' ')[0]} ${count + 1}`, modality: run.bp.modality,
     cap, attrs, price: 1, shipped: s.week, quirks, retired: false, arch: run.bp.arch, techniques: run.bp.techniques,
-    params: Math.sqrt(run.flops / 120) * Math.pow(4, run.bp.sizeBias), verdict,
+    params: Math.sqrt(run.flops / 120) * Math.pow(4, run.bp.sizeBias), verdict, compute: run.bp.compute,
   };
   s.models[model.id] = model;
   model.price = autoPrice(s, model);

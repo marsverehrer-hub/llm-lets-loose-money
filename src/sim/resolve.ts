@@ -32,7 +32,9 @@ export function world(seed: number, key: string): number {
 export function dataUnique(s: GameState, labId: Id, m: Modality, kind: Id): number {
   const def = MODALITIES[m].data.find((d) => d.id === kind)!;
   const level = s.companies[labId].lab?.data[kind] ?? 0;
-  return def.unique * Math.pow(1.017, s.week) * (1 + 0.6 * level);
+  // Someone else's exclusive deal locks most of this data away from you.
+  const locked = s.agreements?.some((a) => a.kind === 'data' && a.data === kind && a.lab !== labId && a.until > s.week);
+  return def.unique * Math.pow(1.017, s.week) * (1 + 0.6 * level) * (locked ? 0.4 : 1);
 }
 
 export function availableTechs(s: GameState, labId: Id, m: Modality): TechDef[] {

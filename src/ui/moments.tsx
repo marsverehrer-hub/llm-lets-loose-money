@@ -149,6 +149,24 @@ export function MomentView({ s }: { s: GameState }): JSX.Element | null {
   if (m.kind === 'race') return <RaceMoment key={key} s={s} m={m} />;
   if (m.kind === 'end') return <EndMoment key={key} s={s} m={m} />;
   if (m.kind === 'deal') return <DealMoment key={key} m={m} />;
+  if (m.kind === 'variant') {
+    const v = s.models[m.model], from = s.models[m.from];
+    return (
+      <div class="moment">
+        <p class="eyebrow">Side project shipped</p>
+        <h1>{v?.name ?? 'A new variant'}</h1>
+        <p class="muted">Built from {from?.name}. Serving cost {v && v.attrs.cost < m.costBefore ? `down ${Math.round((1 - v.attrs.cost / m.costBefore) * 100)}%` : 'unchanged'}. Both stay on sale; customers pick whichever suits them.</p>
+        <ul class="bench reveal">
+          {m.rows.map((r) => (
+            <li class="in"><div class="row"><span class="grow"><b>{SEGMENTS[r.seg].bench}</b></span>
+              <span class={r.after > r.before ? 'good score' : 'score'}>{r.before.toFixed(1)} → {r.after.toFixed(1)}</span></div></li>
+          ))}
+        </ul>
+        <p class="money">{money(m.rev)}<span class="muted"> a week, whole lab</span></p>
+        <div class="moment-foot"><Btn kind="primary" id="moment-ok" onClick={() => act({ t: 'dismissMoment' })}>Nice</Btn></div>
+      </div>
+    );
+  }
   if (m.kind === 'ousted') return (
     <div class="moment">
       <p class="eyebrow">Boardroom coup</p><h1>You have been shown the door</h1>
@@ -158,6 +176,7 @@ export function MomentView({ s }: { s: GameState }): JSX.Element | null {
       <div class="moment-foot"><Btn kind="primary" id="moment-ok" onClick={() => act({ t: 'dismissMoment' })}>Plot a comeback</Btn></div>
     </div>
   );
+  if (m.kind !== 'over') return null;
   return (
     <div class="moment">
       <p class="eyebrow">Game over</p><h1>Bankrupt</h1>

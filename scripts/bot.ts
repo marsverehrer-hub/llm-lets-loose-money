@@ -16,7 +16,7 @@ import { MODALITIES } from '../src/sim/content/modalities';
 import { archsOf } from '../src/sim/content/tech';
 
 export type Policy = 'random' | 'greedy' | 'lookahead';
-export interface BotResult { s: GameState; picks: Record<string, number[]>; launches: number; bust: boolean; revenue: number }
+export interface BotResult { s: GameState; picks: Record<string, number[]>; launches: number; bust: boolean; revenue: number; busyWeeks: number; helmWeeks: number; offers: number; declined: number }
 
 /** A random valid blueprint. `u` yields uniform numbers. */
 export function randomBlueprint(s: GameState, m: Modality, compute: number, u: () => number): Blueprint {
@@ -57,16 +57,53 @@ function expected(s: GameState, runId: string, fx: Fx[]): number {
   return f.p * expected(s, runId, [...rest, ...f.bad]) + (1 - f.p) * expected(s, runId, [...rest, ...f.good]);
 }
 
-export function play(seed: number, policy: Policy, weeks = 144, m: Modality = 'lang'): BotResult {
+/** Value of a state for comparing offer answers: lab cash plus half a year of its current weekly profit. */
+function worth(s: GameState): number {
+  const co = s.companies[s.labId];
+  return co ? co.cash + 24 * (co.rev - co.cost) : 0;
+}
+
+/** Play an offer answer forward a few weeks with no other decisions, and score where it lands. */
+function rollout(s0: GameState, offer: string, option: number, weeks = 8): number {
+  let s = apply(s0, { t: 'answerOffer', offer, option });
+  for (let i = 0; i < weeks && !s.over; i++) {
+    while (s.moments.length) s = apply(s, { t: 'dismissMoment' });
+    const run = handsOnRun(s);
+    if (run?.call) s = apply(s, { t: 'answerCall', run: run.id, option: 0 });
+    s.offers = [];
+    s = endWeek(s);
+  }
+  return worth(s);
+}
+
+export type OfferMode = 'accept' | 'decline' | 'rollout' | 'random';
+export function play(seed: number, policy: Policy, weeks = 144, m: Modality = 'lang', offerMode?: OfferMode): BotResult {
+  const om: OfferMode = offerMode ?? (policy === 'lookahead' ? 'rollout' : policy === 'random' ? 'random' : 'accept');
   let s = newGame(seed);
   let n = 0;
   const u = (): number => rand(seed, n++, 'bot', policy);
   const picks: Record<string, number[]> = {};
-  let launches = 0, revenue = 0;
+  let launches = 0, revenue = 0, busyWeeks = 0, helmWeeks = 0, offers = 0, declined = 0;
   for (let w = 0; w < weeks && !s.over; w++) {
     while (s.moments.length) { if (s.moments[0].kind === 'launch') launches++; s = apply(s, { t: 'dismissMoment' }); }
     const lab = () => s.companies[s.labId];
     let run = handsOnRun(s);
+    if (s.helm) { helmWeeks++; if (run?.call || s.offers.length) busyWeeks++; }
+    const raid = s.deals.find((d) => d.target === s.labId && d.playerTenders === null);
+    if (raid) s = apply(s, { t: 'defend', deal: raid.id, choice: 'refuse' });
+    for (const o of [...s.offers]) {
+      const opts = o.call.options;
+      let pick = 0;
+      if (om === 'random') pick = Math.floor(u() * opts.length);
+      else if (om === 'decline') pick = opts.findIndex((x) => !x.fx.length);
+      else if (om === 'rollout') {
+        const vals = opts.map((_, i) => rollout(s, o.id, i));
+        pick = vals.indexOf(Math.max(...vals));
+      }
+      offers++;
+      if (!opts[pick].fx.length) declined++;
+      s = apply(s, { t: 'answerOffer', offer: o.id, option: pick });
+    }
     if (run?.call) {
       const opts = run.call.options;
       let pick = 0;
@@ -100,5 +137,5 @@ export function play(seed: number, policy: Policy, weeks = 144, m: Modality = 'l
     s = endWeek(s);
     revenue += s.companies[s.labId].rev;
   }
-  return { s, picks, launches, bust: s.over, revenue };
+  return { s, picks, launches, bust: s.over, revenue, busyWeeks, helmWeeks, offers, declined };
 }

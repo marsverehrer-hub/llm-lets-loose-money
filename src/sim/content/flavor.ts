@@ -36,6 +36,18 @@ export const SUPPLIERS: SupplierDef[] = [
   { id: 'fusion', name: 'Helios-ish Fusion', tagline: 'Net energy gain by next year. Every year.', color: '#f43f5e', layer: 'power', capacity: 230, cash: 80e6, ceo: { name: 'Max Plasma', style: 'hype', skill: 0.4, ego: 0.9 } },
 ];
 
+/** App companies own users. Whichever lab they pick as their default model gets those users without a fight. */
+export interface AppDef { id: Id; name: string; tagline: string; color: string; reach: Record<Id, number>; base: number; cash: number; ceo: { name: string; style: Style; skill: number; ego: number } }
+export const APPS: AppDef[] = [
+  { id: 'searchly', name: 'Searchly', tagline: 'Ten blue links and an apology.', color: '#3b82f6', reach: { 'lang.consumer': 0.14 }, base: 1.2e6, cash: 200e6, ceo: { name: 'Larry Pagerank', style: 'follower', skill: 0.6, ego: 0.6 } },
+  { id: 'officely', name: 'Officely Suite', tagline: 'Your spreadsheet now has opinions.', color: '#16a34a', reach: { 'lang.ent': 0.16, 'lang.dev': 0.06 }, base: 0.9e6, cash: 150e6, ceo: { name: 'Clip P. Yclip', style: 'safety', skill: 0.6, ego: 0.4 } },
+  { id: 'pocket', name: 'Applet Intelligence', tagline: 'A billion pockets, one privacy page.', color: '#64748b', reach: { 'lang.consumer': 0.12, 'image.consumer': 0.1 }, base: 2e6, cash: 400e6, ceo: { name: 'Tim Crook', style: 'safety', skill: 0.7, ego: 0.7 } },
+  { id: 'canvass', name: 'Canvass', tagline: 'Drag, drop, generate, regret.', color: '#e879f9', reach: { 'image.ads': 0.15, 'image.studio': 0.1 }, base: 0.5e6, cash: 60e6, ceo: { name: 'Mel Perkins-ish', style: 'hype', skill: 0.6, ego: 0.5 } },
+];
+
+/** Publishers who sell data deals. */
+export const PUBLISHERS = ['The Daily Paywall', 'Reddish', 'Stack Underflow Inc', 'Big Five Books', 'Gettyish Images', 'StreamVault'];
+
 /** The other names on the rich list. They trade every week; the bold ones raid. */
 export const TYCOONS = [
   { id: 'stockwell', name: 'Barnaby Stockwell', blurb: 'Buys what is cheap and waits. Has been waiting since 1987.', cash: 150e6, greed: 0.2, risk: 0.3, ego: 0.3 },

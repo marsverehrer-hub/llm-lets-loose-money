@@ -61,7 +61,25 @@ export interface Company {
   pill: boolean; integrationUntil: Week;
   lab?: LabState;
   plant?: Plant;
+  app?: AppState;
 }
+
+/** An app company: it owns users in a few segments, and sends them to whichever lab's model it uses by default. */
+export interface AppState {
+  reach: Record<Id, number>; // segment id -> share of that segment it owns
+  base: number; // weekly revenue from its own subscribers
+  partner: Id | null; exclusive: boolean; cut: number; until: Week;
+}
+
+/** A deal the player signed through an offer. */
+export interface Agreement {
+  id: Id; kind: 'supply' | 'data' | 'royalty'; lab: Id; other: Id | null; until: Week; pay: number;
+  seg?: Id; target?: number; due?: Week; met?: boolean; account?: string; data?: string;
+}
+/** An offer on the Desk. Options are plain effect lists like a run's calls. */
+export interface Offer { id: Id; kind: Id; from: Id | null; expires: Week; big: boolean; call: Call }
+/** A short job on a shipped model: a fine-tune for one segment, or a distilled cheap copy. */
+export interface Project { id: Id; lab: Id; model: Id; kind: 'tune' | 'distill'; seg: Id | null; done: Week }
 
 export interface Holding { owner: Id; company: Id; shares: number }
 /** A trade in a company you control. It fills next week, at next week's price. */
@@ -100,7 +118,14 @@ export type Fx =
   | { k: 'learn'; tech: Id }
   | { k: 'kill' }
   | { k: 'ship' }
-  | { k: 'risk'; p: number; bad: Fx[]; good: Fx[] };
+  | { k: 'risk'; p: number; bad: Fx[]; good: Fx[] }
+  // Offer effects: they act on the lab and the world, not on a run.
+  | { k: 'agree'; a: Omit<Agreement, 'id'> }
+  | { k: 'partner'; app: Id; exclusive: boolean; cut: number; weeks: number }
+  | { k: 'dataLevel'; kind: string }
+  | { k: 'contract'; units: number; price: number; weeks: number }
+  | { k: 'license'; model: Id; to: Id }
+  | { k: 'rival'; co: Id; talent: number };
 
 export interface CallOption { label: string; note: string; fx: Fx[] }
 export interface Call { def: Id; title: string; body: string; options: CallOption[] }
@@ -133,6 +158,9 @@ export interface Model {
   price: number;
   shipped: Week; quirks: Id[]; retired: boolean;
   arch: Id; techniques: Id[]; params: number; verdict: Verdict;
+  /** Training compute, for pricing fine-tunes and distills. */
+  compute: number;
+  variantOf?: Id;
 }
 
 export interface Segment {
@@ -152,6 +180,7 @@ export type Moment =
   | { kind: 'end'; standings: { id: Id; name: string; worth: number }[] }
   | { kind: 'deal'; bidder: Id; bidderName: string; target: Id; targetName: string; merge: boolean; got: number; outcome: 'won' | 'short' | 'blocked'; paid: number; mine: boolean }
   | { kind: 'ousted'; by: string; lab: string }
+  | { kind: 'variant'; model: Id; from: Id; rows: { seg: Id; before: number; after: number }[]; costBefore: number; rev: number }
   | { kind: 'over'; reason: string };
 
 export interface News { week: Week; text: string; tone: 'good' | 'bad' | 'info'; co?: Id }
@@ -173,6 +202,9 @@ export interface GameState {
   segments: Record<Id, Segment>;
   market: { sentiment: number; computePrice: number; scarcity: number; base: number; binding: Layer; capacity: Record<string, number>; demand: number };
   contracts: Contract[];
+  offers: Offer[];
+  agreements: Agreement[];
+  projects: Project[];
   /** Hidden truths the player has discovered: 'syn:a:b', 'dq:web'. Value 1 = known. */
   known: Record<string, number>;
   standing: Record<Id, number>; // call def id -> option index to auto-pick
@@ -203,4 +235,6 @@ export type Action =
   | { t: 'helm'; company: Id }
   | { t: 'contract'; units: number }
   | { t: 'lever'; company: Id; posture?: -1 | 0 | 1; capex?: 0 | 1 | 2; block?: Id }
+  | { t: 'answerOffer'; offer: Id; option: number }
+  | { t: 'project'; model: Id; kind: 'tune' | 'distill'; seg: Id | null }
   | { t: 'tutorial'; step: number };

@@ -4,6 +4,27 @@ import { dot } from './rand';
 import { labPrice } from './supply';
 import { SEGMENTS, type SegmentDef } from './content/modalities';
 
+/** Users an app hands to its partner lab in a segment: all of its reach if exclusive, half if not. Only labs selling there count. */
+export function captive(s: GameState, segId: Id, selling: Set<Id>): Record<Id, number> {
+  const out: Record<Id, number> = {};
+  for (const c of Object.values(s.companies)) {
+    const a = c.app, r = a?.reach[segId];
+    if (!a?.partner || !r || !selling.has(a.partner)) continue;
+    out[a.partner] = (out[a.partner] ?? 0) + r * (a.exclusive ? 1 : 0.5);
+  }
+  return out;
+}
+
+/** Each lab's real share of a segment: its captive users plus its cut of the open market. */
+export function blend(capt: Record<Id, number>, share: Record<Id, number>): Record<Id, number> {
+  const free = 1 - Object.values(capt).reduce((a, b) => a + b, 0);
+  const out: Record<Id, number> = {};
+  for (const lab of new Set([...Object.keys(capt), ...Object.keys(share)])) out[lab] = (capt[lab] ?? 0) + free * (share[lab] ?? 0);
+  return out;
+}
+export const shareOf = (s: GameState, segId: Id): Record<Id, number> =>
+  blend(captive(s, segId, new Set(offers(s, segId).map((o) => o.lab))), s.segments[segId].share);
+
 export const PRICE_STEPS = [0.5, 0.65, 0.8, 1, 1.25, 1.6, 2, 2.5];
 
 export const fitOf = (def: SegmentDef, cap: Vec): number => dot(def.w, cap);
@@ -76,9 +97,10 @@ export function projectRevenue(s: GameState, labId: Id, hyp?: Model): Projection
     const o = t.offers.find((x) => x.lab === labId);
     const lead = leader(s, segId, labId);
     const f = hyp ? fitOf(def, hyp.cap) : o?.fit ?? 0;
-    const units = (t.share[labId] ?? 0) * s.segments[segId].size;
+    const sh = blend(captive(s, segId, new Set(t.offers.map((x) => x.lab))), t.share)[labId] ?? 0;
+    const units = sh * s.segments[segId].size;
     rows.push({
-      seg: segId, share: t.share[labId] ?? 0, fit: f, leader: lead.lab, leaderFit: lead.fit, crown: f > lead.fit,
+      seg: segId, share: sh, fit: f, leader: lead.lab, leaderFit: lead.fit, crown: f > lead.fit,
       rev: o ? units * def.pRef * o.model.price : 0, profit: o ? units * unitMargin(s, def, o.model) : 0,
     });
   }
@@ -106,27 +128,44 @@ export function demandTick(s: GameState): Record<Id, { rev: number; cogs: number
       if (v > 1e-4) next[lab] = v;
     }
     seg.share = next;
+    const capt = captive(s, segId, new Set(t.offers.map((o) => o.lab)));
+    const total = blend(capt, next);
     for (const o of t.offers) {
-      const units = (next[o.lab] ?? 0) * seg.size;
+      const units = (total[o.lab] ?? 0) * seg.size;
       const cu = units * def.load * o.model.attrs.cost;
       const e = (out[o.lab] ??= { rev: 0, cogs: 0, cu: 0 });
       e.rev += units * def.pRef * o.model.price;
       e.cogs += cu * labPrice(s, o.lab);
       e.cu += cu;
+      // The partner app takes its cut of the users it brought.
+      for (const c of Object.values(s.companies)) {
+        const a = c.app;
+        if (a?.partner !== o.lab || !a.reach[segId]) continue;
+        const fee = a.cut * a.reach[segId] * (a.exclusive ? 1 : 0.5) * seg.size * def.pRef * o.model.price;
+        e.cogs += fee;
+        (out[c.id] ??= { rev: 0, cogs: 0, cu: 0 }).rev += fee;
+      }
     }
-    reseat(s, segId);
+    reseat(s, segId, total);
+  }
+  // Apps also earn from their own subscribers.
+  for (const c of Object.values(s.companies)) if (c.app) {
+    const e = (out[c.id] ??= { rev: 0, cogs: 0, cu: 0 });
+    const base = c.app.base * Math.pow(1.006, s.week);
+    e.rev += base;
+    e.cogs += 0.6 * base;
   }
   return out;
 }
 
 /** Named accounts follow share: a lab with 40% of a segment holds about 40% of its accounts. */
-function reseat(s: GameState, segId: Id): void {
+function reseat(s: GameState, segId: Id, share: Record<Id, number>): void {
   const seg = s.segments[segId];
   const def = SEGMENTS[segId];
   const n = seg.accounts.length;
   const want: Record<Id, number> = {};
-  const labs = Object.keys(seg.share).sort((a, b) => seg.share[b] - seg.share[a]);
-  for (const lab of labs) want[lab] = Math.round(seg.share[lab] * n);
+  const labs = Object.keys(share).sort((a, b) => share[b] - share[a]);
+  for (const lab of labs) want[lab] = Math.round(share[lab] * n);
   const have: Record<Id, number> = {};
   seg.accounts.forEach((lab, i) => {
     if (!lab) return;

@@ -1,6 +1,7 @@
 // Balance assertions. Usage: npm run balance [-- --seeds=8]
 // Each check prints PASS or FAIL with the numbers behind it; the process exits 1 if any fail.
-import { play, randomBlueprint, type Policy } from './bot';
+import { play, randomBlueprint, type OfferMode, type Policy } from './bot';
+import { OFFERS } from '../src/sim/content/offers';
 import { apply } from '../src/sim/apply';
 import { endWeek } from '../src/sim/endWeek';
 import { rand } from '../src/sim/rand';
@@ -127,6 +128,25 @@ const median = (xs: number[]): number => [...xs].sort((a, b) => a - b)[Math.floo
     if (netWorth(a, a.playerId) <= netWorth(b, b.playerId) * 1.02) worse++;
   }
   check('issue-and-buyback loops do not print money', worse >= SEEDS - 1, `${worse} of ${SEEDS} seeds end no richer than doing nothing`);
+}
+
+// 5. Every week matters: most weeks bring a call or an offer, and answering offers well beats saying yes to everything.
+{
+  const busy = [1, 2, 3].map((seed) => { const r = play(seed, 'greedy', 480); return r.busyWeeks / Math.max(1, r.helmWeeks); });
+  check('most weeks have a decision', median(busy) >= 0.75, `median ${Math.round(100 * median(busy))}% of weeks in charge have a call or an offer (want 75%+)`);
+  const worth = (mode: OfferMode): number => median(Array.from({ length: SEEDS }, (_, i) => netWorth(play(i + 1, 'greedy', 144, 'lang', mode).s, 'you')));
+  const yes = worth('accept'), no = worth('decline');
+  let best = { kind: '', v: -Infinity };
+  for (const d of OFFERS) {
+    const make = d.make;
+    d.make = (c) => { const r = make(c); if (r) r.call.options = r.call.options.filter((o) => !o.fx.length); return r; };
+    const v = worth('accept');
+    d.make = make;
+    if (v > best.v) best = { kind: d.id, v };
+  }
+  const fmt = (x: number): string => '$' + (x / 1e6).toFixed(0) + 'M';
+  check('offers matter', yes > 1.2 * no, `median net worth: accept everything ${fmt(yes)}, decline everything ${fmt(no)}`);
+  check('saying yes to everything is not best', best.v > 1.05 * yes, `declining every ${best.kind} offer reaches ${fmt(best.v)} against ${fmt(yes)} for accepting all`);
 }
 
 process.exit(failed ? 1 : 0);

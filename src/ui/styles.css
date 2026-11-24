@@ -103,7 +103,8 @@ main { padding: 12px 14px calc(170px + env(safe-area-inset-bottom)); }
 /* Calls */
 .options { display: grid; gap: 10px; margin-top: 10px; }
 .option, .pick { display: grid; gap: 5px; text-align: left; width: 100%; padding: 12px; border: 2.5px solid var(--ink); border-radius: 14px; background: #fff; box-shadow: 0 4px 0 var(--ink); min-height: 48px; }
-.option:active, .pick:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
+.option:disabled { opacity: 0.5; box-shadow: none; }
+.option:active:not(:disabled), .pick:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
 .option strong, .pick strong { font: 700 16.5px var(--display); } .note { color: var(--muted); font-size: 14px; }
 .picks { display: grid; gap: 10px; } .pick.on { background: #e3f9f1; outline: 3px solid var(--teal); } .pick:disabled { opacity: 0.45; box-shadow: none; }
 .roll { position: relative; height: 22px; border: 2.5px solid var(--ink); border-radius: 11px; background: #c9f7dc; overflow: visible; margin: 14px 0; }
@@ -149,6 +150,7 @@ main { padding: 12px 14px calc(170px + env(safe-area-inset-bottom)); }
 .confetti { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 31; }
 .confetti i { position: absolute; top: -20px; left: var(--x); width: 10px; height: 16px; background: var(--c); border: 1.5px solid var(--ink); animation: fall 2.2s var(--d) ease-in forwards; }
 
+details.side { margin: 8px 0; } details.side summary { min-height: 44px; display: flex; align-items: center; font-weight: 800; cursor: pointer; }
 .chain li { padding: 8px 0; border-bottom: 1.5px dashed var(--line); } .chain li.tight { background: #fff0f1; margin: 0 -14px; padding: 8px 14px; }
 button.chip { min-height: 44px; cursor: pointer; } button.chip:disabled { opacity: 0.5; }
 .btn.wide { width: 100%; margin: 6px 0; }
