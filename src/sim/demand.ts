@@ -1,13 +1,14 @@
 // Who buys from whom. Each lab offers a segment its best profitable model; share is a logit with an outside option.
 import type { GameState, Id, Model, Vec } from './types';
 import { dot } from './rand';
+import { labPrice } from './supply';
 import { SEGMENTS, type SegmentDef } from './content/modalities';
 
 export const PRICE_STEPS = [0.5, 0.65, 0.8, 1, 1.25, 1.6, 2, 2.5];
 
 export const fitOf = (def: SegmentDef, cap: Vec): number => dot(def.w, cap);
 export const unitMargin = (s: GameState, def: SegmentDef, m: Model): number =>
-  def.pRef * m.price - m.attrs.cost * def.load * s.market.computePrice;
+  def.pRef * m.price - m.attrs.cost * def.load * labPrice(s, m.lab);
 
 export interface Offer { lab: Id; model: Model; u: number; fit: number }
 
@@ -110,7 +111,7 @@ export function demandTick(s: GameState): Record<Id, { rev: number; cogs: number
       const cu = units * def.load * o.model.attrs.cost;
       const e = (out[o.lab] ??= { rev: 0, cogs: 0, cu: 0 });
       e.rev += units * def.pRef * o.model.price;
-      e.cogs += cu * s.market.computePrice;
+      e.cogs += cu * labPrice(s, o.lab);
       e.cu += cu;
     }
     reseat(s, segId);

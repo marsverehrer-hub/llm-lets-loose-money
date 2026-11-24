@@ -20,6 +20,9 @@ export const ARCHS: ArchDef[] = [
   { id: 'unet', name: 'Diffusion U-Net', blurb: 'The safe default. Slightly melted hands.', mods: ['image'], eff: 1, cost: 1, speed: 1, cap: [0, 0, 0, 0], instab: 0 },
   { id: 'dit', name: 'Diffusion Transformer', blurb: 'Scales beautifully. Bills beautifully too.', mods: ['image'], eff: 1.12, cost: 1.4, speed: 0.7, cap: [1.5, 2, 0, -1], instab: 0.15 },
   { id: 'arpix', name: 'Autoregressive Pixels', blurb: 'Draws one patch at a time and can finally spell.', mods: ['image'], eff: 0.9, cost: 1.2, speed: 0.45, cap: [-1.5, 1, 4.5, 0], instab: 0.1 },
+  { id: 'vdiff', name: 'Video Diffusion', blurb: 'The safe default. Things wobble a little.', mods: ['video'], eff: 1, cost: 1, speed: 1, cap: [0, 0, 0, 0], instab: 0 },
+  { id: 'sttx', name: 'Space-Time Transformer', blurb: 'Understands that things keep existing. Costs a fortune.', mods: ['video'], eff: 1.1, cost: 1.5, speed: 0.6, cap: [1, 3, 0, 0], instab: 0.15 },
+  { id: 'framear', name: 'Frame-by-Frame Autoregressor', blurb: 'Long clips, one patient frame at a time.', mods: ['video'], eff: 0.9, cost: 1.3, speed: 0.4, cap: [-1, 0, 1, 4.5], instab: 0.1 },
 ];
 
 export const TECHS: TechDef[] = [
@@ -40,6 +43,10 @@ export const TECHS: TechDef[] = [
   { id: 'lcm', name: 'Four-Step Distillation', up: 'Near instant and dirt cheap', down: 'Detail goes soft', mods: ['image'], week: 24, speed: 3, cost: 0.4, cap: [-3, -1, -1, 0] },
   { id: 'nsfw', name: 'Classifier Sandwich', up: 'Brands feel safe', down: 'Blocks a lot of harmless art', mods: ['image'], week: 0, trust: 0.25, cap: [0, 0, 0, -2.5] },
   { id: 'recap', name: 'Recaptioned Everything', up: 'Follows prompts closely', down: 'Needs a second model in the loop', mods: ['image'], week: 48, cap: [0, 5, 1, 0], computeMult: 0.9 },
+  { id: 'interp', name: 'Frame Interpolation', up: 'Buttery motion', down: 'Smears fine detail', mods: ['video'], week: 96, cap: [-2, 5, 0, 1] },
+  { id: 'watermark', name: 'Provenance Watermark', up: 'Studios and brands trust it', down: 'Visible if you squint', mods: ['video'], week: 96, trust: 0.25, cap: [-2, 0, 0, 0] },
+  { id: 'upscale', name: 'Cascaded Upscaler', up: 'Looks like real footage', down: 'Slow and pricey per clip', mods: ['video'], week: 108, cap: [5, 0, 0, -1], cost: 1.5, speed: 0.6 },
+  { id: 'physics', name: 'Physics Prior', up: 'Objects obey gravity', down: 'Eats compute', mods: ['video'], week: 120, cap: [2, 4, 0, 0], computeMult: 0.85 },
 ];
 
 // `at` is log10 of effective training FLOPs. Good ones add capability; bad ones cost trust unless suppressed.
@@ -61,6 +68,10 @@ export const EMERGENCES: EmergenceDef[] = [
   { id: 'copycat', name: 'Reproduces a famous painting a bit too well', mods: ['image'], at: 22.3, axis: 3, add: 2, bad: true },
   { id: 'sign', name: 'Spells the shop sign', mods: ['image'], at: 22.8, axis: 2, add: 3, bad: false },
   { id: 'light', name: 'Gets the reflections right', mods: ['image'], at: 23.5, axis: 0, add: 4, bad: false },
+  { id: 'objperm', name: 'Object permanence', mods: ['video'], at: 22.5, axis: 1, add: 3, bad: false },
+  { id: 'deepfake', name: 'Convincing clips of real politicians', mods: ['video'], at: 23, axis: 0, add: 2, bad: true },
+  { id: 'samefaces', name: 'Same face across cuts', mods: ['video'], at: 23.3, axis: 0, add: 3, bad: false },
+  { id: 'pour', name: 'Liquids that pour downwards', mods: ['video'], at: 24, axis: 1, add: 4, bad: false },
 ];
 
 export const archsOf = (m: Modality): ArchDef[] => ARCHS.filter((a) => a.mods.includes(m));

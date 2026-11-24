@@ -2,7 +2,7 @@
 import type { Attrs, Blueprint, GameState, Id, Modality, Vec } from './types';
 import { clamp, rand, randn } from './rand';
 import { MODALITIES } from './content/modalities';
-import { arch, EMERGENCES, TECHS, tech, type EmergenceDef, type TechDef } from './content/tech';
+import { arch, archsOf, EMERGENCES, TECHS, tech, type EmergenceDef, type TechDef } from './content/tech';
 
 export const K_F = 5e18; // FLOPs per compute-week
 export const N_REF = 3e9; // params of a "normal" model at the start of the game
@@ -144,13 +144,13 @@ export function eligibleEmergences(s: GameState, labId: Id, bp: Blueprint, flops
 export function defaultBlueprint(s: GameState, labId: Id, m: Modality, compute: number): Blueprint {
   const data = MODALITIES[m].data;
   const mix = Object.fromEntries(data.map((d) => [d.id, 1 / data.length]));
-  const first = MODALITIES[m].id === 'image' ? 'unet' : 'dense';
-  return { modality: m, arch: first, compute, weeks: 6, split: { scale: 0.85, exp: 0.1, post: 0.05 }, sizeBias: 0, mix, techniques: [], post: 0 };
+  return { modality: m, arch: archsOf(m)[0].id, compute, weeks: 6, split: { scale: 0.85, exp: 0.1, post: 0.05 }, sizeBias: 0, mix, techniques: [], post: 0 };
 }
 
 export function validate(s: GameState, labId: Id, bp: Blueprint): string | null {
   const mod = MODALITIES[bp.modality];
   if (!mod) return 'Unknown modality.';
+  if (mod.unlockWeek > s.week) return `${mod.name} models are not possible yet.`;
   if (!(bp.compute >= 20)) return 'A run needs at least 20 compute-weeks.';
   if (![4, 6, 8].includes(bp.weeks)) return 'Runs last 4, 6 or 8 weeks.';
   const sp = bp.split;

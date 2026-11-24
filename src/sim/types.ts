@@ -30,7 +30,23 @@ export interface LabState {
   history: string[];
   maxCompute: number;
   raceWins: number;
+  /** What this lab paid per compute-week last week, after contracts and owned clouds. */
+  cuPrice: number;
+  /** Compute used last week: training plus serving. */
+  cuUsed: number;
 }
+
+/** A supplier's plant: capacity in compute-weeks per week it can support, and the three levers its controller sets. */
+export interface Plant {
+  capacity: number;
+  queue: { week: Week; add: number }[]; // capacity under construction
+  posture: -1 | 0 | 1; // price: undercut, market, premium
+  capex: 0 | 1 | 2; // build rate: coast, steady, flat out
+  blocked: Id[]; // labs it refuses to serve
+  decreeUntil: Week; // regulators forbid blocking until then
+}
+/** A take-or-pay compute contract between a lab and the cloud layer. */
+export interface Contract { lab: Id; units: number; price: number; until: Week }
 
 export interface Company {
   id: Id; name: string; tagline: string; layer: Layer; color: string;
@@ -44,6 +60,7 @@ export interface Company {
   payout: number;
   pill: boolean; integrationUntil: Week;
   lab?: LabState;
+  plant?: Plant;
 }
 
 export interface Holding { owner: Id; company: Id; shares: number }
@@ -94,6 +111,8 @@ export interface Report { week: Week; loss: number; mid: number; sd: number; not
 export interface Run {
   id: Id; lab: Id; name: string; bp: Blueprint; handsOn: boolean;
   start: Week; weeksPlanned: number; weeksDone: number; cuPerWeek: number; spent: number;
+  /** Price per compute-week, reserved when the run started. A crunch mid-run does not change the bill. */
+  price: number;
   /** Hidden. The UI must go through view.ts and never read this. */
   truth: { g: number; e: number[]; rest: Vec; attrs: Attrs };
   belief: { g: number; rest: Vec };
@@ -152,7 +171,8 @@ export interface GameState {
   models: Record<Id, Model>;
   runs: Record<Id, Run>;
   segments: Record<Id, Segment>;
-  market: { sentiment: number; computePrice: number; scarcity: number };
+  market: { sentiment: number; computePrice: number; scarcity: number; base: number; binding: Layer; capacity: Record<string, number>; demand: number };
+  contracts: Contract[];
   /** Hidden truths the player has discovered: 'syn:a:b', 'dq:web'. Value 1 = known. */
   known: Record<string, number>;
   standing: Record<Id, number>; // call def id -> option index to auto-pick
@@ -181,4 +201,6 @@ export type Action =
   | { t: 'tender'; target: Id; premium: number; as: 'me' | 'lab' }
   | { t: 'defend'; deal: Id; choice: 'tender' | 'refuse' | 'pill' }
   | { t: 'helm'; company: Id }
+  | { t: 'contract'; units: number }
+  | { t: 'lever'; company: Id; posture?: -1 | 0 | 1; capex?: 0 | 1 | 2; block?: Id }
   | { t: 'tutorial'; step: number };

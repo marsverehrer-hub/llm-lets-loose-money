@@ -68,6 +68,32 @@ export const MODALITIES: Record<string, ModalityDef> = {
         accounts: ['Shuttershock', 'Getty-ish', 'News Wire', 'Slide Decks', 'Textbooks', 'Real Estate'] },
     ],
   },
+  video: {
+    id: 'video', name: 'Video', noun: 'video model', unlockWeek: 96,
+    axes: ['Realism', 'Motion', 'Prompt following', 'Clip length'],
+    sizeTilt: [2.5, 1, -1, -2.5],
+    data: [
+      { id: 'footage', name: 'Stock footage', blurb: 'Slow pans over office handshakes.', A: [0.55, 0.25, 0.1, 0.1], q: 0.8, unique: 4e10, cost: 6e6 },
+      { id: 'films', name: 'Films & TV', blurb: 'The studios have noticed.', A: [0.35, 0.2, 0.1, 0.35], q: 0.85, unique: 3e10, cost: 9e6 },
+      { id: 'streams', name: 'Game streams', blurb: 'Ten thousand hours of someone saying "chat".', A: [0.05, 0.5, 0.1, 0.35], q: 0.55, unique: 3e11, cost: 4e6 },
+      { id: 'howto', name: 'How-to videos', blurb: 'Narrated, captioned and oddly soothing.', A: [0.15, 0.15, 0.6, 0.1], q: 0.7, unique: 6e10, cost: 5e6 },
+      { id: 'sims', name: 'Physics sims', blurb: 'Perfect liquids, no soul.', A: [0.2, 0.6, 0.15, 0.05], q: 0.65, unique: 8e10, cost: 4e6 },
+    ],
+    segments: [
+      { id: 'video.consumer', modality: 'video', name: 'Short-video apps', bench: 'Scroll-Stopper Score', blurb: 'Wants six seconds nobody can look away from.',
+        w: [0.2, 0.45, 0.2, 0.15], size: 2200, pRef: 500, load: 4, priceSens: 2, speedSens: 1, trustSens: 0.3, inertia: 0.45,
+        accounts: ['TickTock', 'Reel Farm', 'Meme Studio', 'Fan Edits', 'Pet Channel', 'Prank Bros'] },
+      { id: 'video.ads', modality: 'video', name: 'Ad studios', bench: 'BrandSafe Reel', blurb: 'Wants the product in frame and nobody with six fingers.',
+        w: [0.35, 0.15, 0.45, 0.05], size: 800, pRef: 3000, load: 10, priceSens: 1, speedSens: 0.3, trustSens: 2, inertia: 0.75,
+        accounts: ['Super Bowl Spot', 'Perfume House', 'Car Launch', 'Snack Brand', 'Bank Ad', 'Sneaker Drop'] },
+      { id: 'video.film', modality: 'video', name: 'Film & TV', bench: 'Uncanny Valley Depth', blurb: 'Wants two minutes that hold together.',
+        w: [0.4, 0.15, 0.1, 0.35], size: 350, pRef: 9000, load: 30, priceSens: 0.7, speedSens: 0, trustSens: 1.2, inertia: 0.7,
+        accounts: ['Streamer Originals', 'Indie Studio', 'Trailer House', 'Soap Opera', 'Documentary Unit', 'Anime Studio'] },
+      { id: 'video.sim', modality: 'video', name: 'Robotics & sims', bench: 'Physics Sanity Check', blurb: 'Wants water that pours downwards.',
+        w: [0.15, 0.6, 0.15, 0.1], size: 300, pRef: 6000, load: 20, priceSens: 0.8, speedSens: 0.4, trustSens: 0.8, inertia: 0.65,
+        accounts: ['Robot Arm Co', 'Self-Driving Lab', 'Game Engine', 'Warehouse Bots', 'Drone Maker', 'Crash Tester'] },
+    ],
+  },
 };
 
 export const SEGMENTS: Record<Id, SegmentDef> = Object.fromEntries(

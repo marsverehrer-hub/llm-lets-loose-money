@@ -124,6 +124,24 @@ describe('image models', () => {
   });
 });
 
+describe('video models', () => {
+  it('are locked until year three, then run through the same engine', () => {
+    const s0 = newGame(6);
+    expect(forecast(s0, defaultBlueprint(s0, s0.labId, 'video', 300)).error).toMatch(/not possible yet/);
+    s0.week = 96;
+    s0.companies.lab.cash = 1e9;
+    let s = apply(s0, { t: 'startRun', bp: defaultBlueprint(s0, s0.labId, 'video', 3000), name: 'Reel' });
+    for (let i = 0; i < 20 && !s.moments.some((m) => m.kind === 'launch'); i++) {
+      while (s.moments.length && s.moments[0].kind !== 'launch') s = apply(s, { t: 'dismissMoment' });
+      const run = handsOnRun(s);
+      if (run?.call) s = apply(s, { t: 'answerCall', run: run.id, option: 0 });
+      else s = endWeek(s);
+    }
+    const m = s.moments.find((x) => x.kind === 'launch');
+    expect(m?.kind === 'launch' && m.rows.every((r) => r.seg.startsWith('video.'))).toBe(true);
+  });
+});
+
 describe('hidden truth stays hidden', () => {
   it('no UI file reads run.truth or trueCap', () => {
     const walk = (dir: string): string[] => readdirSync(dir).flatMap((f) => {

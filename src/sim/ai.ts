@@ -5,6 +5,7 @@ import { availableTechs, RUSH, SLOTS } from './resolve';
 import { autoPrice, PRICE_STEPS } from './demand';
 import { canRaise, raise } from './books';
 import { startRun } from './run';
+import { labPrice } from './supply';
 import { MODALITIES } from './content/modalities';
 import { archsOf } from './content/tech';
 import { RIVAL_LABS } from './content/flavor';
@@ -50,9 +51,11 @@ export function aiTick(s: GameState, co: Company): void {
   }
   const running = Object.values(s.runs).some((r) => r.lab === co.id && r.status === 'running');
   if (!running && s.week - co.lab.lastLaunch >= st.gap && co.cash > 3e6) {
-    const price = s.market.computePrice * RUSH[st.weeks];
+    const price = labPrice(s, co.id) * RUSH[st.weeks];
     const compute = Math.max(40, (st.budget * co.cash * (0.8 + 0.4 * rand(s.seed, s.week, co.id, 'budget'))) / price);
-    startRun(s, co.id, aiBlueprint(s, co, def?.modality ?? 'lang', compute), 'internal', false);
+    // Some labs branch into a second kind of model once it becomes possible.
+    const second = def?.also && MODALITIES[def.also].unlockWeek <= s.week && rand(s.seed, s.week, co.id, 'branch') < 0.4 ? def.also : null;
+    startRun(s, co.id, aiBlueprint(s, co, second ?? def?.modality ?? 'lang', compute), 'internal', false);
   }
   // Reprice every four weeks; keep the two newest models on sale.
   if ((s.week + co.id.length) % 4 === 0) {

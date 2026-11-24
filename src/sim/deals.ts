@@ -11,7 +11,6 @@ export const CONTROL = 0.51;
 /** Corporate borrowing limit: three years of smoothed profit, with a small floor so young labs can borrow a little. */
 export const borrowCap = (co: Company): number => Math.max(5e6, 3 * 48 * Math.max(0, co.ni8));
 export const debtRoom = (co: Company): number => Math.max(0, borrowCap(co) - co.debt);
-export const interestRate = (co: Company): number => 0.06 + 0.03 * Math.max(0, co.debt / Math.max(1, 48 * Math.max(1, co.ni8)) - 2);
 
 const avg4 = (co: Company): number => { const h = co.hist.slice(-4); return h.length ? h.reduce((a, b) => a + b, 0) / h.length : co.price; };
 
@@ -33,13 +32,20 @@ function resistance(co: Company): number {
 /** Chance regulators block a merger, from the two labs' combined share of all lab revenue. */
 export function blockChance(s: GameState, a: Id, b: Id): number {
   const total = Object.values(s.companies).reduce((x, c) => x + (c.lab ? c.rev : 0), 0);
-  const share = total > 0 ? (s.companies[a].rev + s.companies[b].rev) / total : 0;
+  const t = s.companies[b];
+  if (!t.lab) {
+    // Vertical: a big lab buying a big slice of a supply layer worries regulators.
+    const layer = Object.values(s.companies).filter((c) => c.plant && c.layer === t.layer).reduce((x, c) => x + c.plant!.capacity, 0);
+    return clamp(3 * ((total > 0 ? s.companies[a].rev / total : 0) * (t.plant!.capacity / Math.max(1, layer)) - 0.08), 0, 0.8);
+  }
+  const share = total > 0 ? (s.companies[a].rev + t.rev) / total : 0;
   return clamp(2 * (share - 0.4), 0, 0.9);
 }
 
 export function tenderCheck(s: GameState, bidder: Id, merge: boolean, target: Id, premium: number): string | null {
   const t = s.companies[target];
-  if (!t?.lab || target === bidder) return 'Not a valid target.';
+  if (!t || target === bidder) return 'Not a valid target.';
+  if (merge && floatOf(s, target) <= 0 && sharesOf(s, bidder, target) >= t.shares - 1) return 'You already own all of it.';
   if (!PREMIUMS.includes(premium)) return 'Pick a premium.';
   if (s.deals.some((d) => d.target === target)) return 'There is already a bid on the table for this company.';
   if (s.deals.some((d) => d.bidder === bidder)) return 'You already have a bid open.';
@@ -123,10 +129,16 @@ function close(s: GameState, d: Deal): void {
     const fromCash = Math.min(Math.max(0, bidderCo.cash), bill);
     bidderCo.cash -= fromCash;
     bidderCo.debt += bill - fromCash;
-    s.log.push({ week: s.week, co: d.bidder, tone: mine ? 'good' : 'info', text: `${who} buys ${t.name} for ${money(bill)} and folds it in.` });
+    s.log.push({ week: s.week, co: d.bidder, tone: mine ? 'good' : 'info', text: `${who} buys ${t.name} for ${money(bill)}${t.lab ? ' and folds it in' : ' and keeps it as a subsidiary'}.` });
     if (involved) s.moments.push({ kind: 'deal', bidder: d.bidder, bidderName: who, target: d.target, targetName: t.name, merge: true, got, outcome: 'won', paid: bill, mine });
     const wasPlayers = d.target === s.labId;
-    merge(s, d.bidder, d.target);
+    if (t.lab) merge(s, d.bidder, d.target);
+    else {
+      // A supplier becomes a wholly-owned subsidiary: it keeps its books and sends its profit to the parent.
+      s.holdings = s.holdings.filter((h) => h.company !== d.target);
+      s.holdings.push({ owner: d.bidder, company: d.target, shares: t.shares });
+      t.payout = 1;
+    }
     if (wasPlayers) oust(s, who, t.name, d.bidder);
     return;
   }
@@ -160,6 +172,16 @@ export function dealsTick(s: GameState): void {
   const due = s.deals.filter((d) => d.closes <= s.week);
   s.deals = s.deals.filter((d) => d.closes > s.week);
   for (const d of due) close(s, d);
+}
+
+/** Once a year, from year four, the richest rival lab tries to swallow the smallest. It only pays cash it has, and the field never drops below five labs. */
+export function consolidationTick(s: GameState): void {
+  if (s.week < 144 || s.week % 48 !== 7) return;
+  const labs = Object.values(s.companies).filter((c) => c.lab && (c.id !== s.labId || !s.helm));
+  if (Object.values(s.companies).filter((c) => c.lab).length <= 5) return;
+  const buyer = labs.reduce((a, b) => (b.cash > a.cash ? b : a));
+  const target = labs.filter((c) => c.id !== buyer.id).reduce((a, b) => (b.price * b.shares < a.price * a.shares ? b : a));
+  if (buyer.cash > 1.5 * tenderTerms(s, buyer.id, true, target.id, 0.35).cost && !tenderCheck(s, buyer.id, true, target.id, 0.35)) openTender(s, buyer.id, true, target.id, 0.35);
 }
 
 /** A tycoon with a taste for risk bids for control of the player's lab when it is cheap and the founder is diluted. */

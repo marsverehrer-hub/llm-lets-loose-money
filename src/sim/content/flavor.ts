@@ -1,13 +1,13 @@
 import type { Id, Modality, Style, Verdict } from '../types';
 
 export interface LabDef {
-  id: Id; name: string; tagline: string; color: string; series: string; modality: Modality;
+  id: Id; name: string; tagline: string; color: string; series: string; modality: Modality; also?: Modality;
   ceo: { name: string; style: Style; skill: number; ego: number };
   cash: number; start: number; // start = compute of the model they open the game with
 }
 
 export const RIVAL_LABS: LabDef[] = [
-  { id: 'openaye', name: 'OpenAye', tagline: 'Open in name. Very open to investment.', color: '#19a974', series: 'GPTea', modality: 'lang',
+  { id: 'openaye', name: 'OpenAye', tagline: 'Open in name. Very open to investment.', color: '#19a974', series: 'GPTea', modality: 'lang', also: 'video',
     ceo: { name: 'Chet Vantage', style: 'hype', skill: 0.6, ego: 0.9 }, cash: 40e6, start: 450 },
   { id: 'anthro', name: 'Anthropomorphic', tagline: 'Very worried about you, and about margins.', color: '#d97757', series: 'Clod', modality: 'lang',
     ceo: { name: 'Prudence Lindqvist', style: 'safety', skill: 0.7, ego: 0.4 }, cash: 30e6, start: 380 },
@@ -19,8 +19,21 @@ export const RIVAL_LABS: LabDef[] = [
     ceo: { name: 'Zack Meadows', style: 'follower', skill: 0.5, ego: 0.8 }, cash: 45e6, start: 340 },
   { id: 'stability', name: 'Stability Pool', tagline: 'The license is a picture of a license.', color: '#ec4899', series: 'Unstable', modality: 'image',
     ceo: { name: 'Imogen Blur', style: 'pricewar', skill: 0.5, ego: 0.7 }, cash: 15e6, start: 240 },
-  { id: 'midjourn', name: 'Midjourneyman', tagline: 'Every picture looks expensive.', color: '#06b6d4', series: 'Opus Minor', modality: 'image',
+  { id: 'midjourn', name: 'Midjourneyman', tagline: 'Every picture looks expensive.', color: '#06b6d4', series: 'Opus Minor', modality: 'image', also: 'video',
     ceo: { name: 'Lucian Fresco', style: 'hype', skill: 0.7, ego: 0.6 }, cash: 22e6, start: 320 },
+];
+
+export interface SupplierDef { id: Id; name: string; tagline: string; color: string; layer: 'cloud' | 'chips' | 'fab' | 'power'; capacity: number; cash: number; ceo: { name: string; style: Style; skill: number; ego: number } }
+/** The supply chain under every model: power feeds fabs, fabs make chips, chips fill clouds, clouds rent to labs. */
+export const SUPPLIERS: SupplierDef[] = [
+  { id: 'shelves', name: 'Amazin Web Shelves', tagline: 'Also rents the warehouse to your competitors.', color: '#f97316', layer: 'cloud', capacity: 190, cash: 400e6, ceo: { name: 'Doug Parcel', style: 'pricewar', skill: 0.6, ego: 0.5 } },
+  { id: 'azul', name: 'Microhard Azul', tagline: 'Your compute, bundled with a spreadsheet.', color: '#0ea5e9', layer: 'cloud', capacity: 150, cash: 500e6, ceo: { name: 'Satya Bundle', style: 'follower', skill: 0.7, ego: 0.4 } },
+  { id: 'weavr', name: 'CoreWeavr', tagline: 'Was a crypto mine. Is a cloud. Same racks.', color: '#6366f1', layer: 'cloud', capacity: 100, cash: 60e6, ceo: { name: 'Brannigan Lease', style: 'hype', skill: 0.5, ego: 0.8 } },
+  { id: 'nvidium', name: 'Nvidium', tagline: 'Sells shovels. Owns the shovel factory waiting list.', color: '#84cc16', layer: 'chips', capacity: 380, cash: 600e6, ceo: { name: 'Jensen Leatherby', style: 'hype', skill: 0.9, ego: 0.9 } },
+  { id: 'excuses', name: 'Advanced Micro Excuses', tagline: 'Nearly as fast, for people who read the benchmarks.', color: '#ef4444', layer: 'chips', capacity: 130, cash: 150e6, ceo: { name: 'Lisa Sue-Yu', style: 'research', skill: 0.8, ego: 0.5 } },
+  { id: 'semi', name: 'Taiwan Semi-Conscious', tagline: 'Everything is made here. Everything.', color: '#14b8a6', layer: 'fab', capacity: 560, cash: 900e6, ceo: { name: 'C. C. Wafer', style: 'safety', skill: 0.9, ego: 0.3 } },
+  { id: 'grid', name: "Consolidated Edison't", tagline: 'Keeping the lights on, mostly.', color: '#eab308', layer: 'power', capacity: 420, cash: 300e6, ceo: { name: 'Wanda Kilowatt', style: 'safety', skill: 0.5, ego: 0.3 } },
+  { id: 'fusion', name: 'Helios-ish Fusion', tagline: 'Net energy gain by next year. Every year.', color: '#f43f5e', layer: 'power', capacity: 230, cash: 80e6, ceo: { name: 'Max Plasma', style: 'hype', skill: 0.4, ego: 0.9 } },
 ];
 
 /** The other names on the rich list. They trade every week; the bold ones raid. */

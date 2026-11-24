@@ -2,12 +2,14 @@
 import type { GameState, Id } from './types';
 import { pick, rand } from './rand';
 import { aiTick } from './ai';
-import { booksTick, BUST_WEEKS, computePrice, priceTick } from './books';
-import { dealsTick, raidTick } from './deals';
+import { booksTick, BUST_WEEKS, priceTick } from './books';
+import { consolidationTick, dealsTick, raidTick } from './deals';
 import { demandTick } from './demand';
 import { yearEnd, YEAR } from './goals';
 import { runTick } from './run';
 import { dividends, ordersTick, tycoonTick } from './stock';
+import { supplyTick } from './supply';
+import { MODALITIES } from './content/modalities';
 import { TECHS } from './content/tech';
 import { FILLER_NEWS } from './content/flavor';
 
@@ -31,26 +33,26 @@ export function endWeek(s0: GameState): GameState {
   for (const a of Object.values(s.actors)) if (a.persona) tycoonTick(s, a);
   // 5 runs: pay, progress, report, call. Launches happen here for delegated runs.
   const trainSpend: Record<Id, number> = {};
-  let trainCu = 0;
+  const use: Record<Id, number> = {};
   for (const run of Object.values(s.runs)) {
     if (run.status !== 'running') continue;
     const before = run.spent;
     runTick(s, run);
     trainSpend[run.lab] = (trainSpend[run.lab] ?? 0) + run.spent - before;
-    trainCu += run.cuPerWeek;
+    use[run.lab] = (use[run.lab] ?? 0) + run.cuPerWeek;
   }
   // 7 demand: shares drift to targets, accounts switch.
   const flow = demandTick(s);
   // 4 supply: next week's compute price follows this week's total appetite.
-  const p = computePrice(s.week + 1, trainCu + Object.values(flow).reduce((a, f) => a + f.cu, 0));
-  s.market.computePrice = p.price;
-  s.market.scarcity = p.scarcity;
+  for (const [lab, f] of Object.entries(flow)) use[lab] = (use[lab] ?? 0) + f.cu;
+  Object.assign(flow, supplyTick(s, use));
   // 8 books
   booksTick(s, flow, trainSpend);
   dividends(s);
   // 9 deals: bids that are due close; a weak, diluted player may get raided.
   dealsTick(s);
   raidTick(s);
+  consolidationTick(s);
   // 10 prices
   s.market.sentiment = 0.5 * Math.sin((2 * Math.PI * s.week) / 130 + (s.seed % 7)) + 0.1 * (rand(s.seed, s.week, 'mkt', 'sent') - 0.5);
   priceTick(s);
@@ -60,6 +62,7 @@ export function endWeek(s0: GameState): GameState {
   for (const co of Object.values(s.companies)) if (co.lab) co.lab.hype *= 0.93;
   s.week++;
   for (const t of TECHS) if (t.week === s.week && t.week > 0) s.log.push({ week: s.week - 1, tone: 'info', text: `${t.name} is now public knowledge. Every lab can use it.` });
+  for (const m of Object.values(MODALITIES)) if (m.unlockWeek === s.week && s.week > 0) s.log.push({ week: s.week - 1, tone: 'good', text: `${m.name} models are now possible. A new market opens with nobody in it.` });
   if (rand(s.seed, s.week, 'news', 'filler') < 0.35) s.log.push({ week: s.week - 1, tone: 'info', text: pick(FILLER_NEWS, rand(s.seed, s.week, 'news', 'which')) });
   if (s.week % YEAR === 0) yearEnd(s);
   const player = s.companies[s.labId];

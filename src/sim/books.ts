@@ -2,17 +2,10 @@
 import type { Company, GameState, Id } from './types';
 import { clamp, randn } from './rand';
 
-/** shortcut: one demand-over-capacity curve stands in for the supply chain. M3 replaces this body with the cascade. */
-export function computePrice(week: number, demandCu: number): { price: number; scarcity: number } {
-  const base = 10_000 * Math.pow(0.9885, week); // hardware gets ~43% cheaper a year
-  const capacity = 420 * Math.pow(1.04, week);
-  const scarcity = clamp(Math.pow(demandCu / capacity, 1.5), 0.5, 5);
-  return { price: base * scarcity, scarcity };
-}
-
 /** Fixed costs plus sales and support. A lab digesting an acquisition runs a quarter less efficiently. */
-export const opex = (s: GameState, co: Company): number => (100_000 * (1 + s.week / 96) + 0.12 * co.rev) * (s.week < co.integrationUntil ? 1.25 : 1);
-export const interest = (co: Company): number => (co.debt * (0.06 + 0.03 * Math.max(0, co.debt / Math.max(1, 48 * Math.max(1, co.ni8)) - 2))) / 48;
+export const opex = (s: GameState, co: Company): number => (co.lab ? (100_000 * (1 + s.week / 96) + 0.12 * co.rev) * (s.week < co.integrationUntil ? 1.25 : 1) : 0);
+/** Weekly interest. The rate starts at 6% a year, climbs with leverage and tops out at 25%. */
+export const interest = (co: Company): number => (co.debt * Math.min(0.25, 0.06 + 0.03 * Math.max(0, co.debt / Math.max(1, 48 * Math.max(1, co.ni8)) - 2))) / 48;
 export const marketCap = (co: Company): number => co.price * co.shares;
 export const stakeOf = (s: GameState, owner: Id, coId: Id): number =>
   s.companies[coId] ? (s.holdings.find((h) => h.owner === owner && h.company === coId)?.shares ?? 0) / s.companies[coId].shares : 0;
@@ -38,11 +31,14 @@ export function booksTick(s: GameState, flow: Record<Id, { rev: number; cogs: nu
   }
 }
 
+/** Revenue multiple by layer: the market pays most for labs and chip designers. */
+const MULTIPLE: Record<string, number> = { lab: 8, cloud: 5, chips: 7, fab: 4, power: 2 };
+
 export function fairValue(s: GameState, co: Company): number {
   const margin = co.rev8 > 1 ? clamp(co.ni8 / co.rev8, -0.5, 0.6) : 0;
   const building = Object.values(s.runs).filter((r) => r.lab === co.id && r.status === 'running').reduce((a, r) => a + r.spent, 0);
   const story = co.lab ? 15e6 * (0.4 + co.lab.brand + co.lab.hype) * co.lab.talent : 0;
-  const ops = 48 * co.rev8 * 8 * (0.5 + margin) * (1 + 3 * clamp(co.revGrowth, -0.1, 0.5));
+  const ops = 48 * co.rev8 * (MULTIPLE[co.layer] ?? 4) * (0.5 + margin) * (1 + 3 * clamp(co.revGrowth, -0.1, 0.5));
   return Math.max(0, co.cash) - co.debt + (ops + story) * (1 + 0.5 * s.market.sentiment) + 0.5 * building;
 }
 

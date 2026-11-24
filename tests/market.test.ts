@@ -127,6 +127,21 @@ describe('takeovers', () => {
   });
 });
 
+describe('rivals consolidate', () => {
+  it('a rich rival lab bids for the smallest one after year two', () => {
+    let s = newGame(7);
+    s.week = 144 + 7;
+    s.companies.deepmined.cash = 50e9;
+    s = endWeek(s);
+    const d = s.deals.find((x) => x.bidder === 'deepmined');
+    expect(d?.merge).toBe(true);
+    const before = Object.keys(s.companies).length;
+    s = weeks(s, 3);
+    expect(Object.keys(s.companies).length).toBeLessThanOrEqual(before);
+    sane(s);
+  });
+});
+
 describe('long games stay sane', () => {
   it('prices stay positive and holdings never exceed shares over five bot-played years', () => {
     for (const seed of [1, 2]) {

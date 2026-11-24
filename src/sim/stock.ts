@@ -92,7 +92,7 @@ export function dividends(s: GameState): void {
     const pay = Math.min(Math.max(0, c.cash), c.payout * Math.max(0, c.ni8));
     if (pay <= 0) continue;
     c.cash -= pay;
-    for (const h of s.holdings) if (h.company === c.id && s.actors[h.owner]) s.actors[h.owner].cash += (pay * h.shares) / c.shares;
+    for (const h of s.holdings) if (h.company === c.id) { const to = s.actors[h.owner] ?? s.companies[h.owner]; if (to) to.cash += (pay * h.shares) / c.shares; }
   }
 }
 

@@ -26,6 +26,13 @@ On Windows, `start.bat` builds and serves the game without typing anything.
 - In **Empire** the lab can sell new shares, borrow, pay dividends into your account or buy shares back.
 - Sell too many shares and let the price sag, and a tycoon will bid for your lab. Lose, and you are out with your cash and can buy your way back in somewhere else.
 
+## The supply chain
+
+- Power feeds fabs, fabs make chips, chips fill clouds, clouds rent to labs. Each is a listed company with real books.
+- The tightest layer decides how much compute exists and collects most of the scarcity premium. Fabs take 48 weeks to build, so crunches last.
+- A run keeps the compute price it starts at, so timing matters. A year-long contract caps what you pay for serving and future runs.
+- Control a supplier (51%) and you set its prices, its building and who it refuses to serve. Buy a cloud outright with your lab and you get its capacity at cost.
+
 ## The model loop
 
 - A **blueprint** spends one currency, compute-weeks, across scale, experiments and post-training. Three technique slots; every technique has a downside; some pairs click or clash, and you only learn which by trying.
@@ -51,7 +58,7 @@ src/sim/        the game, as pure functions over plain-JSON state
   resolve.ts    blueprint physics (truth | belief) run.ts     weekly runs, calls, launch
   demand.ts     who buys from whom                 books.ts   compute price, P&L, share prices
   stock.ts      holdings, trading, dividends,      deals.ts   tender offers, mergers, raids
-                tycoons
+                tycoons                            supply.ts  the chain behind the compute price
   ai.ts         rival CEOs                         goals.ts   yearly races, final standings
   view.ts       read-only selectors for the UI; never exposes a run's hidden truth
   content/      segments, data, techniques, calls, rival labs, jokes
@@ -61,6 +68,6 @@ scripts/        bot.ts, balance.ts, smoke.mjs, probe.ts
 
 ## Roadmap
 
-- **Now:** the model loop against seven rival labs (language and image models), and the raider layer on top: a personal account, share trading with price impact, dividends, buybacks, debt, tender offers that merge a rival into your lab or hand you control of it, five tycoons who trade and raid, and a ten-year campaign ranked on the rich list.
-- **Next:** the supply chain (clouds, chips, fabs, power), contracts, vertical takeovers, antitrust, endings, video models.
-- **Later:** running hardware companies in depth; shorting, options, LBOs, spin-offs.
+- **Now:** the model loop against seven rival labs (language, image and, from year three, video models); the raider layer (personal account, trading, dividends, buybacks, debt, tender offers, tycoons who trade and raid, rival labs that consolidate); and the supply chain (three clouds, two chip designers, a fab and two power companies with their own books, a compute price set by the tightest layer, year-long compute contracts, and suppliers you can control or buy outright).
+- **Next:** counter-bids and bankruptcy auctions, more endings than the rich list, a regulator that watches suspicious trade timing, more late-game techniques and races.
+- **Later:** running hardware companies in depth (a chip-design loop that mirrors the model loop); shorting, options, LBOs, spin-offs.

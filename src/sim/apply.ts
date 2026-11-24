@@ -6,6 +6,7 @@ import { PRICE_STEPS } from './demand';
 import { RUSH, validate } from './resolve';
 import { answerCall, money, startRun } from './run';
 import { floatOf, quote, stake, trade, tradeCheck } from './stock';
+import { CONTRACT_WEEKS, contractCheck, contractPrice, labPrice, playerControls } from './supply';
 import { MODALITIES } from './content/modalities';
 
 export const dataCost = (s: GameState, base: number, level: number): number => base * (level + 1) * Math.pow(1.5, Math.floor(s.week / 48));
@@ -13,7 +14,7 @@ export const handsOnRun = (s: GameState) => Object.values(s.runs).find((r) => r.
 export const BUYBACK = 0.03; // of shares outstanding
 export const PAYOUTS = [0, 0.1, 0.25, 0.5];
 /** Actions that need you to be running the lab, not just owning shares in it. */
-const HELM = new Set<Action['t']>(['startRun', 'answerCall', 'setPrice', 'retire', 'buyData', 'raise', 'buyback', 'borrow', 'payout']);
+const HELM = new Set<Action['t']>(['startRun', 'answerCall', 'setPrice', 'retire', 'buyData', 'raise', 'buyback', 'borrow', 'payout', 'contract']);
 
 /** Why an action is not allowed, or null. The UI uses this to disable buttons with a reason. */
 export function check(s: GameState, a: Action): string | null {
@@ -25,7 +26,7 @@ export function check(s: GameState, a: Action): string | null {
     if (!a.name.trim()) return 'Give the model a codename.';
     const err = validate(s, s.labId, a.bp);
     if (err) return err;
-    const first = (a.bp.compute / a.bp.weeks) * s.market.computePrice * RUSH[a.bp.weeks];
+    const first = (a.bp.compute / a.bp.weeks) * labPrice(s, s.labId) * RUSH[a.bp.weeks];
     if (co.cash < first) return `You cannot cover the first week (${money(first)}).`;
   }
   if (a.t === 'answerCall') { const r = s.runs[a.run]; if (!r?.call?.options[a.option]) return 'No such option.'; }
@@ -62,9 +63,16 @@ export function check(s: GameState, a: Action): string | null {
     if (a.choice === 'pill' && (!s.helm || d.target !== s.labId || s.companies[d.target].pill)) return 'No pill available.';
   }
   if (a.t === 'helm') {
-    if (!s.companies[a.company]?.lab || stake(s, s.playerId, a.company) < 0.5) return 'You need half the shares to take the helm.';
+    if (!s.companies[a.company]?.lab || stake(s, s.playerId, a.company) < 0.5) return 'You need half the shares of a lab to take its helm.';
     if (s.helm && s.labId === a.company) return 'You already run it.';
     if (handsOnRun(s)) return 'Finish your current run first.';
+  }
+  if (a.t === 'contract') return contractCheck(s, a.units);
+  if (a.t === 'lever') {
+    const c = s.companies[a.company];
+    if (!c?.plant || !playerControls(s, a.company)) return 'You do not control that company.';
+    if (a.block && (a.block === s.labId || !s.companies[a.block]?.lab)) return 'Pick a rival lab.';
+    if (a.block && s.week < c.plant.decreeUntil) return 'Regulators forbid it for now.';
   }
   if (a.t === 'dismissMoment' && !s.moments.length) return 'Nothing to dismiss.';
   return null;
@@ -123,6 +131,17 @@ export function apply(s0: GameState, a: Action): GameState {
       s.helm = true;
       s.companies[a.company].ceo = { name: 'You', style: 'hype', skill: 0.5, ego: 0.5 };
       s.log.push({ week: s.week, co: a.company, tone: 'good', text: `You take the helm at ${s.companies[a.company].name}.` });
+      break;
+    }
+    case 'contract':
+      s.contracts.push({ lab: s.labId, units: a.units, price: contractPrice(s), until: s.week + CONTRACT_WEEKS });
+      s.log.push({ week: s.week, co: s.labId, tone: 'info', text: `You sign a year of compute at ${money(contractPrice(s))} a unit.` });
+      break;
+    case 'lever': {
+      const p = s.companies[a.company].plant!;
+      if (a.posture != null) p.posture = a.posture;
+      if (a.capex != null) p.capex = a.capex;
+      if (a.block) p.blocked = p.blocked.includes(a.block) ? p.blocked.filter((x) => x !== a.block) : [...p.blocked, a.block];
       break;
     }
     case 'tutorial': s.tutorial = a.step; break;

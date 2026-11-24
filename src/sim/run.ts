@@ -3,6 +3,7 @@ import type { Blueprint, Call, Fx, GameState, Id, Model, Moment, Run, Vec, Verdi
 import { clamp, pick, rand, randn, sum } from './rand';
 import { eligibleEmergences, resolve, RUSH, world } from './resolve';
 import { autoPrice, fitOf, leader, projectRevenue } from './demand';
+import { labPrice } from './supply';
 import { MODALITIES, SEGMENTS, segmentsOf } from './content/modalities';
 import { CALLS, emergenceCall, finalCall, midCall, smokeCall, type CallCtx } from './content/calls';
 import { emergence, tech } from './content/tech';
@@ -28,7 +29,7 @@ export const runAttrs = (run: Run) => ({
   trust: clamp(run.truth.attrs.trust + run.mods.trust, 0, 1.2),
 });
 
-export const weeklyCost = (s: GameState, run: Run): number => run.cuPerWeek * s.market.computePrice * RUSH[run.bp.weeks];
+export const weeklyCost = (_s: GameState, run: Run): number => run.cuPerWeek * run.price;
 
 /** A not-yet-real model for projections. */
 export function hypModel(s: GameState, run: Run, cap: Vec, price = 1): Model {
@@ -52,7 +53,7 @@ export function startRun(s: GameState, labId: Id, bp: Blueprint, name: string, h
   const n = (p: string, sd: number): number => randn(s.seed, s.week, id, p) * sd;
   const run: Run = {
     id, lab: labId, name, bp, handsOn, start: s.week, weeksPlanned: bp.weeks, weeksDone: 0,
-    cuPerWeek: bp.compute / bp.weeks, spent: 0,
+    cuPerWeek: bp.compute / bp.weeks, spent: 0, price: labPrice(s, labId) * RUSH[bp.weeks],
     truth: { g: t.g, e: [n('e1', 1.5), n('e2', 1.5), n('e3', 1.2)], rest: t.rest.map((x, i) => x + n('ax' + i, 0.8)), attrs: t.attrs },
     belief: { g: b.g, rest: b.rest },
     mods: { mult: 1, add: [0, 0, 0, 0], trust: 0, cost: 1, speed: 1, reveal: 0 },

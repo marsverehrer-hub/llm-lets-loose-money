@@ -1,16 +1,17 @@
 import type { Company, GameState, LabState } from './types';
 import { aiBlueprint } from './ai';
-import { computePrice, fairValue } from './books';
+import { fairValue } from './books';
+import { basePrice, supplyTick } from './supply';
 import { demandTick, fitOf } from './demand';
 import { launch, startRun } from './run';
 import { SEGMENTS } from './content/modalities';
-import { RIVAL_LABS, TYCOONS } from './content/flavor';
+import { RIVAL_LABS, SUPPLIERS, TYCOONS } from './content/flavor';
 
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 4;
 export const SAVE_KEY = 'llm-lets-loose-money/v2/save';
 const SHARES = 100e6;
 
-const lab = (brand: number): LabState => ({ techniques: [], data: {}, talent: 1, brand, hype: 0.1, lastLaunch: -99, history: [], maxCompute: 0, raceWins: 0 });
+const lab = (brand: number): LabState => ({ techniques: [], data: {}, talent: 1, brand, hype: 0.1, lastLaunch: -99, history: [], maxCompute: 0, raceWins: 0, cuPrice: 0, cuUsed: 0 });
 const company = (c: Partial<Company> & Pick<Company, 'id' | 'name' | 'tagline' | 'color' | 'ceo' | 'cash'>): Company => ({
   layer: 'lab', shares: SHARES, price: 1, hist: [], debt: 0, rev: 0, cost: 0, rev8: 0, ni8: 0, revGrowth: 0, negWeeks: 0, raisedAt: -99, payout: 0.05, pill: false, integrationUntil: 0, ...c,
 });
@@ -21,7 +22,7 @@ export function newGame(seed: number, name = 'Loose Money Labs'): GameState {
     actors: { you: { id: 'you', name: 'You', cash: 5e6, isPlayer: true } },
     companies: {}, holdings: [{ owner: 'you', company: 'lab', shares: SHARES * 0.6 }], orders: [], deals: [], traded: {},
     models: {}, runs: {}, segments: {},
-    market: { sentiment: 0, ...computeStart() },
+    market: { sentiment: 0, computePrice: basePrice(0), scarcity: 1, base: basePrice(0), binding: 'cloud', capacity: {}, demand: 0 }, contracts: [],
     known: {}, standing: {}, callCount: {}, moments: [], log: [], tutorial: 0, over: false, nextId: 1,
   };
   s.companies.lab = company({ id: 'lab', name, tagline: "IPO'd on a pitch deck.", color: '#ff5d73', cash: 20e6,
@@ -38,13 +39,20 @@ export function newGame(seed: number, name = 'Loose Money Labs'): GameState {
   }
   for (const seg of Object.values(s.segments)) {
     const def = SEGMENTS[seg.id];
-    seg.fit0 = Math.max(...Object.values(s.models).filter((m) => m.modality === def.modality).map((m) => fitOf(def, m.cap)));
+    seg.fit0 = Math.max(40, ...Object.values(s.models).filter((m) => m.modality === def.modality).map((m) => fitOf(def, m.cap)));
   }
+  for (const d of SUPPLIERS) s.companies[d.id] = company({ id: d.id, name: d.name, tagline: d.tagline, color: d.color, cash: d.cash, ceo: d.ceo, layer: d.layer,
+    plant: { capacity: d.capacity, queue: [], posture: 0, capex: 1, blocked: [], decreeUntil: 0 } });
   let flow = demandTick(s);
   for (let i = 0; i < 12; i++) flow = demandTick(s);
+  // One dry run of the chain gives suppliers their opening revenue and sets the opening price; then undo its side effects.
+  const use = Object.fromEntries(Object.entries(flow).map(([id, f]) => [id, f.cu + 40]));
+  const cash = Object.fromEntries(Object.values(s.companies).map((c) => [c.id, c.cash]));
+  Object.assign(flow, supplyTick(s, use), supplyTick(s, use));
+  for (const c of Object.values(s.companies)) { c.cash = cash[c.id]; if (c.plant) c.plant.queue = []; }
   for (const co of Object.values(s.companies)) {
     co.rev = co.rev8 = flow[co.id]?.rev ?? 0;
-    co.ni8 = co.rev - (flow[co.id]?.cogs ?? 0) - 100_000 - 0.12 * co.rev;
+    co.ni8 = co.rev - (flow[co.id]?.cogs ?? 0) - (co.lab ? 100_000 + 0.12 * co.rev : 0);
     co.cost = co.rev - co.ni8;
     co.price = Math.max(0.2, fairValue(s, co) / co.shares);
     co.hist = [co.price];
@@ -59,9 +67,4 @@ export function newGame(seed: number, name = 'Loose Money Labs'): GameState {
   });
   s.log = [{ week: 0, tone: 'info', text: `${name} lists on the stock exchange with no product, no revenue and a very good slide deck.` }];
   return s;
-}
-
-function computeStart(): { computePrice: number; scarcity: number } {
-  const p = computePrice(0, 420);
-  return { computePrice: p.price, scarcity: p.scarcity };
 }

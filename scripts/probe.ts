@@ -13,6 +13,7 @@ const row = (): void => {
     return c.id.slice(0, 5) + ' f' + best.toFixed(0) + ' r' + (c.rev / 1e6).toFixed(1) + ' c' + (c.cash / 1e6).toFixed(0) + ' p' + c.price.toFixed(2);
   });
   console.log('w' + s.week + ' cu$' + Math.round(s.market.computePrice) + ' sc' + s.market.scarcity.toFixed(2) + ' ' + cells.join(' | '));
+  console.log('   ' + s.market.binding + ' D' + Math.round(s.market.demand) + ' ' + Object.entries(s.market.capacity).map(([k, v]) => k + ':' + Math.round(v)).join(' ') + ' || ' + Object.values(s.companies).filter((c) => c.plant).map((c) => c.id.slice(0, 5) + ' r' + (c.rev / 1e6).toFixed(1) + ' c' + (c.cash / 1e6).toFixed(0) + ' p' + c.price.toFixed(1)).join(' | '));
 };
 row();
 for (let i = 0; i < Number(process.argv[3] ?? 144); i++) {
