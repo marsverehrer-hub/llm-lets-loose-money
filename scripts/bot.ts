@@ -16,7 +16,7 @@ import { MODALITIES } from '../src/sim/content/modalities';
 import { archsOf } from '../src/sim/content/tech';
 
 export type Policy = 'random' | 'greedy' | 'lookahead';
-export interface BotResult { s: GameState; picks: Record<string, number[]>; launches: number; bust: boolean }
+export interface BotResult { s: GameState; picks: Record<string, number[]>; launches: number; bust: boolean; revenue: number }
 
 /** A random valid blueprint. `u` yields uniform numbers. */
 export function randomBlueprint(s: GameState, m: Modality, compute: number, u: () => number): Blueprint {
@@ -62,7 +62,7 @@ export function play(seed: number, policy: Policy, weeks = 144, m: Modality = 'l
   let n = 0;
   const u = (): number => rand(seed, n++, 'bot', policy);
   const picks: Record<string, number[]> = {};
-  let launches = 0;
+  let launches = 0, revenue = 0;
   for (let w = 0; w < weeks && !s.over; w++) {
     while (s.moments.length) { if (s.moments[0].kind === 'launch') launches++; s = apply(s, { t: 'dismissMoment' }); }
     const lab = () => s.companies[s.labId];
@@ -98,6 +98,7 @@ export function play(seed: number, policy: Policy, weeks = 144, m: Modality = 'l
     const co = lab(), burn = co.cost - co.rev;
     if (canRaise(s, co) && (co.cash < 0 || (burn > 0 && co.cash < 6 * burn))) s = apply(s, { t: 'raise' });
     s = endWeek(s);
+    revenue += s.companies[s.labId].rev;
   }
-  return { s, picks, launches, bust: s.over };
+  return { s, picks, launches, bust: s.over, revenue };
 }

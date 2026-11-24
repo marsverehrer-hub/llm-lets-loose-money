@@ -2,7 +2,7 @@
 import type { GameState, Id } from './types';
 import { pick, rand } from './rand';
 import { aiTick } from './ai';
-import { booksTick, computePrice, priceTick } from './books';
+import { booksTick, BUST_WEEKS, computePrice, priceTick } from './books';
 import { demandTick } from './demand';
 import { yearEnd, YEAR } from './goals';
 import { runTick } from './run';
@@ -55,9 +55,9 @@ export function endWeek(s0: GameState): GameState {
   for (const t of TECHS) if (t.week === s.week && t.week > 0) s.log.push({ week: s.week - 1, tone: 'info', text: `${t.name} is now public knowledge. Every lab can use it.` });
   if (rand(s.seed, s.week, 'news', 'filler') < 0.35) s.log.push({ week: s.week - 1, tone: 'info', text: pick(FILLER_NEWS, rand(s.seed, s.week, 'news', 'which')) });
   if (s.week % YEAR === 0) yearEnd(s);
-  if (player.negWeeks >= 4) {
+  if (player.negWeeks >= BUST_WEEKS) {
     s.over = true;
-    s.moments.push({ kind: 'over', reason: `${player.name} ran out of money for four weeks straight. The servers were repossessed mid-epoch.` });
+    s.moments.push({ kind: 'over', reason: `${player.name} ran out of money for eight weeks straight. The servers were repossessed mid-epoch.` });
   }
   // 12 wrap
   if (s.log.length > 200) s.log.splice(0, s.log.length - 200);

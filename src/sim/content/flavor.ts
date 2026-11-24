@@ -8,19 +8,19 @@ export interface LabDef {
 
 export const RIVAL_LABS: LabDef[] = [
   { id: 'openaye', name: 'OpenAye', tagline: 'Open in name. Very open to investment.', color: '#19a974', series: 'GPTea', modality: 'lang',
-    ceo: { name: 'Chet Vantage', style: 'hype', skill: 0.6, ego: 0.9 }, cash: 40e6, start: 320 },
+    ceo: { name: 'Chet Vantage', style: 'hype', skill: 0.6, ego: 0.9 }, cash: 40e6, start: 450 },
   { id: 'anthro', name: 'Anthropomorphic', tagline: 'Very worried about you, and about margins.', color: '#d97757', series: 'Clod', modality: 'lang',
-    ceo: { name: 'Prudence Lindqvist', style: 'safety', skill: 0.7, ego: 0.4 }, cash: 30e6, start: 260 },
+    ceo: { name: 'Prudence Lindqvist', style: 'safety', skill: 0.7, ego: 0.4 }, cash: 30e6, start: 380 },
   { id: 'deepmined', name: 'DeepMined', tagline: 'Published 400 papers about the thing you use.', color: '#4a6cf7', series: 'Geminy', modality: 'lang',
-    ceo: { name: 'Dr. Ada Brackett', style: 'research', skill: 0.8, ego: 0.6 }, cash: 35e6, start: 280 },
+    ceo: { name: 'Dr. Ada Brackett', style: 'research', skill: 0.8, ego: 0.6 }, cash: 35e6, start: 420 },
   { id: 'mistrial', name: 'Mistrial', tagline: 'Cheap, fast, and only slightly on fire.', color: '#f5a524', series: 'Le Model', modality: 'lang',
-    ceo: { name: 'Remy Lacroute', style: 'pricewar', skill: 0.55, ego: 0.5 }, cash: 18e6, start: 160 },
+    ceo: { name: 'Remy Lacroute', style: 'pricewar', skill: 0.55, ego: 0.5 }, cash: 18e6, start: 260 },
   { id: 'llama', name: 'Metaverse Llama', tagline: 'Free API. Terms of service not included.', color: '#a855f7', series: 'Alpaca', modality: 'lang',
-    ceo: { name: 'Zack Meadows', style: 'follower', skill: 0.5, ego: 0.8 }, cash: 45e6, start: 220 },
+    ceo: { name: 'Zack Meadows', style: 'follower', skill: 0.5, ego: 0.8 }, cash: 45e6, start: 340 },
   { id: 'stability', name: 'Stability Pool', tagline: 'The license is a picture of a license.', color: '#ec4899', series: 'Unstable', modality: 'image',
-    ceo: { name: 'Imogen Blur', style: 'pricewar', skill: 0.5, ego: 0.7 }, cash: 15e6, start: 150 },
+    ceo: { name: 'Imogen Blur', style: 'pricewar', skill: 0.5, ego: 0.7 }, cash: 15e6, start: 240 },
   { id: 'midjourn', name: 'Midjourneyman', tagline: 'Every picture looks expensive.', color: '#06b6d4', series: 'Opus Minor', modality: 'image',
-    ceo: { name: 'Lucian Fresco', style: 'hype', skill: 0.7, ego: 0.6 }, cash: 22e6, start: 200 },
+    ceo: { name: 'Lucian Fresco', style: 'hype', skill: 0.7, ego: 0.6 }, cash: 22e6, start: 320 },
 ];
 
 export const CODENAMES = [

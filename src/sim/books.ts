@@ -55,7 +55,9 @@ export function priceTick(s: GameState): void {
 }
 
 /** Sell new shares worth 10% of the company at a 10% discount. Everyone, including the founder, is diluted. */
-export const RAISE_COOLDOWN = 8;
+export const RAISE_COOLDOWN = 6;
+/** Weeks in the red before the lab folds. Longer than the raise cooldown, so a share issue is always possible first. */
+export const BUST_WEEKS = 8;
 export const canRaise = (s: GameState, co: Company): boolean => s.week - co.raisedAt >= RAISE_COOLDOWN;
 
 export function raise(s: GameState, co: Company): number {

@@ -177,7 +177,9 @@ function nextCall(s: GameState, run: Run): Call {
   if (run.weeksDone >= Math.ceil(run.bp.weeks / 2) && !run.seen.includes('beat.mid')) return { def: 'beat.mid', ...midCall(c) };
   if (run.emergence && run.weeksDone >= run.emergence.week && !run.seen.includes('emergence')) return { def: 'emergence', ...emergenceCall(c, emergence(run.emergence.id)) };
   // Drawn call: weighted, no repeat within a run.
-  const pool = CALLS.filter((d) => !run.seen.includes(d.id)).map((d) => ({ d, w: d.weight(c) })).filter((x) => x.w > 0);
+  const weigh = (ds: typeof CALLS) => ds.map((d) => ({ d, w: d.weight(c) })).filter((x) => x.w > 0);
+  let pool = weigh(CALLS.filter((d) => !run.seen.includes(d.id)));
+  if (!pool.length) pool = weigh(CALLS); // a very long run has seen everything once
   let x = c.u('draw') * sum(pool.map((p) => p.w));
   const def = (pool.find((p) => (x -= p.w) < 0) ?? pool[0]).d;
   return { def: def.id, ...def.make(c) };

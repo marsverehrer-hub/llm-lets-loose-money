@@ -109,6 +109,21 @@ describe('blueprints', () => {
   });
 });
 
+describe('image models', () => {
+  it('run through the same engine and sell into their own segments', () => {
+    const s0 = newGame(4);
+    let s = apply(s0, { t: 'startRun', bp: defaultBlueprint(s0, s0.labId, 'image', 300), name: 'Pixels' });
+    for (let i = 0; i < 20 && !s.moments.length; i++) {
+      const run = handsOnRun(s);
+      if (run?.call) s = apply(s, { t: 'answerCall', run: run.id, option: 0 });
+      else s = endWeek(s);
+    }
+    const m = s.moments[0];
+    expect(m?.kind).toBe('launch');
+    if (m?.kind === 'launch') expect(m.rows.every((r) => r.seg.startsWith('image.'))).toBe(true);
+  });
+});
+
 describe('hidden truth stays hidden', () => {
   it('no UI file reads run.truth or trueCap', () => {
     const walk = (dir: string): string[] => readdirSync(dir).flatMap((f) => {

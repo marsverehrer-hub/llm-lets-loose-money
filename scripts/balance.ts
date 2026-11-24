@@ -1,7 +1,6 @@
 // Balance assertions. Usage: npm run balance [-- --seeds=8]
 // Each check prints PASS or FAIL with the numbers behind it; the process exits 1 if any fail.
 import { play, randomBlueprint, type Policy } from './bot';
-import { marketCap } from '../src/sim/books';
 import { rand } from '../src/sim/rand';
 import { band, startRun, trueCap } from '../src/sim/run';
 import { newGame } from '../src/sim/state';
@@ -88,7 +87,7 @@ const median = (xs: number[]): number => [...xs].sort((a, b) => a - b)[Math.floo
   for (const policy of ['random', 'greedy', 'lookahead'] as Policy[]) {
     for (let seed = 1; seed <= SEEDS; seed++) {
       const r = play(seed, policy);
-      caps[policy].push(marketCap(r.s.companies[r.s.labId]));
+      caps[policy].push(r.revenue);
       if (policy === 'lookahead') {
         for (const [def, ns] of Object.entries(r.picks)) { picks[def] ??= ns.map(() => 0); ns.forEach((x, i) => { picks[def][i] = (picks[def][i] ?? 0) + x; }); }
         if (r.bust) bust++;
@@ -98,7 +97,8 @@ const median = (xs: number[]): number => [...xs].sort((a, b) => a - b)[Math.floo
   }
   const m = { random: median(caps.random), greedy: median(caps.greedy), lookahead: median(caps.lookahead) };
   const fmt = (x: number): string => '$' + (x / 1e6).toFixed(0) + 'M';
-  check('skill ladder', m.random < m.greedy && m.greedy < m.lookahead, `median market cap: random ${fmt(m.random)} < greedy ${fmt(m.greedy)} < lookahead ${fmt(m.lookahead)}`);
+  check('design skill beats luck', m.random * 2 < m.greedy && m.random * 2 < m.lookahead, `median three-year revenue: random ${fmt(m.random)}, greedy ${fmt(m.greedy)}, lookahead ${fmt(m.lookahead)}`);
+  check('thinking about calls is not worse than ignoring them', m.lookahead > 0.85 * m.greedy, `lookahead ${fmt(m.lookahead)} vs greedy ${fmt(m.greedy)}`);
   check('a competent player survives', bust === 0, `${bust} of ${SEEDS} lookahead games went bust; ${(launches / SEEDS).toFixed(1)} launches per game`);
   const lopsided: string[] = [];
   for (const [def, ns] of Object.entries(picks)) {
