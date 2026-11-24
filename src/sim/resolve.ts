@@ -39,7 +39,8 @@ export function dataUnique(s: GameState, labId: Id, m: Modality, kind: Id): numb
 
 export function availableTechs(s: GameState, labId: Id, m: Modality): TechDef[] {
   const own = s.companies[labId].lab?.techniques ?? [];
-  return TECHS.filter((t) => t.mods.includes(m) && (t.week <= s.week || own.includes(t.id)));
+  // Inline rather than importing research.ts, which imports this file.
+  return TECHS.filter((t) => t.mods.includes(m) && (Math.min(t.week, s.leaks?.[t.id] ?? Infinity) <= s.week || own.includes(t.id)));
 }
 
 /** Pairs whose hidden synergy this blueprint is exposed to: technique pairs, and techniques with heavy data kinds. */
@@ -160,6 +161,7 @@ export function validate(s: GameState, labId: Id, bp: Blueprint): string | null 
   const mixSum = Object.values(bp.mix).reduce((x, y) => x + y, 0);
   if (Math.abs(mixSum - 1) > 0.01 || Object.keys(bp.mix).some((k) => !mod.data.some((d) => d.id === k) || bp.mix[k] < 0)) return 'The data mix must add up to 100%.';
   if (!arch(bp.arch)?.mods.includes(bp.modality)) return 'That architecture does not fit this kind of model.';
+  if ((arch(bp.arch).week ?? 0) > s.week) return 'Nobody has made that architecture work yet.';
   if (bp.techniques.length > SLOTS || new Set(bp.techniques).size !== bp.techniques.length) return `At most ${SLOTS} different techniques.`;
   const avail = availableTechs(s, labId, bp.modality).map((t) => t.id);
   if (bp.techniques.some((t) => !avail.includes(t))) return 'A technique is not available yet.';

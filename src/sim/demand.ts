@@ -1,7 +1,7 @@
 // Who buys from whom. Each lab offers a segment its best profitable model; share is a logit with an outside option.
-import type { GameState, Id, Model, Vec } from './types';
+import type { GameState, Id, Modality, Model, Vec } from './types';
 import { dot } from './rand';
-import { labPrice } from './supply';
+import { servePrice } from './supply';
 import { SEGMENTS, type SegmentDef } from './content/modalities';
 
 /** Users an app hands to its partner lab in a segment: all of its reach if exclusive, half if not. Only labs selling there count. */
@@ -28,8 +28,25 @@ export const shareOf = (s: GameState, segId: Id): Record<Id, number> =>
 export const PRICE_STEPS = [0.5, 0.65, 0.8, 1, 1.25, 1.6, 2, 2.5];
 
 export const fitOf = (def: SegmentDef, cap: Vec): number => dot(def.w, cap);
+
+/** A segment as it is today: benchmarks saturate and get replaced, which changes what the segment rewards. */
+export function segDef(s: GameState, id: Id): SegmentDef {
+  const base = SEGMENTS[id];
+  const g = base?.gens?.[(s.segments[id]?.gen ?? 0) - 1];
+  return g ? { ...base, bench: g.name, w: g.w } : base;
+}
+/** A new market opens: sized for how much the industry has grown, with the current best model as its baseline. */
+export function openSegment(s: GameState, id: Id): void {
+  const d = SEGMENTS[id];
+  s.segments[id] = { id, size: d.size * Math.pow(1.012, s.week), fit0: 40, share: {}, accounts: d.accounts.map(() => null), gen: 0 };
+  s.segments[id].fit0 = Math.max(40, ...Object.values(s.models).filter((m) => !m.retired && m.modality === d.modality).map((m) => fitOf(d, m.cap)));
+}
+
+/** The segments of one kind of model that exist so far. */
+export const liveSegs = (s: GameState, m: Modality): SegmentDef[] =>
+  Object.keys(s.segments).filter((id) => segDef(s, id).modality === m).map((id) => segDef(s, id));
 export const unitMargin = (s: GameState, def: SegmentDef, m: Model): number =>
-  def.pRef * m.price - m.attrs.cost * def.load * labPrice(s, m.lab);
+  def.pRef * m.price - m.attrs.cost * def.load * servePrice(s, m.lab);
 
 export interface Offer { lab: Id; model: Model; u: number; fit: number }
 
@@ -41,7 +58,7 @@ function utility(s: GameState, def: SegmentDef, m: Model): number {
 
 /** One offer per lab: its highest-utility model that makes money in this segment. `hyp` adds or replaces a model. */
 export function offers(s: GameState, segId: Id, hyp?: Model): Offer[] {
-  const def = SEGMENTS[segId];
+  const def = segDef(s, segId);
   const best: Record<Id, Offer> = {};
   const all = Object.values(s.models).filter((m) => m.id !== hyp?.id);
   if (hyp) all.push(hyp);
@@ -68,7 +85,7 @@ export function targets(s: GameState, segId: Id, hyp?: Model): { offers: Offer[]
 
 /** Best capability fit per segment among rival labs, for crowns. */
 export function leader(s: GameState, segId: Id, notLab?: Id): { lab: Id | null; fit: number } {
-  const def = SEGMENTS[segId];
+  const def = segDef(s, segId);
   let out: { lab: Id | null; fit: number } = { lab: null, fit: 0 };
   for (const m of Object.values(s.models)) {
     if (m.retired || m.modality !== def.modality || m.lab === notLab) continue;
@@ -91,7 +108,7 @@ export interface Projection {
 export function projectRevenue(s: GameState, labId: Id, hyp?: Model): Projection {
   const rows: Projection['rows'] = [];
   for (const segId of Object.keys(s.segments)) {
-    const def = SEGMENTS[segId];
+    const def = segDef(s, segId);
     if (hyp && def.modality !== hyp.modality) continue;
     const t = targets(s, segId, hyp);
     const o = t.offers.find((x) => x.lab === labId);
@@ -120,7 +137,7 @@ export function autoPrice(s: GameState, m: Model): number {
 export function demandTick(s: GameState): Record<Id, { rev: number; cogs: number; cu: number }> {
   const out: Record<Id, { rev: number; cogs: number; cu: number }> = {};
   for (const [segId, seg] of Object.entries(s.segments)) {
-    const def = SEGMENTS[segId];
+    const def = segDef(s, segId);
     const t = targets(s, segId);
     const next: Record<Id, number> = {};
     for (const lab of new Set([...Object.keys(seg.share), ...Object.keys(t.share)])) {
@@ -135,7 +152,7 @@ export function demandTick(s: GameState): Record<Id, { rev: number; cogs: number
       const cu = units * def.load * o.model.attrs.cost;
       const e = (out[o.lab] ??= { rev: 0, cogs: 0, cu: 0 });
       e.rev += units * def.pRef * o.model.price;
-      e.cogs += cu * labPrice(s, o.lab);
+      e.cogs += cu * servePrice(s, o.lab);
       e.cu += cu;
       // The partner app takes its cut of the users it brought.
       for (const c of Object.values(s.companies)) {
@@ -161,7 +178,7 @@ export function demandTick(s: GameState): Record<Id, { rev: number; cogs: number
 /** Named accounts follow share: a lab with 40% of a segment holds about 40% of its accounts. */
 function reseat(s: GameState, segId: Id, share: Record<Id, number>): void {
   const seg = s.segments[segId];
-  const def = SEGMENTS[segId];
+  const def = segDef(s, segId);
   const n = seg.accounts.length;
   const want: Record<Id, number> = {};
   const labs = Object.keys(share).sort((a, b) => share[b] - share[a]);

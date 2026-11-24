@@ -6,6 +6,9 @@ export interface SegmentDef {
   w: Vec; size: number; pRef: number; load: number;
   priceSens: number; speedSens: number; trustSens: number; inertia: number;
   accounts: string[];
+  /** Later benchmarks: when the best score here passes `at`, the next one replaces the current. */
+  gens?: { name: string; w: Vec; at: number }[];
+  unlockWeek?: number;
 }
 export interface ModalityDef {
   id: Modality; name: string; noun: string; axes: string[];
@@ -30,16 +33,23 @@ export const MODALITIES: Record<string, ModalityDef> = {
     segments: [
       { id: 'lang.consumer', modality: 'lang', name: 'Consumers', bench: 'VibeCheck Arena', blurb: 'Wants a friend that is cheap and quick.',
         w: [0.2, 0, 0.6, 0.2], size: 3000, pRef: 400, load: 1, priceSens: 2, speedSens: 0.5, trustSens: 0.5, inertia: 0.5,
-        accounts: ['Homework Inc', 'Grandma', 'Dating App', 'Meme Lords', 'Recipe Blog', 'Night Owls'] },
+        accounts: ['Homework Inc', 'Grandma', 'Dating App', 'Meme Lords', 'Recipe Blog', 'Night Owls'], gens: [{ name: 'Companion Index', w: [0.25, 0.05, 0.5, 0.2], at: 72 }, { name: 'Feels-Like-Human Test', w: [0.35, 0.05, 0.45, 0.15], at: 88 }] },
       { id: 'lang.dev', modality: 'lang', name: 'Developers', bench: 'SWE-Bunch', blurb: 'Wants working code, fast.',
         w: [0.3, 0.6, 0, 0.1], size: 1500, pRef: 800, load: 2, priceSens: 1.5, speedSens: 1, trustSens: 0.3, inertia: 0.6,
-        accounts: ['Cursory', 'Replicant', 'Tabnein', 'YAML Farm', 'Stack Underflow', 'Vibe Coders'] },
+        accounts: ['Cursory', 'Replicant', 'Tabnein', 'YAML Farm', 'Stack Underflow', 'Vibe Coders'], gens: [{ name: 'SWE-Bunch Verified', w: [0.35, 0.55, 0, 0.1], at: 72 }, { name: 'Ship-A-Feature', w: [0.45, 0.45, 0, 0.1], at: 88 }] },
       { id: 'lang.ent', modality: 'lang', name: 'Enterprise', bench: 'Compliance-QA', blurb: 'Wants nobody fired.',
         w: [0.3, 0.2, 0.2, 0.3], size: 800, pRef: 2500, load: 4, priceSens: 1, speedSens: 0.2, trustSens: 2.5, inertia: 0.85,
-        accounts: ['Megabank', 'Consultancy LLP', 'InsureCo', 'Big Pharma', 'Gov Dept', 'Airline'] },
+        accounts: ['Megabank', 'Consultancy LLP', 'InsureCo', 'Big Pharma', 'Gov Dept', 'Airline'], gens: [{ name: 'Compliance-QA Pro', w: [0.35, 0.2, 0.15, 0.3], at: 72 }, { name: 'Audit Gauntlet', w: [0.4, 0.2, 0.1, 0.3], at: 88 }] },
       { id: 'lang.frontier', modality: 'lang', name: 'Research & agents', bench: "Humanity's Penultimate Exam", blurb: 'Wants the smartest thing, at any price.',
         w: [0.6, 0.2, 0, 0.2], size: 200, pRef: 6000, load: 10, priceSens: 0.8, speedSens: 0, trustSens: 1, inertia: 0.7,
-        accounts: ['Hedge Fund', 'Drug Discovery', 'Agent Startup', 'Math Olympiad', 'Think Tank', 'Chip Designer'] },
+        accounts: ['Hedge Fund', 'Drug Discovery', 'Agent Startup', 'Math Olympiad', 'Think Tank', 'Chip Designer'], gens: [{ name: "Humanity's Last-Last Exam", w: [0.7, 0.15, 0, 0.15], at: 72 }, { name: 'Frontier Math Olympiad', w: [0.8, 0.1, 0, 0.1], at: 88 }] },
+      { id: 'lang.agents', modality: 'lang', name: 'Agents', bench: 'Do-My-Job Bench', blurb: 'Wants a model that finishes the task without a babysitter.', unlockWeek: 192,
+        w: [0.4, 0.35, 0, 0.25], size: 1200, pRef: 3000, load: 12, priceSens: 0.9, speedSens: 0.3, trustSens: 2, inertia: 0.6,
+        accounts: ['Travel Agent Co', 'Inbox Zero', 'Tax Robot', 'Sales Desk', 'IT Helpdesk', 'Paralegal Inc'],
+        gens: [{ name: 'Do-My-Job Bench Hard', w: [0.45, 0.35, 0, 0.2], at: 88 }] },
+      { id: 'lang.science', modality: 'lang', name: 'AI scientists', bench: 'Novel Result Rate', blurb: 'Wants a model that discovers something nobody knew.', unlockWeek: 288,
+        w: [0.7, 0.1, 0, 0.2], size: 300, pRef: 15000, load: 30, priceSens: 0.5, speedSens: 0, trustSens: 1.2, inertia: 0.7,
+        accounts: ['Pharma R&D', 'Materials Lab', 'Fusion Startup', 'National Lab', 'Protein Folders', 'Climate Model Co'] },
     ],
   },
   image: {
@@ -56,16 +66,16 @@ export const MODALITIES: Record<string, ModalityDef> = {
     segments: [
       { id: 'image.consumer', modality: 'image', name: 'Meme makers', bench: 'Cat Fidelity Index', blurb: 'Wants it funny, free and now.',
         w: [0.3, 0.2, 0.1, 0.4], size: 2500, pRef: 250, load: 1, priceSens: 2.2, speedSens: 1, trustSens: 0.2, inertia: 0.45,
-        accounts: ['Profile Pics', 'Group Chat', 'Fan Artists', 'Wallpaper Guy', 'D&D Table', 'Aunt Carol'] },
+        accounts: ['Profile Pics', 'Group Chat', 'Fan Artists', 'Wallpaper Guy', 'D&D Table', 'Aunt Carol'], gens: [{ name: 'Cat Fidelity Index 2', w: [0.35, 0.25, 0.1, 0.3], at: 70 }, { name: 'Meme Turing Test', w: [0.3, 0.35, 0.15, 0.2], at: 85 }] },
       { id: 'image.ads', modality: 'image', name: 'Advertisers', bench: 'BrandSafe-1K', blurb: 'Wants the logo spelled right.',
         w: [0.25, 0.3, 0.4, 0.05], size: 900, pRef: 1500, load: 3, priceSens: 1, speedSens: 0.4, trustSens: 2, inertia: 0.75,
-        accounts: ['Soda Brand', 'Car Maker', 'Ad Agency', 'Fast Fashion', 'Telco', 'Burger Chain'] },
+        accounts: ['Soda Brand', 'Car Maker', 'Ad Agency', 'Fast Fashion', 'Telco', 'Burger Chain'], gens: [{ name: 'BrandSafe-10K', w: [0.2, 0.35, 0.4, 0.05], at: 70 }, { name: 'Legal Says Yes', w: [0.2, 0.4, 0.35, 0.05], at: 85 }] },
       { id: 'image.studio', modality: 'image', name: 'Studios', bench: 'Art Director Says No', blurb: 'Wants exactly what was asked for.',
         w: [0.3, 0.5, 0.05, 0.15], size: 500, pRef: 3000, load: 6, priceSens: 0.9, speedSens: 0.1, trustSens: 1, inertia: 0.7,
-        accounts: ['Game Studio', 'Film VFX', 'Architects', 'Toy Company', 'Publisher', 'Animation House'] },
+        accounts: ['Game Studio', 'Film VFX', 'Architects', 'Toy Company', 'Publisher', 'Animation House'], gens: [{ name: 'Art Director Says Maybe', w: [0.3, 0.55, 0.05, 0.1], at: 70 }, { name: 'Pixel-Perfect Brief', w: [0.25, 0.6, 0.1, 0.05], at: 85 }] },
       { id: 'image.stock', modality: 'image', name: 'Stock libraries', bench: 'Photo-or-Not', blurb: 'Wants photos nobody can sue over.',
         w: [0.7, 0.2, 0.05, 0.05], size: 700, pRef: 900, load: 2, priceSens: 1.4, speedSens: 0.6, trustSens: 1.5, inertia: 0.6,
-        accounts: ['Shuttershock', 'Getty-ish', 'News Wire', 'Slide Decks', 'Textbooks', 'Real Estate'] },
+        accounts: ['Shuttershock', 'Getty-ish', 'News Wire', 'Slide Decks', 'Textbooks', 'Real Estate'], gens: [{ name: 'Photo-or-Not 2', w: [0.65, 0.25, 0.05, 0.05], at: 70 }, { name: 'Forensic Lab Fooled', w: [0.7, 0.2, 0.05, 0.05], at: 85 }] },
     ],
   },
   video: {
@@ -82,16 +92,16 @@ export const MODALITIES: Record<string, ModalityDef> = {
     segments: [
       { id: 'video.consumer', modality: 'video', name: 'Short-video apps', bench: 'Scroll-Stopper Score', blurb: 'Wants six seconds nobody can look away from.',
         w: [0.2, 0.45, 0.2, 0.15], size: 2200, pRef: 500, load: 4, priceSens: 2, speedSens: 1, trustSens: 0.3, inertia: 0.45,
-        accounts: ['TickTock', 'Reel Farm', 'Meme Studio', 'Fan Edits', 'Pet Channel', 'Prank Bros'] },
+        accounts: ['TickTock', 'Reel Farm', 'Meme Studio', 'Fan Edits', 'Pet Channel', 'Prank Bros'], gens: [{ name: 'Watch-Time Index', w: [0.2, 0.4, 0.2, 0.2], at: 75 }] },
       { id: 'video.ads', modality: 'video', name: 'Ad studios', bench: 'BrandSafe Reel', blurb: 'Wants the product in frame and nobody with six fingers.',
         w: [0.35, 0.15, 0.45, 0.05], size: 800, pRef: 3000, load: 10, priceSens: 1, speedSens: 0.3, trustSens: 2, inertia: 0.75,
-        accounts: ['Super Bowl Spot', 'Perfume House', 'Car Launch', 'Snack Brand', 'Bank Ad', 'Sneaker Drop'] },
+        accounts: ['Super Bowl Spot', 'Perfume House', 'Car Launch', 'Snack Brand', 'Bank Ad', 'Sneaker Drop'], gens: [{ name: 'BrandSafe Reel 2', w: [0.35, 0.15, 0.45, 0.05], at: 75 }] },
       { id: 'video.film', modality: 'video', name: 'Film & TV', bench: 'Uncanny Valley Depth', blurb: 'Wants two minutes that hold together.',
         w: [0.4, 0.15, 0.1, 0.35], size: 350, pRef: 9000, load: 30, priceSens: 0.7, speedSens: 0, trustSens: 1.2, inertia: 0.7,
-        accounts: ['Streamer Originals', 'Indie Studio', 'Trailer House', 'Soap Opera', 'Documentary Unit', 'Anime Studio'] },
+        accounts: ['Streamer Originals', 'Indie Studio', 'Trailer House', 'Soap Opera', 'Documentary Unit', 'Anime Studio'], gens: [{ name: 'Feature-Length Test', w: [0.35, 0.15, 0.1, 0.4], at: 75 }] },
       { id: 'video.sim', modality: 'video', name: 'Robotics & sims', bench: 'Physics Sanity Check', blurb: 'Wants water that pours downwards.',
         w: [0.15, 0.6, 0.15, 0.1], size: 300, pRef: 6000, load: 20, priceSens: 0.8, speedSens: 0.4, trustSens: 0.8, inertia: 0.65,
-        accounts: ['Robot Arm Co', 'Self-Driving Lab', 'Game Engine', 'Warehouse Bots', 'Drone Maker', 'Crash Tester'] },
+        accounts: ['Robot Arm Co', 'Self-Driving Lab', 'Game Engine', 'Warehouse Bots', 'Drone Maker', 'Crash Tester'], gens: [{ name: 'Physics Sanity Check Hard', w: [0.1, 0.65, 0.15, 0.1], at: 75 }] },
     ],
   },
 };

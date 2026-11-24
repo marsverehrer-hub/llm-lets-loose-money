@@ -16,7 +16,7 @@ import { MODALITIES } from '../src/sim/content/modalities';
 import { archsOf } from '../src/sim/content/tech';
 
 export type Policy = 'random' | 'greedy' | 'lookahead';
-export interface BotResult { s: GameState; picks: Record<string, number[]>; launches: number; bust: boolean; revenue: number; busyWeeks: number; helmWeeks: number; offers: number; declined: number }
+export interface BotResult { agiWeek: number | null; s: GameState; picks: Record<string, number[]>; launches: number; bust: boolean; revenue: number; busyWeeks: number; helmWeeks: number; offers: number; declined: number }
 
 /** A random valid blueprint. `u` yields uniform numbers. */
 export function randomBlueprint(s: GameState, m: Modality, compute: number, u: () => number): Blueprint {
@@ -25,7 +25,7 @@ export function randomBlueprint(s: GameState, m: Modality, compute: number, u: (
   const total = raw.reduce((a, b) => a + b, 0) || 1;
   const techs = availableTechs(s, s.labId, m).map((t) => t.id).sort(() => u() - 0.5).slice(0, Math.floor(u() * (SLOTS + 1)));
   const exp = 0.3 * u() * u(), post = 0.15 * u();
-  const archs = archsOf(m);
+  const archs = archsOf(m, s.week);
   return {
     modality: m, arch: archs[Math.floor(u() * archs.length)].id, compute, weeks: ([4, 6, 8] as const)[Math.floor(u() * 3)],
     split: { scale: 1 - exp - post, exp, post }, sizeBias: Math.round((u() * 2 - 1) * 10) / 10,
@@ -77,15 +77,22 @@ function rollout(s0: GameState, offer: string, option: number, weeks = 8): numbe
 }
 
 export type OfferMode = 'accept' | 'decline' | 'rollout' | 'random';
-export function play(seed: number, policy: Policy, weeks = 144, m: Modality = 'lang', offerMode?: OfferMode): BotResult {
+export function play(seed: number, policy: Policy, weeks = 144, m: Modality = 'lang', offerMode?: OfferMode, research = policy === 'random' ? 0 : 0.05): BotResult {
   const om: OfferMode = offerMode ?? (policy === 'lookahead' ? 'rollout' : policy === 'random' ? 'random' : 'accept');
   let s = newGame(seed);
+  if (research) s = apply(s, { t: 'research', rate: research });
   let n = 0;
   const u = (): number => rand(seed, n++, 'bot', policy);
   const picks: Record<string, number[]> = {};
+  let agiWeek: number | null = null;
   let launches = 0, revenue = 0, busyWeeks = 0, helmWeeks = 0, offers = 0, declined = 0;
   for (let w = 0; w < weeks && !s.over; w++) {
-    while (s.moments.length) { if (s.moments[0].kind === 'launch') launches++; s = apply(s, { t: 'dismissMoment' }); }
+    while (s.moments.length) {
+      const mo = s.moments[0];
+      if (mo.kind === 'launch') launches++;
+      if (mo.kind === 'end' && (mo.ending === 'agi' || mo.ending === 'agiLost')) agiWeek ??= s.week;
+      s = apply(s, { t: 'dismissMoment' });
+    }
     const lab = () => s.companies[s.labId];
     let run = handsOnRun(s);
     if (s.helm) { helmWeeks++; if (run?.call || s.offers.length) busyWeeks++; }
@@ -137,5 +144,5 @@ export function play(seed: number, policy: Policy, weeks = 144, m: Modality = 'l
     s = endWeek(s);
     revenue += s.companies[s.labId].rev;
   }
-  return { s, picks, launches, bust: s.over, revenue, busyWeeks, helmWeeks, offers, declined };
+  return { agiWeek, s, picks, launches, bust: s.over, revenue, busyWeeks, helmWeeks, offers, declined };
 }

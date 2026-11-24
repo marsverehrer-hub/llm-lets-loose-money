@@ -26,12 +26,31 @@ On Windows, `start.bat` builds and serves the game without typing anything.
 - In **Empire** the lab can sell new shares, borrow, pay dividends into your account or buy shares back.
 - Sell too many shares and let the price sag, and a tycoon will bid for your lab. Lose, and you are out with your cash and can buy your way back in somewhere else.
 
+## Every week
+
+- **Offers** land on the Desk most weeks and expire after two: an enterprise account that pays for a year if you hit a score by a deadline, an app picking its default model, an exclusive data deal, a rival's researcher, a rival wanting to license your old model, a cloud offering a discount for commitment. Saying yes to everything is not the best play.
+- **Side projects** run beside your main training run: fine-tune a shipped model toward one market, or distill a cheaper copy.
+
+## Ten years
+
+- A **research budget** buys techniques before they go public; shipping with one shows everyone how, and it goes public 26 weeks later.
+- New techniques and architectures arrive through year ten; **Agents** open in year five and **AI scientists** in year seven.
+- When everyone aces a benchmark it is replaced by a harder one that rewards something else, so the best model for a market can change overnight.
+- Each year has its own **race**. The first language model past the AGI line ends that race; controlling a company in every layer of the stack is its own ending; the rich list decides year ten. The game goes on after each.
+
 ## The supply chain
 
 - Power feeds fabs, fabs make chips, chips fill clouds, clouds rent to labs. Each is a listed company with real books.
 - The tightest layer decides how much compute exists and collects most of the scarcity premium. Fabs take 48 weeks to build, so crunches last.
 - A run keeps the compute price it starts at, so timing matters. A year-long contract caps what you pay for serving and future runs.
 - Control a supplier (51%) and you set its prices, its building and who it refuses to serve. Buy a cloud outright with your lab and you get its capacity at cost.
+
+## Hardware
+
+- Control a chip designer and you can **design a chip** by hand: process node, die size, memory, serving or training focus, budget and schedule. The team sees a band on performance and yield that narrows over 8–12 weekly turns of tape-out calls, then first silicon reveals the truth.
+- A chip better than the market leader grows its company's capacity. A lab you run gets your chips at cost, which cuts its serving or training bills.
+- Fabs are a queue: when they are the bottleneck and you own none, your tape-out slot can slip. Rival chip designers ship a new generation every year, so the bar keeps rising.
+- **Build your own datacenter** from Empire: after 8 weeks your lab gets that capacity at cost.
 
 ## The model loop
 
@@ -59,7 +78,10 @@ src/sim/        the game, as pure functions over plain-JSON state
   demand.ts     who buys from whom                 books.ts   compute price, P&L, share prices
   stock.ts      holdings, trading, dividends,      deals.ts   tender offers, mergers, raids
                 tycoons                            supply.ts  the chain behind the compute price
-  ai.ts         rival CEOs                         goals.ts   yearly races, final standings
+  ai.ts         rival CEOs                         goals.ts   yearly races, AGI and endings
+  offers.ts     offers, agreements, apps, side     research.ts research, leaks, new markets,
+                projects                                       benchmark rollover
+  chips.ts      chip design, first silicon, datacenters
   view.ts       read-only selectors for the UI; never exposes a run's hidden truth
   content/      segments, data, techniques, calls, rival labs, jokes
 src/ui/         Preact UI: kit.tsx (cards, procedural portraits, charts), 5 screens, full-screen moments
@@ -68,6 +90,10 @@ scripts/        bot.ts, balance.ts, smoke.mjs, probe.ts
 
 ## Roadmap
 
-- **Now:** the model loop against seven rival labs (language, image and, from year three, video models); the raider layer (personal account, trading, dividends, buybacks, debt, tender offers, tycoons who trade and raid, rival labs that consolidate); and the supply chain (three clouds, two chip designers, a fab and two power companies with their own books, a compute price set by the tightest layer, year-long compute contracts, and suppliers you can control or buy outright).
-- **Next:** counter-bids and bankruptcy auctions, more endings than the rich list, a regulator that watches suspicious trade timing, more late-game techniques and races.
-- **Later:** running hardware companies in depth (a chip-design loop that mirrors the model loop); shorting, options, LBOs, spin-offs.
+- **Now:**
+  - the model loop against seven rival labs (language, image and, from year three, video);
+  - deal flow on the Desk (enterprise contracts, app distribution deals, data deals, poaching, licensing, cloud commitments) and side projects (fine-tunes and distills);
+  - a ten-year progression: a research budget, techniques and architectures arriving through year ten, two new markets, benchmarks that saturate and get replaced, ten different yearly races, and four endings (you built AGI, a rival did, vertical monopoly, the final rich list);
+  - the raider layer and the supply chain;
+  - running a chip company by hand, and building your own datacenters.
+- **Next:** counter-bids and bankruptcy auctions; shorting, options, LBOs, spin-offs.

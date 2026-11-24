@@ -30,6 +30,10 @@ export interface LabState {
   history: string[];
   maxCompute: number;
   raceWins: number;
+  /** Research budget: share of weekly revenue, points saved up, and the technique it is aimed at. */
+  research: { rate: number; points: number; aim: Id | null };
+  /** Discounts from owning your own silicon: multipliers on training and serving compute prices. */
+  hw: { train: number; infer: number };
   /** What this lab paid per compute-week last week, after contracts and owned clouds. */
   cuPrice: number;
   /** Compute used last week: training plus serving. */
@@ -44,6 +48,22 @@ export interface Plant {
   capex: 0 | 1 | 2; // build rate: coast, steady, flat out
   blocked: Id[]; // labs it refuses to serve
   decreeUntil: Week; // regulators forbid blocking until then
+  /** Chip designers: how good their current chip is, relative to the first-year part (1). */
+  gen?: number;
+}
+
+/** A chip design. Node: last year's process or the newest; die size; memory; what it is best at. */
+export interface ChipBlueprint { node: 0 | 1; die: 0 | 1 | 2; memory: 0 | 1; focus: 'train' | 'infer'; budget: number; weeks: 8 | 10 | 12 }
+export interface ChipRun {
+  id: Id; company: Id; name: string; bp: ChipBlueprint;
+  start: Week; weeksPlanned: number; weeksDone: number; spent: number;
+  /** Hidden: true performance (relative to the incumbent part) and yield. The UI goes through chips.ts views. */
+  truth: { perf: number; yld: number };
+  belief: { perf: number; yld: number };
+  mods: { perf: number; yld: number; reveal: number };
+  sd0: number; revealed: number;
+  call: Call | null; outcome: Outcome | null; seen: Id[]; flags: Id[];
+  status: 'running' | 'dead' | 'shipped';
 }
 /** A take-or-pay compute contract between a lab and the cloud layer. */
 export interface Contract { lab: Id; units: number; price: number; until: Week }
@@ -125,7 +145,9 @@ export type Fx =
   | { k: 'dataLevel'; kind: string }
   | { k: 'contract'; units: number; price: number; weeks: number }
   | { k: 'license'; model: Id; to: Id }
-  | { k: 'rival'; co: Id; talent: number };
+  | { k: 'rival'; co: Id; talent: number }
+  // Chip designs.
+  | { k: 'yield'; n: number };
 
 export interface CallOption { label: string; note: string; fx: Fx[] }
 export interface Call { def: Id; title: string; body: string; options: CallOption[] }
@@ -167,6 +189,8 @@ export interface Segment {
   id: Id; size: number; fit0: number;
   share: Record<Id, number>; // lab id -> share of the segment; the rest is unserved
   accounts: (Id | null)[]; // which lab each named account buys from
+  /** Which benchmark generation is current (0 = the original). */
+  gen: number;
 }
 
 export type Verdict = 'banger' | 'solid' | 'as expected' | 'mid' | 'dud';
@@ -177,9 +201,10 @@ export type Moment =
       quirks: Id[]; flips: { account: string; seg: Id; from: Id | null }[]; rev: number; profit: number;
       move: number; rivalMoves: { co: Id; pct: number }[]; promise: 'hit' | 'miss' | null; scandal: boolean }
   | { kind: 'race'; race: Id; year: number; standings: { co: Id; score: number }[]; prize: number }
-  | { kind: 'end'; standings: { id: Id; name: string; worth: number }[] }
+  | { kind: 'end'; ending: 'rich' | 'agi' | 'agiLost' | 'stack'; standings: { id: Id; name: string; worth: number }[] }
   | { kind: 'deal'; bidder: Id; bidderName: string; target: Id; targetName: string; merge: boolean; got: number; outcome: 'won' | 'short' | 'blocked'; paid: number; mine: boolean }
   | { kind: 'ousted'; by: string; lab: string }
+  | { kind: 'chip'; chip: Id; company: Id; perf: number; yld: number; eff: number; lo: number; hi: number; incumbent: number; capacity: number; discount: number | null; focus: 'train' | 'infer' }
   | { kind: 'variant'; model: Id; from: Id; rows: { seg: Id; before: number; after: number }[]; costBefore: number; rev: number }
   | { kind: 'over'; reason: string };
 
@@ -205,6 +230,10 @@ export interface GameState {
   offers: Offer[];
   agreements: Agreement[];
   projects: Project[];
+  /** Week a technique goes public early because a lab shipped with it. */
+  leaks: Record<Id, Week>;
+  chips: Record<Id, ChipRun>;
+  endings: string[];
   /** Hidden truths the player has discovered: 'syn:a:b', 'dq:web'. Value 1 = known. */
   known: Record<string, number>;
   standing: Record<Id, number>; // call def id -> option index to auto-pick
@@ -237,4 +266,8 @@ export type Action =
   | { t: 'lever'; company: Id; posture?: -1 | 0 | 1; capex?: 0 | 1 | 2; block?: Id }
   | { t: 'answerOffer'; offer: Id; option: number }
   | { t: 'project'; model: Id; kind: 'tune' | 'distill'; seg: Id | null }
+  | { t: 'research'; rate?: number; aim?: Id | null }
+  | { t: 'startChip'; company: Id; bp: ChipBlueprint; name: string }
+  | { t: 'answerChip'; chip: Id; option: number }
+  | { t: 'datacenter'; units: number }
   | { t: 'tutorial'; step: number };

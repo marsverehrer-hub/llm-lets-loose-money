@@ -138,6 +138,48 @@ for (const vp of VIEWPORTS) {
   await page.click('.tabs button:has-text("Market")');
   await page.click('text=Why they buy');
   await shot('8-market-why');
+  // Research: turn on a budget and look at the card.
+  await page.click('.tabs button:has-text("Lab")');
+  await page.click('button:has-text("5% of revenue")');
+  await page.locator('.card:has(h2:text-is("Research"))').scrollIntoViewIfNeeded();
+  await shot('9-research');
+  // A chip company: hand the player control of one (the smoke test skips buying it), design a chip, ship it.
+  await page.evaluate(() => { const s = window.__game.get(); s.holdings.push({ owner: 'you', company: 'excuses', shares: 0.6 * s.companies.excuses.shares }); s.companies.excuses.cash = 1e9; });
+  await page.click('.tabs button:has-text("Street")');
+  await page.click('button[aria-label="Open Advanced Micro Excuses"]');
+  await page.click('#design-chip');
+  await shot('9-chip-design');
+  await page.click('#chip-go');
+  await page.click('.tabs button:has-text("Desk")');
+  for (let i = 0; i < 90 && !(await page.locator('.moment').count()); i++) {
+    const offer = page.locator('.offer .option:not([disabled])').last();
+    const call = page.locator('.call .option').first();
+    if (await offer.count()) await offer.click();
+    else if (await call.count()) { if (i < 3) await shot('9-chip-call'); await call.click(); }
+    else await page.click('#end-week');
+  }
+  await shot('9-first-silicon');
+  while (await page.locator('#moment-ok').count()) await page.click('#moment-ok');
+  // Jump to year five: a new market, rolled-over benchmarks, a later race.
+  await page.evaluate(() => {
+    const g = window.__game;
+    for (let i = 0; i < 400; i++) {
+      const s = g.get();
+      if (s.week >= 200) break;
+      s.companies[s.labId].cash = Math.max(s.companies[s.labId].cash, 50e6); // keep the idle smoke-test lab solvent
+      while (g.get().moments.length) g.act({ t: 'dismissMoment' });
+      const t = g.get();
+      for (const d of t.deals) if (d.target === t.labId && d.playerTenders === null) g.act({ t: 'defend', deal: d.id, choice: 'refuse' });
+      for (const o of t.offers) g.act({ t: 'answerOffer', offer: o.id, option: o.call.options.length - 1 });
+      const run = Object.values(g.get().runs).find((r) => r.lab === t.labId && r.status === 'running' && r.call);
+      if (run) g.act({ t: 'answerCall', run: run.id, option: 0 }); else g.nextWeek();
+    }
+    while (g.get().moments.length) g.act({ t: 'dismissMoment' });
+  });
+  await page.click('.tabs button:has-text("Desk")');
+  await shot('10-year5-desk');
+  await page.click('.tabs button:has-text("Market")');
+  await shot('10-year5-market');
   await ctx.close();
 }
 await browser.close();

@@ -2,10 +2,13 @@
 import type { JSX } from 'preact';
 import type { GameState, Moment } from '../sim/types';
 import { MODALITIES, SEGMENTS } from '../sim/content/modalities';
-import { quirk, RACES, VERDICT } from '../sim/content/flavor';
+import { ENDINGS, quirk, RACES, VERDICT } from '../sim/content/flavor';
+import { formatRace } from '../sim/goals';
+import { DIES, NODES } from '../sim/chips';
 import { Band, Btn, Chip, Confetti, Crown, Logo, Portrait, useCountUp, useSteps } from './kit';
 import { act, quit } from './store';
 import { coName, money, pct } from './fmt';
+import { segDef } from '../sim/demand';
 
 type Launch = Extract<Moment, { kind: 'launch' }>;
 
@@ -26,7 +29,7 @@ function LaunchReveal({ s, m }: { s: GameState; m: Launch }): JSX.Element {
       <p class="muted">{MODALITIES[model.modality].name} model · {(model.params / 1e9).toFixed(1)}B parameters</p>
       <ul class="bench reveal">
         {m.rows.map((r, i) => {
-          const def = SEGMENTS[r.seg];
+          const def = segDef(s, r.seg);
           const shown = step > i;
           return (
             <li class={shown ? 'in' : 'wait'}>
@@ -74,7 +77,7 @@ function RaceMoment({ s, m }: { s: GameState; m: Extract<Moment, { kind: 'race' 
   const race = RACES.find((r) => r.id === m.race)!;
   const [step] = useSteps(m.standings.length, 250);
   const won = m.standings[0]?.co === s.labId;
-  const fmt = (x: number): string => (race.metric === 'revenue' ? money(x) : race.metric === 'crowns' ? `${x}` : x.toFixed(1));
+  const fmt = (x: number): string => formatRace(race, x);
   return (
     <div class="moment">
       {won && <Confetti />}
@@ -104,15 +107,40 @@ function EndMoment({ s, m }: { s: GameState; m: Extract<Moment, { kind: 'end' }>
   const rank = m.standings.findIndex((x) => x.id === s.playerId) + 1;
   return (
     <div class="moment">
-      {rank === 1 && <Confetti />}
-      <p class="eyebrow">Final standings</p>
-      <h1>{rank === 1 ? 'Richest person in AI' : rank <= 3 ? `You finished #${rank} on the rich list` : `You finished #${rank}. The Street is unmoved.`}</h1>
+      {(rank === 1 || m.ending === 'agi' || m.ending === 'stack') && <Confetti />}
+      <p class="eyebrow">{ENDINGS[m.ending].title}</p>
+      <h1>{m.ending === 'rich' ? (rank === 1 ? 'Richest person in AI' : rank <= 3 ? `You finished #${rank} on the rich list` : `You finished #${rank}. The Street is unmoved.`) : ENDINGS[m.ending].title}</h1>
+      <p class="muted">{ENDINGS[m.ending].line}{m.ending !== 'rich' ? ' The game goes on; here is the rich list right now.' : ''}</p>
       <ol class="standings big">
         {m.standings.map((x, i) => (
           <li class={`in ${x.id === s.playerId ? 'me' : ''}`}><span class="rank">{i + 1}</span><Portrait name={x.id === s.playerId ? 'you' : x.name} style="follower" mood={i === 0 ? 'smug' : 'neutral'} size={36} /><span class="grow">{x.name}</span><b>{money(x.worth)}</b></li>
         ))}
       </ol>
       <div class="moment-foot row"><Btn kind="ghost" onClick={() => quit()}>New game</Btn><Btn kind="primary" id="moment-ok" onClick={() => act({ t: 'dismissMoment' })}>Keep playing</Btn></div>
+    </div>
+  );
+}
+
+function ChipMoment({ s, m }: { s: GameState; m: Extract<Moment, { kind: 'chip' }> }): JSX.Element {
+  const [step, finish] = useSteps(3, 800);
+  const c = s.chips[m.chip], win = m.eff >= 1;
+  return (
+    <div class="moment" onClick={() => { if (step < 3) finish(); }}>
+      {step >= 3 && win && <Confetti />}
+      <p class="eyebrow">First silicon</p>
+      <h1>{c?.name ?? 'A new chip'}</h1>
+      <p class="muted">{s.companies[m.company]?.name} · {c ? `${NODES[c.bp.node].toLowerCase()}, ${DIES[c.bp.die].toLowerCase()}` : ''}</p>
+      <ul class="bench reveal">
+        <li class={step >= 1 ? 'in' : 'wait'}><div class="row"><span class="grow"><b>Performance</b></span>{step >= 1 ? <span class="score">×{m.perf.toFixed(2)}</span> : <span class="muted">…</span>}</div></li>
+        <li class={step >= 2 ? 'in' : 'wait'}><div class="row"><span class="grow"><b>Yield</b></span>{step >= 2 ? <span class={m.yld >= 0.6 ? 'good score' : 'bad score'}>{Math.round(m.yld * 100)}%</span> : <span class="muted">…</span>}</div></li>
+        <li class={step >= 3 ? 'in' : 'wait'}><div class="row"><span class="grow"><b>Against the market leader</b></span>{step >= 3 ? <span class={win ? 'good score' : 'score'}>×{m.eff.toFixed(2)}</span> : <span class="muted">…</span>}</div>
+          <Band lo={m.lo * 100} mid={(m.lo + m.hi) * 50} hi={m.hi * 100} leader={100} actual={step >= 3 ? m.eff * 100 : undefined} min={50} max={180} /></li>
+      </ul>
+      {step >= 3 && <>
+        <div class={`stamp ${win ? 'banger' : 'mid'}`}><strong>{win ? 'Fastest on the market' : 'Behind the leader'}</strong><span>{win ? 'The order book fills up.' : m.capacity > 1 ? 'It still beats your old part.' : 'Your old part was better. This one sells as the budget line.'}</span></div>
+        <p class="chips center">{m.capacity > 1 && <Chip tone="good">Capacity ×{m.capacity.toFixed(2)}</Chip>}{m.discount != null && <Chip tone="good">Your {m.focus === 'infer' ? 'serving' : 'training'} costs ×{m.discount.toFixed(2)}</Chip>}</p>
+      </>}
+      <div class="moment-foot"><Btn kind="primary" id="moment-ok" onClick={() => (step >= 3 ? act({ t: 'dismissMoment' }) : finish())}>{step >= 3 ? 'Back to work' : 'Skip'}</Btn></div>
     </div>
   );
 }
@@ -149,6 +177,7 @@ export function MomentView({ s }: { s: GameState }): JSX.Element | null {
   if (m.kind === 'race') return <RaceMoment key={key} s={s} m={m} />;
   if (m.kind === 'end') return <EndMoment key={key} s={s} m={m} />;
   if (m.kind === 'deal') return <DealMoment key={key} m={m} />;
+  if (m.kind === 'chip') return <ChipMoment key={key} s={s} m={m} />;
   if (m.kind === 'variant') {
     const v = s.models[m.model], from = s.models[m.from];
     return (
@@ -158,7 +187,7 @@ export function MomentView({ s }: { s: GameState }): JSX.Element | null {
         <p class="muted">Built from {from?.name}. Serving cost {v && v.attrs.cost < m.costBefore ? `down ${Math.round((1 - v.attrs.cost / m.costBefore) * 100)}%` : 'unchanged'}. Both stay on sale; customers pick whichever suits them.</p>
         <ul class="bench reveal">
           {m.rows.map((r) => (
-            <li class="in"><div class="row"><span class="grow"><b>{SEGMENTS[r.seg].bench}</b></span>
+            <li class="in"><div class="row"><span class="grow"><b>{segDef(s, r.seg).bench}</b></span>
               <span class={r.after > r.before ? 'good score' : 'score'}>{r.before.toFixed(1)} → {r.after.toFixed(1)}</span></div></li>
           ))}
         </ul>

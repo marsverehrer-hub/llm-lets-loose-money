@@ -2,8 +2,10 @@
 import type { Blueprint, Call, Fx, GameState, Id, Model, Moment, Run, Vec, Verdict } from './types';
 import { clamp, pick, rand, randn, sum } from './rand';
 import { eligibleEmergences, resolve, RUSH, world } from './resolve';
-import { autoPrice, fitOf, leader, projectRevenue } from './demand';
-import { labPrice } from './supply';
+import { autoPrice, fitOf, leader, liveSegs, projectRevenue, segDef } from './demand';
+import { trainPrice } from './supply';
+import { leak } from './research';
+import { checkAgi } from './goals';
 import { MODALITIES, SEGMENTS, segmentsOf } from './content/modalities';
 import { CALLS, emergenceCall, finalCall, midCall, smokeCall, type CallCtx } from './content/calls';
 import { emergence, tech } from './content/tech';
@@ -53,7 +55,7 @@ export function startRun(s: GameState, labId: Id, bp: Blueprint, name: string, h
   const n = (p: string, sd: number): number => randn(s.seed, s.week, id, p) * sd;
   const run: Run = {
     id, lab: labId, name, bp, handsOn, start: s.week, weeksPlanned: bp.weeks, weeksDone: 0,
-    cuPerWeek: bp.compute / bp.weeks, spent: 0, price: labPrice(s, labId) * RUSH[bp.weeks],
+    cuPerWeek: bp.compute / bp.weeks, spent: 0, price: trainPrice(s, labId) * RUSH[bp.weeks],
     truth: { g: t.g, e: [n('e1', 1.5), n('e2', 1.5), n('e3', 1.2)], rest: t.rest.map((x, i) => x + n('ax' + i, 0.8)), attrs: t.attrs },
     belief: { g: b.g, rest: b.rest },
     mods: { mult: 1, add: [0, 0, 0, 0], trust: 0, cost: 1, speed: 1, reveal: 0 },
@@ -133,6 +135,7 @@ export function fxChips(fx: Fx[], axes: string[]): Chip[] {
     else if (f.k === 'dataLevel') out.push({ text: 'More of this data', tone: 'good' });
     else if (f.k === 'contract') out.push({ text: `${Math.round(f.units)} compute-weeks a week at ${money(f.price)}`, tone: 'good' }, { text: 'Pay even if unused', tone: 'bad' });
     else if (f.k === 'license') out.push({ text: 'They get a copy of your model', tone: 'bad' });
+    else if (f.k === 'yield') out.push({ text: `Yield ${f.n > 0 ? '+' : ''}${Math.round(f.n * 100)} points`, tone: f.n > 0 ? 'good' : 'bad' });
     else if (f.k === 'rival') out.push({ text: `Their talent ${f.talent < 0 ? 'down' : 'up'}`, tone: f.talent < 0 ? 'good' : 'bad' });
   }
   return out;
@@ -163,10 +166,10 @@ export function applyFx(s: GameState, run: Run, fx: Fx[], salt: string, roll: { 
 // --- Calls -------------------------------------------------------------------------------------------------------
 
 function ctxOf(s: GameState, run: Run): CallCtx {
-  const segs = segmentsOf(run.bp.modality);
+  const segs = liveSegs(s, run.bp.modality);
   const b = band(run);
   const proj = projectRevenue(s, run.lab, hypModel(s, run, b.mid));
-  const pivots = [...proj.rows].sort((x, y) => y.rev - x.rev).slice(0, 2).map((r) => SEGMENTS[r.seg]);
+  const pivots = [...proj.rows].sort((x, y) => y.rev - x.rev).slice(0, 2).map((r) => segDef(s, r.seg));
   // Polish the axis that matters most to the segment this model earns the most in.
   const top = pivots[0] ?? segs[0];
   const bestAxis = top.w.indexOf(Math.max(...top.w));
@@ -269,7 +272,7 @@ export function runTick(s: GameState, run: Run): void {
 export function launch(s: GameState, run: Run): Model {
   const co = s.companies[run.lab], lab = co.lab!;
   const mine = run.lab === s.labId && run.handsOn;
-  const segs = segmentsOf(run.bp.modality);
+  const segs = liveSegs(s, run.bp.modality);
   const before = band(run);
   run.revealed = 1;
   const cap = trueCap(run);
@@ -309,11 +312,13 @@ export function launch(s: GameState, run: Run): Model {
   if (run.flags.includes('published')) for (const c of Object.values(s.companies)) if (c.lab && c.id !== run.lab) c.lab.talent = clamp(c.lab.talent + 0.01, 0.7, 1.3);
   let promise: 'hit' | 'miss' | null = null;
   if (run.bp.promise) {
-    promise = fitOf(SEGMENTS[run.bp.promise.seg], cap) >= run.bp.promise.target ? 'hit' : 'miss';
+    promise = fitOf(segDef(s, run.bp.promise.seg), cap) >= run.bp.promise.target ? 'hit' : 'miss';
     lab.hype = clamp(lab.hype + (promise === 'hit' ? 0.3 : -0.3), 0, 1.5);
     lab.brand = clamp(lab.brand + (promise === 'hit' ? 0.04 : -0.06), 0, 1);
   }
   lab.lastLaunch = s.week;
+  leak(s, run.lab, run.bp.techniques);
+  checkAgi(s, model);
   lab.maxCompute = Math.max(lab.maxCompute, run.bp.compute);
   for (const k of ['arch:' + run.bp.arch, ...run.bp.techniques.map((t) => 'tech:' + t), ...run.flags.filter((f) => f.startsWith('em:'))]) if (!lab.history.includes(k)) lab.history.push(k);
 

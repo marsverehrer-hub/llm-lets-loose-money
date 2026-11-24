@@ -21,6 +21,10 @@ export const basePrice = (week: number): number => 10_000 * Math.pow(0.9885, wee
 export const suppliers = (s: GameState, layer?: Layer): Company[] => Object.values(s.companies).filter((c) => c.plant && (!layer || c.layer === layer));
 export const layerCapacity = (s: GameState, layer: Layer): number => suppliers(s, layer).reduce((a, c) => a + c.plant!.capacity, 0);
 
+/** Serving and training prices after the discount from the lab's own chips. */
+export const servePrice = (s: GameState, labId: Id): number => labPrice(s, labId) * (s.companies[labId]?.lab?.hw.infer ?? 1);
+export const trainPrice = (s: GameState, labId: Id): number => labPrice(s, labId) * (s.companies[labId]?.lab?.hw.train ?? 1);
+
 /** What a lab pays per compute-week: last week's blend of owned capacity, contract and spot. */
 export const labPrice = (s: GameState, labId: Id): number => s.companies[labId]?.lab?.cuPrice || s.market.computePrice;
 /** Clouds a lab owns outright. Only full ownership earns the at-cost transfer price. */

@@ -1,6 +1,6 @@
 // Mid-run calls. A call is plain data once made: title, body and options with effect lists.
 // Rule: in a drawn call every option does something. Numbers come from the run itself, so the right answer moves.
-import type { Call, CallOption, Fx, GameState, Id, Run, Vec } from '../types';
+import type { Call, CallOption, ChipRun, Fx, GameState, Id, Run, Vec } from '../types';
 import { MODALITIES, type SegmentDef } from './modalities';
 import { TECHS, tech, type EmergenceDef } from './tech';
 
@@ -214,3 +214,66 @@ export function emergenceCall(c: CallCtx, e: EmergenceDef): Omit<Call, 'def'> {
 }
 
 export const callDef = (id: Id): CallDef | undefined => CALLS.find((c) => c.id === id);
+
+// --- Chip tape-out calls -----------------------------------------------------------------------------------------
+
+export interface ChipCtx { s: GameState; c: ChipRun; bill: number; u: (p: string) => number }
+export interface ChipCallDef { id: Id; make: (c: ChipCtx) => Omit<Call, 'def'> }
+const yieldFx = (n: number): Fx => ({ k: 'yield', n });
+
+export const CHIP_CALLS: ChipCallDef[] = [
+  { id: 'chip.rtl', make: (c) => ({
+    title: 'A bug in the RTL', body: 'Verification found a bug in the cache controller. It only shows up under load, which is when anyone will notice.',
+    options: [
+      opt('Respin the block', 'Two weeks, done properly.', weeks(2), yieldFx(0.02)),
+      opt('Patch it in firmware', 'Works. A little slower.', mult(0.95)),
+      opt('Ship it and see', 'Maybe nobody runs that workload.', risk(0.35, [mult(0.85)], [])),
+    ] }) },
+  { id: 'chip.slot', make: (c) => ({
+    title: 'The fab wants to move your slot', body: 'A bigger customer needs wafers. Your slot can move, or you can pay to keep it.',
+    options: [
+      opt('Pay to keep the slot', 'A rush fee.', cash(-1.5 * c.bill)),
+      opt('Accept the delay', 'Two weeks later.', weeks(2)),
+      opt('Try a second-source fab', 'Cheaper, and their process is different.', risk(0.4, [yieldFx(-0.1)], [cash(0.5 * c.bill)])),
+    ] }) },
+  { id: 'chip.rival', make: (c) => ({
+    title: 'A rival announced a faster part', body: 'Their keynote had a lot of graphs with no axes. The press loved it.',
+    options: [
+      opt('Rush the tape-out', 'Beat them to market, with rougher yields.', weeks(-1), yieldFx(-0.06)),
+      opt('Add more memory', 'Bigger chip, bigger bill.', cash(-c.bill), mult(1.05)),
+      opt('Run more simulations', 'Know exactly what you have.', { k: 'reveal', frac: 0.2 }, weeks(1)),
+    ] }) },
+  { id: 'chip.power', make: () => ({
+    title: 'Power delivery problem', body: 'At full clock the chip draws more than the board can give. Something has to give.',
+    options: [
+      opt('Redesign the power grid', 'A week of layout work.', weeks(1)),
+      opt('Lower the clock', 'Slower but healthier parts.', mult(0.93), yieldFx(0.04)),
+      opt('Run it hot', 'Fans are cheap.', risk(0.35, [mult(0.9), yieldFx(-0.05)], [])),
+    ] }) },
+  { id: 'chip.verify', make: (c) => ({
+    title: 'Verification is behind', body: 'The test plan covers most of the chip. "Most" is doing a lot of work in that sentence.',
+    options: [
+      opt('Buy emulator time', 'Expensive, and you will know.', cash(-0.8 * c.bill), { k: 'reveal', frac: 0.25 }),
+      opt('Trust the simulations', 'They have been right before.', risk(0.3, [yieldFx(-0.08)], [])),
+      opt('Slip a week and test', 'Slow and sure.', weeks(1), yieldFx(0.03)),
+    ] }) },
+  { id: 'chip.poach', make: (c) => ({
+    title: 'Your lead architect has an offer', body: `A rival chip company wants them. They are halfway through ${c.c.name}.`,
+    options: [
+      opt('Match the offer', 'Keep the team together.', cash(-c.bill)),
+      opt('Let them go', 'The deputy takes over.', mult(0.95), weeks(1)),
+      opt('Promise them the next chip', 'Cheap, if they believe you.', risk(0.4, [mult(0.92)], [])),
+    ] }) },
+];
+
+export function chipFinalCall(c: ChipCtx): Omit<Call, 'def'> {
+  const again = c.c.flags.includes('respun');
+  return {
+    title: 'First silicon is back', body: again ? 'The respin is back from the fab.' : 'The first wafers are back from the fab. The lab smells of solder and nerves.',
+    options: [
+      opt('Ship it', 'Launch the part.', { k: 'ship' }),
+      ...(again ? [] : [opt('Respin', 'Three more weeks; fixes most of what is broken.', weeks(3), cash(-c.bill), { k: 'flag', id: 'respun' } as Fx, risk(0.25, [], [yieldFx(0.08)]))]),
+      opt('Bin the weak parts', 'Sell slower chips that work.', yieldFx(0.1), mult(0.9), { k: 'ship' }),
+    ],
+  };
+}

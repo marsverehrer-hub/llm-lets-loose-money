@@ -10,6 +10,8 @@ import { runTick } from './run';
 import { dividends, ordersTick, tycoonTick } from './stock';
 import { supplyTick } from './supply';
 import { agreementsTick, appsTick, offersTick, projectsTick } from './offers';
+import { publicWeek, researchTick, worldTick } from './research';
+import { chipsTick } from './chips';
 import { MODALITIES } from './content/modalities';
 import { TECHS } from './content/tech';
 import { FILLER_NEWS } from './content/flavor';
@@ -20,7 +22,9 @@ export function blocker(s: GameState): string | null {
   if (s.moments.length) return 'Something is waiting for you.';
   if (s.deals.some((d) => d.target === s.labId && d.playerTenders === null)) return 'Someone is bidding for your lab. Answer them.';
   const run = Object.values(s.runs).find((r) => r.status === 'running' && r.handsOn && r.call);
-  return run ? `${run.name} needs a decision.` : null;
+  if (run) return `${run.name} needs a decision.`;
+  const chip = Object.values(s.chips).find((c) => c.status === 'running' && c.call);
+  return chip ? `${chip.name} needs a decision.` : null;
 }
 
 export function endWeek(s0: GameState): GameState {
@@ -43,6 +47,7 @@ export function endWeek(s0: GameState): GameState {
     use[run.lab] = (use[run.lab] ?? 0) + run.cuPerWeek;
   }
   projectsTick(s);
+  chipsTick(s);
   // 7 demand: apps pick partners, shares drift to targets, accounts switch.
   appsTick(s);
   const flow = demandTick(s);
@@ -51,6 +56,7 @@ export function endWeek(s0: GameState): GameState {
   Object.assign(flow, supplyTick(s, use));
   // 8 books
   agreementsTick(s, flow);
+  researchTick(s, flow);
   booksTick(s, flow, trainSpend);
   dividends(s);
   // 9 deals: bids that are due close; a weak, diluted player may get raided.
@@ -66,7 +72,8 @@ export function endWeek(s0: GameState): GameState {
   // Hype fades fast; star hires drift away slowly.
   for (const co of Object.values(s.companies)) if (co.lab) { co.lab.hype *= 0.93; co.lab.talent += 0.01 * (1 - co.lab.talent); }
   s.week++;
-  for (const t of TECHS) if (t.week === s.week && t.week > 0) s.log.push({ week: s.week - 1, tone: 'info', text: `${t.name} is now public knowledge. Every lab can use it.` });
+  worldTick(s);
+  for (const t of TECHS) if (publicWeek(s, t) === s.week && t.week > 0) s.log.push({ week: s.week - 1, tone: 'info', text: `${t.name} is now public knowledge. Every lab can use it.` });
   for (const m of Object.values(MODALITIES)) if (m.unlockWeek === s.week && s.week > 0) s.log.push({ week: s.week - 1, tone: 'good', text: `${m.name} models are now possible. A new market opens with nobody in it.` });
   if (rand(s.seed, s.week, 'news', 'filler') < 0.35) s.log.push({ week: s.week - 1, tone: 'info', text: pick(FILLER_NEWS, rand(s.seed, s.week, 'news', 'which')) });
   offersTick(s);

@@ -1,9 +1,9 @@
 // Deal flow: offers on the Desk, the agreements they create, app partnerships, and side projects on shipped models.
 import type { Agreement, Fx, GameState, Id, Model } from './types';
 import { clamp, rand, randn, sum } from './rand';
-import { autoPrice, fitOf, leader, projectRevenue } from './demand';
+import { autoPrice, fitOf, leader, liveSegs, projectRevenue, segDef } from './demand';
 import { money } from './run';
-import { labPrice, playerControls } from './supply';
+import { playerControls, trainPrice } from './supply';
 import { SEGMENTS, segmentsOf } from './content/modalities';
 import { OFFERS } from './content/offers';
 
@@ -99,7 +99,7 @@ export function agreementsTick(s: GameState, flow: Record<Id, { rev: number; cog
     const co = s.companies[a.lab];
     if (!co) continue;
     if (a.kind === 'supply') {
-      const def = SEGMENTS[a.seg!];
+      const def = segDef(s, a.seg!);
       const best = Object.values(s.models).filter((m) => m.lab === a.lab && !m.retired && m.modality === def.modality).reduce((b, m) => Math.max(b, fitOf(def, m.cap)), 0);
       if (!a.met && best >= a.target!) {
         a.met = true;
@@ -126,7 +126,7 @@ export function agreementsTick(s: GameState, flow: Record<Id, { rev: number; cog
 // --- Side projects ----------------------------------------------------------------------------------------------
 
 export const PROJECT_WEEKS = { tune: 2, distill: 3 };
-export const projectCost = (s: GameState, m: Model, kind: 'tune' | 'distill'): number => (kind === 'tune' ? 0.08 : 0.12) * m.compute * labPrice(s, m.lab);
+export const projectCost = (s: GameState, m: Model, kind: 'tune' | 'distill'): number => (kind === 'tune' ? 0.08 : 0.12) * m.compute * trainPrice(s, m.lab);
 
 export function projectCheck(s: GameState, modelId: Id, kind: 'tune' | 'distill', seg: Id | null): string | null {
   const m = s.models[modelId];
@@ -152,7 +152,7 @@ export function projectsTick(s: GameState): void {
     const n = (k: string): number => randn(s.seed, s.week, p.id, k);
     const v: Model = { ...structuredClone(m), id: 'm' + s.nextId++, shipped: s.week, variantOf: m.id, quirks: [...m.quirks] };
     if (p.kind === 'tune') {
-      const def = SEGMENTS[p.seg!];
+      const def = segDef(s, p.seg!);
       v.cap = m.cap.map((c, i) => c + 10 * (def.w[i] - 0.25) + 0.5 + 0.8 * n('t' + i));
       v.name = `${m.name} ${def.name.split(/[ &]/)[0]}`;
     } else {
@@ -167,7 +167,7 @@ export function projectsTick(s: GameState): void {
     s.log.push({ week: s.week, co: p.lab, tone: 'good', text: `${s.companies[p.lab].name} ships ${v.name}.` });
     if (p.lab === s.labId) s.moments.push({
       kind: 'variant', model: v.id, from: m.id, costBefore: m.attrs.cost, rev: projectRevenue(s, s.labId).rev,
-      rows: segmentsOf(m.modality).map((d) => ({ seg: d.id, before: fitOf(d, m.cap), after: fitOf(d, v.cap) })),
+      rows: liveSegs(s, m.modality).map((d) => ({ seg: d.id, before: fitOf(d, m.cap), after: fitOf(d, v.cap) })),
     });
   }
 }

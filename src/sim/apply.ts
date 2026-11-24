@@ -6,8 +6,10 @@ import { PRICE_STEPS } from './demand';
 import { RUSH, validate } from './resolve';
 import { answerCall, money, startRun } from './run';
 import { floatOf, quote, stake, trade, tradeCheck } from './stock';
-import { CONTRACT_WEEKS, contractCheck, contractPrice, labPrice, playerControls } from './supply';
+import { CONTRACT_WEEKS, contractCheck, contractPrice, playerControls, trainPrice } from './supply';
 import { answerOffer, projectCheck, startProject, upfront } from './offers';
+import { RATES, researchable } from './research';
+import { answerChip, buildDatacenter, chipCheck, datacenterCheck, startChip } from './chips';
 import { MODALITIES } from './content/modalities';
 
 export const dataCost = (s: GameState, base: number, level: number): number => base * (level + 1) * Math.pow(1.5, Math.floor(s.week / 48));
@@ -15,7 +17,7 @@ export const handsOnRun = (s: GameState) => Object.values(s.runs).find((r) => r.
 export const BUYBACK = 0.03; // of shares outstanding
 export const PAYOUTS = [0, 0.1, 0.25, 0.5];
 /** Actions that need you to be running the lab, not just owning shares in it. */
-const HELM = new Set<Action['t']>(['startRun', 'answerCall', 'setPrice', 'retire', 'buyData', 'raise', 'buyback', 'borrow', 'payout', 'contract', 'answerOffer', 'project']);
+const HELM = new Set<Action['t']>(['startRun', 'answerCall', 'setPrice', 'retire', 'buyData', 'raise', 'buyback', 'borrow', 'payout', 'contract', 'answerOffer', 'project', 'research', 'datacenter']);
 
 /** Why an action is not allowed, or null. The UI uses this to disable buttons with a reason. */
 export function check(s: GameState, a: Action): string | null {
@@ -27,7 +29,7 @@ export function check(s: GameState, a: Action): string | null {
     if (!a.name.trim()) return 'Give the model a codename.';
     const err = validate(s, s.labId, a.bp);
     if (err) return err;
-    const first = (a.bp.compute / a.bp.weeks) * labPrice(s, s.labId) * RUSH[a.bp.weeks];
+    const first = (a.bp.compute / a.bp.weeks) * trainPrice(s, s.labId) * RUSH[a.bp.weeks];
     if (co.cash < first) return `You cannot cover the first week (${money(first)}).`;
   }
   if (a.t === 'answerCall') { const r = s.runs[a.run]; if (!r?.call?.options[a.option]) return 'No such option.'; }
@@ -81,6 +83,13 @@ export function check(s: GameState, a: Action): string | null {
     if (upfront(opt.fx) > Math.max(0, co.cash)) return `The lab cannot pay ${money(upfront(opt.fx))} right now.`;
   }
   if (a.t === 'project') return projectCheck(s, a.model, a.kind, a.seg);
+  if (a.t === 'startChip') return chipCheck(s, a.company, a.bp, a.name);
+  if (a.t === 'answerChip' && !s.chips[a.chip]?.call?.options[a.option]) return 'No such option.';
+  if (a.t === 'datacenter') return datacenterCheck(s, a.units);
+  if (a.t === 'research') {
+    if (a.rate != null && !RATES.includes(a.rate)) return 'Pick a research budget.';
+    if (a.aim && !researchable(s, s.labId).some((t) => t.id === a.aim)) return 'That cannot be researched now.';
+  }
   if (a.t === 'dismissMoment' && !s.moments.length) return 'Nothing to dismiss.';
   return null;
 }
@@ -153,6 +162,10 @@ export function apply(s0: GameState, a: Action): GameState {
     }
     case 'answerOffer': answerOffer(s, a.offer, a.option); break;
     case 'project': startProject(s, a.model, a.kind, a.seg); break;
+    case 'research': if (a.rate != null) co.lab!.research.rate = a.rate; if (a.aim !== undefined) co.lab!.research.aim = a.aim; break;
+    case 'startChip': startChip(s, a.company, a.bp, a.name.trim()); break;
+    case 'answerChip': answerChip(s, a.chip, a.option); break;
+    case 'datacenter': buildDatacenter(s, a.units); break;
     case 'tutorial': s.tutorial = a.step; break;
   }
   return s;

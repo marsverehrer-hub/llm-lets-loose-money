@@ -3,7 +3,7 @@ import type { Call, CallOption, Company, Fx, GameState, Id } from '../types';
 import { pick } from '../rand';
 import { dataCost } from '../apply';
 import { marketCap } from '../books';
-import { fitOf, leader } from '../demand';
+import { fitOf, leader, segDef } from '../demand';
 import { money } from '../run';
 import { suppliers } from '../supply';
 import { MODALITIES, SEGMENTS } from './modalities';
@@ -16,9 +16,9 @@ export interface OfferDef { id: Id; big: boolean; weight: (c: OfferCtx) => numbe
 const opt = (label: string, note: string, ...fx: Fx[]): CallOption => ({ label, note, fx });
 const no = (label = 'Decline', note = 'Not this time.'): CallOption => ({ label, note, fx: [] });
 const myModels = (s: GameState) => Object.values(s.models).filter((m) => m.lab === s.labId && !m.retired);
-const bestFit = (s: GameState, segId: Id): number => myModels(s).filter((m) => m.modality === SEGMENTS[segId].modality).reduce((b, m) => Math.max(b, fitOf(SEGMENTS[segId], m.cap)), 0);
+const bestFit = (s: GameState, segId: Id): number => myModels(s).filter((m) => m.modality === segDef(s, segId).modality).reduce((b, m) => Math.max(b, fitOf(segDef(s, segId), m.cap)), 0);
 const rivals = (s: GameState) => Object.values(s.companies).filter((c) => c.lab && c.id !== s.labId);
-const mySegs = (s: GameState): Id[] => Object.keys(s.segments).filter((id) => myModels(s).some((m) => m.modality === SEGMENTS[id].modality));
+const mySegs = (s: GameState): Id[] => Object.keys(s.segments).filter((id) => myModels(s).some((m) => m.modality === segDef(s, id).modality));
 const r1 = (x: number): number => Math.round(x);
 
 export const OFFERS: OfferDef[] = [
@@ -26,7 +26,7 @@ export const OFFERS: OfferDef[] = [
     const s = c.s;
     const segs = mySegs(s);
     if (!segs.length) return null;
-    const segId = pick(segs, c.u('seg')), def = SEGMENTS[segId];
+    const segId = pick(segs, c.u('seg')), def = segDef(s, segId);
     const account = pick(def.accounts, c.u('acct'));
     const target = r1(Math.max(bestFit(s, segId), leader(s, segId).fit - 3) + 2 + 4 * c.u('target'));
     const due = 6 + Math.floor(8 * c.u('due'));
@@ -46,9 +46,9 @@ export const OFFERS: OfferDef[] = [
     const apps = Object.values(s.companies).filter((x) => x.app && x.app.partner !== s.labId && x.app.until - s.week <= 6 && Object.keys(x.app.reach).some((k) => segs.has(k)));
     if (!apps.length) return null;
     const app = pick(apps, c.u('app'));
-    const value = Object.entries(app.app!.reach).reduce((a, [k, r]) => a + (segs.has(k) ? r * s.segments[k].size * SEGMENTS[k].pRef : 0), 0);
+    const value = Object.entries(app.app!.reach).reduce((a, [k, r]) => a + (segs.has(k) ? r * s.segments[k].size * segDef(s, k).pRef : 0), 0);
     const fee = Math.round((8 * value) / 1e5) * 1e5;
-    const where = Object.keys(app.app!.reach).map((k) => SEGMENTS[k].name.toLowerCase()).join(' and ');
+    const where = Object.keys(app.app!.reach).map((k) => segDef(s, k).name.toLowerCase()).join(' and ');
     return { from: app.id, call: {
       title: `${app.name} is picking a default model`, body: `Its ${where} users go to whatever it ships by default. ${app.app!.partner ? `Today that is ${s.companies[app.app!.partner]?.name ?? 'nobody'}.` : 'Right now nobody.'} The deal runs a year.`,
       options: [

@@ -2,10 +2,10 @@
 import type { Attrs, Blueprint, GameState, Id, Run, Vec } from './types';
 import { sum } from './rand';
 import { check } from './apply';
-import { autoPrice, fitOf, leader, projectRevenue, type Projection } from './demand';
+import { autoPrice, fitOf, leader, liveSegs, type Projection, projectRevenue } from './demand';
 import { resolve, RUSH, world } from './resolve';
 import { band, hypModel, weeklyCost } from './run';
-import { labPrice } from './supply';
+import { servePrice, trainPrice } from './supply';
 import { MODALITIES, segmentsOf } from './content/modalities';
 import { tech } from './content/tech';
 
@@ -23,7 +23,7 @@ export interface Forecast {
 const shift = (cap: Vec, d: number): Vec => cap.map((x) => x + d);
 
 function benchRows(s: GameState, labId: Id, m: Blueprint['modality'], mid: Vec, sd: number): BenchRow[] {
-  return segmentsOf(m).map((d) => {
+  return liveSegs(s, m).map((d) => {
     const lead = leader(s, d.id, labId);
     const f = fitOf(d, mid);
     return { seg: d.id, lo: f - 1.3 * sd, mid: f, hi: f + 1.3 * sd, leader: lead.lab, leaderFit: lead.fit };
@@ -37,7 +37,7 @@ export function forecast(s: GameState, bp: Blueprint): Forecast {
   const b = resolve(s, s.labId, bp, 'belief');
   const cap = b.rest.map((x) => x + b.g);
   const sd = b.sd0 * (1 - 0.5 * b.r) + 0.4;
-  const weekly = (bp.compute / bp.weeks) * labPrice(s, s.labId) * RUSH[bp.weeks];
+  const weekly = (bp.compute / bp.weeks) * trainPrice(s, s.labId) * RUSH[bp.weeks];
   const hyp = (c: Vec, price = 1) => ({
     id: 'hyp:new', lab: s.labId, name: '', modality: bp.modality, cap: c, attrs: b.attrs, price, shipped: s.week, quirks: [], retired: false,
     arch: bp.arch, techniques: bp.techniques, params: b.N, verdict: 'as expected' as const, compute: bp.compute,
@@ -52,7 +52,7 @@ export function forecast(s: GameState, bp: Blueprint): Forecast {
   if (b.novelty <= 0.35 && b.r > 0.6) reasons.push('You have built this before. Experiments are mostly wasted here.');
   if (b.repeat > 0.15) reasons.push(`${Math.round(b.repeat * 100)}% of the tokens are repeats. License more data, shift the mix or build a bigger model.`);
   if (b.instab > 0.5) reasons.push('Unstable recipe: expect more incidents mid-run.');
-  if (b.attrs.cost * labPrice(s, s.labId) > 0.8 * 400) reasons.push('Too costly to serve cheap segments. It will only sell where prices are high.');
+  if (b.attrs.cost * servePrice(s, s.labId) > 0.8 * 400) reasons.push('Too costly to serve cheap segments. It will only sell where prices are high.');
   return {
     error: check(s, { t: 'startRun', bp, name: 'x' }),
     weeklyCost: weekly, totalCost: weekly * bp.weeks, cap, sd, attrs: b.attrs, rows: benchRows(s, s.labId, bp.modality, cap, sd),

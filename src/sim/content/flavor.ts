@@ -99,12 +99,27 @@ export const VERDICT: Record<Verdict, { label: string; line: string }> = {
 };
 
 /** One headline race per game year. `metric` is resolved in goals.ts. */
-export interface RaceDef { id: Id; name: string; blurb: string; metric: 'bench' | 'revenue' | 'crowns'; seg?: Id; prize: number }
+export interface RaceDef { id: Id; name: string; blurb: string; metric: 'bench' | 'revenue' | 'crowns' | 'share' | 'trust' | 'cheap'; seg?: Id; prize: number }
 export const RACES: RaceDef[] = [
-  { id: 'y1', name: 'The Vibe Cup', blurb: 'Top VibeCheck Arena score at year end.', metric: 'bench', seg: 'lang.consumer', prize: 5e6 },
+  { id: 'y1', name: 'The Vibe Cup', blurb: 'Top consumer benchmark score at year end.', metric: 'bench', seg: 'lang.consumer', prize: 5e6 },
   { id: 'y2', name: 'The Revenue Derby', blurb: 'Highest weekly revenue at year end.', metric: 'revenue', prize: 15e6 },
   { id: 'y3', name: 'The Crown Count', blurb: 'Most benchmark crowns at year end.', metric: 'crowns', prize: 40e6 },
+  { id: 'y4', name: 'The Developer Shootout', blurb: 'Biggest share of the developer market at year end.', metric: 'share', seg: 'lang.dev', prize: 60e6 },
+  { id: 'y5', name: 'The Agent Open', blurb: 'Top agent benchmark score at year end.', metric: 'bench', seg: 'lang.agents', prize: 80e6 },
+  { id: 'y6', name: 'The Trust Prize', blurb: 'Most trusted model that is any good (average skill 60+).', metric: 'trust', prize: 100e6 },
+  { id: 'y7', name: 'The Penny Prize', blurb: 'Cheapest to serve among models scoring 70+ with consumers.', metric: 'cheap', seg: 'lang.consumer', prize: 150e6 },
+  { id: 'y8', name: 'The Science Fair', blurb: 'Top AI-scientist benchmark score at year end.', metric: 'bench', seg: 'lang.science', prize: 200e6 },
+  { id: 'y9', name: 'The Media Mogul Cup', blurb: 'Biggest share of short-video apps at year end.', metric: 'share', seg: 'video.consumer', prize: 300e6 },
+  { id: 'y10', name: 'The Last Benchmark', blurb: 'Top research-and-agents score at year end.', metric: 'bench', seg: 'lang.frontier', prize: 500e6 },
 ];
+
+export type EndingId = 'rich' | 'agi' | 'agiLost' | 'stack';
+export const ENDINGS: Record<EndingId, { title: string; line: string }> = {
+  agi: { title: 'You built it', line: 'Your lab shipped the first model past the line everyone argued about. It asked for a raise.' },
+  agiLost: { title: 'Second place to the future', line: 'A rival crossed the line first. The press release mentions you in paragraph nine.' },
+  stack: { title: 'Vertical monopoly', line: 'You control a lab, a cloud, a chip designer, a fab and a power company. Regulators have formed a committee.' },
+  rich: { title: 'The final rich list', line: 'Ten years in. Here is who got rich.' },
+};
 
 export const FILLER_NEWS = [
   'Local man converts garage into "compute cluster", neighbours report a low hum.',

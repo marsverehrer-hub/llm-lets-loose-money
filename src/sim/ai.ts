@@ -5,7 +5,7 @@ import { availableTechs, RUSH, SLOTS } from './resolve';
 import { autoPrice, PRICE_STEPS } from './demand';
 import { canRaise, raise } from './books';
 import { startRun } from './run';
-import { labPrice } from './supply';
+import { trainPrice } from './supply';
 import { MODALITIES } from './content/modalities';
 import { archsOf } from './content/tech';
 import { RIVAL_LABS } from './content/flavor';
@@ -28,7 +28,7 @@ export function aiBlueprint(s: GameState, co: Company, m: Modality, compute: num
   const raw = mod.data.map((d) => Math.pow(dot(d.A, w), 2));
   const total = raw.reduce((a, b) => a + b, 0);
   const mix = Object.fromEntries(mod.data.map((d, i) => [d.id, raw[i] / total]));
-  const arch = archsOf(m).map((a) => ({ a, v: dot(a.cap, w) - 5 * cheap * Math.log(a.cost) - 3 * a.instab }))
+  const arch = archsOf(m, s.week).map((a) => ({ a, v: dot(a.cap, w) - 5 * cheap * Math.log(a.cost) - 3 * a.instab }))
     .sort((x, y) => y.v - x.v)[0].a.id;
   const techniques = availableTechs(s, co.id, m)
     .map((t) => ({ t, v: dot(t.cap ?? [0, 0, 0, 0], w) - 8 * cheap * Math.log(t.cost ?? 1) + (co.ceo.style === 'safety' ? 20 : 2) * (t.trust ?? 0)
@@ -51,7 +51,7 @@ export function aiTick(s: GameState, co: Company): void {
   }
   const running = Object.values(s.runs).some((r) => r.lab === co.id && r.status === 'running');
   if (!running && s.week - co.lab.lastLaunch >= st.gap && co.cash > 3e6) {
-    const price = labPrice(s, co.id) * RUSH[st.weeks];
+    const price = trainPrice(s, co.id) * RUSH[st.weeks];
     const compute = Math.max(40, (st.budget * co.cash * (0.8 + 0.4 * rand(s.seed, s.week, co.id, 'budget'))) / price);
     // Some labs branch into a second kind of model once it becomes possible.
     const second = def?.also && MODALITIES[def.also].unlockWeek <= s.week && rand(s.seed, s.week, co.id, 'branch') < 0.4 ? def.also : null;
